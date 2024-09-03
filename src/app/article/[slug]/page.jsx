@@ -26,8 +26,8 @@ export default async function Page({ params }) {
                 </Head>
                 <ArticleHeader
                   title={article.title}
-                  date={article.createdOn}
-                  exerpt={article.exerpt}
+                  // date={article.createdOn}
+                  // exerpt={article.exerpt}
                 />
                 <ArticleBody content={article.body} />
               </article>

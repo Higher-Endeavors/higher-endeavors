@@ -1,0 +1,26 @@
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
+  email TEXT UNIQUE NOT NULL,
+  name TEXT
+);
+
+CREATE TABLE IF NOT EXISTS programs (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  user_id INTEGER REFERENCES users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS exercises (
+  id SERIAL PRIMARY KEY,
+  program_id INTEGER REFERENCES programs(id),
+  name TEXT NOT NULL,
+  pairing TEXT,
+  sets INTEGER,
+  reps INTEGER,
+  load FLOAT,
+  tempo TEXT,
+  rest INTEGER,
+  notes TEXT
+);

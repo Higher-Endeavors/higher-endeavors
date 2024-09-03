@@ -3,7 +3,7 @@ import parse from 'html-react-parser';
 
 export default function ArticleBody({ content }) {
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto leading-loose">
         {parse(content)}
     </div>
   )
