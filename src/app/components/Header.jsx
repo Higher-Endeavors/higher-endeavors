@@ -7,7 +7,7 @@ import logo from '/public/LogoV2-1.svg';
 
 const Header = () => {
   return (
-    <header className="px-20 py-8 flex flex-col md:flex-row sm:flex-row justify-between">
+    <header className="px-20 py-4 flex flex-col md:flex-row sm:flex-row justify-between">
       <div>
         <a href="/">
             <Image className="logo-large" class="" src={logo} alt="Logo"/>

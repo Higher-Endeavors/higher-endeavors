@@ -22,7 +22,7 @@ module.exports = {
                 'crown-chakra': '#AA7FEA',
                 'third-eye-chakra': '#9400D3',
                 'throat-chakra': '#6666B5',
-                'heart-chakra': '#4BB543',
+                'heart-chakra': '#77DD77',
                 'solar-plexus-chakra': '#FFD700',
                 'sacral-chakra': '#FF4500',
                 'root-chakra': '#8B0000',
