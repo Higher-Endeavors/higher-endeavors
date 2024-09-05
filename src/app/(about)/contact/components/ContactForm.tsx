@@ -20,9 +20,9 @@ const Contact = () => {
         storeContact(data);
   }
 
-  useEffect(() => {
-    reset()
-  }, [isSubmitSuccessful])
+  // useEffect(() => {
+  //   reset()
+  // }, [isSubmitSuccessful])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md mx-auto">
