@@ -8,7 +8,7 @@ const StructuralBalancePage = () => {
   // Your component logic here
   return (
     <div>
-      {/* Your JSX content here */}
+      <h1>Structural Balance Page</h1>
     </div>
   );
 };

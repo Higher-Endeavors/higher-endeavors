@@ -1,11 +1,11 @@
 import Link from 'next/link';
+import Header from '../../../components/Header';
+import Footer from '../../../components/Footer';
 
 export default function StructuralBalanceLayout({ children }: { children: React.ReactNode }) {
   return (
       <div className="flex flex-col min-h-screen">
-        <header className="bg-blue-600 text-white p-4">
-          {/* Header content */}
-        </header>
+        <Header />
         <main className="flex-grow p-4">
           <nav className="text-sm mb-4">
             <ol className="list-none p-0 inline-flex">
@@ -24,9 +24,7 @@ export default function StructuralBalanceLayout({ children }: { children: React.
           </nav>
           {children}
         </main>
-        <footer className="bg-gray-200 p-4 text-center">
-          {/* Footer content */}
-        </footer>
+        <Footer />
       </div>
   );
 }
