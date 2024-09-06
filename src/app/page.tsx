@@ -10,11 +10,11 @@ export default function Home() {
 
   return (
     <div className="App">
-    <Header />
-    <HeroBanner />
-    <MissionStatement />
-    <Services />
-    <Footer />
-  </div>
+      <Header />
+      <HeroBanner />
+      <MissionStatement />
+      <Services />
+      <Footer />
+    </div>
   );
 }
