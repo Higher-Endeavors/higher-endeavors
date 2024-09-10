@@ -1,6 +1,10 @@
 import React from 'react';
 
-const ListRefLifts: React.FC = () => {
+type ListRefLiftsProps = {
+  // Add any props here if needed
+};
+
+const ListRefLifts = (props: ListRefLiftsProps): JSX.Element => {
   // Component implementation
   return (
     <div>

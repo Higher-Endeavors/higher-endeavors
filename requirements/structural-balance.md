@@ -16,7 +16,12 @@ Requirements:
 
 Back-End Requirements:
 
-1. PostGresSQL Database
+1. PostGresSQL Database (Create a hypothetical database structure.)
+
+Tables
+1. User Table: UserID, username, settings
+2. User Structural Balance Log: History of Structural Balance calculations
+2. Structural Balance: Exercises, Load
 
 Future Functionality:
 

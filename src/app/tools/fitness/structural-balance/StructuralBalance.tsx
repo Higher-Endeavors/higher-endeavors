@@ -6,7 +6,11 @@ import ListRefLifts from './components/ListRefLifts';
 import MasterLift from './components/MasterLift';
 import ListBalLifts from './components/ListBalLifts';
 
-const StructuralBalance: React.FC = () => {
+type StructuralBalanceProps = {
+  // Add any props here if needed
+};
+
+const StructuralBalance = (props: StructuralBalanceProps): JSX.Element => {
   const { user } = useUser();
   const [masterLift, setMasterLift] = useState<string>('');
   const [masterWeight, setMasterWeight] = useState<number>(0);

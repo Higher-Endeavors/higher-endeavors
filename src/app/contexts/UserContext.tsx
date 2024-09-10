@@ -1,7 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 
 interface User {
-  // Define user properties here
+  // Define user properties here, for example:
+  id: string;
+  name: string;
+  email: string;
 }
 
 interface UserContextType {
@@ -11,15 +14,27 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+interface UserProviderProps {
+  children: ReactNode;
+}
+
+export const UserProvider = ({ children }: UserProviderProps): JSX.Element => {
   // Implement your user management logic here
-  return <UserContext.Provider value={{user: null}}>{children}</UserContext.Provider>;
+  const user = null; // Replace with actual user state management
+
+  return (
+    <UserContext.Provider value={{ user }}>
+      {children}
+    </UserContext.Provider>
+  );
 };
 
-export const useUser = () => {
+export const useUser = (): UserContextType => {
   const context = useContext(UserContext);
   if (context === undefined) {
     throw new Error('useUser must be used within a UserProvider');
   }
   return context;
 };
+
+export default UserContext;

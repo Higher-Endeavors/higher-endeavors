@@ -4,7 +4,7 @@ interface EditRefLiftProps {
   id: string;
 }
 
-const EditRefLift: React.FC<EditRefLiftProps> = ({ id }) => {
+const EditRefLift = ({ id }: EditRefLiftProps): JSX.Element => {
   // Component implementation
   return (
     <div>

@@ -13,7 +13,7 @@ interface MasterLiftProps {
   onSave: () => void;
 }
 
-const MasterLift: React.FC<MasterLiftProps> = ({
+const MasterLift = ({
   masterLift,
   setMasterLift,
   masterWeight,
@@ -24,7 +24,7 @@ const MasterLift: React.FC<MasterLiftProps> = ({
   setReps,
   onCalculate,
   onSave,
-}) => {
+}: MasterLiftProps): JSX.Element => {
   return (
     <div className="space-y-4">
       <div>

@@ -7,12 +7,12 @@ interface ListBalLiftsProps {
   reps: number;
 }
 
-const ListBalLifts: React.FC<ListBalLiftsProps> = ({
+const ListBalLifts = ({
   masterLift,
   masterWeight,
   unit,
   reps,
-}) => {
+}: ListBalLiftsProps): JSX.Element => {
   // Your component logic here
 
   return (
