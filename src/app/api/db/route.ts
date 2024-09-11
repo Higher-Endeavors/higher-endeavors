@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 const Client = require("pg").Client;
 const client = new Client();
 
+//
+// This need sto be refactored into a general db function
+
+
 export async function POST(request: NextRequest) {
   const username = process.env.NEXT_PUBLIC_EMAIL_USERNAME;
   const password = process.env.NEXT_PUBLIC_EMAIL_PASSWORD;

@@ -5,7 +5,7 @@ import heroImage from "/public/Mountain-Hiking.jpg";
 const HeroBanner = () => {
   return (
     <section className="hero-banner">
-      <Image priority src={heroImage} />
+      <Image priority src={heroImage} alt="Hero Banner" />
     </section>
   );
 };
