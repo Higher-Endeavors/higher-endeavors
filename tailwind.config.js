@@ -15,7 +15,7 @@ module.exports = {
           },
         fontFamily: {
             'sans': ['New Zen', 'sans-serif'],
-            'serif': ['Merriweather', 'serif'],
+            // 'serif': ['Merriweather', 'serif'],
         },
         extend: {
             colors: {
