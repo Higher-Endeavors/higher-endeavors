@@ -47,7 +47,7 @@ const PerformanceTherapyIcon = () => (
       icon: <ToolsIcon />,
       title: 'HighEnd Tools',
       description: 'Higher Endeavors’ Tools are web-based apps and functionality that act as an extension of the “Guide to Your Ideal Self” which makes it easier and more effective for you to integrate the information learned into your daily life.',
-      link: '',
+      link: '/tools',
     },
   ];
 
