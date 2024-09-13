@@ -9,7 +9,9 @@
 }
 
 @layer base {
-  font-family: 'New Zen', sans-serif;
+  html {
+    font-family: 'new-zen', sans-serif;
+  }
 }
 
 @layer utilities {

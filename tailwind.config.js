@@ -14,8 +14,10 @@ module.exports = {
             '2xl': '1536px',
           },
         fontFamily: {
-            'sans': ['New Zen', 'sans-serif'],
+            'adobe-font': ['new-zen', 'sans-serif'],
+            // 'sans': ['New Zen', 'sans-serif'],
             // 'serif': ['Merriweather', 'serif'],
+            
         },
         extend: {
             colors: {
@@ -27,6 +29,9 @@ module.exports = {
                 'sacral-chakra': '#FF4500',
                 'root-chakra': '#8B0000',
             },
+            fontFamily: {
+                'adobe-font': ['new-zen', 'sans-serif'],
+              },
         },
     },
     plugins: [],
