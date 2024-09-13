@@ -3,7 +3,7 @@
  
 // public
 import Image from 'next/image';
-import logo from '/public/LogoV2-1.svg';
+import logo from '/public/LogoV2-2.svg';
 
 const Header = () => {
   return (
