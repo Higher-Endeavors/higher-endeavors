@@ -12,7 +12,7 @@ on:
 jobs:
 #  if_merged:
 #    if: github.event.pull_request.merged == true
-      DeployToEC2:
+      Deploy:
       name: Deploy to EC2
       runs-on: ubuntu-latest
     
