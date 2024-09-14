@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to AWS EC2
 
 on:
   push:
@@ -9,37 +9,35 @@ on:
       - closed
   workflow_dispatch:
 
+env:
+  PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  HOSTNAME: ${{secrets.SSH_HOST}}
+  USER_NAME: ${{secrets.USER_NAME}}
+
 jobs:
-#  if_merged:
-#    if: github.event.pull_request.merged == true
-      Deploy:
-      name: Deploy to EC2
-      runs-on: ubuntu-latest
+  deploy:
+    name: Deploy to EC2
+    runs-on: ubuntu-latest
     
-      steps:
-        - name: Checkout
-          uses: actions/checkout@v4.1.7
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.7
 
-        - name: Build & Deploy
-          env:
-              PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-              HOSTNAME: ${{secrets.SSH_HOST}}
-              USER_NAME: ${{secrets.USER_NAME}}
-      
-          run: |
-            echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-            ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
+    - name: Deploy & Run Build Script
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
 
-                # Now we have got the access of EC2 and we will start the deploy .
-                sudo su mark
-                cd /opt/higher-endeavors &&
-                touch test-file
-                #git checkout dev &&
-                #git fetch --all &&
-                #git reset --hard origin/dev &&
-                #git pull origin dev &&
-                #sudo npm i &&
-                #sudo npm run build &&
-                #sudo pm2 stop ./dist/index.js &&
-                #sudo pm2 start ./dist/index.js
-                '
+        # Now we have got the access of EC2 and we will start the deploy .
+        sudo su mark
+        cd /opt/higher-endeavors &&
+        touch test-file
+        #git checkout dev &&
+        #git fetch --all &&
+        #git reset --hard origin/dev &&
+        #git pull origin dev &&
+        #sudo npm i &&
+        #sudo npm run build &&
+        #sudo pm2 stop ./dist/index.js &&
+        #sudo pm2 start ./dist/index.js
+        '
