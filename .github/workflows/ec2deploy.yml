@@ -30,7 +30,7 @@ jobs:
 
         # Now we have got the access of EC2 and we will start the deploy .
         cd /opt/ &&
-        ./github-deploy.sh
+        sudo -u mark ./github-deploy.sh
         #git checkout dev &&
         #git fetch --all &&
         #git reset --hard origin/dev &&
