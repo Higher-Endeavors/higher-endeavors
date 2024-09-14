@@ -28,7 +28,7 @@ export default function ContactForm() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isErrorVisible, setIsErrorVisible] = useState(false);
-
+  
   const onSubmit = async (data: FormData) => {
     if (!turnstileToken) {
       setSubmitError('Please complete the Turnstile challenge');
@@ -36,31 +36,28 @@ export default function ContactForm() {
       return;
     }
 
-    try {
       const response = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...data, turnstileToken }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to submit form');
+      if (response.ok) {
+        reset();
+        setSubmitError(null);
+        setIsErrorVisible(false);
+        } else {
+      const errorData = await response.json();
+      if (errorData.status === 400) {
+    setSubmitError('Captcha failed. Please try again.');
+      } else if (errorData.status === 406) {
+        setSubmitError('You must use a valid email address.');
+      } else {
+        setSubmitError('A system error occurred. Please try again later.');
       }
-
-      reset();
-      setSubmitError(null);
-      setIsErrorVisible(false);
-      // Show success message
-    } catch (error) {
-      console.log('Form submission error:', error);
-      setSubmitError('An error occurred. Please try again.');
       setIsErrorVisible(true);
     }
   };
-//   useEffect(() => {
-//     reset()
-//   }, [isSubmitSuccessful])
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md mx-auto">

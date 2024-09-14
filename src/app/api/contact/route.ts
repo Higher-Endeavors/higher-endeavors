@@ -36,8 +36,17 @@ export async function POST(request: Request) {
       throw new Error("Invalid Turnstile token");
     }
   } catch (error) {
+        // Send email notification
+        await adminNoticeEmail(
+          "noreply@higherendeavors.com",
+          `Suspicious contact form submission`,
+          `
+          <p>Turnstile verification failed for email: ${email}</p>
+        `
+        );
+    
     return NextResponse.json(
-      { error: `Turnstile verification failed. Error code: ${error}` },
+      { error: `Turnstile verification failed. Error code: ${error}`, status: 400 },
       { status: 400 }
     );
   }
@@ -48,10 +57,19 @@ export async function POST(request: Request) {
   try {
     const validation = await verifalia.emailValidations.submit(email);
     if (validation?.entries[0]?.classification !== "Deliverable") {
-      return NextResponse.json(
-        { error: "Invalid email address" },
-        { status: 400 }
-      );
+        await adminNoticeEmail(
+          "noreply@higherendeavors.com",
+          `Verifalia Undeliverable Email`,
+          `
+          <p>A contact form submission was made with an undeliverable email: ${email}</p>
+        `
+        );
+    
+        return NextResponse.json(
+          { error: "Error verifying email", status: 406 },
+          { status: 406 }
+        );
+    
     }
   } catch (error) {
     // Send email notification
@@ -66,7 +84,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { error: "Error verifying email" },
+      { error: "Error verifying email", status: 500 },
       { status: 500 }
     );
   }
@@ -113,7 +131,7 @@ export async function POST(request: Request) {
     );
 
     return NextResponse.json(
-      { error: `Error storing contact in database. Error code: ${error}` },
+      { error: `Error storing contact in database. Error code: ${error}`, status: 500 },
       { status: 500 }
     );
   }
