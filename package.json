@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "dotenvx run -f .env.production -- next dev",
+    "dev": "dotenvx run -f .env.local -- next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.11.1",
+    "@marsidev/react-turnstile": "^1.0.1",
     "date-fns": "^3.6.0",
     "html-react-parser": "^5.1.13",
     "next": "14.2.7",
@@ -18,7 +19,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-hook-form": "^7.53.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "verifalia": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

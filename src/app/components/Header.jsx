@@ -3,11 +3,11 @@
  
 // public
 import Image from 'next/image';
-import logo from '/public/LogoV2-1.svg';
+import logo from '/public/LogoV2-2.svg';
 
 const Header = () => {
   return (
-    <header className="px-20 py-8 flex flex-col md:flex-row sm:flex-row justify-between">
+    <header className="px-20 py-4 flex flex-col md:flex-row sm:flex-row justify-between">
       <div>
         <a href="/">
             <Image className="logo-large" class="" src={logo} alt="Logo"/>

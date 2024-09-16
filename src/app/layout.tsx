@@ -13,7 +13,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
+      </head>
+      <body className="">{children}</body>
     </html>
   );
 }

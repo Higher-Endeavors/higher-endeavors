@@ -1,5 +1,6 @@
 import ContactForm from "./components/ContactForm";
 import Header from "@/app/components/Header";
+import Footer from "@/app/components/Footer";
 
 export default function Home() {
     return (
@@ -12,6 +13,7 @@ export default function Home() {
                 <p className="pb-6">Please fill in the form below</p>
                 <ContactForm />
             </div>
+            <Footer/>
         </div>
     );
 }

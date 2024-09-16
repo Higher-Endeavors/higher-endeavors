@@ -1,7 +1,6 @@
-import { type NextRequest, NextResponse } from 'next/server';
 const nodemailer = require('nodemailer');
 
-export async function POST(request: NextRequest) {
+export async function adminNoticeEmail(replyTo: string, subject: string, html: string) {
   const host = process.env.NEXT_PUBLIC_EMAIL_HOST
   const port = process.env.NEXT_PUBLIC_EMAIL_PORT
   const secure = (process.env.NEXT_PUBLIC_EMAIL_SECURE == "true") ? true : false
@@ -11,8 +10,7 @@ export async function POST(request: NextRequest) {
   const fromEmail = process.env.NEXT_PUBLIC_FROM_EMAIL
   const toEmail = process.env.NEXT_PUBLIC_TO_EMAIL
 
-  const { replyTo, subject, body } = await request.json();
-
+  
    const transporter = nodemailer.createTransport({
         host: host,
         port: port,
@@ -32,15 +30,13 @@ try {
         to: toEmail,
         replyTo: replyTo,
         subject: subject,
-        html: body,
+        html: html,
     })
 
-    return NextResponse.json({ message: "Success: email was sent" })
+    return "Success: email was sent"
 
 } catch (error) {
     console.log(error)
-    NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 })
-
+    return "COULD NOT SEND MESSAGE"
 }
-
 }
