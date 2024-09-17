@@ -41,7 +41,7 @@ const PerformanceTherapyIcon = () => (
       icon: <GuideIcon />,
       title: 'A Guide to Your Ideal Self',
       description: 'Our comprehensive guide integrates four key pillars: Lifestyle Management, Health, Nutrition, and Fitness, designed to support a holistic approach to living well, and achieving your ideal self. The information is concise and highly-actionable with the intent of providing you the information and tools necessary to make positive change in your life.',
-      link: '',
+      link: '/guide',
     },
     {
       icon: <ToolsIcon />,
