@@ -26,10 +26,10 @@ export default function ExerciseLog() {
       <h2 className="text-2xl font-bold mb-4">Exercise Log</h2>
       <table className="w-full border-collapse">
         <thead>
-          <tr className="bg-gray-200">
+          <tr className="bg-gray-200 text-black">
             <th className="border p-2">Exercise</th>
             <th className="border p-2">Reps</th>
-            <th className="border p-2">Load (kg)</th>
+            <th className="border p-2">Load (lbs)</th>
             <th className="border p-2">Timestamp</th>
           </tr>
         </thead>

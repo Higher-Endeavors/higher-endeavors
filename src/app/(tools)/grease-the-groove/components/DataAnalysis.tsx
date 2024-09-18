@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
@@ -10,6 +12,16 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+
+interface ChartData {
+  labels: string[];
+  datasets: {
+    label: string;
+    data: number[];
+    borderColor: string;
+    tension: number;
+  }[];
+}
 
 ChartJS.register(
   CategoryScale,
@@ -24,7 +36,7 @@ ChartJS.register(
 export default function DataAnalysis() {
   const [timeframe, setTimeframe] = useState('week');
   const [exercise, setExercise] = useState('all');
-  const [chartData, setChartData] = useState(null);
+  const [chartData, setChartData] = useState<ChartData | null>(null);
 
   useEffect(() => {
     // TODO: Fetch data from API based on timeframe and exercise
@@ -52,7 +64,7 @@ export default function DataAnalysis() {
   return (
     <div>
       <h2 className="text-2xl font-bold mb-4">Data Analysis</h2>
-      <div className="mb-4">
+      <div className="mb-4 text-black">
         <select
           value={timeframe}
           onChange={(e) => setTimeframe(e.target.value)}

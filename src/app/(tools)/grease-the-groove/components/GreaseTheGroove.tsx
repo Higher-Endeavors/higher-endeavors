@@ -1,3 +1,5 @@
+'use client';
+
 import { useState } from 'react';
 import ExerciseLog from './ExerciseLog';
 import ExerciseForm from './ExerciseForm';
@@ -8,15 +10,15 @@ export default function GreaseTheGroove() {
 
   return (
     <div>
-      <div className="flex mb-4">
+      <div className="flex mb-4 text-black">
         <button
-          className={`mr-2 px-4 py-2 rounded ${activeTab === 'log' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          className={`mr-2 px-4 py-2 rounded ${activeTab === 'log' ? 'bg-blue-500' : 'bg-gray-200'}`}
           onClick={() => setActiveTab('log')}
         >
           Log
         </button>
         <button
-          className={`px-4 py-2 rounded ${activeTab === 'analysis' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+          className={`px-4 py-2 rounded ${activeTab === 'analysis' ? 'bg-blue-500' : 'bg-gray-200'}`}
           onClick={() => setActiveTab('analysis')}
         >
           Analysis

@@ -5,7 +5,7 @@ export default function ExerciseForm() {
   const [reps, setReps] = useState('');
   const [load, setLoad] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // TODO: Implement API call to save exercise data
     console.log('Submitting:', { exercise, reps, load });
@@ -23,7 +23,7 @@ export default function ExerciseForm() {
           value={exercise}
           onChange={(e) => setExercise(e.target.value)}
           placeholder="Exercise"
-          className="border p-2 rounded"
+          className="border p-2 rounded text-black"
           required
         />
         <input
@@ -31,15 +31,15 @@ export default function ExerciseForm() {
           value={reps}
           onChange={(e) => setReps(e.target.value)}
           placeholder="Reps"
-          className="border p-2 rounded"
+          className="border p-2 rounded text-black"
           required
         />
         <input
           type="number"
           value={load}
           onChange={(e) => setLoad(e.target.value)}
-          placeholder="Load (kg)"
-          className="border p-2 rounded"
+          placeholder="Load (lbs)"
+          className="border p-2 rounded text-black"
           required
         />
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
