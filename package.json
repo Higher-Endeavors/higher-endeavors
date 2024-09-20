@@ -6,14 +6,12 @@
     "preinstall": "npx only-allow pnpm",
     "dev": "dotenvx run -f .env.local -- next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "next lint"
+    "start": "next start"
   },
   "dependencies": {
     "@dotenvx/dotenvx": "^1.14.1",
     "@marsidev/react-turnstile": "^1.0.2",
     "date-fns": "^4.1.0",
-    "eslint": "^9.11.0",
     "html-react-parser": "^5.1.16",
     "next": "14.2.13",
     "next-auth": "5.0.0-beta.21",
