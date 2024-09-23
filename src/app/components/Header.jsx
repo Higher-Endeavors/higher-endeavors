@@ -4,6 +4,7 @@
 // public
 import Image from 'next/image';
 import logo from '/public/LogoV2-2.svg';
+import SignIn from '@/app/components/sign-in.tsx';
 
 const Header = () => {
   return (
@@ -13,8 +14,11 @@ const Header = () => {
             <Image className="logo-large" class="" src={logo} alt="Logo"/>
         </a>
       </div>
-      <div className="space-x-8 flex pt-3 pl-8"> 
-        <a href=""> {/* Need to Add Login Page URL */}
+      <div>
+        <SignIn />
+      </div>
+{/*       <div className="space-x-8 flex pt-3 pl-8"> 
+        <a href="">
           <svg class="w-[32px] h-[32px] text-gray-800 dark:text-white hover:text-[#CBAACB]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
             <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm0 0a8.949 8.949 0 0 0 4.951-1.488A3.987 3.987 0 0 0 13 16h-2a3.987 3.987 0 0 0-3.951 3.512A8.948 8.948 0 0 0 12 21Zm3-11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
           </svg>
@@ -35,7 +39,7 @@ const Header = () => {
           </svg>
         </a>
       </div>
-    </header>
+ */}    </header>
   );
 };
 
