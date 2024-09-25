@@ -10,16 +10,34 @@ type LogEntry = {
 
 export default function ExerciseLog() {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // TODO: Fetch log entries from API
-    // For now, we'll use mock data
-    setLogEntries([
-      { id: 1, exercise: 'Push-ups', reps: 10, load: 0, timestamp: '2023-04-20T10:30:00Z' },
-      { id: 2, exercise: 'Pull-ups', reps: 5, load: 0, timestamp: '2023-04-20T11:15:00Z' },
-      { id: 3, exercise: 'Squats', reps: 15, load: 20, timestamp: '2023-04-20T14:00:00Z' },
-    ]);
+    async function fetchExercises() {
+      try {
+        console.log('Fetching exercises...');
+        const response = await fetch('/api/exercises');
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch exercises: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        console.log('Fetched data:', data);
+        setLogEntries(data);
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+        setError(`Failed to load exercises. Please try again later. Error: ${error.message}`);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchExercises();
   }, []);
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>{error}</div>;
 
   return (
     <div>
