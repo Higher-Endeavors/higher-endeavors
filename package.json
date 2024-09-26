@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "dotenvx run -f .env.local -- next dev",
+    "dev": "dotenvx run -f .env.production -- next dev",
     "build": "next build",
     "start": "next start"
   },
