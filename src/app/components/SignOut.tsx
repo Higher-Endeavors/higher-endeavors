@@ -14,6 +14,6 @@ import { signOut } from "@/app/auth"
   )
 }  */
  
-export function SignOut() {
+export default function SignOut() {
   return <button onClick={() => signOut()}>Sign Out</button>
 }
