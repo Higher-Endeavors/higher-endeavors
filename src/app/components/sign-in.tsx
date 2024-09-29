@@ -1,6 +1,14 @@
-"use client"
-import { signIn } from "next-auth/react"
+import { signIn } from "@/app/auth"
  
 export default function SignIn() {
-  return <button onClick={() => signIn("cognito", { redirectTo: "/" })}>Signin with Cognito</button>
-}
+  return (
+    <form
+      action={async () => {
+        "use server"
+        await signIn("cognito")
+      }}
+    >
+      <button type="submit">Signin with Cognito</button>
+    </form>
+  )
+} 
