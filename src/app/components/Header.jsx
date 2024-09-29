@@ -4,8 +4,8 @@
 // public
 import Image from 'next/image';
 import logo from '/public/LogoV2-2.svg';
-import SignIn from '@/app/components/sign-in.tsx';
-
+import SignIn from '@/app/components/SignIn.tsx';
+import SignOut from '@/app/components/SignOut.tsx';
 const Header = () => {
   return (
     <header className="px-20 py-4 flex flex-col md:flex-row sm:flex-row justify-between">
@@ -16,6 +16,9 @@ const Header = () => {
       </div>
       <div>
         <SignIn />
+      </div>
+      <div>
+        <SignOut />
       </div>
 {/*       <div className="space-x-8 flex pt-3 pl-8"> 
         <a href="">
