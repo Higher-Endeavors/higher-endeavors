@@ -1,7 +1,7 @@
-"use client"
+//"use client"
 import { signOut } from "@/app/auth"
  
-/* export default function SignOut() {
+ export default function SignOut() {
   return (
     <form
       action={async () => {
@@ -12,8 +12,8 @@ import { signOut } from "@/app/auth"
       <button type="submit">Signout</button>
     </form>
   )
-}  */
- 
-export default function SignOut() {
-  return <button onClick={() => signOut()}>Sign Out</button>
 }
+ 
+/* export default function SignOut() {
+  return <button onClick={() => signOut()}>Sign Out</button>
+} */

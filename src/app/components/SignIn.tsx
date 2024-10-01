@@ -5,7 +5,7 @@ export default function SignIn() {
     <form
       action={async () => {
         "use server"
-        await signIn("cognito")
+        await signIn()
       }}
     >
       <button type="submit">Signin with Cognito</button>
