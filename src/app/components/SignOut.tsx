@@ -1,7 +1,10 @@
 //"use client"
-import { signOut } from "@/app/auth"
+import { auth, signOut } from "@/app/auth"
+
  
- export default function SignOut() {
+ export default async function SignOut() {
+  const session = await auth()
+
   return (
     <form
       action={async () => {
