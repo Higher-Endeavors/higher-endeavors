@@ -2,8 +2,8 @@
 import { auth, signOut } from "@/app/auth"
 
  
- export default async function SignOut() {
-  const session = await auth()
+ export default function SignOut() {
+ // const session = await auth()
 
   return (
     <form
