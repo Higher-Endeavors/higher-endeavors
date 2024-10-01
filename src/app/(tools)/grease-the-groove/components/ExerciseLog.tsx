@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react';
 
 type LogEntry = {
-  id: number;
-  exercise: string;
-  reps: number;
-  load: number;
-  timestamp: string;
+  id: string;
+  exercise_name: string;
 };
 
 export default function ExerciseLog() {
   const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  var data: LogEntry[] = [];
 
   useEffect(() => {
     async function fetchExercises() {
@@ -22,9 +21,13 @@ export default function ExerciseLog() {
         if (!response.ok) {
           throw new Error(`Failed to fetch exercises: ${response.status} ${response.statusText}`);
         }
-        const data = await response.json();
+        data = await response.json();
         console.log('Fetched data:', data);
         setLogEntries(data);
+        console.log('Log entries:', logEntries);
+        data.map((entry) => (
+            console.log(entry.exercise_name)
+        ));
       } catch (error) {
         console.error('Error fetching exercises:', error);
         setError(`Failed to load exercises. Please try again later. Error: ${error.message}`);
@@ -52,12 +55,9 @@ export default function ExerciseLog() {
           </tr>
         </thead>
         <tbody>
-          {logEntries.map((entry) => (
+          {data.map((entry) => (
             <tr key={entry.id}>
-              <td className="border p-2">{entry.exercise}</td>
-              <td className="border p-2">{entry.reps}</td>
-              <td className="border p-2">{entry.load}</td>
-              <td className="border p-2">{new Date(entry.timestamp).toLocaleString()}</td>
+              <td className="border p-2">{entry.exercise_name}</td>
             </tr>
           ))}
         </tbody>

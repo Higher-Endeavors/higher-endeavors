@@ -1,46 +1,76 @@
-import { useState } from 'react';
+import { useForm, SubmitHandler } from 'react-hook-form';
+import { useState, useEffect } from 'react';
+import Select from 'react-select';
+
+interface Exercise {
+  id: string;
+  exercise_name: string;
+}
+
+interface FormInputs {
+  exercise: Exercise;
+  reps: number;
+  load: number;
+}
 
 export default function ExerciseForm() {
-  const [exercise, setExercise] = useState('');
-  const [reps, setReps] = useState('');
-  const [load, setLoad] = useState('');
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { register, handleSubmit, reset, control } = useForm<FormInputs>();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    // TODO: Implement API call to save exercise data
-    console.log('Submitting:', { exercise, reps, load });
-    // Reset form
-    setExercise('');
-    setReps('');
-    setLoad('');
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/exercises');
+        if (!response.ok) {
+          throw new Error('Failed to fetch exercises');
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setExercises(data);
+        } else {
+          throw new Error('Received invalid data format');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        console.error('Error fetching exercises:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchExercises();
+  }, []);
+
+  const onSubmit: SubmitHandler<FormInputs> = async (data) => {
+    console.log('Submitting:', data);
+    reset();
   };
 
+  if (isLoading) return <div>Loading exercises...</div>;
+  if (error) return <div>Error: {error}</div>;
+
   return (
-    <form onSubmit={handleSubmit} className="mb-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="mb-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <input
-          type="text"
-          value={exercise}
-          onChange={(e) => setExercise(e.target.value)}
-          placeholder="Exercise"
-          className="border p-2 rounded text-black"
-          required
+        <Select
+          options={exercises.map(ex => ({ value: ex.id, label: ex.name }))}
+          placeholder="Select Exercise"
+          className="text-black"
+          {...register('exercise', { required: true })}
         />
         <input
+          {...register('reps', { required: true, valueAsNumber: true })}
           type="number"
-          value={reps}
-          onChange={(e) => setReps(e.target.value)}
           placeholder="Reps"
           className="border p-2 rounded text-black"
-          required
         />
         <input
+          {...register('load', { required: true, valueAsNumber: true })}
           type="number"
-          value={load}
-          onChange={(e) => setLoad(e.target.value)}
           placeholder="Load (lbs)"
           className="border p-2 rounded text-black"
-          required
         />
         <button type="submit" className="bg-blue-500 text-white p-2 rounded">
           Log Exercise
