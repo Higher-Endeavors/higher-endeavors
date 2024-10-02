@@ -7,4 +7,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   theme: { logo: "https://authjs.dev/img/logo-sm.png" },
   providers: [Cognito],
   adapter: PostgresAdapter(pool),
+  debug: true,
 })
