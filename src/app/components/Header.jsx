@@ -13,12 +13,6 @@ const Header = () => {
             <Image className="logo-large" class="" src={logo} alt="Logo"/>
         </a>
       </div>
-      <div>
-        <SignIn />
-      </div>
-      <div>
-        <SignOut />
-      </div>
       <div className="space-x-8 flex pt-3 pl-8"> 
         <a href="">
           <svg class="w-[32px] h-[32px] text-gray-800 dark:text-white hover:text-[#CBAACB]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
