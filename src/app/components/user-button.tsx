@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar"
 import { Button } from "./ui/button"
-import { auth, signOut } from "@/app/auth"
+import { auth } from "@/app/auth"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,8 +44,7 @@ export default async function UserButton() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuItem>
-            {/* <SignOut /> */}
-            <button onClick={() => signOut()}>Sign out</button>
+            <SignOut />
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
