@@ -4,6 +4,8 @@
 // public
 import Image from 'next/image';
 import logo from '/public/LogoV2-2.svg';
+import { SignIn } from './SigninButton';
+import { SignOut } from './SignoutButton';
 
 const Header = () => {
   return (
@@ -12,6 +14,12 @@ const Header = () => {
         <a href="/">
             <Image className="logo-large" class="" src={logo} alt="Logo"/>
         </a>
+      </div>
+      <div>
+        <SignIn />
+      </div>
+      <div>
+        <SignOut />
       </div>
       <div className="space-x-8 flex pt-3 pl-8"> 
         <a href="">
