@@ -1,14 +1,6 @@
 import { signIn, providerMap } from "@/app/auth";
 import { getCsrfToken } from "next-auth/react";
-//import { GetServerSidePropsContext } from 'next';
 
-/* export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const csrfToken = await getCsrfToken(context)
-  return {
-    props: { csrfToken },
-  }
-}
- */
 export default async function SignInPage() {
   const csrfToken = await getCsrfToken()
 

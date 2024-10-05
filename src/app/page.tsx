@@ -9,17 +9,9 @@ import Footer from './components/Footer.jsx';
 import Services from './components/Services.jsx';
 
 export default async function Home() {
-  const session = await auth()
-  if (session?.user) {
-    session.user = {
-      name: session.user.name,
-      email: session.user.email,
-      image: session.user.image,
-    }
-  }
 
   return (
-    <SessionProvider basePath={"/auth"} session={session}>
+    <SessionProvider>
       <div className="App">
         <Header />
         <HeroBanner />
