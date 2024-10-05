@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ThemeModeScript } from "flowbite-react";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +13,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+      <ThemeModeScript />
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
       <body className="">{children}</body>

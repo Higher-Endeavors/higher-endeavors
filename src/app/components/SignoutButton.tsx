@@ -10,7 +10,7 @@ export function SignOut() {
         headers: { 'Content-Type': 'plain/text' },
       });
     } catch (error) {
-      console.error('Failed to send error email:', error);
+      console.error('Error signing out:', error);
     }
 
     window.open(`https://auth.higherendeavors.com/logout?client_id=${cognitoClient}&logout_uri=${cognitoAuthUrl}`, "_self");
