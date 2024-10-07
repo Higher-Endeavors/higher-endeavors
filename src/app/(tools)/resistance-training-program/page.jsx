@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+// import { getServerSession } from "next-auth/next";
+// import { authOptions } from "../api/auth/[...nextauth]/route";
 import { Pool } from 'pg';
 
 const pool = new Pool({

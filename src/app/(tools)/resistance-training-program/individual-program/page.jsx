@@ -1,10 +1,10 @@
 import React from 'react';
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../api/auth/[...nextauth]/route";
-import { PrismaClient } from '@prisma/client';
+// import { PrismaClient } from '@prisma/client';
 import Link from 'next/link';
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 export default async function ProgramPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions);
@@ -12,10 +12,10 @@ export default async function ProgramPage({ params }: { params: { id: string } }
     return <div>Please log in to view this program.</div>;
   }
 
-  const program = await prisma.program.findUnique({
-    where: { id: params.id },
-    include: { exercises: true },
-  });
+  // const program = await prisma.program.findUnique({
+  //   where: { id: params.id },
+  //   include: { exercises: true },
+  // });
 
   if (!program || program.userId !== session.user.id) {
     return <div>Program not found or you don't have permission to view it.</div>;

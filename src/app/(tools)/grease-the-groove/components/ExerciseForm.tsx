@@ -1,6 +1,6 @@
 import { useForm, SubmitHandler } from 'react-hook-form';
 import { useState, useEffect } from 'react';
-import Select from 'react-select';
+
 
 interface Exercise {
   id: string;
@@ -54,12 +54,13 @@ export default function ExerciseForm() {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="mb-6">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Select
-          options={exercises.map(ex => ({ value: ex.id, label: ex.name }))}
+        <select {...register('exercise', { required: true })}>
+          {exercises.map(ex => (
+            <option key={ex.id} value={ex.id}>{ex.exercise_name}</option>
+          ))}
           placeholder="Select Exercise"
-          className="text-black"
-          {...register('exercise', { required: true })}
-        />
+          
+          </select>
         <input
           {...register('reps', { required: true, valueAsNumber: true })}
           type="number"

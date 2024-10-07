@@ -30,7 +30,7 @@ export default function ExerciseLog() {
         ));
       } catch (error) {
         console.error('Error fetching exercises:', error);
-        setError(`Failed to load exercises. Please try again later. Error: ${error.message}`);
+        setError(`Failed to load exercises. Please try again later. Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
       } finally {
         setIsLoading(false);
       }
