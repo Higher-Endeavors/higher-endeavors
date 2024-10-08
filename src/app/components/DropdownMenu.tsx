@@ -2,12 +2,15 @@
 
 import { Avatar, Dropdown } from "flowbite-react";
 import { signInHandler } from "@/app/lib/signInHandler";
+import { useSession } from "next-auth/react";
 
 export default function DropdownMenu() {
 
+    const { data: session } = useSession();
+
     async function signOutHandler() {
-        const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT
-        const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL
+        const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
+        const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
 
         try {
             await fetch('/api/signout', {
@@ -28,8 +31,8 @@ export default function DropdownMenu() {
             inline
         >
             <Dropdown.Header>
-                <span className="block text-sm">Bonnie Green</span>
-                <span className="block truncate text-sm font-medium">name@flowbite.com</span>
+                <span className="block text-sm">{session?.user?.name ?? "User name"}</span>
+                <span className="block truncate text-sm font-medium">{session?.user?.email ?? "Email address"}</span>
             </Dropdown.Header>
             <Dropdown.Item>Settings</Dropdown.Item>
             <Dropdown.Divider />

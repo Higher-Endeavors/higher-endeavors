@@ -12,7 +12,7 @@ pool.on("error", (err, client) => {
 });
 
 // Use this for single queries that do not require a transaction
-export const query = (text, params, callback) => {
+export const SingleQuery = (text, params, callback) => {
   return pool.query(text, params, callback);
 };
 
