@@ -8,6 +8,18 @@ export default function DropdownMenu() {
 
     const { data: session } = useSession();
 
+    const firstName = session?.user?.first_name ?? null;
+    const lastName = session?.user?.last_name ?? null;
+    const fullName = session?.user?.name ?? "User name";
+    const emailAddress = session?.user?.email ?? "Email address";
+    var initials = "";
+    if (firstName && lastName) {
+        initials = (firstName.charAt(0) + lastName.charAt(0)).toLowerCase();
+    } else {
+        const initials = null;
+    }
+
+
     async function signOutHandler() {
         const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
         const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
@@ -26,7 +38,7 @@ export default function DropdownMenu() {
 
     return (
         <Dropdown
-            label={<Avatar alt="User menu" rounded />}
+            label={<Avatar placeholderInitials={initials} rounded />}
             arrowIcon={false}
             inline
         >

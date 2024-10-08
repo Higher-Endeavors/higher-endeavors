@@ -18,24 +18,25 @@ export const providerMap = providers.map((provider) => {
   }
 });
 
-// declare module "next-auth" {
-//   /**
-//    * Returned by `auth`, `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
-//    */
-//   interface User {
-//     user: {
-//       /** The user's postal address. */
-//       firstName: string;
-//       lastName: string;
-//       /**
-//        * By default, TypeScript merges new interface properties and overwrites existing ones.
-//        * In this case, the default session user properties will be overwritten,
-//        * with the new ones defined above. To keep the default session user properties,
-//        * you need to add them back into the newly declared interface.
-//        */
-//     }
-//   }
-// }
+declare module "next-auth" {
+  /**
+   * Returned by `auth`, `useSession`, `getSession` and received as a prop on the `SessionProvider` React Context
+   */
+  interface Session {
+    user: {
+      /** The user's postal address. */
+      first_name: string
+      last_name: string
+      role: string
+      /**
+       * By default, TypeScript merges new interface properties and overwrites existing ones.
+       * In this case, the default session user properties will be overwritten,
+       * with the new ones defined above. To keep the default session user properties,
+       * you need to add them back into the newly declared interface.
+       */
+    } & DefaultSession["user"]
+  }
+}
 
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -61,5 +62,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "database",
   },
-  debug: true,
+  debug: false,
 });
