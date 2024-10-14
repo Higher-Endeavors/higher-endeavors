@@ -19,7 +19,7 @@ export default async function Home() {
         <MissionStatement />
         <Services />
         <Pillars />
-      <Footer />
+        <Footer />
       </div>
     </SessionProvider>
   );
