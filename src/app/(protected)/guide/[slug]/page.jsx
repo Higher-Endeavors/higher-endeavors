@@ -7,7 +7,7 @@ import Container from "../components/container";
 import ArticleBody from "../components/article-body";
 import ArticleHeader from "../components/article-header";
 import Layout from "../components/layout";
-import { getArticleBySlug } from "../../lib/cmsAdapter.js";
+import { getArticleBySlug } from "@/app/lib/cmsAdapter.js";
 //import ArticleTitle from '../components/article-title'
 import Head from "next/head";
 
