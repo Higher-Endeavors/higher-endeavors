@@ -1,3 +1,5 @@
+// Home/ Landing page 
+
 import React from 'react';
 import { auth } from '@/app/auth';
 import { SessionProvider } from "next-auth/react"

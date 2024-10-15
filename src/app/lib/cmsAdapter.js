@@ -20,7 +20,7 @@ return json.data
 
 export async function getArticleBySlug(slug) {
   const data = await fetchAPI(
-    `/api/articles?filters[slug][$eq]=${slug}&fields[0]=title&fields[1]=excerpt&fields[2]=body`
+    `/api/guides?filters[slug][$eq]=${slug}&fields[0]=title&fields[1]=excerpt&fields[2]=body`
   );
   return data;
 }
