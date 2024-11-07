@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { VerifaliaRestClient } from "verifalia";
 import { adminNoticeEmail } from "@/app/lib/adminNoticeEmail";
+import axios from 'axios';
 const Client = require("pg").Client;
 
 const username = process.env.VERIFALIA_USERNAME;
@@ -19,20 +20,18 @@ export async function POST(request: Request) {
   // Verify Turnstile token
   //
   try {
-    const turnstileResponse = await fetch(
+    const turnstileResponse = await axios.post(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          secret: process.env.TURNSTILE_SECRET_KEY,
-          response: turnstileToken,
-        }),
+        secret: process.env.TURNSTILE_SECRET_KEY,
+        response: turnstileToken,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
       }
     );
 
-    const turnstileResult = await turnstileResponse.json();
-    if (!turnstileResult.success) {
+    if (!turnstileResponse.data.success) {
       throw new Error("Invalid Turnstile token");
     }
   } catch (error) {

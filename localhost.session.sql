@@ -1,0 +1,5 @@
+SELECT struct_bal_ref_lifts.id, exercise_library.exercise_name, struct_bal_ref_lifts.struct_bal_ref_lift_load
+FROM struct_bal_ref_lifts
+INNER JOIN exercise_library
+ON struct_bal_ref_lifts.exercise_library_id = exercise_library.id
+ORDER BY exercise_library.exercise_name
