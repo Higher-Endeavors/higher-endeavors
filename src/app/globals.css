@@ -28,6 +28,18 @@ body {
       rgb(var(--background-end-rgb))
     )
     rgb(var(--background-start-rgb));
+  ol,
+  ul,
+  menu {
+    list-style: disc;
+    margin: 1rem 0;
+    padding: 0 1rem;
+  };
+  h1,
+  h2,
+  h3 {
+    padding: 4px 0;
+  }
 }
 
 @layer components {

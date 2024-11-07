@@ -32,25 +32,25 @@ const Pillars = () => {
       icon: <LifestyleIcon />,
       title: 'Lifestyle Management',
       description: 'Lifestyle management encompasses how you structure your daily life and, more importantly, why you make the choices you do. This includes your daily routines, habits, social interactions, work-life balance, hobbies, and activities. Understanding and optimizing these aspects can lead to a fulfilling and balanced life, enabling you to become the best version of yourself.',
-      link: '/guide/lifestyle-management',
+      link: '/guide/lifestyle-management-overview',
     },
     {
       icon: <HealthIcon />,
       title: 'Health',
       description: 'Health is often perceived simply as the absence of disease. However, at Higher Endeavors, we view health as a dynamic continuum ranging from death to vibrant vitality. Our approach incorporates the principles of Functional Medicine, focusing on achieving balance within the individual through personalized, holistic care. This overview explores the importance of various health aspects and guides you on a journey toward realizing your ideal self.',
-      link: '',
+      link: '/guide/health-overview',
     },
     {
       icon: <NutritionIcon />,
       title: 'Nutrition',
       description: 'Nutrition focuses on providing the body with the essential nutrients it needs to optimize physiological function, ensuring you can perform at your best both mentally and physically. Nutrition plays a critical role in fueling your daily activities, enhancing recovery, and supporting long-term health. At the core of this pillar is the idea that food is not merely fuel but a tool that, when used effectively, can empower you to manage stress, improve resilience, and progress toward your ideal self.',
-      link: '',
+      link: '/guide/nutrition-overview',
     },
     {
       icon: <FitnessIcon />,
       title: 'Fitness',
       description: 'The Fitness pillar is focused on training for life. It’s not just about achieving temporary goals or hitting certain numbers in the gym — it’s about developing the physical characteristics that represent your ideal self. Resistance training, CardioMetabolic training, and Active Recovery are the methods used to train for life. The ultimate goal is to create a body that is capable, resilient, and aligned with your personal vision of health and performance.',
-      link: '',
+      link: '/guide/fitness-overview',
     },
   ];
 
