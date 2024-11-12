@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ThemeModeScript } from "flowbite-react";
 import "./globals.css";
 
+
 export const metadata: Metadata = {
   title: "Higher Endeavors",
   description: "Facilitating your ideal life",

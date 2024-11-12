@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { auth } from "@/app/auth";
 import { SessionProvider } from "next-auth/react";
 import BalancedLiftsForm from './components/BalancedLiftsForm';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
+
 
 type RefLift = {
   id: number
@@ -37,11 +40,15 @@ export default async function BalancedLiftsPage() {
   const refLifts = await getRefLifts();
 
   return (
-    <div className="container mx-auto px-4">
-      <h1 className="text-2xl font-bold mb-4">Balanced Lifts Calculator</h1>
-      <SessionProvider>
-      <BalancedLiftsForm refLifts ={refLifts} />
-      </SessionProvider>
-    </div>
+    <SessionProvider>
+      <div>
+        <Header />
+        <div className="container mx-auto mb-12 px-4">
+          <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Balanced Lifts Calculator</h1>
+          <BalancedLiftsForm refLifts ={refLifts} />
+        </div>
+        <Footer />
+      </div>
+    </SessionProvider>
   );
 }

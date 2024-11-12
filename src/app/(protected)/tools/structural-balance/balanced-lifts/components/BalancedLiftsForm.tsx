@@ -98,7 +98,7 @@ return balLifts
             <div className='mb-2'>
               <label
                 htmlFor='exercise_name'
-                className='mb-3 block text-base font-medium text-black dark:text-white'
+                className='mb-3 block text-xl font-bold text-black dark:text-white'
               >
                 Master Lift
               </label>
@@ -122,38 +122,32 @@ return balLifts
             <div className='mb-2'>
               <label
                 htmlFor='struct_bal_lift_load'
-                className='mb-3 block text-base font-medium text-black dark:text-white'
+                className='mt-4 mb-3 block text-xl font-bold text-black dark:text-white'
               >
                 Master Lift Load
               </label>
               <input
                 {...register('struct_bal_lift_load', { required: 'Master lift load is required' })}
                 id="lastname"
-                className='w-full rounded-md border border-gray-300 bg-white py-3 px-6 text-base font-medium text-gray-700 outline-none focus:border-purple-500 focus:shadow-md'
+                className='w-full rounded-md border border-gray-300 bg-white py-3 px-6 mb-4 text-base font-medium text-gray-700 outline-none focus:border-purple-500 focus:shadow-md'
               />
               {errors.struct_bal_lift_load && <span className="text-red-500 text-sm mt-1">{errors.struct_bal_lift_load.message}</span>}
             </div>
 
-
-            <button
-              onClick={(e) => {
-                setIsListVisible(false);
-                e.preventDefault();
-                const formValues = getValues();
-                setBalLifts(doCalculate(refLifts, formValues));
-                setIsListVisible(true);
-              }}
-              className='hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none'
-            >
-              Calculate
-            </button>
-            <button
-              type="submit"
-              // disabled={!turnstileToken}
-              className='hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none'
-            >
-              Save
-            </button>
+            <div className="flex justify-center">
+              <button
+                onClick={(e) => {
+                  setIsListVisible(false);
+                  e.preventDefault();
+                  const formValues = getValues();
+                  setBalLifts(doCalculate(refLifts, formValues));
+                  setIsListVisible(true);
+                }}
+                className='hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none'
+              >
+                Calculate
+              </button>
+            </div>
           </form>
         </div>
         <div className={`mb-4 p-4 ${isListVisible ? 'block' : 'hidden'}`}>
