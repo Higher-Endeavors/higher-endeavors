@@ -3,7 +3,6 @@
 import { Avatar, Dropdown } from "flowbite-react";
 import { signInHandler } from "@/app/lib/signInHandler";
 import { useSession } from "next-auth/react";
-import axios from "axios";
 
 export default function DropdownMenu() {
 
@@ -26,7 +25,8 @@ export default function DropdownMenu() {
         const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
 
         try {
-            await axios.post('/api/signout', null, {
+            await fetch('/api/signout', {
+                method: 'POST',
                 headers: { 'Content-Type': 'plain/text' },
             });
         } catch (error) {

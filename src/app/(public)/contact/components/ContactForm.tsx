@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Turnstile } from '@marsidev/react-turnstile';
-import axios from 'axios';
 
 type FormData = {
   firstname: string;
@@ -14,7 +13,11 @@ type FormData = {
 
 async function sendErrorEmail(replyTo: string, subject: string, body: string) {
   try {
-    await axios.post('/api/email', { replyTo, subject, body });
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ replyTo, subject, body }),
+    });
   } catch (error) {
     console.error('Failed to send error email:', error);
   }
@@ -33,27 +36,26 @@ export default function ContactForm() {
       return;
     }
 
-    try {
-      const response = await axios.post('/api/contact', {
-        ...data,
-        turnstileToken
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...data, turnstileToken }),
       });
-      
-      reset();
-      setSubmitError(null);
-      setIsErrorVisible(false);
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const status = error.response?.status;
-        if (status === 400) {
-          setSubmitError('Captcha failed. Please try again.');
-        } else if (status === 406) {
-          setSubmitError('You must use a valid email address.');
+
+      if (response.ok) {
+        reset();
+        setSubmitError(null);
+        setIsErrorVisible(false);
         } else {
-          setSubmitError('A system error occurred. Please try again later.');
-        }
-        setIsErrorVisible(true);
+      const errorData = await response.json();
+      if (errorData.status === 400) {
+    setSubmitError('Captcha failed. Please try again.');
+      } else if (errorData.status === 406) {
+        setSubmitError('You must use a valid email address.');
+      } else {
+        setSubmitError('A system error occurred. Please try again later.');
       }
+      setIsErrorVisible(true);
     }
   };
 

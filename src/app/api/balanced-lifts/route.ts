@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/lib/dbAdapter';
+import { SingleQuery } from '@/app/lib/dbAdapter';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -28,15 +28,15 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { struct_balanced_user_id, struct_balanced_reference_lift_id, struct_balanced_load, struct_balanced_load_unit, struct_balanced_reference_lift_reps } = await request.json();
+  const { exercise_name, struct_bal_lift_load, userId } = await request.json();
 
   const query = `
     INSERT INTO struct_balanced_lifts 
-    (struct_balanced_user_id, struct_balanced_reference_lift_id, struct_balanced_load, struct_balanced_load_unit, struct_balanced_reference_lift_reps) 
-    VALUES ($1, $2, $3, $4, $5) 
+    (struct_balanced_user_id, struct_balanced_reference_lift_id, struct_balanced_load) 
+    VALUES ($1, $2, $3) 
     RETURNING *
   `;
-  const values = [struct_balanced_user_id, struct_balanced_reference_lift_id, struct_balanced_load, struct_balanced_load_unit, struct_balanced_reference_lift_reps];
+  const values = [userId, exercise_name, struct_bal_lift_load];
 
   try {
     const result = await SingleQuery(query, values);
