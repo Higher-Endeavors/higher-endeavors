@@ -12,6 +12,8 @@
     "@auth/pg-adapter": "^1.5.3",
     "@dotenvx/dotenvx": "^1.14.1",
     "@marsidev/react-turnstile": "^1.0.2",
+    "@stripe/react-stripe-js": "^2.9.0",
+    "@stripe/stripe-js": "^4.10.0",
     "autoprefixer": "^10.4.20",
     "date-fns": "^4.1.0",
     "flowbite-react": "^0.10.2",
