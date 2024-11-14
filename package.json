@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "dotenvx run -f .env.production -- next dev",
+    "dev": "dotenvx run -f .env.local -- next dev",
     "build": "next build",
     "start": "next start"
   },
@@ -14,6 +14,7 @@
     "@marsidev/react-turnstile": "^1.0.2",
     "@stripe/react-stripe-js": "^2.9.0",
     "@stripe/stripe-js": "^4.10.0",
+    "@types/stripe": "^8.0.417",
     "autoprefixer": "^10.4.20",
     "date-fns": "^4.1.0",
     "flowbite-react": "^0.10.2",
@@ -27,6 +28,7 @@
     "react-hook-form": "^7.53.0",
     "react-markdown": "^9.0.1",
     "sharp": "^0.33.5",
+    "stripe": "^17.3.1",
     "verifalia": "^5.0.0"
   },
   "devDependencies": {
