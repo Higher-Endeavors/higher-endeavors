@@ -5,7 +5,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 export async function POST(request: NextRequest) {
   try {
     // Create Checkout Sessions from body params.
-    const session = await stripe.checkout.sessions.create({
+    const checkoutSession = await stripe.checkout.sessions.create({
       ui_mode: "embedded",
       line_items: [
         {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       automatic_tax: { enabled: true },
     });
 
-    return NextResponse.json({ clientSecret: session.client_secret });
+    return NextResponse.json({ clientSecret: checkoutSession.client_secret });
   } catch (err: any) {
     console.log("Error: ", err);
     return NextResponse.json({ error: err.type, status: err.statusCode });
@@ -36,11 +36,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
     }
     
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
+    console.log("Checkout Session: ", checkoutSession)
 
     return NextResponse.json({
-      status: session.status,
-      customer_email: session.customer_details?.email,
+      status: checkoutSession.status,
+      customer_email: checkoutSession.customer_details?.email,
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.type, status: err.statusCode });

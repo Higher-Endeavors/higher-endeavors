@@ -12,7 +12,7 @@ export default function Page() {
     const urlParams = new URLSearchParams(queryString);
     const sessionId = urlParams.get('session_id');
 
-    fetch(`/api/stripe-checkout?session_id=${sessionId}`, {
+    fetch(`/api/stripe-checkout-session?session_id=${sessionId}`, {
       method: "GET",
     })
       .then((res) => res.json())
@@ -21,6 +21,8 @@ export default function Page() {
         setCustomerEmail(data.customer_email);
       });
   }, []);
+
+  
 
   if (status === 'open') {
     return (
