@@ -3,6 +3,8 @@ import Stripe from "stripe";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(request: NextRequest) {
+  const { priceType, priceCode } = await request.json();
+
   try {
     // Create Checkout Sessions from body params.
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -11,17 +13,16 @@ export async function POST(request: NextRequest) {
         {
           // Provide the exact Price ID (for example, pr_1234) of
           // the product you want to sell
-          price: 'price_1QL9QTDCooGuySd3Wg3fxq5K',
+          price: `${priceCode}`,
           quantity: 1,
         },
       ],
-      mode: "subscription",
+      mode: priceType as 'subscription' | 'payment',
       return_url: `${request.headers.get(
         "origin"
       )}/subscribe/checkout-result?session_id={CHECKOUT_SESSION_ID}`,
       automatic_tax: { enabled: true },
     });
-
     return NextResponse.json({ clientSecret: checkoutSession.client_secret });
   } catch (err: any) {
     console.log("Error: ", err);

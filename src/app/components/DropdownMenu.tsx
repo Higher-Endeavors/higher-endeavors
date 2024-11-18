@@ -47,7 +47,7 @@ export default function DropdownMenu() {
                 <span className="block text-sm">{session?.user?.name ?? "User name"}</span>
                 <span className="block truncate text-sm font-medium">{session?.user?.email ?? "Email address"}</span>
             </Dropdown.Header>
-            <Dropdown.Item as={Link} href="/subscribe/checkout">Subscribe</Dropdown.Item>
+            <Dropdown.Item as={Link} href="/sales">Sales</Dropdown.Item>
             <Dropdown.Divider />
             <Dropdown.Item onClick={async () => {
                 await signInHandler()
