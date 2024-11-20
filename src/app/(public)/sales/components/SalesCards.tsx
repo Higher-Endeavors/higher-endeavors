@@ -59,7 +59,7 @@ export default function ServiceCards() {
   const router = useRouter()
 
   const handleCheckout = async (priceType: string, priceCode: string) => {
-    router.push(`/subscribe/checkout?type=${priceType}&code=${priceCode}`);
+    router.push(`/sales/checkout?type=${priceType}&code=${priceCode}`);
   }
 
   return (

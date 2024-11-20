@@ -17,7 +17,7 @@ export default function Page() {
 
   const fetchClientSecret = useCallback(() => {
     // Create a Checkout Session
-    return fetch("/api/stripe-checkout-session", {
+    return fetch("/api/stripe/checkout-session", {
       method: "POST",
       body: JSON.stringify({ priceType, priceCode }),
 

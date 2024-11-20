@@ -1,18 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
+import { auth } from "@/app/auth";
+import { SingleQuery } from "@/app/lib/dbAdapter";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(request: NextRequest) {
   const { priceType, priceCode } = await request.json();
+  const session = await auth();
+  const userId = session?.user.id;
+
+  const queryText = {
+    text: `SELECT stripe_cust_id FROM users WHERE id = ${userId}`,
+  };
+  const result =  await SingleQuery(queryText);
+  const stripeCustId = result.rows[0].stripe_cust_id;
+  console.log("result: ", stripeCustId);
 
   try {
-    // Create Checkout Sessions from body params.
     const checkoutSession = await stripe.checkout.sessions.create({
+      ...(stripeCustId ? { customer: stripeCustId } : (priceType === "payment" ? { customer_creation: "if_required" } : {})),
       ui_mode: "embedded",
       line_items: [
         {
-          // Provide the exact Price ID (for example, pr_1234) of
-          // the product you want to sell
           price: `${priceCode}`,
           quantity: 1,
         },
@@ -20,8 +30,9 @@ export async function POST(request: NextRequest) {
       mode: priceType as 'subscription' | 'payment',
       return_url: `${request.headers.get(
         "origin"
-      )}/subscribe/checkout-result?session_id={CHECKOUT_SESSION_ID}`,
+      )}/sales/checkout-result?session_id={CHECKOUT_SESSION_ID}`,
       automatic_tax: { enabled: true },
+      // ...(priceType === "payment" ? { customer_creation: "if_required" } : {}),
     });
     return NextResponse.json({ clientSecret: checkoutSession.client_secret });
   } catch (err: any) {
@@ -38,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
     
     const checkoutSession = await stripe.checkout.sessions.retrieve(sessionId);
-    console.log("Checkout Session: ", checkoutSession)
+    // console.log("Checkout Session: ", checkoutSession)
 
     return NextResponse.json({
       status: checkoutSession.status,
