@@ -1,7 +1,6 @@
-//./app/api/stripe-webhook/route.ts
-
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { SingleQuery } from "@/app/lib/dbAdapter";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
@@ -11,7 +10,7 @@ export async function POST(req: Request) {
     event = stripe.webhooks.constructEvent(
       await (await req.blob()).text(),
       req.headers.get("stripe-signature") as string,
-      process.env.STRIPE_WEBHOOK_SECRET as string,
+      process.env.STRIPE_WEBHOOK_SECRET as string
     );
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
@@ -20,17 +19,16 @@ export async function POST(req: Request) {
     console.log(`❌ Error message: ${errorMessage}`);
     return NextResponse.json(
       { message: `Webhook Error: ${errorMessage}` },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
   // Successfully constructed event.
-  console.log("✅ Success:", event.id);
+  // console.log("✅ Success:", event.id);
 
   const permittedEvents: string[] = [
-    "checkout.session.completed",
-    "payment_intent.succeeded",
-    "payment_intent.payment_failed",
+    "customer.subscription.deleted",
+    "customer.deleted",
   ];
 
   if (permittedEvents.includes(event.type)) {
@@ -38,17 +36,29 @@ export async function POST(req: Request) {
 
     try {
       switch (event.type) {
-        case "checkout.session.completed":
-          data = event.data.object as Stripe.Checkout.Session;
-          console.log(`💰 CheckoutSession status: ${data.payment_status}`);
+        case "customer.subscription.deleted":
+          data = event.data.object as Stripe.Subscription;
+          const subscriptionQueryText = {
+            text: "UPDATE users SET role = $1 WHERE stripe_cust_id = $2",
+            values: [null, data.customer],
+          };
+          try {
+            const result = await SingleQuery(subscriptionQueryText);
+          } catch (error) {
+            console.error("Failed to update user:", error);
+          }
           break;
-        case "payment_intent.payment_failed":
-          data = event.data.object as Stripe.PaymentIntent;
-          console.log(`❌ Payment failed: ${data.last_payment_error?.message}`);
-          break;
-        case "payment_intent.succeeded":
-          data = event.data.object as Stripe.PaymentIntent;
-          console.log(`💰 PaymentIntent status: ${data.status}`);
+        case "customer.deleted":
+          data = event.data.object as Stripe.Customer;
+          const customerQueryText = {
+            text: "UPDATE users SET stripe_cust_id = $1, role = $2 WHERE stripe_cust_id = $3",
+            values: [null, null, data.id],
+          };
+          try {
+            const result = await SingleQuery(customerQueryText);
+          } catch (error) {
+            console.error("Failed to update user:", error);
+          }
           break;
         default:
           throw new Error(`Unhandled event: ${event.type}`);
@@ -57,7 +67,7 @@ export async function POST(req: Request) {
       console.log(error);
       return NextResponse.json(
         { message: "Webhook handler failed" },
-        { status: 500 },
+        { status: 500 }
       );
     }
   }
