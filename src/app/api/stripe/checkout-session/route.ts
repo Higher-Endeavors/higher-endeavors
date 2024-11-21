@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { auth } from "@/app/auth";
 import { SingleQuery } from "@/app/lib/dbAdapter";
+import { adminNoticeEmail } from "@/app/lib/admin-notice-email";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
@@ -15,7 +16,6 @@ export async function POST(request: NextRequest) {
   };
   const result =  await SingleQuery(queryText);
   const stripeCustId = result.rows[0].stripe_cust_id;
-  console.log("result: ", stripeCustId);
 
   try {
     const checkoutSession = await stripe.checkout.sessions.create({
@@ -32,12 +32,18 @@ export async function POST(request: NextRequest) {
         "origin"
       )}/sales/checkout-result?session_id={CHECKOUT_SESSION_ID}`,
       automatic_tax: { enabled: true },
-      // ...(priceType === "payment" ? { customer_creation: "if_required" } : {}),
     });
     return NextResponse.json({ clientSecret: checkoutSession.client_secret });
   } catch (err: any) {
-    console.log("Error: ", err);
-    return NextResponse.json({ error: err.type, status: err.statusCode });
+    await adminNoticeEmail(
+      "noreply@higherendeavors.com",
+      `Error creating Stripe checkout session`,
+      `
+      <p>There was an error creating a Stripe checkout session. Error:</p>
+      <p>${err}</p>
+    `
+    );
+return NextResponse.json({ error: err.type, status: err.statusCode });
   }
 }
 
@@ -56,6 +62,14 @@ export async function GET(request: NextRequest) {
       customer_email: checkoutSession.customer_details?.email,
     });
   } catch (err: any) {
-    return NextResponse.json({ error: err.type, status: err.statusCode });
+    await adminNoticeEmail(
+      "noreply@higherendeavors.com",
+      `Error retrieving Stripe checkout session`,
+      `
+      <p>There was an error retrieving a Stripe checkout session. Error:</p>
+      <p>${err}</p>
+    `
+    );
+return NextResponse.json({ error: err.type, status: err.statusCode });
   }
 }

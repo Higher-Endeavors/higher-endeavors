@@ -2,6 +2,8 @@ import Stripe from "stripe";
 import { redirect } from 'next/navigation';
 import { auth } from "@/app/auth";
 import { SingleQuery } from "@/app/lib/dbAdapter";
+import { adminNoticeEmail } from "@/app/lib/admin-notice-email";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 async function updateUser(custStripeId: string, custRole: string | null ) {
@@ -15,7 +17,14 @@ try {
   const result =  await SingleQuery(queryText);
 
   } catch (error) {
-    console.error('Failed to update user:', error);
+    await adminNoticeEmail(
+      "noreply@higherendeavors.com",
+      `Error updating user in Stripe checkout`,
+      `
+      <p>There was an error updating the user table during Stripe checkout. Error:</p>
+      <p>${error}</p>
+    `
+    );
   }
 }
 

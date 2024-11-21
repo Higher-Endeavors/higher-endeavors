@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { SingleQuery } from "@/app/lib/dbAdapter";
+import { adminNoticeEmail } from "@/app/lib/admin-notice-email";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
 
 export async function POST(req: Request) {
@@ -13,10 +15,15 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET as string
     );
   } catch (err) {
+    await adminNoticeEmail(
+      "noreply@higherendeavors.com",
+      `Webhook error constructing event`,
+      `
+      <p>There was a Webhook error constructing the event. Error:</p>
+      <p>${err}</p>
+    `
+    );
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    // On error, log and return the error message.
-    if (err! instanceof Error) console.log(err);
-    console.log(`❌ Error message: ${errorMessage}`);
     return NextResponse.json(
       { message: `Webhook Error: ${errorMessage}` },
       { status: 400 }
@@ -45,7 +52,14 @@ export async function POST(req: Request) {
           try {
             const result = await SingleQuery(subscriptionQueryText);
           } catch (error) {
-            console.error("Failed to update user:", error);
+            await adminNoticeEmail(
+              "noreply@higherendeavors.com",
+              `Webhook error updating user table`,
+              `
+              <p>There was a Webhook error updating the user table. Error:</p>
+              <p>${error}</p>
+            `
+            );
           }
           break;
         case "customer.deleted":
@@ -57,15 +71,36 @@ export async function POST(req: Request) {
           try {
             const result = await SingleQuery(customerQueryText);
           } catch (error) {
-            console.error("Failed to update user:", error);
+            await adminNoticeEmail(
+              "noreply@higherendeavors.com",
+              `Webhook error updating user table`,
+              `
+              <p>There was a Webhook error updating the user table. Error:</p>
+              <p>${error}</p>
+            `
+            );
           }
           break;
         default:
-          throw new Error(`Unhandled event: ${event.type}`);
+          data = event.data.object;
+          await adminNoticeEmail(
+            "noreply@higherendeavors.com",
+            `Webhook unhandled event`,
+            `
+            <p>There was an unhandled event in the Webhook. Event: ${event.type}</p>
+          `
+          );
       }
     } catch (error) {
-      console.log(error);
-      return NextResponse.json(
+      await adminNoticeEmail(
+        "noreply@higherendeavors.com",
+        `Webhook handler failed`,
+        `
+        <p>Webhook handler failed. Error:</p>
+        <p>${error}</p>
+      `
+      );
+  return NextResponse.json(
         { message: "Webhook handler failed" },
         { status: 500 }
       );
