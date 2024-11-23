@@ -79,9 +79,9 @@ export default function ContactForm() {
           className='w-full rounded-md border border-gray-300 bg-white py-3 px-6 text-base font-medium text-gray-700 outline-none focus:border-purple-500 focus:shadow-md'
         >
           <option value="">Select an option</option>
-          <option value="general">General Inquiry</option>
-          <option value="therapy">Performance Therapy Inquiry</option>
-          <option value="beta">Beta Testing Inquiry</option>
+          <option value="general">General</option>
+          <option value="therapy">Performance Therapy</option>
+          <option value="beta">Beta Testing</option>
           <option value="bug">Bug Report</option>
           <option value="feature">Feature Request</option>
         </select>
