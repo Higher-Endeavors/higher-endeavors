@@ -4,6 +4,7 @@ type BalLift = {
     id: number
     exercise_name: string
     bal_lift_load: number
+    bal_lift_note: string
   };
   type BalLifts = BalLift[];
   
@@ -16,6 +17,7 @@ export default function BalancedLiftsList({ balLifts }: { balLifts: BalLifts }) 
           <div key={lift.id} className="flex justify-between items-center p-3 bg-white rounded-lg shadow">
             <span className="text-gray-600 font-medium">{lift.exercise_name}</span>
             <span className="text-gray-600">{lift.bal_lift_load} lbs</span>
+            <span className="text-gray-600">{lift.bal_lift_note}</span>
           </div>
         ))}
       </div>
