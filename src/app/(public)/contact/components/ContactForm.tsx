@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
 
 type FormData = {
@@ -25,11 +26,19 @@ async function sendErrorEmail(replyTo: string, subject: string, body: string) {
 }
 
 export default function ContactForm() {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const searchParams = useSearchParams();
+  const inquiryParam = searchParams.get('inquiry');
+  
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+    defaultValues: {
+      inquiryType: inquiryParam || ''
+    }
+  });
+  
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isErrorVisible, setIsErrorVisible] = useState(false);
-  
+
   const onSubmit = async (data: FormData) => {
     if (!turnstileToken) {
       setSubmitError('Please complete the Turnstile challenge');
