@@ -47,12 +47,16 @@ export default function DropdownMenu() {
                 <span className="block text-sm">{session?.user?.name ?? "User name"}</span>
                 <span className="block truncate text-sm font-medium">{session?.user?.email ?? "Email address"}</span>
             </Dropdown.Header>
-            <Dropdown.Item as={Link} href="/subscribe/checkout">Subscribe</Dropdown.Item>
+            {/* <Dropdown.Item>Settings</Dropdown.Item> */}
             <Dropdown.Divider />
-            <Dropdown.Item onClick={async () => {
-                await signInHandler()
-            }}>Sign in</Dropdown.Item>
-            <Dropdown.Item onClick={() => signOutHandler()}>Sign out</Dropdown.Item>
+            {!session && (
+                <Dropdown.Item onClick={async () => {
+                    await signInHandler()
+                }}>Sign in</Dropdown.Item>
+            )}
+            {session && (
+                <Dropdown.Item onClick={() => signOutHandler()}>Sign out</Dropdown.Item>
+            )}
         </Dropdown>
     );
 }
