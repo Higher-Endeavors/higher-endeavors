@@ -2,7 +2,6 @@
 
 // public
 import Image from "next/image";
-// import logo from '/public/Logo.svg';
 import Logo from "../../../public/Logo.js";
 import DropdownMenu from "./DropdownMenu";
 
@@ -12,7 +11,6 @@ const Header = () => {
       <div>
         <a href="/">
           <Logo className="w-full h-auto max-w-[400px] md:max-w-[400px] lg:max-w-[400px]" />
-          {/* <Image className="logo-large" class="" src={logo} alt="Logo"/> */}
         </a>
       </div>
       <div className="space-x-8 flex pt-3">
