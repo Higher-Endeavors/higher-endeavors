@@ -7,6 +7,7 @@ import { SessionProvider } from "next-auth/react"
 import Header from './components/Header.jsx';
 import HeroBanner from './components/HeroBanner.jsx';
 import MissionStatement from './components/MissionStatement.jsx';
+import Promotion from './components/Promotion.jsx';
 import Footer from './components/Footer.jsx';
 import Services from './components/Services.jsx';
 import Pillars from './components/Pillars';
@@ -19,6 +20,7 @@ export default async function Home() {
         <Header />
         <HeroBanner />
         <MissionStatement />
+        <Promotion />
         <Services />
         <Pillars />
         <Footer />
