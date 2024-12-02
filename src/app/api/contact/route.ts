@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { VerifaliaRestClient } from "verifalia";
-import { adminNoticeEmail } from "@/app/lib/admin-notice-email";
+import { adminNoticeEmail } from "@/app/lib/adminNoticeEmail";
 const Client = require("pg").Client;
 
 const username = process.env.VERIFALIA_USERNAME;
