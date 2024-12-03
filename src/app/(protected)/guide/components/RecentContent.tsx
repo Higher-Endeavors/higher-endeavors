@@ -11,9 +11,9 @@ interface RecentContentProps {
   articles: Article[];
 }
 
-const RecentContent: React.FC<RecentContentProps> = ({ articles }) => {
+const RecentContent = ({ articles }: RecentContentProps): JSX.Element => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white rounded-lg shadow-md mx-8 p-6">
       <h2 className="text-xl text-gray-800 font-semibold mb-4">Recent Articles</h2>
       <div className="space-y-4">
         {articles.map((article, index) => (

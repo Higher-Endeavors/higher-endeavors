@@ -26,22 +26,8 @@ export async function getArticleBySlug(slug) {
 }
 
 export async function getRecentArticles() {
-  try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    const { data: articles, error } = await supabase
-      .from('articles')
-      .select('title, slug, excerpt')
-      .order('created_at', { ascending: false })
-      .limit(5);
-
-    if (error) throw error;
-    return articles;
-  } catch (error) {
-    console.error('Error fetching recent articles:', error);
-    return [];
-  }
+  const data = await fetchAPI(
+    `/api/guides?sort[0]=createdAt:desc&pagination[limit]=5&fields[0]=title&fields[1]=excerpt&fields[2]=slug`
+  );
+  return data;
 }

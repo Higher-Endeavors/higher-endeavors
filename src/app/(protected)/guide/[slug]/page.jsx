@@ -13,32 +13,25 @@ import Head from "next/head";
 export default async function Page({ params }) {
   const article = await getArticleBySlug(params.slug);
   const recentArticles = await getRecentArticles();
+  console.log('Recent articles in page component:', recentArticles);
 
   return (
     <SessionProvider>
       <div>
         <Header />
-        <Layout>
-          <Container>
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              <div className="lg:col-span-8">
-                <article className="mb-32">
-                  <Head>
-                    <title>{article[0].title}</title>
-                  </Head>
-                  <ArticleHeader
-                    title={article[0].title}
-                    exerpt={article[0].exerpt}
-                  />
-                  <ArticleBody content={article[0].body} />
-                </article>
-              </div>
-              <div className="lg:col-span-4">
-                <RecentContent articles={recentArticles} />
-              </div>
+        <div className="container mx-auto mb-12 px-4">
+          <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">{article[0].title}</h1>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2">
+            <div className="lg:col-span-8">
+              <article>
+                <ArticleBody content={article[0].body} />
+              </article>
             </div>
-          </Container>
-        </Layout>
+            <div className="lg:col-span-4">
+              <RecentContent articles={recentArticles} />
+            </div>
+          </div>
+        </div>
         <Footer />
       </div>
     </SessionProvider>
