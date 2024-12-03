@@ -13,7 +13,6 @@ import Head from "next/head";
 export default async function Page({ params }) {
   const article = await getArticleBySlug(params.slug);
   const recentArticles = await getRecentArticles();
-  console.log('Recent articles in page component:', recentArticles);
 
   return (
     <SessionProvider>
