@@ -3,7 +3,7 @@ import styles from './markdown-styles.module.css';
 
 export default function ArticleBody({ content }) {
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl px-8">
         <Markdown className={styles.markdown}>{ content }</Markdown>
     </div>
   )
