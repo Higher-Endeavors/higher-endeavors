@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { auth } from "@/app/auth";
 import { SessionProvider } from "next-auth/react";
 import ContactForm from "./components/ContactForm";
@@ -12,7 +13,9 @@ export default function Home() {
         <div className="p-4 max-w-3xl mx-auto">
           <h1 className="text-3xl font-bold">Contact Us</h1>
           <p className="pb-6">Please fill in the form below</p>
-          <ContactForm />
+          <Suspense fallback={<div>Loading form...</div>}>
+            <ContactForm />
+          </Suspense>
         </div>
         <Footer />
       </div>

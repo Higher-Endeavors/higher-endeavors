@@ -3,6 +3,7 @@
 import { Avatar, Dropdown } from "flowbite-react";
 import { signInHandler } from "@/app/lib/signInHandler";
 import { useSession } from "next-auth/react";
+import Link from 'next/link';
 
 export default function DropdownMenu() {
 

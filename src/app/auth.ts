@@ -62,5 +62,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "database",
   },
-  debug: false,
+  debug: true,
 });

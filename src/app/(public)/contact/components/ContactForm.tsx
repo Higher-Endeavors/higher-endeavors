@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
 
 type FormData = {
@@ -9,6 +10,7 @@ type FormData = {
   lastname: string;
   email: string;
   message: string;
+  inquiryType: string;
 };
 
 async function sendErrorEmail(replyTo: string, subject: string, body: string) {
@@ -24,11 +26,19 @@ async function sendErrorEmail(replyTo: string, subject: string, body: string) {
 }
 
 export default function ContactForm() {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const searchParams = useSearchParams();
+  const inquiryParam = searchParams.get('inquiry');
+  
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+    defaultValues: {
+      inquiryType: inquiryParam || ''
+    }
+  });
+  
   const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isErrorVisible, setIsErrorVisible] = useState(false);
-  
+
   const onSubmit = async (data: FormData) => {
     if (!turnstileToken) {
       setSubmitError('Please complete the Turnstile challenge');
@@ -63,6 +73,28 @@ export default function ContactForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md mx-auto">
       <div className={`mb-4 p-4 bg-red-100 text-red-700 rounded-md ${isErrorVisible ? 'block' : 'hidden'}`}>
         {submitError}
+      </div>
+
+      <div className='mb-2'>
+        <label
+          htmlFor='inquiryType'
+          className='mb-3 block text-base font-medium text-black dark:text-white'
+        >
+          Type of Inquiry
+        </label>
+        <select
+          {...register('inquiryType', { required: 'Please select an inquiry type' })}
+          id="inquiryType"
+          className='w-full rounded-md border border-gray-300 bg-white py-3 px-6 text-base font-medium text-gray-700 outline-none focus:border-purple-500 focus:shadow-md'
+        >
+          <option value="">Select an option</option>
+          <option value="general">General</option>
+          <option value="therapy">Performance Therapy</option>
+          <option value="beta">Beta Testing</option>
+          <option value="bug">Bug Report</option>
+          <option value="feature">Feature Request</option>
+        </select>
+        {errors.inquiryType && <span className="text-red-500 text-sm mt-1">{errors.inquiryType.message}</span>}
       </div>
 
       <div className='mb-2'>

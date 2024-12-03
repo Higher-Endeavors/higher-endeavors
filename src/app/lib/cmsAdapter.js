@@ -24,3 +24,10 @@ export async function getArticleBySlug(slug) {
   );
   return data;
 }
+
+export async function getRecentArticles() {
+  const data = await fetchAPI(
+    `/api/guides?sort[0]=createdAt:desc&pagination[limit]=5&fields[0]=title&fields[1]=excerpt&fields[2]=slug`
+  );
+  return data;
+}
