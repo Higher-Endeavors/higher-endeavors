@@ -31,3 +31,10 @@ export async function getRecentArticles() {
   );
   return data;
 }
+
+export async function getArticles() {
+  const data = await fetchAPI(
+    `/api/guides?fields[0]=title&fields[1]=slug&fields[2]=excerpt&sort[0]=createdAt:desc`
+  );
+  return data;
+}

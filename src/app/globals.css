@@ -60,7 +60,7 @@ body {
   }
 
   a {
-    @apply text-[#CBAACB] hover:text-[#9400D3];
+    @apply text-blue-600 hover:text-blue-800;
   }
 }
 
