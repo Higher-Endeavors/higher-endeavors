@@ -17,7 +17,7 @@ export default async function Dashboard() {
       <Header />
       <main className="min-h-screen py-4 md:py-8 mx-5">
         {/* Calendar Placeholder */}
-        <div className="mb-8 p-4 border rounded-lg bg-gray-50">
+        <div className="mb-8 p-4 border rounded-lg bg-gray-50 dark:bg-[#e0e0e0]">
           <h2 className="text-xl text-gray-800 font-semibold">Calendar</h2>
           <p className="text-gray-600">Calendar functionality coming soon...</p>
         </div>
@@ -30,7 +30,7 @@ export default async function Dashboard() {
           <PillarColumn title="Health">
           <Link 
               href="/tools/sleep-quiz" 
-              className="block p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+              className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
             >
               <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
                 Sleep Quality Assessment →
@@ -50,7 +50,7 @@ export default async function Dashboard() {
             </ToolCard> */}
             <Link 
               href="/tools/structural-balance" 
-              className="block p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+              className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
             >
               <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
                 Structural Balance Tool →
@@ -59,6 +59,9 @@ export default async function Dashboard() {
             </Link>
           </PillarColumn>
         </div>
+
+        {/* Add separator here */}
+        <hr className="border-gray-500 my-8" />
 
         {/* Guide Content Section */}
         <div className="md:w-1/4">

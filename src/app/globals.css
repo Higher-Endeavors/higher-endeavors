@@ -59,9 +59,6 @@ body {
     @apply text-lg font-bold;
   }
 
-  a {
-    @apply text-blue-600 hover:text-blue-800;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
