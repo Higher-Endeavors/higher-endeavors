@@ -46,7 +46,7 @@ export default function SleepQuiz() {
 
   const calculatePriority = (score) => {
     if (score <= 1) return { level: 'Low', color: 'text-green-600' }
-    if (score <= 4) return { level: 'Moderate', color: 'text-orange-500' }
+    if (score <= 4) return { level: 'Moderate', color: 'text-yellow-500' }
     return { level: 'High', color: 'text-red-600' }
   }
 
@@ -87,7 +87,7 @@ export default function SleepQuiz() {
             
             <form onSubmit={handleSubmit} className="space-y-6">
         {questions.map((question, index) => (
-          <div key={index} className="bg-white text-gray-800 p-4 rounded-lg shadow">
+          <div key={index} className="bg-white dark:bg-[#e0e0e0] text-gray-800 p-4 rounded-lg shadow">
             <p className="mb-3">{question}</p>
             <div className="flex gap-4">
               <label className="flex items-center">
@@ -143,7 +143,7 @@ export default function SleepQuiz() {
         <div className="mt-8 p-6 rounded-lg shadow">
           <div className={`p-6 rounded-lg ${
             priority.level === 'Low' ? 'bg-green-500' : 
-            priority.level === 'Moderate' ? 'bg-orange-500' : 
+            priority.level === 'Moderate' ? 'bg-yellow-500' : 
             'bg-red-500'
           }`}>
             <h2 className="text-xl font-semibold mb-4">Your Results</h2>
@@ -153,7 +153,7 @@ export default function SleepQuiz() {
             </p>
             <div className={`${
               priority.level === 'Low' ? 'text-green-800' : 
-              priority.level === 'Moderate' ? 'text-orange-800' : 
+              priority.level === 'Moderate' ? 'text-yellow-800' : 
               'text-red-800'
             }`}>
               <p className="mb-2">What this means:</p>

@@ -10,12 +10,12 @@ interface FeatureRoadmapProps {
 
 const FeatureRoadmap = ({ features }: FeatureRoadmapProps): JSX.Element => {
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
+    <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
       <h2 className="text-slate-800 text-xl font-semibold mb-4">Feature Roadmap</h2>
       <div className="space-y-4">
         {features.map((feature, index) => (
           <div key={index} className="border-l-4 border-green-800 pl-4">
-            <h3 className="font-medium text-lg">{feature.title}</h3>
+            <h3 className="font-medium text-lg text-slate-600">{feature.title}</h3>
             <p className="text-gray-600 mt-1">{feature.description}</p>
             <span className={`text-sm mt-2 inline-block px-2 py-1 rounded ${
               feature.status === 'completed' ? 'bg-green-100 text-green-800' :

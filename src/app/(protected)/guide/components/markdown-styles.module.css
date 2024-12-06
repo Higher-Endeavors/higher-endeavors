@@ -16,3 +16,7 @@
 .markdown h3 {
   @apply mt-8 mb-4 text-2xl leading-snug;
 }
+
+.markdown a {
+  @apply text-[#90C3FD] hover:text-[#CBAACB] underline;
+}
