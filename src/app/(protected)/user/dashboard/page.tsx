@@ -28,7 +28,15 @@ export default async function Dashboard() {
             <div className="text-gray-500">Lifestyle Management tools coming soon...</div>
           </PillarColumn>
           <PillarColumn title="Health">
-            <div className="text-gray-500">Health tools coming soon...</div>
+          <Link 
+              href="/tools/sleep-quiz" 
+              className="block p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                Sleep Quiz →
+              </h3>
+              <p className="text-gray-600"></p>
+            </Link>
           </PillarColumn>
           <PillarColumn title="Nutrition">
             <div className="text-gray-500">Nutrition tools coming soon...</div>
