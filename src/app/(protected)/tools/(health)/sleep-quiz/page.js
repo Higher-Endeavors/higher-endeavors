@@ -167,6 +167,12 @@ export default function SleepQuiz() {
                 <p>Several factors are potentially affecting your sleep quality. You should prioritize addressing these issues and improving your sleep.</p>
               )}
             </div>
+            <div className="mt-4">
+              <p>Explanation of Scoring:</p>
+              <p>Yes: 1 point / Sometimes: 0.5 points / No: 0 points</p>
+              <p className="mt-2">High Priority: 4-5 points / Moderate Priority: 2-3 points / Low Priority: 0-1 point</p>
+              <p className="mt-2">The score is a simple way to understand your sleep quality based on your answers. A higher score indicates a greater need for attention to your sleep habits.</p>
+            </div>
           </div>
         </div>
       )}

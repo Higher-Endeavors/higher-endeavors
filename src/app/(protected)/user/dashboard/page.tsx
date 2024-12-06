@@ -33,7 +33,7 @@ export default async function Dashboard() {
               className="block p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
             >
               <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
-                Sleep Quiz →
+                Sleep Quality Assessment →
               </h3>
               <p className="text-gray-600"></p>
             </Link>
