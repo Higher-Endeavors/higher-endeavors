@@ -61,7 +61,7 @@ export default function DropdownMenu() {
             <Dropdown.Divider />
             {!session && (
                 <Dropdown.Item onClick={async () => {
-                    await signInHandler()
+                    await signInHandler("")
                 }}>Sign in</Dropdown.Item>
             )}
             {session && (
