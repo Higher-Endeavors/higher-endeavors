@@ -9,27 +9,27 @@ export function middleware(request: NextRequest) {
     "/guide/lifestyle-management-overview",
     "/guide/nutrition-overview",
   ];
+  return NextResponse.next();
+  // let cookieName = "__Secure-authjs.session-token";
+  // __Secure-authjs.session-token
+  // if (publicGuideContent.includes(request.nextUrl.pathname)) {
+  //   return NextResponse.next();
+  // }
 
-  let cookieName = "__Secure-authjs.session-token";
-
-  if (publicGuideContent.includes(request.nextUrl.pathname)) {
-    return NextResponse.next();
-  }
-
-  if (request.nextUrl.hostname == "localhost") {
-    cookieName = "authjs.session-token";
-  }
-
-  if (request.cookies.has(cookieName)) {
-    return NextResponse.next();
-  } else {
-    return NextResponse.redirect(
-      new URL(
-        `/access-redirect?redirect=${request.nextUrl.pathname}`,
-        request.url
-      )
-    );
-  }
+  // if (request.nextUrl.hostname == "localhost") {
+  //   cookieName = "authjs.session-token";
+  // }
+  // console.log("cookies:", request.cookies);
+  // if (request.cookies.has(cookieName)) {
+  //   return NextResponse.next();
+  // } else {
+  //   return NextResponse.redirect(
+  //     new URL(
+  //       `/access-redirect?redirect=${request.nextUrl.pathname}`,
+  //       request.url
+  //     )
+  //   );
+  // }
 }
 
 export const config = {
