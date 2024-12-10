@@ -1,7 +1,8 @@
 import { SessionProvider } from 'next-auth/react';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
-import AccessRedirectContent from './components/AccessRedirectContent'
+import AccessRedirectContent from './components/AccessRedirectContent';
+import { Suspense } from 'react';
 
 export const metadata = {
   title: 'Authentication Required',
@@ -13,10 +14,12 @@ export default function AccessRedirectPage() {
     <SessionProvider>
       <div className="min-h-screen flex flex-col">
         <Header />
-      <main className="flex-grow">
-        <AccessRedirectContent />
-      </main>
-      <Footer />
+        <main className="flex-grow">
+          <Suspense>
+            <AccessRedirectContent />
+          </Suspense>
+        </main>
+        <Footer />
       </div>
     </SessionProvider>
   )
