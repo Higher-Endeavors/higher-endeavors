@@ -1,6 +1,12 @@
+'use client'
 import Link from 'next/link'
+import { signInHandler } from "@/app/lib/signInHandler";
+import { useSearchParams } from 'next/navigation'
 
 export default function AccessRedirectContent() {
+  const searchParams = useSearchParams()
+  const redirectUrl = searchParams.get('redirect') || ""
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-2xl mx-auto bg-white rounded-lg shadow p-6">
@@ -24,12 +30,21 @@ export default function AccessRedirectContent() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link 
-              href="/login"
+            {/* <button  onClick={async () => {
+                    await signInHandler();
+                    history.back();
+                }}
               className="btn btn-primary hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none text-center"
             >
-              Log In
-            </Link>
+              Sign In
+            </button> */}
+            <button  onClick={ () => {
+                    signInHandler(redirectUrl);
+                }}
+              className="btn btn-primary hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none text-center"
+            >
+              Sign In
+            </button>
             {/* <Link 
               href="/signup"
               className="btn btn-outline hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none text-center"

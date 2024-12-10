@@ -48,13 +48,13 @@ const relatedArticles = [
 
 export default async function BalancedLiftsPage() {
   const session = await auth();
-  if (!session?.user) {
-    return (
-      <div className="container mx-auto px-4">
-        <h1 className="text-2xl font-bold mb-4">You must be signed in.</h1>
-      </div>
-    );
-  }
+  // if (!session?.user) {
+  //   return (
+  //     <div className="container mx-auto px-4">
+  //       <h1 className="text-2xl font-bold mb-4">You must be signed in.</h1>
+  //     </div>
+  //   );
+  // }
 
   const getRefLifts = async (): Promise<RefLifts> => {
     try {
