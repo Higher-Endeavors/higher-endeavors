@@ -30,9 +30,9 @@ const Pillars = () => {
   const pillars = [
     {
       icon: <LifestyleIcon />,
-      title: 'Lifestyle Management',
-      description: 'Lifestyle management encompasses how you structure your daily life and, more importantly, why you make the choices you do. This includes your daily routines, habits, social interactions, work-life balance, hobbies, and activities. Understanding and optimizing these aspects can lead to a fulfilling and balanced life, enabling you to become the best version of yourself.',
-      link: '/guide/lifestyle-management-overview',
+      title: 'Lifestyle',
+      description: 'Lifestyle encompasses how you structure your daily life and, more importantly, why you make the choices you do. This includes your daily routines, habits, social interactions, work-life balance, hobbies, and activities. Understanding and optimizing these aspects can lead to a fulfilling and balanced life, enabling you to become the best version of yourself.',
+      link: '/guide/lifestyle-overview',
     },
     {
       icon: <HealthIcon />,

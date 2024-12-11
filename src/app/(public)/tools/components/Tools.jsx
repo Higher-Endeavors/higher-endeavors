@@ -8,9 +8,9 @@ const Tools = () => {
         </p>
         <section className="my-8">
             <h3 className='pb-4'>Categories and Features</h3>
-            <h4 className='py-4'>Life Management</h4>
+            <h4 className='py-4'>Lifestyle</h4>
             <p>
-            Our Life Management tools are designed to help you take control of all the variables that influence your personal and professional growth. By analyzing your daily habits and choices, these tools will allow you to optimize key aspects of your life, leading to better outcomes in all areas.
+            Our Lifestyle tools are designed to help you take control of all the variables that influence your personal and professional growth. By analyzing your daily habits and choices, these tools will allow you to optimize key aspects of your life, leading to better outcomes in all areas.
             </p>
             <h4 className='py-4'>Health</h4>
             <p>
@@ -29,7 +29,7 @@ const Tools = () => {
         <section className="my-8">
             <h3 className='py-4'>Category Integrations</h3>
             <p>
-            We understand that no one aspect of self-improvement exists in isolation. This is why Higher Endeavors emphasizes the <span className="font-bold">integration and interconnection of all our tools</span>. Your choices in one area—Nutrition, Fitness, Health, or Lifestyle Management —will directly influence the others, and our platform was built upon this inter-relatedness.
+            We understand that no one aspect of self-improvement exists in isolation. This is why Higher Endeavors emphasizes the <span className="font-bold">integration and interconnection of all our tools</span>. Your choices in one area—Nutrition, Fitness, Health, or Lifestyle —will directly influence the others, and our platform was built upon this inter-relatedness.
             </p>
         </section>
         <section className="my-8">
@@ -41,7 +41,7 @@ const Tools = () => {
         <section className="my-8">
             <h3 className='py-4'>Professional Guidance</h3>
             <p>
-            We also recognize the importance of expert guidance in your journey. Through Higher Endeavors, you will have access to <span className="font-bold">professional support</span> across our four categories: Life Management, Health, Nutrition, and Fitness. Our team will be available to help you build tailored plans, track your progress, and provide actionable advice based on your specific needs and data.
+            We also recognize the importance of expert guidance in your journey. Through Higher Endeavors, you will have access to <span className="font-bold">professional support</span> across our four categories: Lifestyle, Health, Nutrition, and Fitness. Our team will be available to help you build tailored plans, track your progress, and provide actionable advice based on your specific needs and data.
             </p>
         </section>
         <section className="my-8">

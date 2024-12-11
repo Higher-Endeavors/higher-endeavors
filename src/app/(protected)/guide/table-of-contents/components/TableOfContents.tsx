@@ -15,7 +15,7 @@ interface TableOfContentsProps {
     articles: Article[];
 }
 
-const PILLARS = ['Lifestyle Management', 'Health', 'Nutrition', 'Fitness'];
+const PILLARS = ['Lifestyle', 'Health', 'Nutrition', 'Fitness'];
 
 export default function TableOfContents({ articles }: TableOfContentsProps) {
     const [expandedPillars, setExpandedPillars] = useState<string[]>(PILLARS);
