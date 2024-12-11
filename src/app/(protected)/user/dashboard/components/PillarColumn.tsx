@@ -1,5 +1,5 @@
 interface PillarColumnProps {
-  title: string;
+  title: 'Lifestyle' | 'Health' | 'Nutrition' | 'Fitness';
   children: React.ReactNode;
 }
 
