@@ -19,7 +19,7 @@ export function middleware(request: NextRequest) {
   // if (request.nextUrl.hostname == "localhost") {
   //   cookieName = "authjs.session-token";
   // }
-  // console.log("cookies:", request.cookies);
+   console.log("NW Request:", request);
   // if (request.cookies.has(cookieName)) {
   //   return NextResponse.next();
   // } else {
