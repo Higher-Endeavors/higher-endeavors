@@ -1,10 +1,17 @@
+'use client'
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { SessionProvider } from "next-auth/react";
 import SortableTree from './components/SortableTree';
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 
-export default async function Page() {
+const SortableTreeNoSSR = dynamic(
+    () => import('./components/SortableTree'),
+    { ssr: false }
+  )
+
+export default function Page() {
     const Wrapper = ({ children }: { children: React.ReactNode }) => (
         <div
             style={{
@@ -28,7 +35,7 @@ export default async function Page() {
                         <div className="lg:col-span-8">
                             <article>
                                 <Wrapper>
-                                <SortableTree collapsible indicator removable />
+                                <SortableTreeNoSSR collapsible indicator removable />
                                 </Wrapper>
                             </article>
                         </div>
