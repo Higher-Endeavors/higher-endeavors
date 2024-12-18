@@ -28,7 +28,8 @@
     "react-select": "^5.8.3",
     "remark-gfm": "^4.0.0",
     "sharp": "^0.33.5",
-    "verifalia": "^5.0.0"
+    "verifalia": "^5.0.0",
+    "world-countries": "^5.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
