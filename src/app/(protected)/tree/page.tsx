@@ -2,7 +2,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { SessionProvider } from "next-auth/react";
-import SortableTree from './components/SortableTree';
+// import SortableTree from './components/SortableTree';
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 
