@@ -78,11 +78,23 @@ const FitnessInfo = () => {
             </div>
           </div>
         </div>
+        <div>
+          <label htmlFor="availableTime" className="block mb-1 pt-2">
+            Time available to dedicate to exercise each week
+          </label>
+          <input
+            type="text"
+            id="availableTime"
+            {...register('availableTime')}
+            placeholder="e.g., realistic number of days per week and amount of time per day"
+            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
       </div>
       <div>
         <h3>Exercise Preferences & History</h3>
         <div>
-          <label htmlFor="exercisePreferences" className="block mb-1">
+          <label htmlFor="exercisePreferences" className="block mb-1 pt-2">
             Preferred forms of exercise
           </label>
           <textarea
@@ -93,7 +105,7 @@ const FitnessInfo = () => {
           />
         </div>
         <div>
-          <label htmlFor="trainingHistory" className="block mb-1">
+          <label htmlFor="trainingHistory" className="block mb-1 pt-2">
             Past involvement in structured training programs or with a Fitness Professional
           </label>
           <textarea
@@ -102,29 +114,14 @@ const FitnessInfo = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
-      </div>
-      <div>
-        <h3>Fitness Environment & Resources</h3>
         <div>
-          <label htmlFor="fitnessResources" className="block mb-1">
+          <label htmlFor="fitnessResources" className="block mb-1 pt-2">
             Access to a gym, home workout equipment, or outdoor spaces
           </label>
           <textarea
             id="fitnessResources"
             {...register('fitnessResources')}
             placeholder="e.g., gym name, home exercise equipment available, etc."
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label htmlFor="availableTime" className="block mb-1">
-            Time available to dedicate to exercise each week
-          </label>
-          <input
-            type="text"
-            id="availableTime"
-            {...register('availableTime')}
-            placeholder="e.g., realistic number of days per week and amount of time per day"
             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>

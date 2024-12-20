@@ -162,6 +162,44 @@ const LifestyleInfo = () => {
         </div>
       </div>
       <div>
+        <h3>Sleep Habits</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label htmlFor="sleepHours" className="block mb-1">
+              Average hours of sleep per night
+            </label>
+            <input
+              type="number"
+              id="sleepHours"
+              {...register('sleepHours')}
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
+            />
+          </div>
+          <div>
+            <label htmlFor="sleepConsistency" className="block mb-1">
+              Bedtime and wake-up time consistency
+            </label>
+            <input
+              id="sleepConsistency"
+              {...register('sleepConsistency')}
+              placeholder="e.g., 10pm - 6am"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
+            />
+          </div>
+          <div>
+            <label htmlFor="sleepQuality" className="block mb-1">
+              Quality of sleep
+            </label>
+            <textarea
+              id="sleepQuality"
+              {...register('sleepQuality')}
+              placeholder="e.g., refreshed upon waking, difficulty falling asleep"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
+            />
+          </div>
+        </div>
+      </div>
+      <div>
         <h3>Substance Use</h3>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
@@ -183,28 +221,32 @@ const LifestyleInfo = () => {
               <option value="7">7</option>
             </select>
           </div>
-          <div>
-            <label htmlFor="drinksPerDay" className="block mb-1">
-              Average drinks per day
-            </label>
-            <input
-              type="number"
-              id="drinksPerDay"
-              {...register('alcoholDrinksPerDay')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
-            />
-          </div>
-          <div>
-            <label htmlFor="drinksPerWeek" className="block mb-1">
-              Average drinks per week
-            </label>
-            <input
-              type="number"
-              id="drinksPerWeek"
-              {...register('alcoholDrinksPerWeek')}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
-            />
-          </div>
+          {watch('alcoholDaysPerWeek') !== 'NA' && watch('alcoholDaysPerWeek') !== '' && (
+            <>
+              <div>
+                <label htmlFor="drinksPerDay" className="block mb-1">
+                  Average drinks per day
+                </label>
+                <input
+                  type="number"
+                  id="drinksPerDay"
+                  {...register('alcoholDrinksPerDay')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
+                />
+              </div>
+              <div>
+                <label htmlFor="drinksPerWeek" className="block mb-1">
+                  Average drinks per week
+                </label>
+                <input
+                  type="number"
+                  id="drinksPerWeek"
+                  {...register('alcoholDrinksPerWeek')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-slate-800"
+                />
+              </div>
+            </>
+          )}
           <div>
             <label htmlFor="tobaccoDrugUse" className="block mb-1">
               Tobacco or recreational drug use

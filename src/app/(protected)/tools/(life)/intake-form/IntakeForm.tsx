@@ -69,13 +69,13 @@ const IntakeForm = () => {
     <FormProvider {...methods}>
       <form className="mx-auto px-12 py-8 lg:px-36 xl:px-72" onSubmit={methods.handleSubmit(onSubmit)}>
         {renderStep()}
-        <button
+        {/* <button
           type="button"
           onClick={saveProgress}
           className="hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] my-4 py-3 px-8 text-base font-semibold text-white outline-none mr-4 mb-4"
         >
           Save Progress
-        </button>
+        </button> */}
         {step > 1 && (
           <button
             type="button"
