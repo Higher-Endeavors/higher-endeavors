@@ -21,7 +21,7 @@ export default function FeatureRoadmapOverview({ features }: FeatureRoadmapOverv
     });
   }, [features, statusFilter, priorityFilter, selectedPillar]);
 
-  const pillars: FeaturePillar[] = ['Lifestyle Management', 'Health', 'Nutrition', 'Fitness'];
+  const pillars: FeaturePillar[] = ['Lifestyle', 'Health', 'Nutrition', 'Fitness'];
 
   return (
     <div className="space-y-6">

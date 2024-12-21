@@ -15,7 +15,7 @@ interface TableOfContentsProps {
     articles: Article[];
 }
 
-const PILLARS = ['Lifestyle Management', 'Health', 'Nutrition', 'Fitness'];
+const PILLARS = ['Lifestyle', 'Health', 'Nutrition', 'Fitness'];
 
 export default function TableOfContents({ articles }: TableOfContentsProps) {
     const [expandedPillars, setExpandedPillars] = useState<string[]>(PILLARS);
@@ -59,9 +59,9 @@ export default function TableOfContents({ articles }: TableOfContentsProps) {
                                     className="block p-2 hover:bg-gray-100 rounded"
                                 >
                                     <div>
-                                        <h3 className="font-medium">{article.title}</h3>
+                                        <h3 className="font-medium text-blue-600 dark:text-[#90C3FD]">{article.title}</h3>
                                         {article.excerpt && (
-                                            <p className="text-sm text-gray-600 ho mt-1">{article.excerpt}</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 ho mt-1">{article.excerpt}</p>
                                         )}
                                     </div>
                                 </Link>

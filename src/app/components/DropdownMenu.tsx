@@ -42,6 +42,7 @@ export default function DropdownMenu() {
             label={<Avatar placeholderInitials={initials} rounded />}
             arrowIcon={false}
             inline
+            className="[&_ul]:list-none [&_ul]:p-0"
         >
             <Dropdown.Header>
                 <span className="block text-sm">{session?.user?.name ?? "User name"}</span>
@@ -60,7 +61,7 @@ export default function DropdownMenu() {
             <Dropdown.Divider />
             {!session && (
                 <Dropdown.Item onClick={async () => {
-                    await signInHandler()
+                    await signInHandler("")
                 }}>Sign in</Dropdown.Item>
             )}
             {session && (

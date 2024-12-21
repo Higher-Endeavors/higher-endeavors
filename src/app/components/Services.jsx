@@ -34,13 +34,13 @@ const PerformanceTherapyIcon = () => (
       {
         icon: <PerformanceTherapyIcon />,
         title: 'Performance Therapy',
-        description: 'A comprehensive and individualized approach that combines a variety of modalities in the realms of lifestyle management, healthcare, nutrition, and fitness to help you achieve your ideal self.',
+        description: 'A comprehensive and individualized approach that combines a variety of modalities in the realms of lifestyle, healthcare, nutrition, and fitness to help you achieve your ideal self.',
         link: '/services/PerformanceTherapy',
       },
     {
       icon: <GuideIcon />,
       title: 'A Guide to Your Ideal Self',
-      description: 'Our comprehensive guide integrates four key pillars: Lifestyle Management, Health, Nutrition, and Fitness, designed to support a holistic approach to living well, and achieving your ideal self. The information is concise and highly-actionable with the intent of providing you the information and tools necessary to make positive change in your life.',
+      description: 'Our comprehensive guide integrates four key pillars: Lifestyle, Health, Nutrition, and Fitness, designed to support a holistic approach to living well, and achieving your ideal self. The information is concise and highly-actionable with the intent of providing you the information and tools necessary to make positive change in your life.',
       link: '/guide-overview',
     },
     {

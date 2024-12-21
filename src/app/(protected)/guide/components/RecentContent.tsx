@@ -13,11 +13,11 @@ interface RecentContentProps {
 
 const RecentContent = ({ articles }: RecentContentProps): JSX.Element => {
   return (
-    <div className="bg-white rounded-lg shadow-md mx-8 p-6">
+    <div className="dark:bg-[#e0e0e0] rounded-lg shadow-md mx-8 p-6">
       <h2 className="text-xl text-gray-800 font-semibold mb-4">Recent Articles</h2>
       <div className="space-y-4">
         {articles.map((article, index) => (
-          <div key={index} className="border-b border-gray-200 last:border-b-0 pb-4 last:pb-0">
+          <div key={index} className="border-b border-gray-400 last:border-b-0 pb-4 last:pb-0">
             <Link 
               href={`/guide/${article.slug}`} 
               className="block hover:bg-gray-50 transition duration-150 rounded-md p-2 -mx-2"

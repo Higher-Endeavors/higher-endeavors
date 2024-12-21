@@ -4,7 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import BalancedLiftsForm from './components/BalancedLiftsForm';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
-import FeatureRoadmap from '@/app/(protected)/tools/(components)/FeatureRoadmap';
+import FeatureRoadmap from '@/app/(protected)/tools/feature-roadmap/components/FeatureRoadmap';
 import RelatedContent from '@/app/(protected)/tools/(components)/RelatedContent';
 
 type RefLift = {
@@ -48,13 +48,13 @@ const relatedArticles = [
 
 export default async function BalancedLiftsPage() {
   const session = await auth();
-  if (!session?.user) {
-    return (
-      <div className="container mx-auto px-4">
-        <h1 className="text-2xl font-bold mb-4">You must be signed in.</h1>
-      </div>
-    );
-  }
+  // if (!session?.user) {
+  //   return (
+  //     <div className="container mx-auto px-4">
+  //       <h1 className="text-2xl font-bold mb-4">You must be signed in.</h1>
+  //     </div>
+  //   );
+  // }
 
   const getRefLifts = async (): Promise<RefLifts> => {
     try {
