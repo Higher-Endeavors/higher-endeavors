@@ -34,7 +34,8 @@ export async function getRecentArticles() {
 
 export async function getArticles() {
   const data = await fetchAPI(
-    `/api/guides?fields[0]=title&fields[1]=slug&fields[2]=excerpt&sort[0]=createdAt:desc`
+    `/api/guides?fields[0]=title&fields[1]=slug&fields[2]=excerpt&populate[0]=categories&sort[0]=createdAt:desc`
   );
-  return data;
+  console.log('API Response from getArticles:', data);
+  return { data };
 }

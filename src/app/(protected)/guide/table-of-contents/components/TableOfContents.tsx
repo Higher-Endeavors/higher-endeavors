@@ -4,21 +4,39 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi';
 
+interface Category {
+    id: number;
+    name: string;
+    slug: string;
+}
+
 interface Article {
-    id: string;
+    id: number;
+    documentId: string;
     title: string;
     slug: string;
     excerpt: string | null;
+    categories: Category[];
 }
 
 interface TableOfContentsProps {
-    articles: Article[];
+    articles: {
+        data: Article[];
+    };
 }
 
 const PILLARS = ['Lifestyle', 'Health', 'Nutrition', 'Fitness'];
 
 export default function TableOfContents({ articles }: TableOfContentsProps) {
     const [expandedPillars, setExpandedPillars] = useState<string[]>(PILLARS);
+
+    if (!articles?.data) {
+        return (
+            <div className="space-y-6">
+                <p className="text-gray-500 italic p-4">Loading articles...</p>
+            </div>
+        );
+    }
 
     const togglePillar = (pillar: string) => {
         setExpandedPillars(prev => 
@@ -29,8 +47,10 @@ export default function TableOfContents({ articles }: TableOfContentsProps) {
     };
 
     const groupedArticles = PILLARS.reduce((acc, pillar) => {
-        acc[pillar] = articles.filter(article => 
-            article.title.toLowerCase().includes(pillar.toLowerCase())
+        acc[pillar] = articles.data.filter(article => 
+            article.categories?.some(category => 
+                category.name.toLowerCase() === pillar.toLowerCase()
+            )
         );
         return acc;
     }, {} as Record<string, Article[]>);
