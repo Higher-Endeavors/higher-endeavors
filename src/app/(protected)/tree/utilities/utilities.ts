@@ -91,7 +91,7 @@ function flatten(
 }
 
 export function flattenTree(items: TreeItems): FlattenedItem[] {
-  console.log('Items: ', items);
+  // console.log('Items: ', items);
   return flatten(items);
 }
 

@@ -126,13 +126,14 @@ export default function SortableTree({
         collapsed && children.length ? [...acc, id] : acc,
       []
     );
-    console.log("Flattened Tree: ", flattenedTree)
+    // console.log("Flattened Tree: ", flattenedTree)
 
     return removeChildrenOf(
       flattenedTree,
       activeId != null ? [activeId, ...collapsedItems] : collapsedItems
     );
   }, [activeId, items]);
+
   const projected =
     activeId && overId
       ? getProjection(
@@ -282,7 +283,7 @@ export default function SortableTree({
 
       const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
       const newItems = buildTree(sortedItems);
-
+      console.log("Drag End: ", newItems);
       setItems(newItems);
     }
   }
