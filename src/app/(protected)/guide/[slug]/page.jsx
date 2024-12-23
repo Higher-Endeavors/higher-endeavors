@@ -4,8 +4,6 @@ import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 import Container from "../components/container.js";
 import ArticleBody from "../components/article-body.js";
-import ArticleHeader from "../components/article-header.js";
-import Layout from "../components/layout.js";
 import RecentContent from "../components/RecentContent";
 import { getArticleBySlug, getRecentArticles } from "../../../lib/cmsAdapter.js";
 import Head from "next/head";
