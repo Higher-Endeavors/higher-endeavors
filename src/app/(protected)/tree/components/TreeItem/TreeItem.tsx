@@ -1,5 +1,4 @@
-import React, {forwardRef, HTMLAttributes} from 'react';
-import classNames from 'classnames';
+import React, { HTMLAttributes, useRef } from 'react';
 
 import {Action, Handle, Remove} from '../Item/components';
 import styles from './TreeItem.module.css';
@@ -19,71 +18,68 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   onCollapse?(): void;
   onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
+  ref?: ((node: HTMLDivElement | null) => void) | React.RefObject<HTMLDivElement>;
 }
 
-export const TreeItem = forwardRef<HTMLDivElement, Props>(
-  (
-    {
-      childCount,
-      clone,
-      depth,
-      disableSelection,
-      disableInteraction,
-      ghost,
-      handleProps,
-      indentationWidth,
-      indicator,
-      collapsed,
-      onCollapse,
-      onRemove,
-      style,
-      value,
-      wrapperRef,
-      ...props
-    },
-    ref
-  ) => {
-    return (
-      <li
-        className={classNames(
-          styles.Wrapper,
-          clone && styles.clone,
-          ghost && styles.ghost,
-          indicator && styles.indicator,
-          disableSelection && styles.disableSelection,
-          disableInteraction && styles.disableInteraction
+export const TreeItem = (
+  {
+    ref,
+    childCount,
+    clone,
+    depth,
+    disableSelection,
+    disableInteraction,
+    ghost,
+    handleProps,
+    indentationWidth,
+    indicator,
+    collapsed,
+    onCollapse,
+    onRemove,
+    style,
+    value,
+    wrapperRef,
+    ...props
+  }: Props
+) => {
+  const actionRef = useRef<HTMLButtonElement>(null);
+
+  return (
+    <li
+      className={`${styles.Wrapper} 
+        ${clone ? styles.clone : ''} 
+        ${ghost ? styles.ghost : ''} 
+        ${indicator ? styles.indicator : ''} 
+        ${disableSelection ? styles.disableSelection : ''} 
+        ${disableInteraction ? styles.disableInteraction : ''}`}
+      ref={wrapperRef}
+      style={
+        {
+          '--spacing': `${indentationWidth * depth}px`,
+        } as React.CSSProperties
+      }
+      {...props}
+    >
+      <div className={styles.TreeItem} ref={ref} style={style}>
+        <Handle {...handleProps} />
+        {onCollapse && (
+          <Action
+            ref={actionRef}
+            onClick={onCollapse}
+            className={`${styles.Collapse} ${collapsed ? styles.collapsed : ''}`}
+          >
+            {collapseIcon}
+          </Action>
         )}
-        ref={wrapperRef}
-        style={
-          {
-            '--spacing': `${indentationWidth * depth}px`,
-          } as React.CSSProperties
-        }
-        {...props}
-      >
-        <div className={styles.TreeItem} ref={ref} style={style}>
-          <Handle {...handleProps} />
-          {onCollapse && (
-            <Action
-              onClick={onCollapse}
-              className={classNames(
-                styles.Collapse,
-                collapsed && styles.collapsed
-              )}
-            >
-              {collapseIcon}
-            </Action>
-          )}
-          <span className={styles.Text}>{value}</span>
-          {!clone && onRemove && <Remove onClick={onRemove} />}
-          {clone && childCount && childCount > 1 ? (
-            <span className={styles.Count}>{childCount}</span>
-          ) : null}
-        </div>
-      </li>
-    );
-  }
-);
+        <span className={styles.Text}>{value}</span>
+        {!clone && onRemove && <Remove onClick={onRemove} />}
+        {clone && childCount && childCount > 1 ? (
+          <span className={styles.Count}>{childCount}</span>
+        ) : null}
+      </div>
+    </li>
+  );
+};
 
 const collapseIcon = (
   <svg width="10" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 70 41">
