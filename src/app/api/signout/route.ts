@@ -4,9 +4,7 @@ import { signOut } from "@/app/auth"
   
   export async function POST(request: NextRequest) {
     await signOut();
-    return NextResponse.json(
-        { status: 200 }
-      );
+    return NextResponse.redirect(new URL("/", request.url))
     
 
   }

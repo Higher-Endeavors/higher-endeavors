@@ -1,4 +1,4 @@
-export type FeaturePillar = 'Lifestyle Management' | 'Health' | 'Nutrition' | 'Fitness';
+export type FeaturePillar = 'Lifestyle' | 'Health' | 'Nutrition' | 'Fitness';
 
 export type FeaturePriority = 'low' | 'medium' | 'high';
 

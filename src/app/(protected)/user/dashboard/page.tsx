@@ -24,8 +24,8 @@ export default async function Dashboard() {
 
         {/* Four Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <PillarColumn title="Lifestyle Management">
-            <div className="text-gray-500">Lifestyle Management tools coming soon...</div>
+          <PillarColumn title="Lifestyle">
+            <div className="text-gray-500">Lifestyle tools coming soon...</div>
           </PillarColumn>
           <PillarColumn title="Health">
           <Link 
