@@ -37,7 +37,7 @@ export interface Props {
     transform: Props['transform'];
     transition: Props['transition'];
     value: Props['value'];
-  }): React.ReactElement;
+  }): React.ReactElement<any>;
 }
 
 export const Item = React.memo(
