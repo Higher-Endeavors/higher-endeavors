@@ -6,7 +6,7 @@
     "preinstall": "npx only-allow pnpm",
     "dev": "dotenvx run -f .env.local -- next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "dotenvx run -f .env.local -- next start"
   },
   "dependencies": {
     "@auth/pg-adapter": "^1.7.4",
@@ -32,6 +32,7 @@
     "react-markdown": "^9.0.1",
     "react-select": "^5.9.0",
     "remark-gfm": "^4.0.0",
+    "sass": "^1.83.0",
     "sharp": "^0.33.5",
     "verifalia": "^5.0.0"
   },

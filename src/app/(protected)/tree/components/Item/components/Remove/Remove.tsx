@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../../Item.module.css';
+import styles from '../../Item.module.scss';
 
 import { Action, ActionProps } from '../Action';
 

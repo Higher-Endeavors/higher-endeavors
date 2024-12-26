@@ -1,7 +1,7 @@
 import React, { HTMLAttributes, useRef } from 'react';
 
 import {Action, Handle, Remove} from '../Item/components';
-import styles from './TreeItem.module.css';
+import styles from './TreeItem.module.scss';
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   childCount?: number;

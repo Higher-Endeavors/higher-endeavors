@@ -190,7 +190,6 @@ export default function SortableTree({
       return `Moving was cancelled. ${active.id} was dropped in its original position.`;
     },
   };
-
   return (
     <DndContext
       accessibility={{ announcements }}

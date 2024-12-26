@@ -1,6 +1,6 @@
 import React, { CSSProperties, ButtonHTMLAttributes, RefObject } from 'react';
 
-import styles from './Action.module.css';
+import styles from './Action.module.scss';
 
 export interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   active?: {
