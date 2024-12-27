@@ -28,7 +28,7 @@ const SettingsForm = () => {
   ];
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-gray-50 rounded-lg shadow">
       {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="flex -mb-px">
