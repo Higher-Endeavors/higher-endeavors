@@ -35,7 +35,7 @@ export default function Page() {
                         <div className="lg:col-span-8">
                             <article>
                                 <Wrapper>
-                                <SortableTreeNoSSR collapsible indicator removable />
+                                <SortableTreeNoSSR collapsible indicator addable removable />
                                 </Wrapper>
                             </article>
                         </div>

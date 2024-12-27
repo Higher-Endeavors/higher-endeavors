@@ -30,6 +30,7 @@ import {
   flattenTree,
   getProjection,
   getChildCount,
+  addItem,
   removeItem,
   removeChildrenOf,
   setProperty,
@@ -100,6 +101,7 @@ interface Props {
   defaultItems?: TreeItems;
   indentationWidth?: number;
   indicator?: boolean;
+  addable?: boolean;
   removable?: boolean;
 }
 
@@ -108,6 +110,7 @@ export default function SortableTree({
   defaultItems = initialItems,
   indicator = false,
   indentationWidth = 50,
+  addable,
   removable,
 }: Props) {
   const [items, setItems] = useState(() => defaultItems);
@@ -217,6 +220,7 @@ export default function SortableTree({
                 ? () => handleCollapse(id)
                 : undefined
             }
+            onAdd={addable ? () => handleAdd() : undefined}
             onRemove={removable ? () => handleRemove(id) : undefined}
           />
         ))}
@@ -298,6 +302,10 @@ export default function SortableTree({
     setCurrentPosition(null);
 
     document.body.style.setProperty('cursor', '');
+  }
+
+  function handleAdd() {
+    setItems((items) => addItem(items));
   }
 
   function handleRemove(id: UniqueIdentifier) {

@@ -139,6 +139,24 @@ export function findItemDeep(
   return undefined;
 }
 
+export function addItem(items: TreeItems) {
+  // const newItems = [];
+
+  // for (const item of items) {
+  //   if (item.id === id) {
+  //     continue;
+  //   }
+
+  //   if (item.children.length) {
+  //     item.children = removeItem(item.children, id);
+  //   }
+
+  //   newItems.push(item);
+  // }
+
+  return items;
+}
+
 export function removeItem(items: TreeItems, id: UniqueIdentifier) {
   const newItems = [];
 
@@ -162,7 +180,7 @@ export function setProperty<T extends keyof TreeItem>(
   id: UniqueIdentifier,
   property: T,
   setter: (value: TreeItem[T]) => TreeItem[T]
-) {
+): TreeItems {
   return items.map(item => {
     if (item.id === id) {
       return {
