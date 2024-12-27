@@ -124,7 +124,7 @@ const SettingsForm = () => {
                       }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600 capitalize">{type}</span>
+                    <span className="ml-2 pr-2 text-sm text-gray-600 capitalize">{type}</span>
                   </label>
                 ))}
               </div>
@@ -135,7 +135,7 @@ const SettingsForm = () => {
         {/* Placeholder sections for other tabs */}
         {activeTab === 'lifestyle' && (
           <div>
-            <h2 className="text-xl font-semibold">Lifestyle Settings</h2>
+            <h2 className="text-xl font-semibold dark:text-slate-600">Lifestyle Settings</h2>
             {/* Device Integration */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Device Integration</label>
@@ -157,9 +157,15 @@ const SettingsForm = () => {
           </div>
         )}
 
+        {activeTab === 'health' && (
+          <div>
+            <h2 className="text-xl font-semibold dark:text-slate-600">Health Settings</h2>
+          </div>
+        )}
+
         {activeTab === 'nutrition' && (
           <div>
-            <h2 className="text-xl font-semibold">Nutrition Settings</h2>
+            <h2 className="text-xl font-semibold dark:text-slate-600">Nutrition Settings</h2>
             {/* Food Measurement */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Food Measurement</label>
@@ -192,7 +198,7 @@ const SettingsForm = () => {
 
         {activeTab === 'fitness' && (
           <div>
-            <h2 className="text-xl font-semibold">Fitness Settings</h2>
+            <h2 className="text-xl font-semibold dark:text-slate-600">Fitness Settings</h2>
             {/* Resistance Training */}
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Weight Units</label>
