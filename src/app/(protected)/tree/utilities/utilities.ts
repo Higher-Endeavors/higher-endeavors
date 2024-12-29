@@ -139,22 +139,15 @@ export function findItemDeep(
   return undefined;
 }
 
-export function addItem(items: TreeItems) {
-  // const newItems = [];
-
-  // for (const item of items) {
-  //   if (item.id === id) {
-  //     continue;
-  //   }
-
-  //   if (item.children.length) {
-  //     item.children = removeItem(item.children, id);
-  //   }
-
-  //   newItems.push(item);
-  // }
-
-  return items;
+export function addItem(items: TreeItems, id: UniqueIdentifier) {
+  const newItems = [...items];
+  const newItem: TreeItem = {
+    id,
+    children: []
+  };
+  
+  newItems.push(newItem);
+  return newItems;
 }
 
 export function removeItem(items: TreeItems, id: UniqueIdentifier) {

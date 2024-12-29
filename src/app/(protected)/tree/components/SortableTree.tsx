@@ -38,6 +38,7 @@ import {
 import type { FlattenedItem, SensorContext, TreeItems } from '../utilities/types';
 import { sortableTreeKeyboardCoordinates } from '../utilities/keyboardCoordinates';
 import { SortableTreeItem } from './TreeItem/SortableTreeItem';
+import AddTreeItem from './TreeItem/AddTreeItem';
 import { CSS } from '@dnd-kit/utilities';
 
 const initialItems: TreeItems = [
@@ -121,6 +122,7 @@ export default function SortableTree({
     parentId: UniqueIdentifier | null;
     overId: UniqueIdentifier;
   } | null>(null);
+  const [openModal, setOpenModal] = useState(false);
 
   const flattenedItems = useMemo(() => {
     const flattenedTree = flattenTree(items);
@@ -206,6 +208,11 @@ export default function SortableTree({
       onDragCancel={handleDragCancel}
     >
       <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
+        <button
+          onClick={() => setOpenModal(true)}
+          className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+          Add Item
+        </button>
         {flattenedItems.map(({ id, children, collapsed, depth }) => (
           <SortableTreeItem
             key={id}
@@ -220,7 +227,7 @@ export default function SortableTree({
                 ? () => handleCollapse(id)
                 : undefined
             }
-            onAdd={addable ? () => handleAdd() : undefined}
+            // onAdd={addable ? () => handleAdd() : undefined}
             onRemove={removable ? () => handleRemove(id) : undefined}
           />
         ))}
@@ -242,6 +249,12 @@ export default function SortableTree({
           </DragOverlay>,
           document.body
         )}
+        <AddTreeItem
+          items={items}
+          openModal={openModal}
+          setItems={setItems}
+          setOpenModal={setOpenModal}
+        />
       </SortableContext>
     </DndContext>
   );
@@ -304,9 +317,10 @@ export default function SortableTree({
     document.body.style.setProperty('cursor', '');
   }
 
-  function handleAdd() {
-    setItems((items) => addItem(items));
-  }
+  // function handleAdd() {
+  //   // setItems((items) => addItem(items));
+  //   console.log("handle");
+  // }
 
   function handleRemove(id: UniqueIdentifier) {
     setItems((items) => removeItem(items, id));

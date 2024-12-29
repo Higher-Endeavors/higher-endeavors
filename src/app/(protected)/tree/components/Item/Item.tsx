@@ -23,7 +23,7 @@ export interface Props {
   transition?: string | null;
   wrapperStyle?: React.CSSProperties;
   value: React.ReactNode;
-  onAdd?(): void;
+  // onAdd?(): void;
   onRemove?(): void;
   renderItem?(args: {
     dragOverlay: boolean;
@@ -54,7 +54,7 @@ export const Item = React.memo(
       height,
       index,
       listeners,
-      onAdd,
+      // onAdd,
       onRemove,
       renderItem,
       sorting,
@@ -131,9 +131,9 @@ export const Item = React.memo(
         >
           {value}
           <span className={styles.Actions}>
-          {onAdd ? (
+          {/* {onAdd ? (
               <Add className={styles.Add} onClick={onAdd} />
-            ) : null}
+            ) : null} */}
             {onRemove ? (
               <Remove className={styles.Remove} onClick={onRemove} />
             ) : null}

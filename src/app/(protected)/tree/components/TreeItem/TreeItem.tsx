@@ -16,7 +16,7 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   indentationWidth: number;
   value: string;
   onCollapse?(): void;
-  onAdd?(): void;
+  // onAdd?(): void;
   onRemove?(): void;
   wrapperRef?(node: HTMLLIElement): void;
   ref?: ((node: HTMLDivElement | null) => void) | React.RefObject<HTMLDivElement>;
@@ -36,7 +36,7 @@ export const TreeItem = (
     indicator,
     collapsed,
     onCollapse,
-    onAdd,
+    // onAdd,
     onRemove,
     style,
     value,
@@ -74,7 +74,7 @@ export const TreeItem = (
           </Action>
         )}
         <span className={styles.Text}>{value}</span>
-        {!clone && onAdd && <Add onClick={onAdd} />}
+        {/* {!clone && onAdd && <Add onClick={onAdd} />} */}
         {!clone && onRemove && <Remove onClick={onRemove} />}
         {clone && childCount && childCount > 1 ? (
           <span className={styles.Count}>{childCount}</span>
