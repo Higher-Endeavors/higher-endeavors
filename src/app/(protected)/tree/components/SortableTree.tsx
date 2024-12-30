@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Announcements,
   DndContext,
@@ -123,6 +125,17 @@ export default function SortableTree({
   addable,
   removable,
 }: Props) {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  if (session?.user?.role !== "admin") {
+    return (
+      <div className="container mx-auto px-4">
+        <h1 className="text-2xl font-bold mb-4">You do not have permission to access this page.</h1>
+      </div>
+    );
+}
+
   const [items, setItems] = useState(() => defaultItems);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [overId, setOverId] = useState<UniqueIdentifier | null>(null);
