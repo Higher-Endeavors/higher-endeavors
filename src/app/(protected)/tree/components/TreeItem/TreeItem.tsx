@@ -14,6 +14,8 @@ export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {
   handleProps?: any;
   indicator?: boolean;
   indentationWidth: number;
+  group: number;
+  order: number;
   value: string;
   onCollapse?(): void;
   // onAdd?(): void;
@@ -39,6 +41,8 @@ export const TreeItem = (
     // onAdd,
     onRemove,
     style,
+    group,
+    order,
     value,
     wrapperRef,
     ...props
@@ -73,6 +77,8 @@ export const TreeItem = (
             {collapseIcon}
           </Action>
         )}
+        <span className={styles.Numbering}>{group}</span>
+        <span className={styles.Numbering}>{order}</span>
         <span className={styles.Text}>{value}</span>
         {/* {!clone && onAdd && <Add onClick={onAdd} />} */}
         {!clone && onRemove && <Remove onClick={onRemove} />}

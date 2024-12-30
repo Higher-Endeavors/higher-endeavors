@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { TreeItems } from '../../utilities/types';
 import {
   addItem,
+  renumberItems,
 } from '../../utilities/utilities';
 
 type FormData = {
@@ -35,7 +36,8 @@ export default function AddTreeItem({
   }
 
   const onSubmit = async (data: FormData) => {
-    setItems(addItem(items, data.itemName));
+    const newItems = addItem(items, 0, 0, data.itemName);
+    setItems(renumberItems(newItems));
     setOpenModal(false);
     reset();
     setSubmitError(null);
@@ -73,7 +75,7 @@ export default function AddTreeItem({
                   type="submit"
                   className='hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none'
                 >
-                  Submit
+                  Add
                 </button>
 
               </form>

@@ -32,6 +32,7 @@ import {
   getChildCount,
   addItem,
   removeItem,
+  renumberItems,
   removeChildrenOf,
   setProperty,
 } from '../utilities/utilities';
@@ -43,27 +44,35 @@ import { CSS } from '@dnd-kit/utilities';
 
 const initialItems: TreeItems = [
   {
+    group: 1,
+    order: 0,
     id: 'Home',
     children: [],
   },
   {
+    group: 2,
+    order: 0,
     id: 'Collections',
     children: [
-      { id: 'Spring', children: [] },
-      { id: 'Summer', children: [] },
-      { id: 'Fall', children: [] },
-      { id: 'Winter', children: [] },
+      { group: 2, order: 1, id: 'Spring', children: [] },
+      { group: 2, order: 2, id: 'Summer', children: [] },
+      { group: 2, order: 3, id: 'Fall', children: [] },
+      { group: 2, order: 4, id: 'Winter', children: [] },
     ],
   },
   {
+    group: 3,
+    order: 0,
     id: 'About Us',
     children: [],
   },
   {
+    group: 4,
+    order: 0,
     id: 'My Account',
     children: [
-      { id: 'Addresses', children: [] },
-      { id: 'Order History', children: [] },
+      { group: 4, order: 1, id: 'Addresses', children: [] },
+      { group: 4, order: 2, id: 'Order History', children: [] },
     ],
   },
 ];
@@ -131,8 +140,7 @@ export default function SortableTree({
         collapsed && children.length ? [...acc, id] : acc,
       []
     );
-    // console.log("Flattened Tree: ", flattenedTree)
-
+  
     return removeChildrenOf(
       flattenedTree,
       activeId != null ? [activeId, ...collapsedItems] : collapsedItems
@@ -213,10 +221,12 @@ export default function SortableTree({
           className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
           Add Item
         </button>
-        {flattenedItems.map(({ id, children, collapsed, depth }) => (
+        {flattenedItems.map(({ id, group, order, children, collapsed, depth }) => (
           <SortableTreeItem
             key={id}
             id={id}
+            group={group}
+            order={order}
             value={id.toString()}
             depth={id === activeId && projected ? projected.depth : depth}
             indentationWidth={indentationWidth}
@@ -242,6 +252,8 @@ export default function SortableTree({
                 depth={activeItem.depth}
                 clone
                 childCount={getChildCount(items, activeId) + 1}
+                group={activeItem.group}
+                order={activeItem.order}
                 value={activeId.toString()}
                 indentationWidth={indentationWidth}
               />
@@ -299,8 +311,7 @@ export default function SortableTree({
 
       const sortedItems = arrayMove(clonedItems, activeIndex, overIndex);
       const newItems = buildTree(sortedItems);
-      console.log("Drag End: ", newItems);
-      setItems(newItems);
+      setItems(renumberItems(newItems));
     }
   }
 
@@ -317,13 +328,9 @@ export default function SortableTree({
     document.body.style.setProperty('cursor', '');
   }
 
-  // function handleAdd() {
-  //   // setItems((items) => addItem(items));
-  //   console.log("handle");
-  // }
-
   function handleRemove(id: UniqueIdentifier) {
-    setItems((items) => removeItem(items, id));
+    const newItems = removeItem(items, id);
+    setItems(renumberItems(items)); 
   }
 
   function handleCollapse(id: UniqueIdentifier) {
