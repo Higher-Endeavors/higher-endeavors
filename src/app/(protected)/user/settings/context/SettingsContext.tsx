@@ -21,6 +21,9 @@ const initialSettings: UserSettings = {
     },
   },
   health: {
+    circumferenceUnit: 'in',
+    circumferenceMeasurements: [],
+    bodyFatMethods: [],
     trackingPreferences: [],
   },
   nutrition: {

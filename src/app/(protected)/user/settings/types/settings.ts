@@ -5,6 +5,19 @@ export type FoodMeasurementUnit = 'grams' | 'lbs_oz' | 'oz';
 export type HydrationUnit = 'grams' | 'oz' | 'liters';
 export type SpeedUnit = 'mph' | 'kph' | 'min_mile' | 'min_km';
 export type NotificationType = 'email' | 'text' | 'app';
+export type CircumferenceUnit = 'in' | 'cm';
+export type BodyFatMethod = 'manual' | 'bioelectrical' | 'skinfold';
+
+export type CircumferenceMeasurement = 
+  | 'neck'
+  | 'shoulders'
+  | 'chest'
+  | 'waist'
+  | 'hips'
+  | 'biceps'
+  | 'forearm'
+  | 'thigh'
+  | 'calf';
 
 export interface GeneralSettings {
   heightUnit: HeightUnit;
@@ -24,7 +37,9 @@ export interface LifestyleSettings {
 }
 
 export interface HealthSettings {
-  // Placeholder for health-specific settings
+  circumferenceUnit: CircumferenceUnit;
+  circumferenceMeasurements: CircumferenceMeasurement[];
+  bodyFatMethods: BodyFatMethod[];
   trackingPreferences?: string[];
 }
 
