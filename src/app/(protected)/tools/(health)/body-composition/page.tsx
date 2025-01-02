@@ -3,53 +3,65 @@
 import { useState } from 'react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
+import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 
 import { SessionProvider } from 'next-auth/react';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
-const tabs = [
-  { id: 'input', label: 'Data Input' },
-  { id: 'analysis', label: 'Analysis' }
-];
-
 export default function BodyCompositionPage() {
-  const [activeTab, setActiveTab] = useState('input');
+  const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
+  // TODO: Replace with actual API call to get user settings
+  const [userSettings, setUserSettings] = useState({});
+  const [showSettingsNotification, setShowSettingsNotification] = useState(true);
 
   return (
     <SessionProvider>
         <Header />
-    <div className="container mx-auto py-6">
-      <h1 className="text-3xl font-bold mb-6">Body Composition Tracker</h1>
-      
-      <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md">
-        {/* Tabs */}
-        <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-4 px-6 text-sm font-medium ${
-                  activeTab === tab.id
-                    ? 'border-b-2 border-purple-500 text-purple-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+      <div className="container mx-auto mb-12 px-4">
+        <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 order-2 lg:order-1">
+          <div className="mb-6 flex space-x-4">
+            <button
+              onClick={() => setActiveTab('input')}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'input'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-white dark:bg-[#e0e0e0] text-gray-700'
+              }`}
+            >
+              Data Input
+            </button>
+            <button
+              onClick={() => setActiveTab('analysis')}
+              className={`px-4 py-2 rounded-md ${
+                activeTab === 'analysis'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-white dark:bg-[#e0e0e0] text-gray-700'
+              }`}
+            >
+              Analysis
+            </button>
+          </div>
+
+          {activeTab === 'input' ? (
+            <BodyCompositionInput />
+          ) : (
+            <BodyCompositionAnalysis />
+          )}
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          {activeTab === 'input' && <BodyCompositionInput />}
-          {activeTab === 'analysis' && <BodyCompositionAnalysis />}
-            </div>
-          </div>
+        <div className="lg:col-span-4 order-1 lg:order-2">
+          <RequiredSettingsSidebar
+            userSettings={userSettings}
+            showNotification={showSettingsNotification}
+            onDismiss={() => setShowSettingsNotification(false)}
+          />
         </div>
-        <Footer />
+      </div>
+      </div>
+      <Footer />
     </SessionProvider>
   );
 } 

@@ -50,6 +50,13 @@ const formatMeasurementTitle = (key: string): string => {
   return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
 };
 
+// TODO: Replace with actual user settings interface and API call
+interface UserSettings {
+  age?: number;
+  preferMetric?: boolean;
+  // Add other relevant settings as needed
+}
+
 export default function BodyCompositionInput() {
   const [weight, setWeight] = useState<number>(0);
   const [manualBodyFat, setManualBodyFat] = useState<number>(0);
@@ -64,6 +71,10 @@ export default function BodyCompositionInput() {
   } | null>(null);
   const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [bodyFatMethod, setBodyFatMethod] = useState<'manual' | 'skinfold'>('manual');
+  // TODO: Replace with actual API call to get user settings
+  const [userSettings, setUserSettings] = useState<UserSettings>({});
+  const [showSettingsNotification, setShowSettingsNotification] = useState(true);
 
   const getErrorForField = (fieldPath: string[]): string | undefined => {
     return errors.find(error => 
@@ -132,6 +143,43 @@ export default function BodyCompositionInput() {
     }
   };
 
+  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newWeight = parseFloat(e.target.value) || 0;
+    setWeight(newWeight);
+    setErrors(prev => prev.filter(error => error.path.join('.') !== 'weight'));
+    
+    if (bodyFatMethod === 'manual' && manualBodyFat > 0) {
+      const fatMass = (newWeight * manualBodyFat) / 100;
+      const fatFreeMass = newWeight - fatMass;
+      setCalculatedMetrics({
+        bodyFatPercentage: manualBodyFat,
+        fatMass,
+        fatFreeMass
+      });
+    }
+  };
+
+  const handleManualBodyFatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newBodyFat = parseFloat(e.target.value) || 0;
+    setManualBodyFat(newBodyFat);
+    setErrors(prev => prev.filter(error => error.path.join('.') !== 'manualBodyFatPercentage'));
+    
+    if (weight > 0) {
+      const fatMass = (weight * newBodyFat) / 100;
+      const fatFreeMass = weight - fatMass;
+      setCalculatedMetrics({
+        bodyFatPercentage: newBodyFat,
+        fatMass,
+        fatFreeMass
+      });
+    }
+  };
+
+  // Function to check if required settings are complete
+  const hasRequiredSettings = () => {
+    return userSettings.age !== undefined && userSettings.preferMetric !== undefined;
+  };
+
   return (
     <div className="space-y-6">
       {errors.some(error => error.path.join('.') === 'save') && (
@@ -142,143 +190,176 @@ export default function BodyCompositionInput() {
 
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Basic Measurements</h2>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label htmlFor="weight" className="block text-sm font-medium text-gray-700">
-              Body Weight (lbs.)
-            </label>
-            <input
-              id="weight"
-              type="number"
-              step="0.1"
-              value={weight || ''}
-              onChange={(e) => {
-                setWeight(parseFloat(e.target.value) || 0);
-                setErrors(prev => prev.filter(error => error.path.join('.') !== 'weight'));
-              }}
-              className={`w-full rounded-md border ${
-                getErrorForField(['weight']) ? 'border-red-500' : 'border-gray-300'
-              } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-            />
-            {getErrorForField(['weight']) && (
-              <p className="text-sm text-red-500">{getErrorForField(['weight'])}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <label htmlFor="manual-bf" className="block text-sm font-medium text-gray-700">
-              Manual Body Fat %
-            </label>
-            <input
-              id="manual-bf"
-              type="number"
-              step="0.1"
-              value={manualBodyFat || ''}
-              onChange={(e) => {
-                setManualBodyFat(parseFloat(e.target.value) || 0);
-                setErrors(prev => prev.filter(error => error.path.join('.') !== 'manualBodyFatPercentage'));
-              }}
-              className={`w-full rounded-md border ${
-                getErrorForField(['manualBodyFatPercentage']) ? 'border-red-500' : 'border-gray-300'
-              } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-            />
-            {getErrorForField(['manualBodyFatPercentage']) && (
-              <p className="text-sm text-red-500">{getErrorForField(['manualBodyFatPercentage'])}</p>
-            )}
-          </div>
+        <div className="space-y-2">
+          <label htmlFor="weight" className="block text-sm font-medium text-gray-700">
+            Body Weight (lbs.)
+          </label>
+          <input
+            id="weight"
+            type="number"
+            step="0.1"
+            value={weight || ''}
+            onChange={handleWeightChange}
+            className={`w-full rounded-md border ${
+              getErrorForField(['weight']) ? 'border-red-500' : 'border-gray-300'
+            } bg-white py-2 px-3 text-sm dark:text-slate-900`}
+          />
+          {getErrorForField(['weight']) && (
+            <p className="text-sm text-red-500">{getErrorForField(['weight'])}</p>
+          )}
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4 text-gray-700">Skinfold Measurements</h2>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="age" className="block text-sm font-medium text-gray-700">
-                Age
-              </label>
-              <input
-                id="age"
-                type="number"
-                value={age || ''}
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Body Fat Measurement</h2>
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <label htmlFor="body-fat-method" className="block text-sm font-medium text-gray-700">
+              Measurement Method
+            </label>
+            <div className="relative">
+              <select
+                id="body-fat-method"
+                value={bodyFatMethod}
                 onChange={(e) => {
-                  setAge(parseInt(e.target.value) || 0);
-                  setErrors(prev => prev.filter(error => error.path.join('.') !== 'age'));
+                  setBodyFatMethod(e.target.value as 'manual' | 'skinfold');
+                  setCalculatedMetrics(null);
                 }}
-                className={`w-full rounded-md border ${
-                  getErrorForField(['age']) ? 'border-red-500' : 'border-gray-300'
-                } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-              />
-              {getErrorForField(['age']) && (
-                <p className="text-sm text-red-500">{getErrorForField(['age'])}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Gender</label>
-              <div className="flex space-x-4">
-                <button
-                  type="button"
-                  onClick={() => setIsMale(true)}
-                  className={`flex-1 py-2 px-4 rounded-md ${
-                    isMale
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Male
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsMale(false)}
-                  className={`flex-1 py-2 px-4 rounded-md ${
-                    !isMale
-                      ? 'bg-purple-500 text-white'
-                      : 'bg-white border border-gray-300 text-gray-700'
-                  }`}
-                >
-                  Female
-                </button>
+                className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
+              >
+                <option value="manual">Manual Body Fat %</option>
+                <option value="skinfold">Skinfold Measurements</option>
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                </svg>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            {Object.entries(skinfold).map(([key, value]) => (
-              <div key={key} className="space-y-2">
-                <label
-                  htmlFor={`skinfold-${key}`}
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  {key.charAt(0).toUpperCase() + key.slice(1)} (mm)
+          {bodyFatMethod === 'manual' && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="manual-bf" className="block text-sm font-medium text-gray-700">
+                  Manual Body Fat %
                 </label>
                 <input
-                  id={`skinfold-${key}`}
+                  id="manual-bf"
                   type="number"
                   step="0.1"
-                  value={value || ''}
-                  onChange={handleSkinfoldChange(key as keyof SkinfoldMeasurements)}
+                  value={manualBodyFat || ''}
+                  onChange={handleManualBodyFatChange}
                   className={`w-full rounded-md border ${
-                    getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
+                    getErrorForField(['manualBodyFatPercentage']) ? 'border-red-500' : 'border-gray-300'
                   } bg-white py-2 px-3 text-sm dark:text-slate-900`}
                 />
-                {getErrorForField(['skinfold', key]) && (
-                  <p className="text-sm text-red-500">{getErrorForField(['skinfold', key])}</p>
+                {getErrorForField(['manualBodyFatPercentage']) && (
+                  <p className="text-sm text-red-500">{getErrorForField(['manualBodyFatPercentage'])}</p>
                 )}
               </div>
-            ))}
-          </div>
 
-          <button
-            onClick={calculateMetrics}
-            className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-2 px-4 text-white"
-          >
-            Calculate Body Fat
-          </button>
+              {calculatedMetrics && (
+                <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
+                  <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
+                  <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+                </div>
+              )}
+            </div>
+          )}
 
-          {calculatedMetrics && (
-            <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
-              <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(2)}%</p>
-              <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} kg</p>
-              <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} kg</p>
+          {bodyFatMethod === 'skinfold' && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="age" className="block text-sm font-medium text-gray-700">
+                    Age
+                  </label>
+                  <input
+                    id="age"
+                    type="number"
+                    value={age || ''}
+                    onChange={(e) => {
+                      setAge(parseInt(e.target.value) || 0);
+                      setErrors(prev => prev.filter(error => error.path.join('.') !== 'age'));
+                    }}
+                    className={`w-full rounded-md border ${
+                      getErrorForField(['age']) ? 'border-red-500' : 'border-gray-300'
+                    } bg-white py-2 px-3 text-sm dark:text-slate-900`}
+                  />
+                  {getErrorForField(['age']) && (
+                    <p className="text-sm text-red-500">{getErrorForField(['age'])}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Gender</label>
+                  <div className="flex space-x-4">
+                    <button
+                      type="button"
+                      onClick={() => setIsMale(true)}
+                      className={`flex-1 py-2 px-4 rounded-md ${
+                        isMale
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      Male
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsMale(false)}
+                      className={`flex-1 py-2 px-4 rounded-md ${
+                        !isMale
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-white border border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      Female
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {Object.entries(skinfold).map(([key, value]) => (
+                  <div key={key} className="space-y-2">
+                    <label
+                      htmlFor={`skinfold-${key}`}
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      {formatMeasurementTitle(key)} (mm)
+                    </label>
+                    <input
+                      id={`skinfold-${key}`}
+                      type="number"
+                      step="0.1"
+                      value={value || ''}
+                      onChange={handleSkinfoldChange(key as keyof SkinfoldMeasurements)}
+                      className={`w-full rounded-md border ${
+                        getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
+                      } bg-white py-2 px-3 text-sm dark:text-slate-900`}
+                    />
+                    {getErrorForField(['skinfold', key]) && (
+                      <p className="text-sm text-red-500">{getErrorForField(['skinfold', key])}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={calculateMetrics}
+                className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-2 px-4 text-white"
+              >
+                Calculate Body Fat
+              </button>
+
+              {calculatedMetrics && (
+                <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
+                  <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(2)}%</p>
+                  <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
+                  <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+                </div>
+              )}
             </div>
           )}
         </div>
