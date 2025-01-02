@@ -33,6 +33,23 @@ const defaultSkinfoldMeasurements: SkinfoldMeasurements = {
   suprailiac: 0,
 };
 
+const formatMeasurementTitle = (key: string): string => {
+  // Split on capital letters and remove any empty strings
+  const parts = key.split(/(?=[A-Z])/).filter(Boolean);
+  
+  // Handle special cases for left/right measurements
+  if (parts[0].toLowerCase() === 'left' || parts[0].toLowerCase() === 'right') {
+    // Remove the side and handle it separately
+    const side = parts.shift()!.toLowerCase();
+    // Capitalize remaining parts
+    const measurement = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
+    return `${measurement} - ${side.charAt(0).toUpperCase() + side.slice(1)}`;
+  }
+  
+  // For other measurements, just capitalize each word
+  return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
+};
+
 export default function BodyCompositionInput() {
   const [weight, setWeight] = useState<number>(0);
   const [manualBodyFat, setManualBodyFat] = useState<number>(0);
@@ -124,11 +141,11 @@ export default function BodyCompositionInput() {
       )}
 
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Basic Measurements</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Basic Measurements</h2>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label htmlFor="weight" className="block text-sm font-medium text-gray-700">
-              Body Weight (kg)
+              Body Weight (lbs.)
             </label>
             <input
               id="weight"
@@ -141,7 +158,7 @@ export default function BodyCompositionInput() {
               }}
               className={`w-full rounded-md border ${
                 getErrorForField(['weight']) ? 'border-red-500' : 'border-gray-300'
-              } bg-white py-2 px-3 text-sm`}
+              } bg-white py-2 px-3 text-sm dark:text-slate-900`}
             />
             {getErrorForField(['weight']) && (
               <p className="text-sm text-red-500">{getErrorForField(['weight'])}</p>
@@ -162,7 +179,7 @@ export default function BodyCompositionInput() {
               }}
               className={`w-full rounded-md border ${
                 getErrorForField(['manualBodyFatPercentage']) ? 'border-red-500' : 'border-gray-300'
-              } bg-white py-2 px-3 text-sm`}
+              } bg-white py-2 px-3 text-sm dark:text-slate-900`}
             />
             {getErrorForField(['manualBodyFatPercentage']) && (
               <p className="text-sm text-red-500">{getErrorForField(['manualBodyFatPercentage'])}</p>
@@ -172,7 +189,7 @@ export default function BodyCompositionInput() {
       </div>
 
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Skinfold Measurements</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Skinfold Measurements</h2>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -189,7 +206,7 @@ export default function BodyCompositionInput() {
                 }}
                 className={`w-full rounded-md border ${
                   getErrorForField(['age']) ? 'border-red-500' : 'border-gray-300'
-                } bg-white py-2 px-3 text-sm`}
+                } bg-white py-2 px-3 text-sm dark:text-slate-900`}
               />
               {getErrorForField(['age']) && (
                 <p className="text-sm text-red-500">{getErrorForField(['age'])}</p>
@@ -241,7 +258,7 @@ export default function BodyCompositionInput() {
                   onChange={handleSkinfoldChange(key as keyof SkinfoldMeasurements)}
                   className={`w-full rounded-md border ${
                     getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
-                  } bg-white py-2 px-3 text-sm`}
+                  } bg-white py-2 px-3 text-sm dark:text-slate-900`}
                 />
                 {getErrorForField(['skinfold', key]) && (
                   <p className="text-sm text-red-500">{getErrorForField(['skinfold', key])}</p>
@@ -259,16 +276,16 @@ export default function BodyCompositionInput() {
 
           {calculatedMetrics && (
             <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
-              <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(1)}%</p>
-              <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(1)} kg</p>
-              <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(1)} kg</p>
+              <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(2)}%</p>
+              <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} kg</p>
+              <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} kg</p>
             </div>
           )}
         </div>
       </div>
 
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">Circumference Measurements</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-700">Circumference Measurements</h2>
         <div className="grid grid-cols-2 gap-4">
           {Object.entries(circumference).map(([key, value]) => (
             <div key={key} className="space-y-2">
@@ -276,7 +293,7 @@ export default function BodyCompositionInput() {
                 htmlFor={`circumference-${key}`}
                 className="block text-sm font-medium text-gray-700"
               >
-                {key.split(/(?=[A-Z])/).join(' ')} (cm)
+                {formatMeasurementTitle(key)} (cm)
               </label>
               <input
                 id={`circumference-${key}`}
@@ -286,7 +303,7 @@ export default function BodyCompositionInput() {
                 onChange={handleCircumferenceChange(key as keyof CircumferenceMeasurements)}
                 className={`w-full rounded-md border ${
                   getErrorForField(['circumference', key]) ? 'border-red-500' : 'border-gray-300'
-                } bg-white py-2 px-3 text-sm`}
+                } bg-white py-2 px-3 text-sm dark:text-slate-900`}
               />
               {getErrorForField(['circumference', key]) && (
                 <p className="text-sm text-red-500">{getErrorForField(['circumference', key])}</p>
