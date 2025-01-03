@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useForm, useWatch } from 'react-hook-form';
 import { calculateAllMetrics } from '../utils/calculations';
 import { validateMeasurements, type ValidationError } from '../utils/validation';
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
@@ -34,87 +35,106 @@ const defaultSkinfoldMeasurements: SkinfoldMeasurements = {
 };
 
 const formatMeasurementTitle = (key: string): string => {
-  // Split on capital letters and remove any empty strings
   const parts = key.split(/(?=[A-Z])/).filter(Boolean);
   
-  // Handle special cases for left/right measurements
   if (parts[0].toLowerCase() === 'left' || parts[0].toLowerCase() === 'right') {
-    // Remove the side and handle it separately
     const side = parts.shift()!.toLowerCase();
-    // Capitalize remaining parts
     const measurement = parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
     return `${measurement} - ${side.charAt(0).toUpperCase() + side.slice(1)}`;
   }
   
-  // For other measurements, just capitalize each word
   return parts.map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()).join(' ');
 };
 
-// TODO: Replace with actual user settings interface and API call
-interface UserSettings {
-  age?: number;
-  preferMetric?: boolean;
-  // Add other relevant settings as needed
-}
+type FormInputs = {
+  weight: number;
+  bodyFatMethod: 'manual' | 'skinfold';
+  manualBodyFat: number;
+  age: number;
+  isMale: boolean;
+  skinfold: SkinfoldMeasurements;
+  circumference: CircumferenceMeasurements;
+};
 
 export default function BodyCompositionInput() {
-  const [weight, setWeight] = useState<number>(0);
-  const [manualBodyFat, setManualBodyFat] = useState<number>(0);
-  const [age, setAge] = useState<number>(0);
-  const [isMale, setIsMale] = useState<boolean>(true);
-  const [circumference, setCircumference] = useState<CircumferenceMeasurements>(defaultCircumferenceMeasurements);
-  const [skinfold, setSkinfold] = useState<SkinfoldMeasurements>(defaultSkinfoldMeasurements);
   const [calculatedMetrics, setCalculatedMetrics] = useState<{
     bodyFatPercentage: number;
     fatMass: number;
     fatFreeMass: number;
   } | null>(null);
-  const [errors, setErrors] = useState<ValidationError[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [bodyFatMethod, setBodyFatMethod] = useState<'manual' | 'skinfold'>('manual');
-  // TODO: Replace with actual API call to get user settings
-  const [userSettings, setUserSettings] = useState<UserSettings>({});
-  const [showSettingsNotification, setShowSettingsNotification] = useState(true);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+
+  const { register, handleSubmit, control, setValue, watch } = useForm<FormInputs>({
+    defaultValues: {
+      weight: 0,
+      bodyFatMethod: 'manual',
+      manualBodyFat: 0,
+      age: 0,
+      isMale: true,
+      skinfold: defaultSkinfoldMeasurements,
+      circumference: defaultCircumferenceMeasurements,
+    }
+  });
+
+  const bodyFatMethod = watch('bodyFatMethod');
+  const weight = watch('weight');
+  const manualBodyFat = watch('manualBodyFat');
+
+  // Auto-calculate for manual body fat method
+  useEffect(() => {
+    if (bodyFatMethod === 'manual' && weight > 0 && manualBodyFat > 0) {
+      const fatMass = (weight * manualBodyFat) / 100;
+      const fatFreeMass = weight - fatMass;
+      setCalculatedMetrics({
+        bodyFatPercentage: manualBodyFat,
+        fatMass,
+        fatFreeMass
+      });
+    }
+  }, [weight, manualBodyFat, bodyFatMethod]);
 
   const getErrorForField = (fieldPath: string[]): string | undefined => {
-    return errors.find(error => 
+    return validationErrors.find(error => 
       error.path.join('.') === fieldPath.join('.')
     )?.message;
   };
 
-  const handleCircumferenceChange = (key: keyof CircumferenceMeasurements) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || 0;
-    setCircumference(prev => ({
-      ...prev,
-      [key]: value
-    }));
-    setErrors(prev => prev.filter(error => error.path.join('.') !== `circumference.${key}`));
-  };
-
-  const handleSkinfoldChange = (key: keyof SkinfoldMeasurements) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseFloat(e.target.value) || 0;
-    setSkinfold(prev => ({
-      ...prev,
-      [key]: value
-    }));
-    setErrors(prev => prev.filter(error => error.path.join('.') !== `skinfold.${key}`));
-  };
-
   const calculateMetrics = () => {
-    const validationErrors = validateMeasurements(weight, age, manualBodyFat, skinfold, circumference);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+    const formValues = watch();
+    const errors = validateMeasurements(
+      formValues.weight,
+      formValues.age,
+      formValues.manualBodyFat,
+      formValues.skinfold,
+      formValues.circumference
+    );
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       return;
     }
 
-    const metrics = calculateAllMetrics(weight, skinfold, age, isMale);
+    const metrics = calculateAllMetrics(
+      formValues.weight,
+      formValues.skinfold,
+      formValues.age,
+      formValues.isMale
+    );
     setCalculatedMetrics(metrics);
   };
 
-  const handleSave = async () => {
-    const validationErrors = validateMeasurements(weight, age, manualBodyFat, skinfold, circumference);
-    if (validationErrors.length > 0) {
-      setErrors(validationErrors);
+  const onSubmit = async (data: FormInputs) => {
+    const errors = validateMeasurements(
+      data.weight,
+      data.age,
+      data.manualBodyFat,
+      data.skinfold,
+      data.circumference
+    );
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
       return;
     }
 
@@ -122,67 +142,28 @@ export default function BodyCompositionInput() {
     try {
       const entry: BodyCompositionEntry = {
         date: new Date(),
-        weight,
-        manualBodyFatPercentage: manualBodyFat,
-        skinfoldMeasurements: skinfold,
-        circumferenceMeasurements: circumference,
+        weight: data.weight,
+        manualBodyFatPercentage: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
+        skinfoldMeasurements: data.bodyFatMethod === 'skinfold' ? data.skinfold : undefined,
+        circumferenceMeasurements: data.circumference,
         calculatedBodyFatPercentage: calculatedMetrics?.bodyFatPercentage,
         fatMass: calculatedMetrics?.fatMass,
         fatFreeMass: calculatedMetrics?.fatFreeMass,
-        userId: 'placeholder-user-id', // This will be replaced with actual user ID
+        userId: 'placeholder-user-id',
       };
 
-      // TODO: Implement API call to save the entry
       console.log('Saving entry:', entry);
-      
-      setErrors([]);
+      setValidationErrors([]);
     } catch (error) {
-      setErrors([{ path: ['save'], message: 'Failed to save measurements. Please try again.' }]);
+      setValidationErrors([{ path: ['save'], message: 'Failed to save measurements. Please try again.' }]);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleWeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newWeight = parseFloat(e.target.value) || 0;
-    setWeight(newWeight);
-    setErrors(prev => prev.filter(error => error.path.join('.') !== 'weight'));
-    
-    if (bodyFatMethod === 'manual' && manualBodyFat > 0) {
-      const fatMass = (newWeight * manualBodyFat) / 100;
-      const fatFreeMass = newWeight - fatMass;
-      setCalculatedMetrics({
-        bodyFatPercentage: manualBodyFat,
-        fatMass,
-        fatFreeMass
-      });
-    }
-  };
-
-  const handleManualBodyFatChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newBodyFat = parseFloat(e.target.value) || 0;
-    setManualBodyFat(newBodyFat);
-    setErrors(prev => prev.filter(error => error.path.join('.') !== 'manualBodyFatPercentage'));
-    
-    if (weight > 0) {
-      const fatMass = (weight * newBodyFat) / 100;
-      const fatFreeMass = weight - fatMass;
-      setCalculatedMetrics({
-        bodyFatPercentage: newBodyFat,
-        fatMass,
-        fatFreeMass
-      });
-    }
-  };
-
-  // Function to check if required settings are complete
-  const hasRequiredSettings = () => {
-    return userSettings.age !== undefined && userSettings.preferMetric !== undefined;
-  };
-
   return (
-    <div className="space-y-6">
-      {errors.some(error => error.path.join('.') === 'save') && (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {validationErrors.some(error => error.path.join('.') === 'save') && (
         <div className="p-4 bg-red-100 text-red-700 rounded-md">
           {getErrorForField(['save'])}
         </div>
@@ -195,11 +176,9 @@ export default function BodyCompositionInput() {
             Body Weight (lbs.)
           </label>
           <input
-            id="weight"
             type="number"
             step="0.1"
-            value={weight || ''}
-            onChange={handleWeightChange}
+            {...register('weight', { valueAsNumber: true })}
             className={`w-full rounded-md border ${
               getErrorForField(['weight']) ? 'border-red-500' : 'border-gray-300'
             } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -214,42 +193,28 @@ export default function BodyCompositionInput() {
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Body Fat Measurement</h2>
         <div className="space-y-6">
           <div className="space-y-2">
-            <label htmlFor="body-fat-method" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="bodyFatMethod" className="block text-sm font-medium text-gray-700">
               Measurement Method
             </label>
-            <div className="relative">
-              <select
-                id="body-fat-method"
-                value={bodyFatMethod}
-                onChange={(e) => {
-                  setBodyFatMethod(e.target.value as 'manual' | 'skinfold');
-                  setCalculatedMetrics(null);
-                }}
-                className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
-              >
-                <option value="manual">Manual Body Fat %</option>
-                <option value="skinfold">Skinfold Measurements</option>
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                  <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                </svg>
-              </div>
-            </div>
+            <select
+              {...register('bodyFatMethod')}
+              className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
+            >
+              <option value="manual">Manual Body Fat %</option>
+              <option value="skinfold">Skinfold Measurements</option>
+            </select>
           </div>
 
           {bodyFatMethod === 'manual' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="manual-bf" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="manualBodyFat" className="block text-sm font-medium text-gray-700">
                   Manual Body Fat %
                 </label>
                 <input
-                  id="manual-bf"
                   type="number"
                   step="0.1"
-                  value={manualBodyFat || ''}
-                  onChange={handleManualBodyFatChange}
+                  {...register('manualBodyFat', { valueAsNumber: true })}
                   className={`w-full rounded-md border ${
                     getErrorForField(['manualBodyFatPercentage']) ? 'border-red-500' : 'border-gray-300'
                   } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -276,13 +241,8 @@ export default function BodyCompositionInput() {
                     Age
                   </label>
                   <input
-                    id="age"
                     type="number"
-                    value={age || ''}
-                    onChange={(e) => {
-                      setAge(parseInt(e.target.value) || 0);
-                      setErrors(prev => prev.filter(error => error.path.join('.') !== 'age'));
-                    }}
+                    {...register('age', { valueAsNumber: true })}
                     className={`w-full rounded-md border ${
                       getErrorForField(['age']) ? 'border-red-500' : 'border-gray-300'
                     } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -296,9 +256,9 @@ export default function BodyCompositionInput() {
                   <div className="flex space-x-4">
                     <button
                       type="button"
-                      onClick={() => setIsMale(true)}
+                      onClick={() => setValue('isMale', true)}
                       className={`flex-1 py-2 px-4 rounded-md ${
-                        isMale
+                        watch('isMale')
                           ? 'bg-purple-500 text-white'
                           : 'bg-white border border-gray-300 text-gray-700'
                       }`}
@@ -307,9 +267,9 @@ export default function BodyCompositionInput() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsMale(false)}
+                      onClick={() => setValue('isMale', false)}
                       className={`flex-1 py-2 px-4 rounded-md ${
-                        !isMale
+                        !watch('isMale')
                           ? 'bg-purple-500 text-white'
                           : 'bg-white border border-gray-300 text-gray-700'
                       }`}
@@ -321,20 +281,18 @@ export default function BodyCompositionInput() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {Object.entries(skinfold).map(([key, value]) => (
+                {Object.entries(defaultSkinfoldMeasurements).map(([key]) => (
                   <div key={key} className="space-y-2">
                     <label
-                      htmlFor={`skinfold-${key}`}
+                      htmlFor={`skinfold.${key}`}
                       className="block text-sm font-medium text-gray-700"
                     >
                       {formatMeasurementTitle(key)} (mm)
                     </label>
                     <input
-                      id={`skinfold-${key}`}
                       type="number"
                       step="0.1"
-                      value={value || ''}
-                      onChange={handleSkinfoldChange(key as keyof SkinfoldMeasurements)}
+                      {...register(`skinfold.${key as keyof SkinfoldMeasurements}`, { valueAsNumber: true })}
                       className={`w-full rounded-md border ${
                         getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
                       } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -347,6 +305,7 @@ export default function BodyCompositionInput() {
               </div>
 
               <button
+                type="button"
                 onClick={calculateMetrics}
                 className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-2 px-4 text-white"
               >
@@ -368,20 +327,18 @@ export default function BodyCompositionInput() {
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
         <h2 className="text-xl font-semibold mb-4 text-gray-700">Circumference Measurements</h2>
         <div className="grid grid-cols-2 gap-4">
-          {Object.entries(circumference).map(([key, value]) => (
+          {Object.entries(defaultCircumferenceMeasurements).map(([key]) => (
             <div key={key} className="space-y-2">
               <label
-                htmlFor={`circumference-${key}`}
+                htmlFor={`circumference.${key}`}
                 className="block text-sm font-medium text-gray-700"
               >
                 {formatMeasurementTitle(key)} (cm)
               </label>
               <input
-                id={`circumference-${key}`}
                 type="number"
                 step="0.1"
-                value={value || ''}
-                onChange={handleCircumferenceChange(key as keyof CircumferenceMeasurements)}
+                {...register(`circumference.${key as keyof CircumferenceMeasurements}`, { valueAsNumber: true })}
                 className={`w-full rounded-md border ${
                   getErrorForField(['circumference', key]) ? 'border-red-500' : 'border-gray-300'
                 } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -395,12 +352,12 @@ export default function BodyCompositionInput() {
       </div>
 
       <button
-        onClick={handleSave}
+        type="submit"
         disabled={isSaving}
         className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-3 px-4 text-white font-semibold disabled:opacity-50"
       >
         {isSaving ? 'Saving...' : 'Save Measurements'}
       </button>
-    </div>
+    </form>
   );
 } 
