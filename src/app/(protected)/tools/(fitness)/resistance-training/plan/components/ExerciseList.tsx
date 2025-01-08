@@ -5,6 +5,7 @@ import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
 import { SetDetails } from '../../shared/types';
+import { calculateExerciseTUT } from '../../shared/utils/calculations';
 
 interface Exercise {
   id: string;
@@ -123,7 +124,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
           {exercise.isVariedSets && exercise.setDetails ? (
@@ -156,6 +157,10 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
           <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
           <p className="font-medium dark:text-slate-900">{exercise.rest}s</p>
         </div>
+        <div>
+          <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
+          <p className="font-medium dark:text-slate-900">{calculateExerciseTUT(exercise)}s</p>
+        </div>
       </div>
 
       {(exercise.rpe || exercise.rir || exercise.notes) && (
@@ -180,17 +185,47 @@ interface ExerciseListProps {
   onDelete: (id: string) => void;
 }
 
+interface GroupedExercises {
+  [key: string]: Exercise[];
+}
+
 export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseListProps) {
+  // Group exercises by their pairing letter
+  const groupedExercises = exercises.reduce((groups: GroupedExercises, exercise) => {
+    const letter = exercise.pairing.charAt(0);
+    if (!groups[letter]) {
+      groups[letter] = [];
+    }
+    groups[letter].push(exercise);
+    return groups;
+  }, {});
+
   return (
-    <div className="space-y-2">
-      {exercises.map((exercise) => (
-        <ExerciseItem
-          key={exercise.id}
-          exercise={exercise}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
+    <div className="space-y-4">
+      {/* Render all exercises in a flat list for drag and drop */}
+      {exercises.map((exercise, index) => {
+        const letter = exercise.pairing.charAt(0);
+        const isFirstInGroup = !exercises[index - 1] || exercises[index - 1].pairing.charAt(0) !== letter;
+
+        return (
+          <React.Fragment key={exercise.id}>
+            {isFirstInGroup && (
+              <div className="flex items-center gap-4 mb-2">
+                <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
+                <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-200">
+                  Group {letter}
+                </h3>
+                <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
+              </div>
+            )}
+            <ExerciseItem
+              exercise={exercise}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 } 

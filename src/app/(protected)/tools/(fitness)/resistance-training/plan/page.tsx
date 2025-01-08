@@ -9,7 +9,7 @@ import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
 import { Program, Exercise, VolumeTarget } from '../shared/types';
-import { calculateSessionVolume } from '../shared/utils/calculations';
+import { calculateSessionVolume, calculateSessionDuration } from '../shared/utils/calculations';
 
 export default function PlanPage() {
   // Program state
@@ -70,10 +70,15 @@ export default function PlanPage() {
       setProgram((prev) => {
         const oldIndex = prev.exercises.findIndex((ex) => ex.id === active.id);
         const newIndex = prev.exercises.findIndex((ex) => ex.id === over.id);
-
-        // Update exercise pairings after reordering
+        
+        // Get the target group letter from the exercise being dropped on
+        const targetGroup = prev.exercises[newIndex].pairing.charAt(0);
+        
+        // Create new array with the moved exercise
         const newExercises = arrayMove(prev.exercises, oldIndex, newIndex);
-        const updatedExercises = updatePairings(newExercises);
+        
+        // Update pairings for all exercises
+        const updatedExercises = updatePairings(newExercises, targetGroup);
 
         return {
           ...prev,
@@ -83,23 +88,25 @@ export default function PlanPage() {
     }
   };
 
-  // Helper function to update exercise pairings after reordering
+  // Modified updatePairings function to handle group changes
   const updatePairings = (exercises: Exercise[]): Exercise[] => {
     let currentGroup = 'A';
     let currentNumber = 1;
     
-    return exercises.map((exercise) => {
-      if (exercise.pairing.startsWith('WU')) {
-        return exercise;
-      }
-      if (exercise.pairing.startsWith('CD')) {
+    return exercises.map((exercise, index) => {
+      if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
         return exercise;
       }
 
-      const newPairing = `${currentGroup}${currentNumber}`;
-      currentNumber++;
-      if (currentNumber > 2) {
+      // Start a new group if this is the first exercise or if previous exercise was in a different group
+      if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
+        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0));
         currentNumber = 1;
+      }
+
+      const newPairing = `${currentGroup}${currentNumber}`;
+      currentNumber = currentNumber === 1 ? 2 : 1;
+      if (currentNumber === 1) {
         currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
       }
 
@@ -242,86 +249,78 @@ export default function PlanPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Resistance Training Program Planning</h1>
+      <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
+      
+      <div className="mb-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Program Settings</h2>
+          <ProgramSettings
+            name={program.name}
+            phaseFocus={program.phaseFocus}
+            periodizationType={program.periodizationType}
+            onSettingsChange={handleSettingsChange}
+          />
+        </div>
+      </div>
+
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold dark:text-slate-900">Exercises</h2>
+          <button
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
+            onClick={handleAddExercise}
+          >
+            Add Exercise
+          </button>
+        </div>
+
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={program.exercises.map(ex => ex.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <ExerciseList
+              exercises={program.exercises}
+              onEdit={handleEditExercise}
+              onDelete={handleDeleteExercise}
+            />
+          </SortableContext>
+        </DndContext>
+
+        {/* Volume Summary */}
+        {program.exercises.length > 0 && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
+            <div className="grid grid-cols-3 gap-4">
+              {Object.entries(calculateSessionVolume(program.exercises)).map(([key, value]) => (
+                <div key={key}>
+                  <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                  <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
+                </div>
+              ))}
+              <div>
+                <p className="text-sm text-gray-600">Total Duration</p>
+                <p className="font-medium dark:text-slate-900">
+                  {Math.round(calculateSessionDuration(program.exercises) / 60)} min
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="mt-6 flex justify-end">
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-300"
+          className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-300 font-medium"
         >
           {isSaving ? 'Saving...' : 'Save Program'}
         </button>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Program Settings */}
-        <div className="lg:col-span-4">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Program Settings</h2>
-            <ProgramSettings
-              name={program.name}
-              phaseFocus={program.phaseFocus}
-              periodizationType={program.periodizationType}
-              onSettingsChange={handleSettingsChange}
-            />
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 mt-6">
-            <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Volume Targets</h2>
-            {/* <VolumeTargets
-              targets={program.volumeTargets}
-              onTargetChange={handleVolumeTargetsChange}
-              muscleGroups={muscleGroups}
-            /> */}
-          </div>
-        </div>
-
-        {/* Exercise List */}
-        <div className="lg:col-span-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold dark:text-slate-900">Exercises</h2>
-              <button
-                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-                onClick={handleAddExercise}
-              >
-                Add Exercise
-              </button>
-            </div>
-
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={program.exercises.map(ex => ex.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <ExerciseList
-                  exercises={program.exercises}
-                  onEdit={handleEditExercise}
-                  onDelete={handleDeleteExercise}
-                />
-              </SortableContext>
-            </DndContext>
-
-            {/* Volume Summary */}
-            {program.exercises.length > 0 && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Volume Summary</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {Object.entries(calculateSessionVolume(program.exercises)).map(([key, value]) => (
-                    <div key={key}>
-                      <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                      <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {/* Modals */}

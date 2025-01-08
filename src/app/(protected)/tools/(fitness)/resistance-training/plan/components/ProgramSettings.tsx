@@ -24,6 +24,21 @@ const periodizationOptions = [
   { value: 'Custom', label: 'Custom Progression' }
 ];
 
+const customSelectStyles = {
+  control: (base: any) => ({
+    ...base,
+    backgroundColor: 'white',
+  }),
+  option: (base: any) => ({
+    ...base,
+    color: 'black',
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    color: 'var(--tw-text-slate-700)',
+  }),
+};
+
 export default function ProgramSettings({
   name,
   phaseFocus,
@@ -55,8 +70,9 @@ export default function ProgramSettings({
           options={phaseFocusOptions}
           value={phaseFocusOptions.find(option => option.value === phaseFocus)}
           onChange={(option) => option && onSettingsChange('phaseFocus', option.value)}
-          className="basic-single"
+          className="basic-single dark:text-slate-700"
           classNamePrefix="select"
+          styles={customSelectStyles}
         />
         <p className="mt-1 text-sm text-gray-500">
           Select the primary focus of this training program
@@ -72,8 +88,9 @@ export default function ProgramSettings({
           options={periodizationOptions}
           value={periodizationOptions.find(option => option.value === periodizationType)}
           onChange={(option) => option && onSettingsChange('periodizationType', option.value)}
-          className="basic-single"
+          className="basic-single dark:text-slate-700"
           classNamePrefix="select"
+          styles={customSelectStyles}
         />
         <p className="mt-1 text-sm text-gray-500">
           Choose how the program will progress over time
@@ -84,14 +101,27 @@ export default function ProgramSettings({
       {periodizationType === 'Linear' && (
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700">Linear Progression Settings</h3>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Program Length (weeks)
+              </label>
+              <input
+                type="number"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="4"
+                min="1"
+                max="52"
+                step="1"
+              />
+            </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Volume Increment (%)
               </label>
               <input
                 type="number"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                 placeholder="5"
                 min="0"
                 max="100"
@@ -104,7 +134,7 @@ export default function ProgramSettings({
               </label>
               <input
                 type="number"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                 placeholder="2.5"
                 min="0"
                 max="100"
@@ -176,13 +206,13 @@ export default function ProgramSettings({
       )}
 
       {/* Volume Targets */}
-      <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
-        <h3 className="text-sm font-medium text-gray-700">Volume Targets</h3>
+      {/* <div className="space-y-4 p-4 bg-gray-50 rounded-lg"> */}
+        {/* <h3 className="text-sm font-medium text-gray-700">Volume Targets</h3>
         <p className="text-sm text-gray-500">
           Set target volumes for specific muscle groups or the overall session
-        </p>
+        </p> */}
         {/* Volume targets will be implemented in a separate component */}
-      </div>
+      {/* </div> */}
     </div>
   );
 } 

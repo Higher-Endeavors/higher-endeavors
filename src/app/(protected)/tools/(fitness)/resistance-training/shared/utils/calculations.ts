@@ -3,7 +3,6 @@ import { Exercise } from '../types';
 interface VolumeMetrics {
   totalReps: number;
   totalLoad: number;
-  totalTimeUnderTension: number;
   averageRPE?: number;
   averageRIR?: number;
 }
@@ -11,7 +10,6 @@ interface VolumeMetrics {
 export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => {
   let totalReps = 0;
   let totalLoad = 0;
-  let totalTimeUnderTension = 0;
   let rpeSum = 0;
   let rirSum = 0;
   let rpeCount = 0;
@@ -24,13 +22,6 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
 
     // Calculate total load (weight * reps * sets)
     totalLoad += exercise.load * exerciseReps;
-
-    // Calculate time under tension
-    if (exercise.tempo) {
-      const tempoNumbers = exercise.tempo.split('').map(Number);
-      const timePerRep = tempoNumbers.reduce((a, b) => a + b, 0);
-      totalTimeUnderTension += timePerRep * exerciseReps;
-    }
 
     // Calculate RPE and RIR averages
     if (exercise.rpe !== undefined) {
@@ -46,7 +37,6 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
   return {
     totalReps,
     totalLoad,
-    totalTimeUnderTension,
     ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
     ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
   };
@@ -98,4 +88,32 @@ export const calculateProgressionLoad = (
     default:
       return currentLoad;
   }
+};
+
+export const calculateExerciseTUT = (exercise: Exercise): number => {
+  if (exercise.isVariedSets && exercise.setDetails) {
+    // For varied sets, show TUT of first set
+    const firstSet = exercise.setDetails[0];
+    const tempoTotal = firstSet.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
+    return tempoTotal * firstSet.reps;
+  }
+  
+  // Calculate TUT for a single set
+  const tempoTotal = exercise.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
+  return tempoTotal * exercise.reps;  // TUT for one set
+};
+
+export const calculateSessionDuration = (exercises: Exercise[]): number => {
+  return exercises.reduce((total, exercise) => {
+    // Calculate total exercise time (including rest between sets)
+    const exerciseTime = exercise.isVariedSets && exercise.setDetails
+      ? exercise.setDetails.reduce((time, set) => {
+          const tempoTotal = set.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
+          const setTUT = tempoTotal * set.reps;
+          return time + setTUT + set.rest;
+        }, 0)
+      : (calculateExerciseTUT(exercise) * exercise.sets + (exercise.sets - 1) * exercise.rest);
+
+    return total + exerciseTime;
+  }, 0);
 }; 
