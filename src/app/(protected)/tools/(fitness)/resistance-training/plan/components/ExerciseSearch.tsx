@@ -1,0 +1,218 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Select from 'react-select';
+import { Modal } from 'flowbite-react';
+
+interface ExerciseOption {
+  value: string;
+  label: string;
+  data: {
+    id: number;
+    name: string;
+    difficulty: string;
+    targetMuscleGroup: string;
+    primaryMoverMuscle: string;
+    secondaryMuscle: string;
+    tertiaryMuscle: string;
+    primaryEquipment: string;
+    secondaryEquipment: string;
+  };
+}
+
+interface FilterOption {
+  value: string;
+  label: string;
+}
+
+interface ExerciseSearchProps {
+  onSelect: (exerciseName: string) => void;
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSearchProps) {
+  const [exercises, setExercises] = useState<ExerciseOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  
+  // Filter states
+  const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<FilterOption | null>(null);
+  const [selectedEquipment, setSelectedEquipment] = useState<FilterOption | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<FilterOption | null>(null);
+
+  // Fetch exercises from the database
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const response = await fetch('/api/exercises');
+        const data = await response.json();
+        
+        const options = data.map((exercise: any) => ({
+          value: exercise.id.toString(),
+          label: exercise.exercise_name,
+          data: {
+            id: exercise.id,
+            name: exercise.exercise_name,
+            difficulty: exercise.difficulty,
+            targetMuscleGroup: exercise.target_muscle_group,
+            primaryMoverMuscle: exercise.primary_mover_muscle,
+            secondaryMuscle: exercise.secondary_muscle,
+            tertiaryMuscle: exercise.tertiary_muscle,
+            primaryEquipment: exercise.primary_equipment,
+            secondaryEquipment: exercise.secondary_equipment
+          }
+        }));
+
+        setExercises(options);
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      fetchExercises();
+    }
+  }, [isOpen]);
+
+  // Filter options derived from exercises
+  const muscleGroupOptions = Array.from(new Set(
+    exercises.map(ex => ex.data.targetMuscleGroup)
+  )).map(group => ({ value: group, label: group }));
+
+  const equipmentOptions = Array.from(new Set(
+    exercises.flatMap(ex => [ex.data.primaryEquipment, ex.data.secondaryEquipment])
+      .filter(Boolean)
+  )).map(equipment => ({ value: equipment, label: equipment }));
+
+  const difficultyOptions = Array.from(new Set(
+    exercises.map(ex => ex.data.difficulty)
+  )).map(difficulty => ({ value: difficulty, label: difficulty }));
+
+  // Filter exercises based on selected filters
+  const filteredExercises = exercises.filter(exercise => {
+    if (selectedMuscleGroup && exercise.data.targetMuscleGroup !== selectedMuscleGroup.value) {
+      return false;
+    }
+    if (selectedEquipment && 
+        exercise.data.primaryEquipment !== selectedEquipment.value && 
+        exercise.data.secondaryEquipment !== selectedEquipment.value) {
+      return false;
+    }
+    if (selectedDifficulty && exercise.data.difficulty !== selectedDifficulty.value) {
+      return false;
+    }
+    return true;
+  });
+
+  const handleExerciseSelect = (option: ExerciseOption | null) => {
+    if (option) {
+      onSelect(option.label);
+      onClose();
+    }
+  };
+
+  return (
+    <Modal show={isOpen} onClose={onClose} size="xl">
+      <Modal.Header>
+        Select Exercise
+      </Modal.Header>
+      <Modal.Body>
+        <div className="space-y-4">
+          {/* Search Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Search Exercise
+            </label>
+            <Select
+              options={filteredExercises}
+              isLoading={isLoading}
+              onChange={(option) => handleExerciseSelect(option as ExerciseOption)}
+              className="basic-single"
+              classNamePrefix="select"
+              placeholder="Type to search exercises..."
+            />
+          </div>
+
+          {/* Advanced Filters Toggle */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              {showAdvancedFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
+            </button>
+          </div>
+
+          {/* Advanced Filters */}
+          {showAdvancedFilters && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Muscle Group
+                </label>
+                <Select
+                  options={muscleGroupOptions}
+                  value={selectedMuscleGroup}
+                  onChange={setSelectedMuscleGroup}
+                  isClearable
+                  placeholder="Filter by muscle group"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Equipment
+                </label>
+                <Select
+                  options={equipmentOptions}
+                  value={selectedEquipment}
+                  onChange={setSelectedEquipment}
+                  isClearable
+                  placeholder="Filter by equipment"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Difficulty
+                </label>
+                <Select
+                  options={difficultyOptions}
+                  value={selectedDifficulty}
+                  onChange={setSelectedDifficulty}
+                  isClearable
+                  placeholder="Filter by difficulty"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Exercise List */}
+          <div className="mt-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              {filteredExercises.length} exercises found
+            </h3>
+            <div className="max-h-60 overflow-y-auto">
+              {filteredExercises.map((exercise) => (
+                <div
+                  key={exercise.value}
+                  className="p-2 hover:bg-gray-50 cursor-pointer rounded"
+                  onClick={() => handleExerciseSelect(exercise)}
+                >
+                  <div className="font-medium">{exercise.label}</div>
+                  <div className="text-sm text-gray-500">
+                    {exercise.data.targetMuscleGroup} • {exercise.data.primaryEquipment}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal.Body>
+    </Modal>
+  );
+} 
