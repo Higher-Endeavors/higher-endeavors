@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { SetDetails } from '../../shared/types';
+import { BsSearch } from 'react-icons/bs';
 
 interface Exercise {
   id: string;
@@ -16,6 +18,8 @@ interface Exercise {
   notes?: string;
   rpe?: number;
   rir?: number;
+  isVariedSets?: boolean;
+  setDetails?: SetDetails[];
 }
 
 interface ExerciseModalProps {
@@ -25,6 +29,30 @@ interface ExerciseModalProps {
   exercise?: Exercise;
   exercises: Exercise[]; // For pairing suggestions
 }
+
+interface ExerciseOption {
+  value: string;
+  label: string;
+}
+
+const customSelectStyles = {
+  control: (base: any) => ({
+    ...base,
+    backgroundColor: 'white',
+  }),
+  input: (base: any) => ({
+    ...base,
+    color: 'black',
+  }),
+  option: (base: any) => ({
+    ...base,
+    color: 'black',
+  }),
+  singleValue: (base: any) => ({
+    ...base,
+    color: 'black',
+  }),
+};
 
 export default function ExerciseModal({
   isOpen,
@@ -44,8 +72,13 @@ export default function ExerciseModal({
     rest: 60,
     notes: '',
     rpe: undefined,
-    rir: undefined
+    rir: undefined,
+    isVariedSets: false,
+    setDetails: []
   });
+
+  const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
+  const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
 
   useEffect(() => {
     if (exercise) {
@@ -76,9 +109,49 @@ export default function ExerciseModal({
     }
   }, [exercise, exercises]);
 
+  useEffect(() => {
+    const fetchExercises = async () => {
+      try {
+        const response = await fetch('/api/exercises');
+        const data = await response.json();
+        const options = data.map((ex: any) => ({
+          value: ex.exercise_name,
+          label: ex.exercise_name
+        }));
+        setExerciseOptions(options);
+      } catch (error) {
+        console.error('Error fetching exercises:', error);
+      }
+    };
+
+    fetchExercises();
+  }, []);
+
+  const handleExerciseSelect = (option: ExerciseOption | null) => {
+    if (option) {
+      setFormData(prev => ({
+        ...prev,
+        name: option.value
+      }));
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    
+    // If varied sets is enabled, calculate averages for the main exercise values
+    if (formData.isVariedSets && formData.setDetails?.length) {
+      const avgReps = Math.round(formData.setDetails.reduce((acc, set) => acc + set.reps, 0) / formData.setDetails.length);
+      const avgLoad = Math.round(formData.setDetails.reduce((acc, set) => acc + set.load, 0) / formData.setDetails.length);
+      
+      onSave({
+        ...formData,
+        reps: avgReps,
+        load: avgLoad
+      });
+    } else {
+      onSave(formData);
+    }
     onClose();
   };
 
@@ -92,10 +165,38 @@ export default function ExerciseModal({
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value === '' ? 0 : Number(value)
-    }));
+    // Don't convert empty string to 0, allow it to be empty temporarily
+    const numValue = value === '' ? '' : Number(value);
+    
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: numValue
+      };
+
+      // If changing sets and varied sets is enabled, update setDetails
+      if (name === 'sets' && prev.isVariedSets && typeof numValue === 'number') {
+        const currentDetails = prev.setDetails || [];
+        if (numValue > currentDetails.length) {
+          // Add new sets
+          updated.setDetails = [
+            ...currentDetails,
+            ...Array.from({ length: numValue - currentDetails.length }, (_, i) => ({
+              setNumber: currentDetails.length + i + 1,
+              reps: prev.reps,
+              load: prev.load,
+              tempo: prev.tempo,
+              rest: prev.rest
+            }))
+          ];
+        } else {
+          // Remove excess sets
+          updated.setDetails = currentDetails.slice(0, numValue);
+        }
+      }
+
+      return updated;
+    });
   };
 
   const validateTempo = (value: string) => {
@@ -103,70 +204,126 @@ export default function ExerciseModal({
     return tempoRegex.test(value);
   };
 
+  const handleVariedSetsToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isVaried = e.target.checked;
+    setFormData(prev => ({
+      ...prev,
+      isVariedSets: isVaried,
+      setDetails: isVaried 
+        ? Array.from({ length: prev.sets }, (_, i) => ({
+            setNumber: i + 1,
+            reps: prev.reps,
+            load: prev.load,
+            tempo: prev.tempo,
+            rest: prev.rest,
+            rpe: prev.rpe,
+            rir: prev.rir
+          }))
+        : []
+    }));
+  };
+
+  const handleSetDetailChange = (setNumber: number, field: keyof SetDetails, value: number | string) => {
+    setFormData(prev => ({
+      ...prev,
+      setDetails: prev.setDetails?.map(set => 
+        set.setNumber === setNumber 
+          ? { ...set, [field]: value === '' ? '' : Number(value) }
+          : set
+      ) || []
+    }));
+  };
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
-      <Modal.Header>
+      <Modal.Header className="dark:text-white">
         {exercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
       <Modal.Body>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Exercise Selection */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Exercise Name</label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required
+            {/* Replace the exercise name input with Select */}
+            <div className="col-span-2">
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium dark:text-white">Exercise Name</label>
+                <button
+                  type="button"
+                  onClick={() => setIsExerciseSearchOpen(true)}
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                >
+                  Advanced Search
+                </button>
+              </div>
+              <Select
+                options={exerciseOptions}
+                value={exerciseOptions.find(option => option.value === formData.name)}
+                onChange={handleExerciseSelect}
+                className="basic-single"
+                classNamePrefix="select"
+                placeholder="Search for an exercise..."
+                isClearable
+                isSearchable
+                styles={customSelectStyles}
               />
             </div>
 
             {/* Pairing */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Pairing</label>
+              <label className="block text-sm font-medium dark:text-white">Pairing</label>
               <input
                 type="text"
                 name="pairing"
                 value={formData.pairing}
                 onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             {/* Sets & Reps */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Sets</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium dark:text-white">Sets</label>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="variedSets"
+                    checked={formData.isVariedSets}
+                    onChange={handleVariedSetsToggle}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="variedSets" className="text-sm font-medium dark:text-white">
+                    Varied sets
+                  </label>
+                </div>
+              </div>
               <input
                 type="number"
                 name="sets"
                 value={formData.sets}
                 onChange={handleNumberChange}
                 min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Reps</label>
+              <label className="block text-sm font-medium dark:text-white">Reps</label>
               <input
                 type="number"
                 name="reps"
                 value={formData.reps}
                 onChange={handleNumberChange}
                 min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             {/* Load */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Load (kg)</label>
+              <label className="block text-sm font-medium dark:text-white">Load (kg)</label>
               <input
                 type="number"
                 name="load"
@@ -174,14 +331,14 @@ export default function ExerciseModal({
                 onChange={handleNumberChange}
                 min="0"
                 step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             {/* Tempo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium dark:text-white">
                 Tempo (4 digits, X for explosive)
               </label>
               <input
@@ -195,28 +352,28 @@ export default function ExerciseModal({
                 }}
                 pattern="[0-9X]{4}"
                 maxLength={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             {/* Rest */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">Rest (seconds)</label>
+              <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
               <input
                 type="number"
                 name="rest"
                 value={formData.rest}
                 onChange={handleNumberChange}
                 min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
 
             {/* RPE */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">RPE (optional)</label>
+              <label className="block text-sm font-medium dark:text-white">RPE (optional)</label>
               <input
                 type="number"
                 name="rpe"
@@ -225,13 +382,13 @@ export default function ExerciseModal({
                 min="0"
                 max="10"
                 step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
               />
             </div>
 
             {/* RIR */}
             <div>
-              <label className="block text-sm font-medium text-gray-700">RIR (optional)</label>
+              <label className="block text-sm font-medium dark:text-white">RIR (optional)</label>
               <input
                 type="number"
                 name="rir"
@@ -240,28 +397,62 @@ export default function ExerciseModal({
                 min="0"
                 max="10"
                 step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
               />
             </div>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Notes (optional)</label>
+            <label className="block text-sm font-medium dark:text-white">Notes (optional)</label>
             <textarea
               name="notes"
               value={formData.notes || ''}
               onChange={handleInputChange}
               rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
             />
           </div>
+
+          {/* Varied Sets Form */}
+          {formData.isVariedSets && formData.setDetails && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
+              <div className="grid gap-4">
+                {formData.setDetails.map((set) => (
+                  <div key={set.setNumber} className="grid grid-cols-3 gap-4 p-4 border rounded-lg">
+                    <div className="col-span-3 md:col-span-1">
+                      <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
+                    </div>
+                    <div>
+                      <label className="block text-sm dark:text-white">Reps</label>
+                      <input
+                        type="number"
+                        value={set.reps || ''}
+                        onChange={(e) => handleSetDetailChange(set.setNumber, 'reps', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm dark:text-white">Load (lbs)</label>
+                      <input
+                        type="number"
+                        value={set.load || ''}
+                        onChange={(e) => handleSetDetailChange(set.setNumber, 'load', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-white"
             >
               Cancel
             </button>

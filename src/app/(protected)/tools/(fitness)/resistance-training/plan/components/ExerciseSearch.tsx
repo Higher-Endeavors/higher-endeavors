@@ -31,6 +31,34 @@ interface ExerciseSearchProps {
   onClose: () => void;
 }
 
+// Add these custom styles for the Select component
+const customStyles = {
+  option: (provided: any, state: any) => ({
+    ...provided,
+    color: 'black', // Force black text for options
+  }),
+  singleValue: (provided: any, state: any) => ({
+    ...provided,
+    color: 'black', // Force black text for selected value
+  }),
+  input: (provided: any, state: any) => ({
+    ...provided,
+    color: 'black', // Force black text for input
+  }),
+};
+
+// Add this filter function
+const filterExercises = (candidate: { label: string, value: string, data: any }, input: string) => {
+  if (!input) return true;
+  
+  // Convert both to lowercase for case-insensitive matching
+  const searchTerms = input.toLowerCase().split(' ');
+  const exerciseName = candidate.label.toLowerCase();
+  
+  // Check if all search terms are found in the exercise name
+  return searchTerms.every(term => exerciseName.includes(term));
+};
+
 export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSearchProps) {
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,11 +76,15 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
         const response = await fetch('/api/exercises');
         const data = await response.json();
         
+        // Log the first exercise to see its structure
+        console.log('Sample exercise:', data[0]);
+        
         const options = data.map((exercise: any) => ({
-          value: exercise.id.toString(),
+          // Use exercise_id if id is not available
+          value: exercise.exercise_id?.toString() || exercise.id?.toString(),
           label: exercise.exercise_name,
           data: {
-            id: exercise.id,
+            id: exercise.exercise_id || exercise.id,
             name: exercise.exercise_name,
             difficulty: exercise.difficulty,
             targetMuscleGroup: exercise.target_muscle_group,
@@ -133,6 +165,8 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
               className="basic-single"
               classNamePrefix="select"
               placeholder="Type to search exercises..."
+              styles={customStyles}
+              filterOption={(candidate, input) => filterExercises(candidate, input)}
             />
           </div>
 
@@ -197,9 +231,9 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
               {filteredExercises.length} exercises found
             </h3>
             <div className="max-h-60 overflow-y-auto">
-              {filteredExercises.map((exercise) => (
+              {filteredExercises.map((exercise, index) => (
                 <div
-                  key={exercise.value}
+                  key={`${exercise.value}-${index}`}
                   className="p-2 hover:bg-gray-50 cursor-pointer rounded"
                   onClick={() => handleExerciseSelect(exercise)}
                 >

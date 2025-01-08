@@ -16,7 +16,7 @@ export default function PlanPage() {
   const [program, setProgram] = useState<Program>({
     id: '',
     userId: '',
-    name: 'New Program',
+    name: '',
     phaseFocus: 'GPP',
     periodizationType: 'Linear',
     exercises: [],
@@ -36,24 +36,26 @@ export default function PlanPage() {
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
-  const [muscleGroups, setMuscleGroups] = useState<Array<{ id: number; name: string }>>([]);
+  const [exerciseLibrary, setExerciseLibrary] = useState<Array<{ id: number; name: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
+  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
 
   // Load muscle groups on mount
   useEffect(() => {
-    const fetchMuscleGroups = async () => {
+    const fetchExerciseLibrary = async () => {
       try {
-        const response = await fetch('/api/muscle-groups');
+        const response = await fetch('/api/exercises');
         const data = await response.json();
-        setMuscleGroups(data);
+        setExerciseLibrary(data);
       } catch (error) {
-        console.error('Error fetching muscle groups:', error);
+        console.error('Error fetching exercise library:', error);
       }
     };
-    fetchMuscleGroups();
+    fetchExerciseLibrary();
   }, []);
 
-  // DND-Kit setup
+  // First, uncomment the DND-Kit setup
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -107,8 +109,17 @@ export default function PlanPage() {
 
   // Exercise management
   const handleAddExercise = () => {
-    setEditingExercise(undefined);
-    setIsExerciseSearchOpen(true);
+    setEditingExercise({
+      id: Math.random().toString(36).substr(2, 9),
+      name: '',
+      pairing: getNextPairing(),
+      sets: 3,
+      reps: 10,
+      load: 0,
+      tempo: '2010',
+      rest: 60
+    });
+    setIsExerciseModalOpen(true);
   };
 
   const handleExerciseSelect = (exerciseName: string) => {
@@ -145,9 +156,11 @@ export default function PlanPage() {
   const handleSaveExercise = (exercise: Exercise) => {
     setProgram(prev => ({
       ...prev,
-      exercises: editingExercise
-        ? prev.exercises.map(ex => ex.id === editingExercise.id ? exercise : ex)
-        : [...prev.exercises, exercise]
+      exercises: prev.exercises.map(ex => 
+        ex.id === exercise.id ? exercise : ex
+      ).concat(
+        prev.exercises.find(ex => ex.id === exercise.id) ? [] : [exercise]
+      )
     }));
     setIsExerciseModalOpen(false);
     setEditingExercise(undefined);
@@ -211,6 +224,22 @@ export default function PlanPage() {
     }
   };
 
+  // Add handler for advanced search selection
+  const handleAdvancedSearchSelect = (exerciseName: string) => {
+    setIsAdvancedSearchOpen(false);
+    setCurrentExercise({
+      id: Math.random().toString(36).substr(2, 9),
+      name: exerciseName,
+      pairing: getNextPairing(),
+      sets: 3,
+      reps: 10,
+      load: 0,
+      tempo: '2010',
+      rest: 60
+    });
+    setIsExerciseModalOpen(true);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
@@ -239,11 +268,11 @@ export default function PlanPage() {
 
           <div className="bg-white rounded-lg shadow p-6 mt-6">
             <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Volume Targets</h2>
-            <VolumeTargets
+            {/* <VolumeTargets
               targets={program.volumeTargets}
               onTargetChange={handleVolumeTargetsChange}
               muscleGroups={muscleGroups}
-            />
+            /> */}
           </div>
         </div>
 
@@ -280,12 +309,12 @@ export default function PlanPage() {
             {/* Volume Summary */}
             {program.exercises.length > 0 && (
               <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Session Volume Summary</h3>
+                <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Volume Summary</h3>
                 <div className="grid grid-cols-3 gap-4">
                   {Object.entries(calculateSessionVolume(program.exercises)).map(([key, value]) => (
                     <div key={key}>
                       <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                      <p className="font-medium">{Math.round(value)}</p>
+                      <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
                     </div>
                   ))}
                 </div>
@@ -296,18 +325,20 @@ export default function PlanPage() {
       </div>
 
       {/* Modals */}
-      <ExerciseSearch
-        isOpen={isExerciseSearchOpen}
-        onClose={() => setIsExerciseSearchOpen(false)}
-        onSelect={handleExerciseSelect}
-      />
-
       <ExerciseModal
         isOpen={isExerciseModalOpen}
         onClose={() => setIsExerciseModalOpen(false)}
         onSave={handleSaveExercise}
         exercise={editingExercise}
         exercises={program.exercises}
+        onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
+      />
+
+      {/* Advanced search modal */}
+      <ExerciseSearch
+        isOpen={isAdvancedSearchOpen}
+        onClose={() => setIsAdvancedSearchOpen(false)}
+        onSelect={handleAdvancedSearchSelect}
       />
     </div>
   );

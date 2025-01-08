@@ -13,6 +13,8 @@ export interface Exercise {
   rir?: number;
   targetMuscleGroup?: string;
   exerciseLibraryId?: number;
+  isVariedSets?: boolean;
+  setDetails?: SetDetails[];
 }
 
 // Program types
@@ -151,4 +153,15 @@ export interface ExerciseLibraryEntry {
   mechanics: string;
   laterality: string;
   exerciseModality: string;
+}
+
+// First, let's add a new interface for set details
+export interface SetDetails {
+  setNumber: number;
+  reps: number;
+  load: number;
+  tempo?: string;
+  rest?: number;
+  rpe?: number;
+  rir?: number;
 } 

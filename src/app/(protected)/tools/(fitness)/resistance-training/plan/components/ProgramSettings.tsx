@@ -41,7 +41,7 @@ export default function ProgramSettings({
           type="text"
           value={name}
           onChange={(e) => onSettingsChange('name', e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900   dark:placeholder-gray-300"
           placeholder="Enter program name"
         />
       </div>
