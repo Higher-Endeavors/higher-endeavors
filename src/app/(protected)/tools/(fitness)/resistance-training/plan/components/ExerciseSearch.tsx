@@ -45,6 +45,10 @@ const customStyles = {
     ...provided,
     color: 'black', // Force black text for input
   }),
+  control: (provided: any) => ({
+    ...provided,
+    backgroundColor: 'white', // Force white background
+  }),
 };
 
 // Add this filter function
@@ -62,7 +66,6 @@ const filterExercises = (candidate: { label: string, value: string, data: any },
 export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSearchProps) {
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   
   // Filter states
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<FilterOption | null>(null);
@@ -149,7 +152,7 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header>
-        Select Exercise
+        Advanced Exercise Search
       </Modal.Header>
       <Modal.Body>
         <div className="space-y-4">
@@ -170,60 +173,50 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
             />
           </div>
 
-          {/* Advanced Filters Toggle */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              {showAdvancedFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}
-            </button>
-          </div>
-
-          {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Muscle Group
-                </label>
-                <Select
-                  options={muscleGroupOptions}
-                  value={selectedMuscleGroup}
-                  onChange={setSelectedMuscleGroup}
-                  isClearable
-                  placeholder="Filter by muscle group"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Equipment
-                </label>
-                <Select
-                  options={equipmentOptions}
-                  value={selectedEquipment}
-                  onChange={setSelectedEquipment}
-                  isClearable
-                  placeholder="Filter by equipment"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Difficulty
-                </label>
-                <Select
-                  options={difficultyOptions}
-                  value={selectedDifficulty}
-                  onChange={setSelectedDifficulty}
-                  isClearable
-                  placeholder="Filter by difficulty"
-                />
-              </div>
+          {/* Filters - now always visible */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Muscle Group
+              </label>
+              <Select
+                options={muscleGroupOptions}
+                value={selectedMuscleGroup}
+                onChange={setSelectedMuscleGroup}
+                isClearable
+                placeholder="Filter by muscle group"
+                styles={customStyles}
+              />
             </div>
-          )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Equipment
+              </label>
+              <Select
+                options={equipmentOptions}
+                value={selectedEquipment}
+                onChange={setSelectedEquipment}
+                isClearable
+                placeholder="Filter by equipment"
+                styles={customStyles}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Difficulty
+              </label>
+              <Select
+                options={difficultyOptions}
+                value={selectedDifficulty}
+                onChange={setSelectedDifficulty}
+                isClearable
+                placeholder="Filter by difficulty"
+                styles={customStyles}
+              />
+            </div>
+          </div>
 
           {/* Exercise List */}
           <div className="mt-4">

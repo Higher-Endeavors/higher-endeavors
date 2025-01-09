@@ -27,13 +27,24 @@ interface ExerciseModalProps {
   onClose: () => void;
   onSave: (exercise: Exercise) => void;
   exercise?: Exercise;
-  exercises: Exercise[]; // For pairing suggestions
+  exercises: Exercise[];
+  onAdvancedSearch: () => void;
+  selectedExerciseName?: string;
 }
 
 interface ExerciseOption {
   value: string;
   label: string;
 }
+
+const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
+  if (!inputValue) return true;
+  
+  const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
+  const exerciseName = option.label.toLowerCase();
+  
+  return searchTerms.every(term => exerciseName.includes(term));
+};
 
 const customSelectStyles = {
   control: (base: any) => ({
@@ -59,7 +70,9 @@ export default function ExerciseModal({
   onClose,
   onSave,
   exercise,
-  exercises
+  exercises,
+  onAdvancedSearch,
+  selectedExerciseName
 }: ExerciseModalProps) {
   const [formData, setFormData] = useState<Exercise>({
     id: '',
@@ -234,6 +247,15 @@ export default function ExerciseModal({
     }));
   };
 
+  useEffect(() => {
+    if (selectedExerciseName) {
+      setFormData(prev => ({
+        ...prev,
+        name: selectedExerciseName
+      }));
+    }
+  }, [selectedExerciseName]);
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -248,7 +270,7 @@ export default function ExerciseModal({
                 <label className="block text-sm font-medium dark:text-white">Exercise Name</label>
                 <button
                   type="button"
-                  onClick={() => setIsExerciseSearchOpen(true)}
+                  onClick={onAdvancedSearch}
                   className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
                 >
                   Advanced Search
@@ -264,6 +286,7 @@ export default function ExerciseModal({
                 isClearable
                 isSearchable
                 styles={customSelectStyles}
+                filterOption={filterExerciseOptions}
               />
             </div>
 

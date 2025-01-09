@@ -40,6 +40,7 @@ export default function PlanPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
+  const [selectedExerciseName, setSelectedExerciseName] = useState<string>('');
 
   // Load muscle groups on mount
   useEffect(() => {
@@ -234,17 +235,7 @@ export default function PlanPage() {
   // Add handler for advanced search selection
   const handleAdvancedSearchSelect = (exerciseName: string) => {
     setIsAdvancedSearchOpen(false);
-    setCurrentExercise({
-      id: Math.random().toString(36).substr(2, 9),
-      name: exerciseName,
-      pairing: getNextPairing(),
-      sets: 3,
-      reps: 10,
-      load: 0,
-      tempo: '2010',
-      rest: 60
-    });
-    setIsExerciseModalOpen(true);
+    setSelectedExerciseName(exerciseName);
   };
 
   return (
@@ -331,6 +322,7 @@ export default function PlanPage() {
         exercise={editingExercise}
         exercises={program.exercises}
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
+        selectedExerciseName={selectedExerciseName}
       />
 
       {/* Advanced search modal */}
