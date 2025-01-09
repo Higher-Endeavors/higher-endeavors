@@ -7,6 +7,16 @@ interface VolumeMetrics {
   averageRIR?: number;
 }
 
+const calculateTempoTotal = (tempo: string): number => {
+  return tempo.split('').reduce((sum, char) => {
+    // Treat 'X' or 'x' as 1 second
+    if (char.toLowerCase() === 'x') {
+      return sum + 1;
+    }
+    return sum + parseInt(char) || 0;
+  }, 0);
+};
+
 export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => {
   let totalReps = 0;
   let totalLoad = 0;
@@ -16,12 +26,27 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
   let rirCount = 0;
 
   exercises.forEach(exercise => {
-    // Calculate total reps
-    const exerciseReps = exercise.sets * exercise.reps;
-    totalReps += exerciseReps;
-
-    // Calculate total load (weight * reps * sets)
-    totalLoad += exercise.load * exerciseReps;
+    if (exercise.isVariedSets && exercise.setDetails) {
+      exercise.setDetails.forEach(set => {
+        // Handle main set
+        if (!set.subSets?.length) {
+          // If no sub-sets, calculate normally
+          totalReps += set.reps;
+          totalLoad += set.load * set.reps;
+        } else {
+          // If has sub-sets, calculate volume for each sub-set
+          set.subSets.forEach(subSet => {
+            totalReps += subSet.reps;
+            totalLoad += subSet.load * subSet.reps;
+          });
+        }
+      });
+    } else {
+      // Regular exercise calculation
+      const exerciseReps = exercise.sets * exercise.reps;
+      totalReps += exerciseReps;
+      totalLoad += exercise.load * exerciseReps;
+    }
 
     // Calculate RPE and RIR averages
     if (exercise.rpe !== undefined) {
@@ -92,28 +117,44 @@ export const calculateProgressionLoad = (
 
 export const calculateExerciseTUT = (exercise: Exercise): number => {
   if (exercise.isVariedSets && exercise.setDetails) {
-    // For varied sets, show TUT of first set
-    const firstSet = exercise.setDetails[0];
-    const tempoTotal = firstSet.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
-    return tempoTotal * firstSet.reps;
+    return exercise.setDetails.reduce((totalTUT, set) => {
+      const tempoTotal = calculateTempoTotal(set.tempo);
+      
+      if (!set.subSets?.length) {
+        // For regular sets
+        return totalTUT + (tempoTotal * set.reps);
+      } else {
+        // For sets with sub-sets, sum up TUT for each sub-set (reps * tempo only)
+        const setTUT = set.subSets.reduce((subSetTotal, subSet) => {
+          return subSetTotal + (tempoTotal * subSet.reps);
+        }, 0);
+        return totalTUT + setTUT;
+      }
+    }, 0);
+  } else {
+    const tempoTotal = calculateTempoTotal(exercise.tempo);
+    return tempoTotal * exercise.reps * exercise.sets;
   }
-  
-  // Calculate TUT for a single set
-  const tempoTotal = exercise.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
-  return tempoTotal * exercise.reps;  // TUT for one set
 };
 
 export const calculateSessionDuration = (exercises: Exercise[]): number => {
   return exercises.reduce((total, exercise) => {
-    // Calculate total exercise time (including rest between sets)
-    const exerciseTime = exercise.isVariedSets && exercise.setDetails
-      ? exercise.setDetails.reduce((time, set) => {
-          const tempoTotal = set.tempo.split('').reduce((sum, num) => sum + parseInt(num), 0);
-          const setTUT = tempoTotal * set.reps;
-          return time + setTUT + set.rest;
-        }, 0)
-      : (calculateExerciseTUT(exercise) * exercise.sets + (exercise.sets - 1) * exercise.rest);
-
-    return total + exerciseTime;
+    if (exercise.isVariedSets && exercise.setDetails) {
+      return total + exercise.setDetails.reduce((setTotal, set) => {
+        const tempoTotal = calculateTempoTotal(set.tempo);
+        
+        if (!set.subSets?.length) {
+          return setTotal + (tempoTotal * set.reps) + (set.rest || 0);
+        } else {
+          return setTotal + set.subSets.reduce((subTotal, subSet) => {
+            return subTotal + (tempoTotal * subSet.reps) + subSet.rest;
+          }, 0);
+        }
+      }, 0);
+    } else {
+      const exerciseTime = (calculateExerciseTUT(exercise) * exercise.sets) + 
+        ((exercise.sets - 1) * exercise.rest);
+      return total + exerciseTime;
+    }
   }, 0);
 }; 

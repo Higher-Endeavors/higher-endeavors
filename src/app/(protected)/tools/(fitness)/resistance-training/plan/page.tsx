@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import ExerciseList from './components/ExerciseList';
-import ExerciseModal from './components/ExerciseModal';
+import ExerciseModal from './components/AddExerciseModal';
 import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
