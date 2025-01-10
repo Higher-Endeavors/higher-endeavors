@@ -4,7 +4,21 @@ import { z } from 'zod';
 export const exerciseSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Exercise name is required'),
-  pairing: z.string().min(1, 'Pairing is required'),
+  pairing: z.string()
+    .min(1, 'Pairing is required')
+    .refine(
+      (val) => {
+        // Check for WU (Warm-Up) or CD (Cool-Down)
+        if (val.startsWith('WU') || val.startsWith('CD')) {
+          return true;
+        }
+        // Check for uppercase letter followed by a number 1-99 (e.g., A1, B12, C99)
+        return /^[A-Z](?:[1-9]|[1-9][0-9])$/.test(val);
+      },
+      {
+        message: 'Pairing must be either WU/CD or an uppercase letter followed by a number 1-99 (e.g., A1, B12)'
+      }
+    ),
   sets: z.number().min(1, 'Must have at least 1 set'),
   reps: z.number().min(1, 'Must have at least 1 rep'),
   load: z.number().min(0, 'Load cannot be negative'),
