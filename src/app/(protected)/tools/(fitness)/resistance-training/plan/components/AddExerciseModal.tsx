@@ -153,19 +153,52 @@ export default function ExerciseModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // If varied sets is enabled, calculate averages for the main exercise values
-    if (formData.isVariedSets && formData.setDetails?.length) {
-      const avgReps = Math.round(formData.setDetails.reduce((acc, set) => acc + set.reps, 0) / formData.setDetails.length);
-      const avgLoad = Math.round(formData.setDetails.reduce((acc, set) => acc + set.load, 0) / formData.setDetails.length);
-      
-      onSave({
-        ...formData,
-        reps: avgReps,
-        load: avgLoad
-      });
-    } else {
-      onSave(formData);
+    // Create a copy of formData to update
+    const updatedFormData = { ...formData };
+
+    // If varied sets is enabled, update all set details with current values
+    if (updatedFormData.isVariedSets && updatedFormData.setDetails?.length) {
+      updatedFormData.setDetails = updatedFormData.setDetails.map(set => ({
+        ...set,
+        tempo: formData.tempo, // Use the current tempo
+        // If there are sub-sets, update them with current values
+        ...(set.subSets && {
+          subSets: set.subSets.map(subSet => ({
+            ...subSet,
+            reps: subSet.reps,
+            load: subSet.load,
+            rest: subSet.rest
+          }))
+        })
+      }));
+
+      // Calculate averages for the main exercise values
+      const avgReps = Math.round(
+        updatedFormData.setDetails.reduce((acc, set) => {
+          if (!set.subSets?.length) {
+            return acc + set.reps;
+          }
+          // For sets with sub-sets, use the sum of sub-set reps
+          return acc + set.subSets.reduce((subAcc, subSet) => subAcc + subSet.reps, 0);
+        }, 0) / updatedFormData.setDetails.length
+      );
+
+      const avgLoad = Math.round(
+        updatedFormData.setDetails.reduce((acc, set) => {
+          if (!set.subSets?.length) {
+            return acc + set.load;
+          }
+          // For sets with sub-sets, use the average of sub-set loads
+          const subSetLoads = set.subSets.reduce((subAcc, subSet) => subAcc + subSet.load, 0);
+          return acc + (subSetLoads / set.subSets.length);
+        }, 0) / updatedFormData.setDetails.length
+      );
+
+      updatedFormData.reps = avgReps;
+      updatedFormData.load = avgLoad;
     }
+
+    onSave(updatedFormData);
     onClose();
   };
 
@@ -265,7 +298,7 @@ export default function ExerciseModal({
                     },
                     {
                       reps: set.reps,
-                      load: Math.round(set.load * 0.9),
+                      load: set.load,
                       rest: set.rest || 0
                     }
                   ]
@@ -273,8 +306,8 @@ export default function ExerciseModal({
                     ...(set.subSets || []),
                     {
                       reps: set.reps,
-                      load: Math.round(set.load * 0.9),
-                      rest: 10
+                      load: set.load,
+                      rest: set.rest || 0
                     }
                   ]
           }
