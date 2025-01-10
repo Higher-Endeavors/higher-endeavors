@@ -10,6 +10,10 @@ import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
 import { Program, Exercise, VolumeTarget } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration } from '../shared/utils/calculations';
+import type { z } from 'zod';
+import { programSettingsSchema } from '../shared/schemas/program';
+
+type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
 export default function PlanPage() {
   // Program state
@@ -72,14 +76,11 @@ export default function PlanPage() {
         const oldIndex = prev.exercises.findIndex((ex) => ex.id === active.id);
         const newIndex = prev.exercises.findIndex((ex) => ex.id === over.id);
         
-        // Get the target group letter from the exercise being dropped on
-        const targetGroup = prev.exercises[newIndex].pairing.charAt(0);
-        
         // Create new array with the moved exercise
         const newExercises = arrayMove(prev.exercises, oldIndex, newIndex);
         
         // Update pairings for all exercises
-        const updatedExercises = updatePairings(newExercises, targetGroup);
+        const updatedExercises = updatePairings(newExercises);
 
         return {
           ...prev,
@@ -190,10 +191,18 @@ export default function PlanPage() {
   };
 
   // Program settings management
-  const handleSettingsChange = (key: string, value: string) => {
+  const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
     setProgram(prev => ({
       ...prev,
-      [key]: value
+      ...settings,
+      progressionRules: {
+        ...prev.progressionRules,
+        ...settings.progressionRules,
+        settings: {
+          ...prev.progressionRules.settings,
+          ...settings.progressionRules?.settings
+        }
+      }
     }));
   };
 

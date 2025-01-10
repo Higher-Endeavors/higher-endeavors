@@ -3,8 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { exerciseSchema } from '../../shared/schemas/program';
 import { SetDetails, SubSet } from '../../shared/types';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
+import type { z } from 'zod';
+
+type ExerciseFormData = z.infer<typeof exerciseSchema>;
 
 interface Exercise {
   id: string;
@@ -75,53 +81,36 @@ export default function ExerciseModal({
   onAdvancedSearch,
   selectedExerciseName
 }: ExerciseModalProps) {
-  const [formData, setFormData] = useState<Exercise>({
-    id: '',
-    name: '',
-    pairing: '',
-    sets: 0,
-    reps: 0,
-    load: 0,
-    tempo: '2010',
-    rest: 60,
-    notes: '',
-    rpe: undefined,
-    rir: undefined,
-    isVariedSets: false,
-    setDetails: []
+  const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
+
+  const { control, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<ExerciseFormData>({
+    resolver: zodResolver(exerciseSchema),
+    defaultValues: {
+      id: exercise?.id || Math.random().toString(36).substr(2, 9),
+      name: exercise?.name || '',
+      pairing: exercise?.pairing || '',
+      sets: exercise?.sets || 3,
+      reps: exercise?.reps || 10,
+      load: exercise?.load || 0,
+      tempo: exercise?.tempo || '2010',
+      rest: exercise?.rest || 60,
+      notes: exercise?.notes || '',
+      rpe: exercise?.rpe,
+      rir: exercise?.rir,
+      isVariedSets: exercise?.isVariedSets || false,
+      isAdvancedSets: exercise?.isAdvancedSets || false,
+      setDetails: exercise?.setDetails || []
+    }
   });
 
-  const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
-  const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
+  const { fields: setFields, append: appendSet, remove: removeSet } = useFieldArray({
+    control,
+    name: 'setDetails'
+  });
 
-  useEffect(() => {
-    if (exercise) {
-      setFormData(exercise);
-    } else {
-      // Generate next pairing based on existing exercises
-      const existingPairings = exercises.map(ex => ex.pairing)
-        .filter(p => !p.includes('WU') && !p.includes('CD'));
-      
-      let nextPairing = 'A1';
-      if (existingPairings.length > 0) {
-        const lastPairing = existingPairings[existingPairings.length - 1];
-        const letter = lastPairing.charAt(0);
-        const number = parseInt(lastPairing.charAt(1));
-        
-        if (number === 2) {
-          nextPairing = String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
-        } else {
-          nextPairing = letter + '2';
-        }
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        id: Math.random().toString(36).substr(2, 9),
-        pairing: nextPairing
-      }));
-    }
-  }, [exercise, exercises]);
+  const isVariedSets = watch('isVariedSets');
+  const isAdvancedSets = watch('isAdvancedSets');
+  const sets = watch('sets');
 
   useEffect(() => {
     const fetchExercises = async () => {
@@ -141,188 +130,66 @@ export default function ExerciseModal({
     fetchExercises();
   }, []);
 
-  const handleExerciseSelect = (option: ExerciseOption | null) => {
-    if (option) {
-      setFormData(prev => ({
-        ...prev,
-        name: option.value
-      }));
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // If varied sets is enabled, calculate averages for the main exercise values
-    if (formData.isVariedSets && formData.setDetails?.length) {
-      const avgReps = Math.round(formData.setDetails.reduce((acc, set) => acc + set.reps, 0) / formData.setDetails.length);
-      const avgLoad = Math.round(formData.setDetails.reduce((acc, set) => acc + set.load, 0) / formData.setDetails.length);
-      
-      onSave({
-        ...formData,
-        reps: avgReps,
-        load: avgLoad
-      });
+  useEffect(() => {
+    if (exercise) {
+      reset(exercise);
     } else {
-      onSave(formData);
-    }
-    onClose();
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    // Don't convert empty string to 0, allow it to be empty temporarily
-    const numValue = value === '' ? '' : Number(value);
-    
-    setFormData(prev => {
-      const updated = {
-        ...prev,
-        [name]: numValue
-      };
-
-      // If changing sets and varied sets is enabled, update setDetails
-      if (name === 'sets' && prev.isVariedSets && typeof numValue === 'number') {
-        const currentDetails = prev.setDetails || [];
-        if (numValue > currentDetails.length) {
-          // Add new sets
-          updated.setDetails = [
-            ...currentDetails,
-            ...Array.from({ length: numValue - currentDetails.length }, (_, i) => ({
-              setNumber: currentDetails.length + i + 1,
-              reps: prev.reps,
-              load: prev.load,
-              tempo: prev.tempo,
-              rest: prev.rest
-            }))
-          ];
+      // Generate next pairing based on existing exercises
+      const existingPairings = exercises.map(ex => ex.pairing)
+        .filter(p => !p.includes('WU') && !p.includes('CD'));
+      
+      let nextPairing = 'A1';
+      if (existingPairings.length > 0) {
+        const lastPairing = existingPairings[existingPairings.length - 1];
+        const letter = lastPairing.charAt(0);
+        const number = parseInt(lastPairing.charAt(1));
+        
+        if (number === 2) {
+          nextPairing = String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
         } else {
-          // Remove excess sets
-          updated.setDetails = currentDetails.slice(0, numValue);
+          nextPairing = letter + '2';
         }
       }
 
-      return updated;
-    });
-  };
-
-  const validateTempo = (value: string) => {
-    const tempoRegex = /^[0-9X]{4}$/;
-    return tempoRegex.test(value);
-  };
-
-  const handleVariedSetsToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const isVaried = e.target.checked;
-    setFormData(prev => ({
-      ...prev,
-      isVariedSets: isVaried,
-      setDetails: isVaried 
-        ? Array.from({ length: prev.sets }, (_, i) => ({
-            setNumber: i + 1,
-            reps: prev.reps,
-            load: prev.load,
-            tempo: prev.tempo,
-            rest: prev.rest,
-            rpe: prev.rpe,
-            rir: prev.rir,
-            subSets: []
-          }))
-        : []
-    }));
-  };
-
-  const handleSetDetailChange = (setNumber: number, field: keyof SetDetails, value: number | string) => {
-    setFormData(prev => ({
-      ...prev,
-      setDetails: prev.setDetails?.map(set => 
-        set.setNumber === setNumber 
-          ? { ...set, [field]: value === '' ? '' : Number(value) }
-          : set
-      ) || []
-    }));
-  };
-
-  const handleAddSubSet = (setNumber: number) => {
-    setFormData(prev => ({
-      ...prev,
-      setDetails: prev.setDetails?.map(set => 
-        set.setNumber === setNumber
-          ? {
-              ...set,
-              subSets: set.subSets?.length === 0
-                ? [
-                    {
-                      reps: set.reps,
-                      load: set.load,
-                      rest: set.rest || 0
-                    },
-                    {
-                      reps: set.reps,
-                      load: Math.round(set.load * 0.9),
-                      rest: set.rest || 0
-                    }
-                  ]
-                : [
-                    ...(set.subSets || []),
-                    {
-                      reps: set.reps,
-                      load: Math.round(set.load * 0.9),
-                      rest: 10
-                    }
-                  ]
-          }
-        : set
-      )
-    }));
-  };
-
-  const handleSubSetChange = (setNumber: number, subSetIndex: number, field: keyof SubSet, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      setDetails: prev.setDetails?.map(set => 
-        set.setNumber === setNumber
-          ? {
-              ...set,
-              subSets: set.subSets?.map((subSet, idx) => 
-                idx === subSetIndex
-                  ? { ...subSet, [field]: value === '' ? '' : Number(value) }
-                  : subSet
-              )
-            }
-          : set
-      )
-    }));
-  };
-
-  const handleRemoveSubSet = (setNumber: number, subSetIndex: number) => {
-    setFormData(prev => ({
-      ...prev,
-      setDetails: prev.setDetails?.map(set => 
-        set.setNumber === setNumber
-          ? {
-              ...set,
-              subSets: set.subSets?.filter((_, idx) => idx !== subSetIndex)
-            }
-          : set
-      )
-    }));
-  };
+      setValue('pairing', nextPairing);
+    }
+  }, [exercise, exercises, reset, setValue]);
 
   useEffect(() => {
     if (selectedExerciseName) {
-      setFormData(prev => ({
-        ...prev,
-        name: selectedExerciseName
-      }));
+      setValue('name', selectedExerciseName);
     }
-  }, [selectedExerciseName]);
+  }, [selectedExerciseName, setValue]);
+
+  useEffect(() => {
+    if (isVariedSets) {
+      // Update setDetails when sets change
+      const currentDetails = setFields;
+      if (sets > currentDetails.length) {
+        // Add new sets
+        for (let i = currentDetails.length; i < sets; i++) {
+          appendSet({
+            setNumber: i + 1,
+            reps: watch('reps'),
+            load: watch('load'),
+            tempo: watch('tempo'),
+            rest: watch('rest'),
+            subSets: []
+          });
+        }
+      } else if (sets < currentDetails.length) {
+        // Remove excess sets
+        for (let i = currentDetails.length - 1; i >= sets; i--) {
+          removeSet(i);
+        }
+      }
+    }
+  }, [sets, isVariedSets, setFields, appendSet, removeSet, watch]);
+
+  const onSubmit = (data: ExerciseFormData) => {
+    onSave(data);
+    onClose();
+  };
 
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
@@ -330,9 +197,9 @@ export default function ExerciseModal({
         {exercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
       <Modal.Body>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Replace the exercise name input with Select */}
+            {/* Exercise Name */}
             <div className="col-span-2">
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm font-medium dark:text-white">Exercise Name</label>
@@ -344,86 +211,140 @@ export default function ExerciseModal({
                   Advanced Search
                 </button>
               </div>
-              <Select
-                options={exerciseOptions}
-                value={exerciseOptions.find(option => option.value === formData.name)}
-                onChange={handleExerciseSelect}
-                className="basic-single"
-                classNamePrefix="select"
-                placeholder="Search for an exercise..."
-                isClearable
-                isSearchable
-                styles={customSelectStyles}
-                filterOption={filterExerciseOptions}
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <Select
+                      {...field}
+                      options={exerciseOptions}
+                      value={exerciseOptions.find(option => option.value === field.value)}
+                      onChange={(option) => field.onChange(option?.value)}
+                      className="basic-single"
+                      classNamePrefix="select"
+                      placeholder="Search for an exercise..."
+                      isClearable
+                      isSearchable
+                      styles={customSelectStyles}
+                      filterOption={filterExerciseOptions}
+                    />
+                    {errors.name && (
+                      <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
             {/* Pairing */}
             <div>
               <label className="block text-sm font-medium dark:text-white">Pairing</label>
-              <input
-                type="text"
+              <Controller
                 name="pairing"
-                value={formData.pairing}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="text"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.pairing && (
+                      <p className="mt-1 text-sm text-red-600">{errors.pairing.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
-            {/* Sets & Reps */}
+            {/* Sets */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-sm font-medium dark:text-white">Sets</label>
                 <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="variedSets"
-                    checked={formData.isVariedSets}
-                    onChange={handleVariedSetsToggle}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  <Controller
+                    name="isVariedSets"
+                    control={control}
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <>
+                        <input
+                          {...field}
+                          type="checkbox"
+                          id="variedSets"
+                          checked={value}
+                          onChange={(e) => onChange(e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label htmlFor="variedSets" className="text-sm font-medium dark:text-white">
+                          Varied sets
+                        </label>
+                      </>
+                    )}
                   />
-                  <label htmlFor="variedSets" className="text-sm font-medium dark:text-white">
-                    Varied sets
-                  </label>
                 </div>
               </div>
-              <input
-                type="number"
+              <Controller
                 name="sets"
-                value={formData.sets}
-                onChange={handleNumberChange}
-                min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.sets && (
+                      <p className="mt-1 text-sm text-red-600">{errors.sets.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
+            {/* Reps */}
             <div>
               <label className="block text-sm font-medium dark:text-white">Reps</label>
-              <input
-                type="number"
+              <Controller
                 name="reps"
-                value={formData.reps}
-                onChange={handleNumberChange}
-                min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.reps && (
+                      <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
             {/* Load */}
             <div>
               <label className="block text-sm font-medium dark:text-white">Load (kg)</label>
-              <input
-                type="number"
+              <Controller
                 name="load"
-                value={formData.load}
-                onChange={handleNumberChange}
-                min="0"
-                step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.load && (
+                      <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
@@ -432,63 +353,93 @@ export default function ExerciseModal({
               <label className="block text-sm font-medium dark:text-white">
                 Tempo (4 digits, X for explosive)
               </label>
-              <input
-                type="text"
+              <Controller
                 name="tempo"
-                value={formData.tempo}
-                onChange={(e) => {
-                  if (validateTempo(e.target.value) || e.target.value.length <= 4) {
-                    handleInputChange(e);
-                  }
-                }}
-                pattern="[0-9X]{4}"
-                maxLength={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="text"
+                      pattern="[0-9X]{4}"
+                      maxLength={4}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.tempo && (
+                      <p className="mt-1 text-sm text-red-600">{errors.tempo.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
             {/* Rest */}
             <div>
               <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
-              <input
-                type="number"
+              <Controller
                 name="rest"
-                value={formData.rest}
-                onChange={handleNumberChange}
-                min="0"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                required
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.rest && (
+                      <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
             {/* RPE */}
             <div>
               <label className="block text-sm font-medium dark:text-white">RPE (optional)</label>
-              <input
-                type="number"
+              <Controller
                 name="rpe"
-                value={formData.rpe || ''}
-                onChange={handleNumberChange}
-                min="0"
-                max="10"
-                step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.rpe && (
+                      <p className="mt-1 text-sm text-red-600">{errors.rpe.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
 
             {/* RIR */}
             <div>
               <label className="block text-sm font-medium dark:text-white">RIR (optional)</label>
-              <input
-                type="number"
+              <Controller
                 name="rir"
-                value={formData.rir || ''}
-                onChange={handleNumberChange}
-                min="0"
-                max="10"
-                step="0.5"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                control={control}
+                render={({ field }) => (
+                  <div>
+                    <input
+                      {...field}
+                      type="number"
+                      min="0"
+                      max="10"
+                      step="0.5"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                    {errors.rir && (
+                      <p className="mt-1 text-sm text-red-600">{errors.rir.message}</p>
+                    )}
+                  </div>
+                )}
               />
             </div>
           </div>
@@ -496,48 +447,75 @@ export default function ExerciseModal({
           {/* Notes */}
           <div>
             <label className="block text-sm font-medium dark:text-white">Notes (optional)</label>
-            <textarea
+            <Controller
               name="notes"
-              value={formData.notes || ''}
-              onChange={handleInputChange}
-              rows={3}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+              control={control}
+              render={({ field }) => (
+                <div>
+                  <textarea
+                    {...field}
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  />
+                  {errors.notes && (
+                    <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+                  )}
+                </div>
+              )}
             />
           </div>
 
           {/* Varied Sets Form */}
-          {formData.isVariedSets && formData.setDetails && (
+          {isVariedSets && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
                 <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="advancedSets"
-                      checked={formData.isAdvancedSets}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        isAdvancedSets: e.target.checked
-                      }))}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="advancedSets" className="text-sm font-medium dark:text-white">
-                      Advanced Sets
-                    </label>
-                  </div>
+                  <Controller
+                    name="isAdvancedSets"
+                    control={control}
+                    render={({ field: { value, onChange, ...field } }) => (
+                      <div className="flex items-center space-x-2">
+                        <input
+                          {...field}
+                          type="checkbox"
+                          id="advancedSets"
+                          checked={value}
+                          onChange={(e) => onChange(e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <label htmlFor="advancedSets" className="text-sm font-medium dark:text-white">
+                          Advanced Sets
+                        </label>
+                      </div>
+                    )}
+                  />
                 </div>
               </div>
               
               <div className="grid gap-4">
-                {formData.setDetails.map((set) => (
-                  <div key={set.setNumber} className="space-y-4 p-4 border rounded-lg">
+                {setFields.map((field, index) => (
+                  <div key={field.id} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
-                      {formData.isAdvancedSets && (
+                      <span className="text-sm font-medium dark:text-white">Set {index + 1}</span>
+                      {isAdvancedSets && (
                         <button
                           type="button"
-                          onClick={() => handleAddSubSet(set.setNumber)}
+                          onClick={() => {
+                            const currentSet = watch(`setDetails.${index}`);
+                            if (currentSet) {
+                              const newSubSet = {
+                                reps: currentSet.reps,
+                                load: Math.round(currentSet.load * 0.9),
+                                rest: 10,
+                                tempo: currentSet.tempo
+                              };
+                              setValue(`setDetails.${index}.subSets`, [
+                                ...(currentSet.subSets || []),
+                                newSubSet
+                              ]);
+                            }
+                          }}
                           className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
                         >
                           <BsPlus className="w-5 h-5" />
@@ -545,82 +523,115 @@ export default function ExerciseModal({
                       )}
                     </div>
 
-                    {/* Main set inputs */}
-                    {(set.subSets === undefined || set.subSets.length === 0) && (
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm dark:text-white">Reps</label>
-                          <input
-                            type="number"
-                            value={set.reps || ''}
-                            onChange={(e) => handleSetDetailChange(set.setNumber, 'reps', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm dark:text-white">Load (lbs)</label>
-                          <input
-                            type="number"
-                            value={set.load || ''}
-                            onChange={(e) => handleSetDetailChange(set.setNumber, 'load', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm dark:text-white">Rest</label>
-                          <input
-                            type="number"
-                            value={set.rest || ''}
-                            onChange={(e) => handleSetDetailChange(set.setNumber, 'rest', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                      </div>
-                    )}
+                    <div className="grid grid-cols-3 gap-4">
+                      <Controller
+                        name={`setDetails.${index}.reps`}
+                        control={control}
+                        render={({ field }) => (
+                          <div>
+                            <label className="block text-sm dark:text-white">Reps</label>
+                            <input
+                              {...field}
+                              type="number"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                        )}
+                      />
+                      <Controller
+                        name={`setDetails.${index}.load`}
+                        control={control}
+                        render={({ field }) => (
+                          <div>
+                            <label className="block text-sm dark:text-white">Load (kg)</label>
+                            <input
+                              {...field}
+                              type="number"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                        )}
+                      />
+                      <Controller
+                        name={`setDetails.${index}.rest`}
+                        control={control}
+                        render={({ field }) => (
+                          <div>
+                            <label className="block text-sm dark:text-white">Rest (s)</label>
+                            <input
+                              {...field}
+                              type="number"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                        )}
+                      />
+                    </div>
 
                     {/* Sub-sets */}
-                    {formData.isAdvancedSets && set.subSets && set.subSets.map((subSet, idx) => (
-                      <div key={idx} className="space-y-4 p-4 border rounded-lg">
+                    {isAdvancedSets && watch(`setDetails.${index}.subSets`)?.map((subSet, subIndex) => (
+                      <div key={subIndex} className="space-y-4 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium dark:text-white">
-                            Set {set.setNumber}.{idx + 1}
+                            Set {index + 1}.{subIndex + 1}
                           </span>
                           <button
                             type="button"
-                            onClick={() => handleRemoveSubSet(set.setNumber, idx)}
+                            onClick={() => {
+                              const currentSubSets = watch(`setDetails.${index}.subSets`) || [];
+                              setValue(
+                                `setDetails.${index}.subSets`,
+                                currentSubSets.filter((_, i) => i !== subIndex)
+                              );
+                            }}
                             className="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-200"
                           >
                             <BsDash className="w-5 h-5" />
                           </button>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm dark:text-white">Reps</label>
-                            <input
-                              type="number"
-                              value={subSet.reps}
-                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'reps', e.target.value)}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm dark:text-white">Load (lbs)</label>
-                            <input
-                              type="number"
-                              value={subSet.load}
-                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'load', e.target.value)}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm dark:text-white">Rest (s)</label>
-                            <input
-                              type="number"
-                              value={subSet.rest}
-                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'rest', e.target.value)}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
+                          <Controller
+                            name={`setDetails.${index}.subSets.${subIndex}.reps`}
+                            control={control}
+                            render={({ field }) => (
+                              <div>
+                                <label className="block text-sm dark:text-white">Reps</label>
+                                <input
+                                  {...field}
+                                  type="number"
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                                />
+                              </div>
+                            )}
+                          />
+                          <Controller
+                            name={`setDetails.${index}.subSets.${subIndex}.load`}
+                            control={control}
+                            render={({ field }) => (
+                              <div>
+                                <label className="block text-sm dark:text-white">Load (kg)</label>
+                                <input
+                                  {...field}
+                                  type="number"
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                                />
+                              </div>
+                            )}
+                          />
+                          <Controller
+                            name={`setDetails.${index}.subSets.${subIndex}.rest`}
+                            control={control}
+                            render={({ field }) => (
+                              <div>
+                                <label className="block text-sm dark:text-white">Rest (s)</label>
+                                <input
+                                  {...field}
+                                  type="number"
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                                />
+                              </div>
+                            )}
+                          />
                         </div>
                       </div>
                     ))}
