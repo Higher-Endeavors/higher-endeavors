@@ -130,14 +130,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
           {exercise.isVariedSets && exercise.setDetails ? (
             <div className="font-medium dark:text-slate-900">
               {exercise.setDetails.map((set, idx) => (
-                <div key={idx}>
-                  <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.reps} reps`}</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.reps} reps @ {subSet.load}lbs ({subSet.rest}s rest)
-                    </p>
-                  ))}
-                </div>
+                <p key={idx}>{`Set ${set.setNumber}: ${set.reps} reps`}</p>
               ))}
             </div>
           ) : (
@@ -149,12 +142,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
           {exercise.isVariedSets && exercise.setDetails ? (
             <div className="font-medium dark:text-slate-900">
               {exercise.setDetails.map((set, idx) => (
-                <div key={idx}>
-                  <p>{set.load}lbs.</p>
-                  {set.subSets && set.subSets.map((_, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">&nbsp;</p>
-                  ))}
-                </div>
+                <p key={idx}>{`${set.load}lbs.`}</p>
               ))}
             </div>
           ) : (
