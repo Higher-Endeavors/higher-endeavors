@@ -156,6 +156,12 @@ export interface ExerciseLibraryEntry {
 }
 
 // First, let's add a new interface for set details
+export interface SubSet {
+  reps: number;
+  load: number;
+  rest: number;
+}
+
 export interface SetDetails {
   setNumber: number;
   reps: number;
@@ -164,4 +170,6 @@ export interface SetDetails {
   rest?: number;
   rpe?: number;
   rir?: number;
+  isAdvanced?: boolean;
+  subSets?: SubSet[];
 } 

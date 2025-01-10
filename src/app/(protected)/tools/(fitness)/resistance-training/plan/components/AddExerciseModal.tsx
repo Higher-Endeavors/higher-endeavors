@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
-import { SetDetails } from '../../shared/types';
-import { BsSearch } from 'react-icons/bs';
+import { SetDetails, SubSet } from '../../shared/types';
+import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 
 interface Exercise {
   id: string;
@@ -19,6 +19,7 @@ interface Exercise {
   rpe?: number;
   rir?: number;
   isVariedSets?: boolean;
+  isAdvancedSets?: boolean;
   setDetails?: SetDetails[];
 }
 
@@ -230,7 +231,8 @@ export default function ExerciseModal({
             tempo: prev.tempo,
             rest: prev.rest,
             rpe: prev.rpe,
-            rir: prev.rir
+            rir: prev.rir,
+            subSets: []
           }))
         : []
     }));
@@ -244,6 +246,72 @@ export default function ExerciseModal({
           ? { ...set, [field]: value === '' ? '' : Number(value) }
           : set
       ) || []
+    }));
+  };
+
+  const handleAddSubSet = (setNumber: number) => {
+    setFormData(prev => ({
+      ...prev,
+      setDetails: prev.setDetails?.map(set => 
+        set.setNumber === setNumber
+          ? {
+              ...set,
+              subSets: set.subSets?.length === 0
+                ? [
+                    {
+                      reps: set.reps,
+                      load: set.load,
+                      rest: set.rest || 0
+                    },
+                    {
+                      reps: set.reps,
+                      load: Math.round(set.load * 0.9),
+                      rest: set.rest || 0
+                    }
+                  ]
+                : [
+                    ...(set.subSets || []),
+                    {
+                      reps: set.reps,
+                      load: Math.round(set.load * 0.9),
+                      rest: 10
+                    }
+                  ]
+          }
+        : set
+      )
+    }));
+  };
+
+  const handleSubSetChange = (setNumber: number, subSetIndex: number, field: keyof SubSet, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      setDetails: prev.setDetails?.map(set => 
+        set.setNumber === setNumber
+          ? {
+              ...set,
+              subSets: set.subSets?.map((subSet, idx) => 
+                idx === subSetIndex
+                  ? { ...subSet, [field]: value === '' ? '' : Number(value) }
+                  : subSet
+              )
+            }
+          : set
+      )
+    }));
+  };
+
+  const handleRemoveSubSet = (setNumber: number, subSetIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      setDetails: prev.setDetails?.map(set => 
+        set.setNumber === setNumber
+          ? {
+              ...set,
+              subSets: set.subSets?.filter((_, idx) => idx !== subSetIndex)
+            }
+          : set
+      )
     }));
   };
 
@@ -440,31 +508,122 @@ export default function ExerciseModal({
           {/* Varied Sets Form */}
           {formData.isVariedSets && formData.setDetails && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="advancedSets"
+                      checked={formData.isAdvancedSets}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        isAdvancedSets: e.target.checked
+                      }))}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="advancedSets" className="text-sm font-medium dark:text-white">
+                      Advanced Sets
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
               <div className="grid gap-4">
                 {formData.setDetails.map((set) => (
-                  <div key={set.setNumber} className="grid grid-cols-3 gap-4 p-4 border rounded-lg">
-                    <div className="col-span-3 md:col-span-1">
+                  <div key={set.setNumber} className="space-y-4 p-4 border rounded-lg">
+                    <div className="flex items-center justify-between">
                       <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
+                      {formData.isAdvancedSets && (
+                        <button
+                          type="button"
+                          onClick={() => handleAddSubSet(set.setNumber)}
+                          className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
+                        >
+                          <BsPlus className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-sm dark:text-white">Reps</label>
-                      <input
-                        type="number"
-                        value={set.reps || ''}
-                        onChange={(e) => handleSetDetailChange(set.setNumber, 'reps', e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm dark:text-white">Load (lbs)</label>
-                      <input
-                        type="number"
-                        value={set.load || ''}
-                        onChange={(e) => handleSetDetailChange(set.setNumber, 'load', e.target.value)}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                      />
-                    </div>
+
+                    {/* Main set inputs */}
+                    {(set.subSets === undefined || set.subSets.length === 0) && (
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm dark:text-white">Reps</label>
+                          <input
+                            type="number"
+                            value={set.reps || ''}
+                            onChange={(e) => handleSetDetailChange(set.setNumber, 'reps', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm dark:text-white">Load (lbs)</label>
+                          <input
+                            type="number"
+                            value={set.load || ''}
+                            onChange={(e) => handleSetDetailChange(set.setNumber, 'load', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm dark:text-white">Rest</label>
+                          <input
+                            type="number"
+                            value={set.rest || ''}
+                            onChange={(e) => handleSetDetailChange(set.setNumber, 'rest', e.target.value)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Sub-sets */}
+                    {formData.isAdvancedSets && set.subSets && set.subSets.map((subSet, idx) => (
+                      <div key={idx} className="space-y-4 p-4 border rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium dark:text-white">
+                            Set {set.setNumber}.{idx + 1}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubSet(set.setNumber, idx)}
+                            className="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-200"
+                          >
+                            <BsDash className="w-5 h-5" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-sm dark:text-white">Reps</label>
+                            <input
+                              type="number"
+                              value={subSet.reps}
+                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'reps', e.target.value)}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm dark:text-white">Load (lbs)</label>
+                            <input
+                              type="number"
+                              value={subSet.load}
+                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'load', e.target.value)}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm dark:text-white">Rest (s)</label>
+                            <input
+                              type="number"
+                              value={subSet.rest}
+                              onChange={(e) => handleSubSetChange(set.setNumber, idx, 'rest', e.target.value)}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
