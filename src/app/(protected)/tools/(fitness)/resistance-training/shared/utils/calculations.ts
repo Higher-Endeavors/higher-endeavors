@@ -5,6 +5,7 @@ interface VolumeMetrics {
   totalLoad: number;
   averageRPE?: number;
   averageRIR?: number;
+  totalTimeUnderTension: number;
 }
 
 const calculateTempoTotal = (tempo: string): number => {
@@ -17,6 +18,15 @@ const calculateTempoTotal = (tempo: string): number => {
   }, 0);
 };
 
+const getNumericLoad = (load: string | number): number => {
+  if (typeof load === 'string') {
+    // For resistance bands, we'll return 0 for volume calculations
+    // This is a simplification - you might want to assign estimated weights to bands
+    return 0;
+  }
+  return load;
+};
+
 export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => {
   let totalReps = 0;
   let totalLoad = 0;
@@ -24,6 +34,7 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
   let rirSum = 0;
   let rpeCount = 0;
   let rirCount = 0;
+  let totalTimeUnderTension = 0;
 
   exercises.forEach(exercise => {
     if (exercise.isVariedSets && exercise.setDetails) {
@@ -32,12 +43,12 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
         if (!set.subSets?.length) {
           // If no sub-sets, calculate normally
           totalReps += set.reps;
-          totalLoad += set.load * set.reps;
+          totalLoad += getNumericLoad(set.load) * set.reps;
         } else {
           // If has sub-sets, calculate volume for each sub-set
           set.subSets.forEach(subSet => {
             totalReps += subSet.reps;
-            totalLoad += subSet.load * subSet.reps;
+            totalLoad += getNumericLoad(subSet.load) * subSet.reps;
           });
         }
       });
@@ -45,7 +56,7 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
       // Regular exercise calculation
       const exerciseReps = exercise.sets * exercise.reps;
       totalReps += exerciseReps;
-      totalLoad += exercise.load * exerciseReps;
+      totalLoad += getNumericLoad(exercise.load) * exerciseReps;
     }
 
     // Calculate RPE and RIR averages
@@ -57,11 +68,15 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
       rirSum += exercise.rir;
       rirCount++;
     }
+
+    // Calculate Time Under Tension
+    totalTimeUnderTension += calculateExerciseTUT(exercise);
   });
 
   return {
     totalReps,
     totalLoad,
+    totalTimeUnderTension,
     ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
     ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
   };

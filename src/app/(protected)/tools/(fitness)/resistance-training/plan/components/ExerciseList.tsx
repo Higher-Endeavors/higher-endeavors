@@ -4,24 +4,8 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
-import { SetDetails } from '../../shared/types';
+import { Exercise } from '../../shared/types';
 import { calculateExerciseTUT } from '../../shared/utils/calculations';
-
-interface Exercise {
-  id: string;
-  name: string;
-  pairing: string;
-  sets: number;
-  reps: number;
-  load: number;
-  tempo: string;
-  rest: number;
-  notes?: string;
-  rpe?: number;
-  rir?: number;
-  isVariedSets?: boolean;
-  setDetails?: SetDetails[];
-}
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -32,6 +16,13 @@ interface ExerciseItemProps {
 interface MenuState {
   [key: string]: boolean;
 }
+
+const formatLoad = (load: string | number): string => {
+  if (typeof load === 'number') {
+    return `${load}lbs.`;
+  }
+  return load; // Return the band color as is
+};
 
 const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
   const [menuOpen, setMenuOpen] = useState<MenuState>({});
@@ -150,15 +141,17 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
             <div className="font-medium dark:text-slate-900">
               {exercise.setDetails.map((set, idx) => (
                 <div key={idx}>
-                  <p>{set.load}lbs.</p>
-                  {set.subSets && set.subSets.map((_, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">&nbsp;</p>
+                  <p>{formatLoad(set.load)}</p>
+                  {set.subSets && set.subSets.map((subSet, subIdx) => (
+                    <p key={subIdx} className="ml-4 text-sm">
+                      → {subSet.reps} reps @ {formatLoad(subSet.load)} ({subSet.rest}s rest)
+                    </p>
                   ))}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.load}lbs.</p>
+            <p className="font-medium dark:text-slate-900">{formatLoad(exercise.load)}</p>
           )}
         </div>
         <div>

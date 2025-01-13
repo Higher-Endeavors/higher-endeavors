@@ -22,7 +22,12 @@ const loadSchema = z.union([
   z.string().regex(COLOR_REGEX, {
     message: "Invalid band color. Please use standard color names."
   })
-]);
+]).transform(val => {
+  if (typeof val === 'string') {
+    return val.toLowerCase();
+  }
+  return val;
+});
 
 /**
  * Optional Number Schema: Used for RPE and RIR fields
