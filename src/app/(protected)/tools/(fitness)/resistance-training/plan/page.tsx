@@ -126,7 +126,10 @@ export default function PlanPage() {
       reps: 10,
       load: 0,
       tempo: '2010',
-      rest: 60
+      rest: 60,
+      isVariedSets: false,
+      isAdvancedSets: false,
+      notes: ''
     });
     setIsExerciseModalOpen(true);
   };
@@ -141,7 +144,10 @@ export default function PlanPage() {
       reps: 10,
       load: 0,
       tempo: '2010',
-      rest: 60
+      rest: 60,
+      isVariedSets: false,
+      isAdvancedSets: false,
+      notes: ''
     });
     setIsExerciseModalOpen(true);
   };
