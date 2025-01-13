@@ -15,6 +15,17 @@ import { programSettingsSchema } from '../shared/schemas/program';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
+interface ExerciseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (exercise: Exercise) => void;
+  exercise?: Exercise;
+  exercises: Exercise[];
+  exerciseOptions: Array<{ value: string; label: string }>;
+  onAdvancedSearch: () => void;
+  selectedExerciseName?: string;
+}
+
 export default function PlanPage() {
   // Program state
   const [program, setProgram] = useState<Program>({
@@ -336,6 +347,10 @@ export default function PlanPage() {
         onSave={handleSaveExercise}
         exercise={editingExercise}
         exercises={program.exercises}
+        exerciseOptions={exerciseLibrary.map(ex => ({
+          value: ex.name,
+          label: ex.name
+        }))}
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
         selectedExerciseName={selectedExerciseName}
       />

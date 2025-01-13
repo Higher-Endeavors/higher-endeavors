@@ -1,51 +1,32 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
-import { exerciseSchema, type Exercise } from '../../shared/schemas/exercise';
+import { exerciseSchema, type Exercise, type SetDetails } from '../../shared/schemas/exercise';
+import { generateNextPairing } from '../../shared/utils/pairingUtils';
 
-/**
- * Props for the Exercise Modal component
- */
 interface ExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (exercise: Exercise) => void;
-  exercise?: Exercise;          // Provided when editing an existing exercise
-  exercises: Exercise[];        // Used for generating next pairing
+  exercise?: Exercise;
+  exercises: Exercise[];
+  exerciseOptions: Array<{ value: string; label: string }>;
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
 }
 
-/**
- * Option type for exercise name select dropdown
- */
-interface ExerciseOption {
-  value: string;
-  label: string;
-}
-
-/**
- * Filter function for exercise name search
- * Matches if all search terms are found in the exercise name
- */
 const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
   if (!inputValue) return true;
-  
   const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
   const exerciseName = option.label.toLowerCase();
-  
   return searchTerms.every(term => exerciseName.includes(term));
 };
 
-/**
- * Custom styles for the exercise name select dropdown
- * Ensures proper color contrast in both light and dark modes
- */
 const customSelectStyles = {
   control: (base: any) => ({
     ...base,
@@ -65,27 +46,44 @@ const customSelectStyles = {
   }),
 };
 
-/**
- * Exercise Modal Component
- * Handles both creating new exercises and editing existing ones
- * Supports both standard and varied set configurations
- */
 export default function ExerciseModal({
   isOpen,
   onClose,
   onSave,
   exercise,
   exercises,
+  exerciseOptions,
   onAdvancedSearch,
   selectedExerciseName
 }: ExerciseModalProps) {
-  // State for exercise name options in dropdown
-  const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
+  // Create appropriate default values based on whether we're editing or creating
+  const defaultValues = exercise ? (
+    exercise.isVariedSets ? {
+      ...exercise,
+      isVariedSets: true as const,
+      isAdvancedSets: Boolean(exercise.isAdvancedSets),
+      setDetails: exercise.setDetails
+    } : {
+      ...exercise,
+      isVariedSets: false as const,
+      isAdvancedSets: Boolean(exercise.isAdvancedSets),
+      setDetails: undefined
+    }
+  ) : {
+    id: Math.random().toString(36).substr(2, 9),
+    name: selectedExerciseName || '',
+    pairing: generateNextPairing(exercises),
+    sets: 1,
+    reps: 1,
+    load: 0,
+    tempo: '2010',
+    rest: 60,
+    notes: '',
+    isVariedSets: false as const,
+    isAdvancedSets: false,
+    setDetails: undefined
+  };
 
-  /**
-   * Form initialization with React Hook Form and Zod validation
-   * Handles both standard and varied set exercises through discriminated union
-   */
   const {
     register,
     control,
@@ -93,119 +91,30 @@ export default function ExerciseModal({
     watch,
     setValue,
     formState: { errors },
-    reset
   } = useForm<Exercise>({
     resolver: zodResolver(exerciseSchema),
-    defaultValues: {
-      id: '',
-      name: '',
-      pairing: 'A1',
-      sets: 1,
-      reps: 1,
-      load: 0,
-      tempo: '2010',
-      rest: 60,
-      notes: '',
-      isVariedSets: false,
-      isAdvancedSets: false,
-      setDetails: undefined
-    }
+    defaultValues
   });
 
-  // Watch values for conditional rendering and updates
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "setDetails"
+  });
+
   const isVariedSets = watch('isVariedSets');
   const isAdvancedSets = watch('isAdvancedSets');
   const currentSets = watch('sets');
 
-  /**
-   * Effect: Initialize form when editing existing exercise
-   * Handles type conversion for discriminated union
-   */
-  useEffect(() => {
-    if (exercise) {
-      // Ensure correct literal types for discriminated union
-      const resetData = exercise.isVariedSets ? {
-        ...exercise,
-        isVariedSets: true as const,
-        isAdvancedSets: Boolean(exercise.isAdvancedSets)
-      } : {
-        ...exercise,
-        isVariedSets: false as const,
-        isAdvancedSets: Boolean(exercise.isAdvancedSets),
-        setDetails: undefined
-      };
-      reset(resetData);
-    } else {
-      // Generate next pairing for new exercise
-      const existingPairings = exercises.map(ex => ex.pairing)
-        .filter(p => !p.includes('WU') && !p.includes('CD'));
-      
-      let nextPairing = 'A1';
-      if (existingPairings.length > 0) {
-        const lastPairing = existingPairings[existingPairings.length - 1];
-        const letter = lastPairing.charAt(0);
-        const number = parseInt(lastPairing.charAt(1));
-        
-        if (number === 2) {
-          nextPairing = String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
-        } else {
-          nextPairing = letter + '2';
-        }
-      }
-
-      reset({
-        id: Math.random().toString(36).substr(2, 9),
-        pairing: nextPairing,
-        sets: 1,
-        reps: 1,
-        load: 0,
-        tempo: '2010',
-        rest: 60,
-        notes: '',
-        isVariedSets: false as const,
-        isAdvancedSets: false,
-        setDetails: undefined
-      });
-    }
-  }, [exercise, exercises, reset]);
-
-  /**
-   * Effect: Fetch available exercises for name dropdown
-   */
-  useEffect(() => {
-    const fetchExercises = async () => {
-      try {
-        const response = await fetch('/api/exercises');
-        const data = await response.json();
-        const options = data.map((ex: any) => ({
-          value: ex.exercise_name,
-          label: ex.exercise_name
-        }));
-        setExerciseOptions(options);
-      } catch (error) {
-        console.error('Error fetching exercises:', error);
-      }
-    };
-
-    fetchExercises();
-  }, []);
-
-  /**
-   * Effect: Update exercise name when selected from advanced search
-   */
-  useEffect(() => {
-    if (selectedExerciseName) {
-      setValue('name', selectedExerciseName);
-    }
-  }, [selectedExerciseName, setValue]);
-
-  /**
-   * Effect: Manage setDetails array when varied sets is enabled
-   * Creates or updates set details when number of sets changes
-   */
-  useEffect(() => {
-    if (isVariedSets && currentSets > 0) {
-      const newSetDetails = Array.from({ length: currentSets }, (_, i) => ({
+  // Handle varied sets changes
+  const handleVariedSetsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const isChecked = e.target.checked;
+    
+    // Update isVariedSets with the correct literal type
+    setValue('isVariedSets', isChecked ? true : false as const);
+    
+    if (isChecked) {
+      // Initialize setDetails when varied sets is enabled
+      const initialSetDetails: SetDetails[] = Array.from({ length: currentSets }, (_, i) => ({
         setNumber: i + 1,
         reps: watch('reps'),
         load: watch('load'),
@@ -213,103 +122,33 @@ export default function ExerciseModal({
         rest: watch('rest'),
         subSets: []
       }));
-      setValue('setDetails', newSetDetails);
+      append(initialSetDetails);
     } else {
       // Clear setDetails when varied sets is disabled
+      while (fields.length > 0) {
+        remove(0);
+      }
       setValue('setDetails', undefined);
     }
-  }, [isVariedSets, currentSets, setValue, watch]);
+  };
 
-  /**
-   * Form submission handler
-   * Ensures correct typing for discriminated union before saving
-   */
   const onSubmit = (data: Exercise) => {
-    console.log('Form Data:', data);
-    console.log('Form Errors:', errors);
-
-    // Create the correct type based on isVariedSets
-    const submissionData = data.isVariedSets ? {
-      ...data,
-      isVariedSets: true as const,
-      isAdvancedSets: Boolean(data.isAdvancedSets),
-      setDetails: data.setDetails || []
-    } : {
-      ...data,
-      isVariedSets: false as const,
-      isAdvancedSets: Boolean(data.isAdvancedSets),
-      setDetails: undefined
-    };
-
-    console.log('Submission Data:', submissionData);
-    onSave(submissionData);
+    onSave(data);
     onClose();
-  };
-
-  /**
-   * Handlers for advanced set management
-   */
-  const handleAddSubSet = (setIndex: number) => {
-    const currentSetDetails = watch('setDetails') || [];
-    const updatedSetDetails = [...currentSetDetails];
-    const currentSet = updatedSetDetails[setIndex];
-
-    if (!currentSet.subSets?.length) {
-      currentSet.subSets = [
-        {
-          reps: currentSet.reps,
-          load: currentSet.load,
-          rest: currentSet.rest
-        },
-        {
-          reps: currentSet.reps,
-          load: currentSet.load,
-          rest: currentSet.rest
-        }
-      ];
-    } else {
-      currentSet.subSets.push({
-        reps: currentSet.reps,
-        load: currentSet.load,
-        rest: currentSet.rest
-      });
-    }
-
-    setValue('setDetails', updatedSetDetails);
-  };
-
-  const handleRemoveSubSet = (setIndex: number, subSetIndex: number) => {
-    const currentSetDetails = watch('setDetails') || [];
-    const updatedSetDetails = [...currentSetDetails];
-    const currentSet = updatedSetDetails[setIndex];
-
-    if (currentSet.subSets) {
-      currentSet.subSets = currentSet.subSets.filter((_, idx) => idx !== subSetIndex);
-    }
-
-    setValue('setDetails', updatedSetDetails);
   };
 
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
-      <Modal.Header className="dark:text-white">
+      <Modal.Header>
         {exercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
       <Modal.Body>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Exercise Name */}
-            <div className="col-span-2">
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium dark:text-white">Exercise Name</label>
-                <button
-                  type="button"
-                  onClick={onAdvancedSearch}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                >
-                  Advanced Search
-                </button>
-              </div>
+        <form id="exercise-form" onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="flex items-center space-x-4">
+            <div className="flex-grow">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Exercise Name
+              </label>
               <Controller
                 name="name"
                 control={control}
@@ -317,15 +156,11 @@ export default function ExerciseModal({
                   <Select
                     {...field}
                     options={exerciseOptions}
+                    filterOption={filterExerciseOptions}
+                    styles={customSelectStyles}
+                    className="mt-1"
                     value={exerciseOptions.find(option => option.value === field.value)}
                     onChange={(option) => field.onChange(option?.value)}
-                    className="basic-single"
-                    classNamePrefix="select"
-                    placeholder="Search for an exercise..."
-                    isClearable
-                    isSearchable
-                    styles={customSelectStyles}
-                    filterOption={filterExerciseOptions}
                   />
                 )}
               />
@@ -333,309 +168,279 @@ export default function ExerciseModal({
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
               )}
             </div>
+            <button
+              type="button"
+              onClick={onAdvancedSearch}
+              className="mt-6 p-2 text-gray-600 hover:text-gray-900"
+            >
+              <BsSearch className="h-5 w-5" />
+            </button>
+          </div>
 
-            {/* Pairing */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Pairing</label>
-              <input
-                {...register('pairing')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.pairing && (
-                <p className="mt-1 text-sm text-red-600">{errors.pairing.message}</p>
-              )}
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Pairing</label>
+            <input
+              {...register('pairing')}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            />
+            {errors.pairing && (
+              <p className="mt-1 text-sm text-red-600">{errors.pairing.message}</p>
+            )}
+          </div>
 
-            {/* Sets */}
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium dark:text-white">Sets</label>
-                <div className="flex items-center space-x-2">
-                  <Controller
-                    name="isVariedSets"
-                    control={control}
-                    defaultValue={false}
-                    render={({ field: { value, onChange, ...field } }) => (
-                      <input
-                        type="checkbox"
-                        id="variedSets"
-                        checked={value}
-                        onChange={(e) => {
-                          onChange(e.target.checked);
-                          if (!e.target.checked) {
-                            setValue('setDetails', undefined);
-                          }
-                        }}
-                        {...field}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                    )}
-                  />
-                  <label htmlFor="variedSets" className="text-sm font-medium dark:text-white">
-                    Varied sets
-                  </label>
-                </div>
-              </div>
+          <div className="flex items-center justify-between">
+            <div className="w-1/2">
+              <label className="block text-sm font-medium text-gray-700">Sets</label>
               <input
                 type="number"
                 {...register('sets', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
               {errors.sets && (
                 <p className="mt-1 text-sm text-red-600">{errors.sets.message}</p>
               )}
             </div>
-
-            {/* Reps */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Reps</label>
+            <div className="flex items-center space-x-2">
               <input
-                type="number"
-                {...register('reps', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                type="checkbox"
+                id="variedSets"
+                {...register('isVariedSets')}
+                onChange={handleVariedSetsChange}
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              {errors.reps && (
-                <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
-              )}
-            </div>
-
-            {/* Load */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Load (kg/band color)</label>
-              <input
-                {...register('load')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.load && (
-                <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
-              )}
-            </div>
-
-            {/* Tempo */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">
-                Tempo (4 digits, X for explosive)
+              <label htmlFor="variedSets" className="text-sm font-medium text-gray-700">
+                Varied Sets
               </label>
-              <input
-                {...register('tempo')}
-                maxLength={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.tempo && (
-                <p className="mt-1 text-sm text-red-600">{errors.tempo.message}</p>
-              )}
-            </div>
-
-            {/* Rest */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
-              <input
-                type="number"
-                {...register('rest', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.rest && (
-                <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
-              )}
             </div>
           </div>
 
-          {/* Optional Fields Section */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">Optional Fields</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* RPE */}
+          {!isVariedSets && (
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  RPE (Rate of Perceived Exertion)
-                </label>
+                <label className="block text-sm font-medium text-gray-700">Reps</label>
+                <input
+                  type="number"
+                  {...register('reps', { valueAsNumber: true })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                {errors.reps && (
+                  <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Load</label>
+                <input
+                  {...register('load')}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Weight or band color"
+                />
+                {errors.load && (
+                  <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Tempo</label>
+                <input
+                  {...register('tempo')}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="e.g., 2010"
+                />
+                {errors.tempo && (
+                  <p className="mt-1 text-sm text-red-600">{errors.tempo.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Rest (seconds)</label>
+                <input
+                  type="number"
+                  {...register('rest', { valueAsNumber: true })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+                {errors.rest && (
+                  <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isVariedSets && (
+            <div className="space-y-4">
+              {fields.map((field, index) => (
+                <div key={field.id} className="p-4 border rounded-lg space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-lg font-medium">Set {index + 1}</h4>
+                    {isAdvancedSets && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentSet = watch(`setDetails.${index}`);
+                          if (!currentSet.subSets?.length) {
+                            setValue(`setDetails.${index}.subSets`, [
+                              { reps: currentSet.reps, load: currentSet.load, rest: currentSet.rest },
+                              { reps: currentSet.reps, load: currentSet.load, rest: currentSet.rest }
+                            ]);
+                          } else {
+                            setValue(`setDetails.${index}.subSets`, [
+                              ...currentSet.subSets,
+                              { reps: currentSet.reps, load: currentSet.load, rest: currentSet.rest }
+                            ]);
+                          }
+                        }}
+                        className="p-1 text-blue-600 hover:bg-blue-50 rounded-full"
+                      >
+                        <BsPlus className="h-5 w-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Reps</label>
+                      <input
+                        type="number"
+                        {...register(`setDetails.${index}.reps` as const, { valueAsNumber: true })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Load</label>
+                      <input
+                        {...register(`setDetails.${index}.load` as const)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Tempo</label>
+                      <input
+                        {...register(`setDetails.${index}.tempo` as const)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Rest</label>
+                      <input
+                        type="number"
+                        {...register(`setDetails.${index}.rest` as const, { valueAsNumber: true })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {watch(`setDetails.${index}.subSets`)?.map((_, subIndex) => (
+                    <div key={subIndex} className="ml-6 p-4 border rounded-lg space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-md font-medium">Sub-Set {subIndex + 1}</h5>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const currentSubSets = watch(`setDetails.${index}.subSets`) || [];
+                            setValue(
+                              `setDetails.${index}.subSets`,
+                              currentSubSets.filter((_, i) => i !== subIndex)
+                            );
+                          }}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded-full"
+                        >
+                          <BsDash className="h-5 w-5" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Reps</label>
+                          <input
+                            type="number"
+                            {...register(`setDetails.${index}.subSets.${subIndex}.reps` as const, { valueAsNumber: true })}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Load</label>
+                          <input
+                            {...register(`setDetails.${index}.subSets.${subIndex}.load` as const)}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Rest</label>
+                          <input
+                            type="number"
+                            {...register(`setDetails.${index}.subSets.${subIndex}.rest` as const, { valueAsNumber: true })}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-500">Optional Fields</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-500">RPE</label>
                 <input
                   type="number"
                   step="0.5"
                   {...register('rpe', { 
                     setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
                   })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Enter RPE (0-20)"
                 />
                 {errors.rpe && (
                   <p className="mt-1 text-sm text-red-600">{errors.rpe.message}</p>
                 )}
               </div>
-
-              {/* RIR */}
               <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  RIR (Reps in Reserve)
-                </label>
+                <label className="block text-sm font-medium text-gray-500">RIR</label>
                 <input
                   type="number"
                   step="0.5"
                   {...register('rir', { 
                     setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
                   })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                   placeholder="Enter RIR (0-10)"
                 />
                 {errors.rir && (
                   <p className="mt-1 text-sm text-red-600">{errors.rir.message}</p>
                 )}
               </div>
-
-              {/* Notes */}
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Notes</label>
-                <textarea
-                  {...register('notes')}
-                  rows={3}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                  placeholder="Add any additional notes about the exercise"
-                />
-                {errors.notes && (
-                  <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
-                )}
-              </div>
             </div>
-          </div>
-
-          {/* Varied Sets Form */}
-          {isVariedSets && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-2">
-                    <Controller
-                      name="isAdvancedSets"
-                      control={control}
-                      render={({ field }) => (
-                        <input
-                          type="checkbox"
-                          id="advancedSets"
-                          checked={field.value}
-                          onChange={(e) => field.onChange(e.target.checked)}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      )}
-                    />
-                    <label htmlFor="advancedSets" className="text-sm font-medium dark:text-white">
-                      Advanced Sets
-                    </label>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="grid gap-4">
-                {watch('setDetails')?.map((set, setIndex) => (
-                  <div key={set.setNumber} className="space-y-4 p-4 border rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
-                      {isAdvancedSets && (
-                        <button
-                          type="button"
-                          onClick={() => handleAddSubSet(setIndex)}
-                          className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
-                        >
-                          <BsPlus className="w-5 h-5" />
-                        </button>
-                      )}
-                    </div>
-
-                    {/* Main set inputs */}
-                    {(!set.subSets?.length) && (
-                      <div className="grid grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-sm dark:text-white">Reps</label>
-                          <input
-                            type="number"
-                            {...register(`setDetails.${setIndex}.reps` as const, { valueAsNumber: true })}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm dark:text-white">Load</label>
-                          <input
-                            {...register(`setDetails.${setIndex}.load` as const)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm dark:text-white">Rest</label>
-                          <input
-                            type="number"
-                            {...register(`setDetails.${setIndex}.rest` as const, { valueAsNumber: true })}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Sub-sets */}
-                    {isAdvancedSets && set.subSets?.map((subSet, subSetIndex) => (
-                      <div key={subSetIndex} className="space-y-4 p-4 border rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium dark:text-white">
-                            Set {set.setNumber}.{subSetIndex + 1}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSubSet(setIndex, subSetIndex)}
-                            className="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-200"
-                          >
-                            <BsDash className="w-5 h-5" />
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm dark:text-white">Reps</label>
-                            <input
-                              type="number"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.reps` as const, { valueAsNumber: true })}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm dark:text-white">Load</label>
-                            <input
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.load` as const)}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm dark:text-white">Rest</label>
-                            <input
-                              type="number"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.rest` as const, { valueAsNumber: true })}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-500">Notes</label>
+              <textarea
+                {...register('notes')}
+                rows={3}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                placeholder="Add any additional notes about the exercise"
+              />
+              {errors.notes && (
+                <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+              )}
             </div>
-          )}
-
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-white"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
-            >
-              {exercise ? 'Save Changes' : 'Add Exercise'}
-            </button>
           </div>
         </form>
       </Modal.Body>
+      <Modal.Footer>
+        <button
+          type="button"
+          onClick={onClose}
+          className="mr-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          form="exercise-form"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+        >
+          Save Changes
+        </button>
+      </Modal.Footer>
     </Modal>
   );
-} 
+}
