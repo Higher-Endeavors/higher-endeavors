@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import dynamic from 'next/dynamic';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import ExerciseList from './components/ExerciseList';
+// import ExerciseList from './components/ExerciseList';
 import ExerciseModal from './components/AddExerciseModal';
 import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
@@ -15,6 +16,11 @@ import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
+
+const ExerciseListNoSSR = dynamic(
+    () => import('./components/ExerciseList'),
+    { ssr: false }
+  )
 
 export default function PlanPage() {
   // Program state
@@ -293,7 +299,7 @@ export default function PlanPage() {
             items={program.exercises.map(ex => ex.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ExerciseList
+            <ExerciseListNoSSR
               exercises={program.exercises}
               onEdit={handleEditExercise}
               onDelete={handleDeleteExercise}
