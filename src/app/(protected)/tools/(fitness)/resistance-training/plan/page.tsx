@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { createPortal } from 'react-dom';
+import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import ExerciseList from './components/ExerciseList';
 import ExerciseModal from './components/AddExerciseModal';
@@ -45,6 +46,7 @@ export default function PlanPage() {
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
   const [selectedExerciseName, setSelectedExerciseName] = useState<string>('');
+  const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
 
   // Load muscle groups on mount
   useEffect(() => {
@@ -68,17 +70,24 @@ export default function PlanPage() {
     })
   );
 
-  const handleDragEnd = (event: any) => {
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    const draggedExercise = program.exercises.find(ex => ex.id === active.id);
+    setActiveExercise(draggedExercise || null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveExercise(null);
     const { active, over } = event;
 
-    if (active.id !== over.id) {
+    if (active.id !== over?.id) {
       setProgram((prev) => {
         const oldIndex = prev.exercises.findIndex((ex) => ex.id === active.id);
-        const newIndex = prev.exercises.findIndex((ex) => ex.id === over.id);
-        
+        const newIndex = prev.exercises.findIndex((ex) => ex.id === over?.id);
+
         // Create new array with the moved exercise
         const newExercises = arrayMove(prev.exercises, oldIndex, newIndex);
-        
+
         // Update pairings for all exercises
         const updatedExercises = updatePairings(newExercises);
 
@@ -94,7 +103,7 @@ export default function PlanPage() {
   const updatePairings = (exercises: Exercise[]): Exercise[] => {
     let currentGroup = 'A';
     let currentNumber = 1;
-    
+
     return exercises.map((exercise, index) => {
       if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
         return exercise;
@@ -165,7 +174,7 @@ export default function PlanPage() {
   const handleSaveExercise = (exercise: Exercise) => {
     setProgram(prev => ({
       ...prev,
-      exercises: prev.exercises.map(ex => 
+      exercises: prev.exercises.map(ex =>
         ex.id === exercise.id ? exercise : ex
       ).concat(
         prev.exercises.find(ex => ex.id === exercise.id) ? [] : [exercise]
@@ -250,7 +259,7 @@ export default function PlanPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
-      
+
       <div className="mb-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Program Settings</h2>
@@ -277,6 +286,7 @@ export default function PlanPage() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
@@ -289,6 +299,20 @@ export default function PlanPage() {
               onDelete={handleDeleteExercise}
             />
           </SortableContext>
+
+          {createPortal(
+            <DragOverlay>
+              {activeExercise ? (
+                <div className="bg-white p-4 rounded-lg shadow border-2 border-purple-500">
+                  <p className="font-medium text-gray-600">{activeExercise.name}</p>
+                  <p className="text-sm text-gray-600">
+                    {activeExercise.sets} × {activeExercise.reps} @ {activeExercise.load}kg
+                  </p>
+                </div>
+              ) : null}
+            </DragOverlay>,
+            document.body
+          )}
         </DndContext>
 
         {/* Volume Summary */}
