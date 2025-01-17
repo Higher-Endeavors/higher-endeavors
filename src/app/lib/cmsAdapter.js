@@ -36,6 +36,18 @@ export async function getArticles() {
   const data = await fetchAPI(
     `/api/guides?fields[0]=title&fields[1]=slug&fields[2]=excerpt&populate[0]=categories&sort[0]=createdAt:desc`
   );
-  console.log('API Response from getArticles:', data);
   return { data };
+}
+export async function getRecipes() {
+  const data = await fetchAPI(
+    `/api/guides?fields[0]=title&fields[1]=slug&fields[2]=excerpt&populate[0]=categories&sort[0]=createdAt:desc`
+  );
+  return { data };
+}
+
+export async function getRecipeBySlug(slug) {
+  const data = await fetchAPI(
+    `/api/recipes?filters[slug][$eq]=${slug}&fields[0]=title&fields[1]=excerpt&fields[2]=body`
+  );
+  return data;
 }
