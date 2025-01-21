@@ -40,7 +40,7 @@ export async function getArticles() {
 }
 export async function getRecipes() {
   const data = await fetchAPI(
-    `/api/recipes?fields[0]=title&fields[1]=slug&fields[2]=excerpt&populate[0]=tags&sort[0]=createdAt:desc`
+    `/api/recipes?fields[0]=title&fields[1]=slug&fields[2]=excerpt&populate[0]=tags&populate[1]=categories&sort[0]=createdAt:desc`
   );
   return { data };
 }
