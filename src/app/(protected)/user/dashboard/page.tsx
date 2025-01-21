@@ -5,12 +5,14 @@ import Footer from '@/app/components/Footer';
 import PillarColumn from './components/PillarColumn';
 import ToolCard from './components/ToolCard';
 import StructuralBalanceMini from './components/StructuralBalanceMini';
-import { getRecentArticles } from '@/app/lib/cmsAdapter';
+import { getRecentArticles, getRecentRecipes } from '@/app/lib/cmsAdapter';
 import RecentContent from '../../guide/components/RecentContent';
+import RecentRecipes from '../../guide/components/RecentRecipes';
 import Link from 'next/link';
 
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
+  const recentRecipes = await getRecentRecipes();
   
   return (
     <SessionProvider>
@@ -28,7 +30,7 @@ export default async function Dashboard() {
             <div className="text-gray-500">Lifestyle tools coming soon...</div>
           </PillarColumn>
           <PillarColumn title="Health">
-          <Link 
+            <Link 
               href="/tools/sleep-quiz" 
               className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
             >
@@ -64,10 +66,17 @@ export default async function Dashboard() {
         <hr className="border-gray-500 my-8" />
 
         {/* Guide Content Section */}
-        <div className="md:w-1/4">
-          <Suspense fallback={<div>Loading recent articles...</div>}>
-            <RecentContent articles={recentArticles} />
-          </Suspense>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <Suspense fallback={<div>Loading recent articles...</div>}>
+              <RecentContent articles={recentArticles} />
+            </Suspense>
+          </div>
+          <div>
+            <Suspense fallback={<div>Loading recent recipes...</div>}>
+              <RecentRecipes recipes={recentRecipes} />
+            </Suspense>
+          </div>
         </div>
       </main>
       <Footer />

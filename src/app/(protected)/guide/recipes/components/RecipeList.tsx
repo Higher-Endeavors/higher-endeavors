@@ -32,7 +32,19 @@ interface RecipeListProps {
 }
 
 export default function RecipeList({ recipes }: RecipeListProps) {
-    const [expandedCategories, setExpandedCategories] = useState<(number | 'uncategorized')[]>([]);
+    // Get all unique category IDs including 'uncategorized'
+    const allCategories = recipes?.data?.reduce((categories, recipe) => {
+        if (recipe.categories && recipe.categories.length > 0) {
+            recipe.categories.forEach(category => categories.add(category.id));
+        } else {
+            categories.add('uncategorized');
+        }
+        return categories;
+    }, new Set<number | 'uncategorized'>());
+
+    const [expandedCategories, setExpandedCategories] = useState<(number | 'uncategorized')[]>(
+        allCategories ? Array.from(allCategories) : []
+    );
 
     if (!recipes?.data) {
         return (
