@@ -403,8 +403,14 @@ export default function ExerciseModal({
             <div>
               <label className="block text-sm font-medium dark:text-white">Load (kg/band color)</label>
               <input
-                {...register('load')}
+                {...register('load', {
+                  setValueAs: v => {
+                    const num = Number(v);
+                    return isNaN(num) ? v : num;
+                  }
+                })}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                placeholder="Enter weight in kg or band color"
               />
               {errors.load && (
                 <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
@@ -556,8 +562,14 @@ export default function ExerciseModal({
                         <div>
                           <label className="block text-sm dark:text-white">Load</label>
                           <input
-                            {...register(`setDetails.${setIndex}.load` as const)}
+                            {...register(`setDetails.${setIndex}.load` as const, {
+                              setValueAs: v => {
+                                const num = Number(v);
+                                return isNaN(num) ? v : num;
+                              }
+                            })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            placeholder="Enter weight in kg or band color"
                           />
                         </div>
                         <div>
@@ -598,8 +610,14 @@ export default function ExerciseModal({
                           <div>
                             <label className="block text-sm dark:text-white">Load</label>
                             <input
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.load` as const)}
+                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.load` as const, {
+                                setValueAs: v => {
+                                  const num = Number(v);
+                                  return isNaN(num) ? v : num;
+                                }
+                              })}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                              placeholder="Enter weight in kg or band color"
                             />
                           </div>
                           <div>

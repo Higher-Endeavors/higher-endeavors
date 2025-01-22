@@ -5,7 +5,6 @@ interface VolumeMetrics {
   totalLoad: number;
   averageRPE?: number;
   averageRIR?: number;
-  totalTimeUnderTension: number;
 }
 
 const calculateTempoTotal = (tempo: string): number => {
@@ -34,7 +33,6 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
   let rirSum = 0;
   let rpeCount = 0;
   let rirCount = 0;
-  let totalTimeUnderTension = 0;
 
   exercises.forEach(exercise => {
     if (exercise.isVariedSets && exercise.setDetails) {
@@ -68,15 +66,11 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
       rirSum += exercise.rir;
       rirCount++;
     }
-
-    // Calculate Time Under Tension
-    totalTimeUnderTension += calculateExerciseTUT(exercise);
   });
 
   return {
     totalReps,
     totalLoad,
-    totalTimeUnderTension,
     ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
     ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
   };
@@ -136,7 +130,7 @@ export const calculateExerciseTUT = (exercise: Exercise): number => {
       const tempoTotal = calculateTempoTotal(set.tempo);
       
       if (!set.subSets?.length) {
-        // For regular sets
+        // For regular sets, only multiply by reps (not sets)
         return totalTUT + (tempoTotal * set.reps);
       } else {
         // For sets with sub-sets, sum up TUT for each sub-set (reps * tempo only)
@@ -148,7 +142,8 @@ export const calculateExerciseTUT = (exercise: Exercise): number => {
     }, 0);
   } else {
     const tempoTotal = calculateTempoTotal(exercise.tempo);
-    return tempoTotal * exercise.reps * exercise.sets;
+    // Only multiply by reps, not by sets
+    return tempoTotal * exercise.reps;
   }
 };
 

@@ -125,7 +125,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
                   <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.reps} reps`}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.reps} reps @ {subSet.load}lbs ({subSet.rest}s rest)
+                      → {subSet.reps} reps @ {formatLoad(subSet.load)}
                     </p>
                   ))}
                 </div>
@@ -144,7 +144,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
                   <p>{formatLoad(set.load)}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.reps} reps @ {formatLoad(subSet.load)} ({subSet.rest}s rest)
+                      → {formatLoad(subSet.load)}
                     </p>
                   ))}
                 </div>
@@ -156,15 +156,70 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-          <p className="font-medium dark:text-slate-900">{exercise.tempo}</p>
+          {exercise.isVariedSets && exercise.setDetails ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => (
+                <div key={idx}>
+                  <p>{set.tempo}</p>
+                  {set.subSets && set.subSets.map((subSet, subIdx) => (
+                    <p key={subIdx} className="ml-4 text-sm">
+                      → {subSet.tempo}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{exercise.tempo}</p>
+          )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-          <p className="font-medium dark:text-slate-900">{exercise.rest}s</p>
+          {exercise.isVariedSets && exercise.setDetails ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => (
+                <div key={idx}>
+                  <p>{set.rest}s</p>
+                  {set.subSets && set.subSets.map((subSet, subIdx) => (
+                    <p key={subIdx} className="ml-4 text-sm">
+                      → {subSet.rest}s
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{exercise.rest}s</p>
+          )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-          <p className="font-medium dark:text-slate-900">{calculateExerciseTUT(exercise)}s</p>
+          {exercise.isVariedSets && exercise.setDetails ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => {
+                const tempoTotal = set.tempo.split('').reduce((sum, char) => {
+                  if (char.toLowerCase() === 'x') return sum + 1;
+                  return sum + parseInt(char) || 0;
+                }, 0);
+                const setTUT = tempoTotal * set.reps;
+                return (
+                  <div key={idx}>
+                    <p>{setTUT}s</p>
+                    {set.subSets && set.subSets.map((subSet, subIdx) => {
+                      const subSetTUT = tempoTotal * subSet.reps;
+                      return (
+                        <p key={subIdx} className="ml-4 text-sm">
+                          → {subSetTUT}s
+                        </p>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{calculateExerciseTUT(exercise)}s</p>
+          )}
         </div>
       </div>
 

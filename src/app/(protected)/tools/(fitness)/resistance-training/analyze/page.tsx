@@ -61,19 +61,16 @@ export default function AnalyzePage() {
       const volume = calculateSessionVolume(session.exercises);
       return {
         totalReps: acc.totalReps + volume.totalReps,
-        totalLoad: acc.totalLoad + volume.totalLoad,
-        totalTimeUnderTension: acc.totalTimeUnderTension + volume.totalTimeUnderTension
+        totalLoad: acc.totalLoad + volume.totalLoad
       };
     }, {
       totalReps: 0,
-      totalLoad: 0,
-      totalTimeUnderTension: 0
+      totalLoad: 0
     });
 
     const averages = {
       repsPerSession: totalVolume.totalReps / completedSessions.length,
-      loadPerSession: totalVolume.totalLoad / completedSessions.length,
-      timeUnderTensionPerSession: totalVolume.totalTimeUnderTension / completedSessions.length
+      loadPerSession: totalVolume.totalLoad / completedSessions.length
     };
 
     return { totalVolume, averages };
@@ -164,12 +161,6 @@ export default function AnalyzePage() {
                         {Math.round(calculateMetrics()!.totalVolume.totalLoad).toLocaleString()}
                       </dd>
                     </div>
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-gray-500">Time Under Tension (s)</dt>
-                      <dd className="text-sm font-medium">
-                        {Math.round(calculateMetrics()!.totalVolume.totalTimeUnderTension).toLocaleString()}
-                      </dd>
-                    </div>
                   </dl>
                 </div>
 
@@ -186,12 +177,6 @@ export default function AnalyzePage() {
                       <dt className="text-sm text-gray-500">Load per Session (kg)</dt>
                       <dd className="text-sm font-medium">
                         {Math.round(calculateMetrics()!.averages.loadPerSession)}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between">
-                      <dt className="text-sm text-gray-500">TUT per Session (s)</dt>
-                      <dd className="text-sm font-medium">
-                        {Math.round(calculateMetrics()!.averages.timeUnderTensionPerSession)}
                       </dd>
                     </div>
                   </dl>

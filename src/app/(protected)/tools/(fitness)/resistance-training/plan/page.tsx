@@ -332,11 +332,13 @@ export default function PlanPage() {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
             <div className="grid grid-cols-3 gap-4">
-              {Object.entries(calculateSessionVolume(program.exercises)).map(([key, value]) => (
-                <div key={key}>
-                  <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                  <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
-                </div>
+              {Object.entries(calculateSessionVolume(program.exercises))
+                .filter(([key]) => key !== 'totalTimeUnderTension')
+                .map(([key, value]) => (
+                  <div key={key}>
+                    <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                    <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
+                  </div>
               ))}
               <div>
                 <p className="text-sm text-gray-600">Total Duration</p>

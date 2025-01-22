@@ -250,13 +250,15 @@ export default function SessionDetails({
         <div className="flex justify-between items-center">
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">Session Volume</h4>
-            <div className="grid grid-cols-3 gap-4">
-              {Object.entries(calculateSessionVolume(session.exercises)).map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <span className="text-gray-500">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
-                  <span className="font-medium">{Math.round(value)}</span>
-                </div>
-              ))}
+            <div className="grid grid-cols-2 gap-4">
+              {Object.entries(calculateSessionVolume(session.exercises))
+                .filter(([key]) => key !== 'totalTimeUnderTension')
+                .map(([key, value]) => (
+                  <div key={key} className="text-sm">
+                    <span className="text-gray-500">{key.replace(/([A-Z])/g, ' $1').trim()}: </span>
+                    <span className="font-medium">{Math.round(value)}</span>
+                  </div>
+                ))}
             </div>
           </div>
           <button
