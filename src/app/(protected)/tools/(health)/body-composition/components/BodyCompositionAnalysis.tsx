@@ -13,7 +13,7 @@ import {
   Legend,
   ChartOptions
 } from 'chart.js';
-import type { BodyCompositionEntry } from '../types';
+import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.js';
 import AssessmentReview from './AssessmentReview';
 
 ChartJS.register(
@@ -39,6 +39,8 @@ export default function BodyCompositionAnalysis() {
   const [entries, setEntries] = useState<BodyCompositionEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['weight']);
+  const [selectedCircumferences, setSelectedCircumferences] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchEntries = async () => {
@@ -87,173 +89,85 @@ export default function BodyCompositionAnalysis() {
     return entries.filter(entry => new Date(entry.date) >= cutoffDate);
   };
 
-  const getWeightChartData = (entries: BodyCompositionEntry[]) => {
+  const getChartData = (entries: BodyCompositionEntry[]) => {
     if (!entries || entries.length === 0) {
       return {
         labels: [],
-        datasets: [{
-          label: 'Weight (lbs)',
-          data: [],
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.1
-        }]
+        datasets: []
       };
     }
 
     const filteredEntries = timeframe ? filterEntriesByTimeframe(entries, timeframe as TimeframeOption) : entries;
     const sortedEntries = [...filteredEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const labels = sortedEntries.map(entry => new Date(entry.date).toLocaleDateString());
 
-    return {
-      labels: sortedEntries.map(entry => new Date(entry.date).toLocaleDateString()),
-      datasets: [{
+    const datasets = [];
+
+    // Basic metrics
+    if (selectedMetrics.includes('weight')) {
+      datasets.push({
         label: 'Weight (lbs)',
         data: sortedEntries.map(entry => entry.weight),
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
-      }]
-    };
-  };
-
-  const getBodyFatChartData = (entries: BodyCompositionEntry[]) => {
-    if (!entries || entries.length === 0) {
-      return {
-        labels: [],
-        datasets: [
-          {
-            label: 'Manual Body Fat %',
-            data: [],
-            borderColor: 'rgb(255, 99, 132)',
-            tension: 0.1
-          },
-          {
-            label: 'Calculated Body Fat %',
-            data: [],
-            borderColor: 'rgb(54, 162, 235)',
-            tension: 0.1
-          }
-        ]
-      };
+      });
     }
 
-    const filteredEntries = timeframe ? filterEntriesByTimeframe(entries, timeframe as TimeframeOption) : entries;
-    const sortedEntries = [...filteredEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    return {
-      labels: sortedEntries.map(entry => new Date(entry.date).toLocaleDateString()),
-      datasets: [
-        {
-          label: 'Manual Body Fat %',
-          data: sortedEntries.map(entry => entry.manualBodyFatPercentage),
-          borderColor: 'rgb(255, 99, 132)',
-          tension: 0.1
-        },
-        {
-          label: 'Calculated Body Fat %',
-          data: sortedEntries.map(entry => entry.calculatedBodyFatPercentage),
-          borderColor: 'rgb(54, 162, 235)',
-          tension: 0.1
-        }
-      ]
-    };
-  };
-
-  const getCompositionChartData = (entries: BodyCompositionEntry[]) => {
-    if (!entries || entries.length === 0) {
-      return {
-        labels: [],
-        datasets: [
-          {
-            label: 'Fat Mass (lbs)',
-            data: [],
-            borderColor: 'rgb(255, 99, 132)',
-            tension: 0.1
-          },
-          {
-            label: 'Fat Free Mass (lbs)',
-            data: [],
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-          }
-        ]
-      };
+    if (selectedMetrics.includes('bodyFat')) {
+      datasets.push({
+        label: 'Body Fat %',
+        data: sortedEntries.map(entry => entry.bodyFatPercentage || null),
+        borderColor: 'rgb(255, 99, 132)',
+        tension: 0.1
+      });
     }
 
-    const filteredEntries = timeframe ? filterEntriesByTimeframe(entries, timeframe as TimeframeOption) : entries;
-    const sortedEntries = [...filteredEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    return {
-      labels: sortedEntries.map(entry => new Date(entry.date).toLocaleDateString()),
-      datasets: [
-        {
-          label: 'Fat Mass (lbs)',
-          data: sortedEntries.map(entry => entry.fatMass),
-          borderColor: 'rgb(255, 99, 132)',
-          tension: 0.1
-        },
-        {
-          label: 'Fat Free Mass (lbs)',
-          data: sortedEntries.map(entry => entry.fatFreeMass),
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.1
-        }
-      ]
-    };
-  };
-
-  const getCircumferenceChartData = (entries: BodyCompositionEntry[]) => {
-    if (!entries || entries.length === 0) {
-      return {
-        labels: [],
-        datasets: [
-          {
-            label: 'Waist (cm)',
-            data: [],
-            borderColor: 'rgb(255, 99, 132)',
-            tension: 0.1
-          },
-          {
-            label: 'Chest (cm)',
-            data: [],
-            borderColor: 'rgb(54, 162, 235)',
-            tension: 0.1
-          },
-          {
-            label: 'Hips (cm)',
-            data: [],
-            borderColor: 'rgb(75, 192, 192)',
-            tension: 0.1
-          }
-        ]
-      };
+    if (selectedMetrics.includes('fatMass')) {
+      datasets.push({
+        label: 'Fat Mass (lbs)',
+        data: sortedEntries.map(entry => entry.fatMass || null),
+        borderColor: 'rgb(255, 159, 64)',
+        tension: 0.1
+      });
     }
 
-    const filteredEntries = timeframe ? filterEntriesByTimeframe(entries, timeframe as TimeframeOption) : entries;
-    const sortedEntries = [...filteredEntries].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (selectedMetrics.includes('fatFreeMass')) {
+      datasets.push({
+        label: 'Fat Free Mass (lbs)',
+        data: sortedEntries.map(entry => entry.fatFreeMass || null),
+        borderColor: 'rgb(54, 162, 235)',
+        tension: 0.1
+      });
+    }
 
-    return {
-      labels: sortedEntries.map(entry => new Date(entry.date).toLocaleDateString()),
-      datasets: [
-        {
-          label: 'Waist (cm)',
-          data: sortedEntries.map(entry => entry.circumferenceMeasurements?.waist),
-          borderColor: 'rgb(255, 99, 132)',
-          tension: 0.1
-        },
-        {
-          label: 'Chest (cm)',
-          data: sortedEntries.map(entry => entry.circumferenceMeasurements?.chest),
-          borderColor: 'rgb(54, 162, 235)',
-          tension: 0.1
-        },
-        {
-          label: 'Hips (cm)',
-          data: sortedEntries.map(entry => entry.circumferenceMeasurements?.hips),
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.1
-        }
-      ]
-    };
+    // Circumference measurements
+    selectedCircumferences.forEach((key) => {
+      const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
+      datasets.push({
+        label: `${key.replace(/([A-Z])/g, ' $1').trim()} (cm)`,
+        data: sortedEntries.map(entry => {
+          const measurements = entry.circumferenceMeasurements;
+          return measurements ? measurements[key as keyof CircumferenceMeasurements] || null : null;
+        }),
+        borderColor: color,
+        tension: 0.1
+      });
+    });
+
+    return { labels, datasets };
   };
+
+  const metricOptions = [
+    { value: 'weight', label: 'Weight' },
+    { value: 'bodyFat', label: 'Body Fat %' },
+    { value: 'fatMass', label: 'Fat Mass' },
+    { value: 'fatFreeMass', label: 'Fat Free Mass' }
+  ];
+
+  const circumferenceOptions = Object.keys(entries[0]?.circumferenceMeasurements || {}).map(key => ({
+    value: key,
+    label: key.replace(/([A-Z])/g, ' $1').trim()
+  }));
 
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
@@ -317,73 +231,99 @@ export default function BodyCompositionAnalysis() {
         
         {expandedSection === 'charts' && (
           <div className="p-6 border-t border-gray-200">
-            <div className="mb-6">
-              <label htmlFor="timeframe" className="block text-sm font-medium text-gray-700 mb-2">
-                Analysis Timeframe
-              </label>
-              <div className="relative">
-                <select
-                  id="timeframe"
-                  value={timeframe}
-                  onChange={(e) => setTimeframe(e.target.value as TimeframeOption)}
-                  className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
-                >
-                  <option value="" disabled>Select Timeframe</option>
-                  <option value="1M">Last Month</option>
-                  <option value="3M">Last 3 Months</option>
-                  <option value="6M">Last 6 Months</option>
-                  <option value="1Y">Last Year</option>
-                  <option value="ALL">All Time</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                  <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                    <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                  </svg>
+            <div className="space-y-6">
+              {/* Timeframe Selection */}
+              <div>
+                <label htmlFor="timeframe" className="block text-sm font-medium text-gray-700 mb-2">
+                  Analysis Timeframe
+                </label>
+                <div className="relative">
+                  <select
+                    id="timeframe"
+                    value={timeframe}
+                    onChange={(e) => setTimeframe(e.target.value as TimeframeOption)}
+                    className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
+                  >
+                    <option value="" disabled>Select Timeframe</option>
+                    <option value="1M">Last Month</option>
+                    <option value="3M">Last 3 Months</option>
+                    <option value="6M">Last 6 Months</option>
+                    <option value="1Y">Last Year</option>
+                    <option value="ALL">All Time</option>
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                    <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                      <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-700 mb-4">Weight Trend</h3>
-                {entries && entries.length > 0 ? (
-                  <Line options={chartOptions} data={getWeightChartData(entries)} />
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
-                    No weight data available
-                  </div>
-                )}
+
+              {/* Metric Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Metrics
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {metricOptions.map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => {
+                        setSelectedMetrics(prev => 
+                          prev.includes(option.value)
+                            ? prev.filter(m => m !== option.value)
+                            : [...prev, option.value]
+                        );
+                      }}
+                      className={`px-3 py-1 rounded-full text-sm ${
+                        selectedMetrics.includes(option.value)
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-gray-200 text-gray-700'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-700 mb-4">Body Fat % Trend</h3>
-                {entries && entries.length > 0 ? (
-                  <Line options={chartOptions} data={getBodyFatChartData(entries)} />
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
-                    No body fat data available
+              {/* Circumference Selection */}
+              {circumferenceOptions.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Select Circumference Measurements
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {circumferenceOptions.map(option => (
+                      <button
+                        key={option.value}
+                        onClick={() => {
+                          setSelectedCircumferences(prev => 
+                            prev.includes(option.value)
+                              ? prev.filter(m => m !== option.value)
+                              : [...prev, option.value]
+                          );
+                        }}
+                        className={`px-3 py-1 rounded-full text-sm ${
+                          selectedCircumferences.includes(option.value)
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
+              {/* Chart Display */}
               <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-700 mb-4">Fat Mass vs Fat Free Mass</h3>
                 {entries && entries.length > 0 ? (
-                  <Line options={chartOptions} data={getCompositionChartData(entries)} />
+                  <Line options={chartOptions} data={getChartData(entries)} />
                 ) : (
                   <div className="flex items-center justify-center h-64 text-gray-500">
-                    No composition data available
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-white p-4 rounded-lg shadow">
-                <h3 className="text-lg font-medium text-gray-700 mb-4">Key Circumference Changes</h3>
-                {entries && entries.length > 0 ? (
-                  <Line options={chartOptions} data={getCircumferenceChartData(entries)} />
-                ) : (
-                  <div className="flex items-center justify-center h-64 text-gray-500">
-                    No circumference data available
+                    No data available
                   </div>
                 )}
               </div>
