@@ -30,10 +30,12 @@ interface Props {
   entries: BodyCompositionEntry[];
 }
 
-type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL';
+type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'CUSTOM';
 
 export default function BodyCompositionAnalysis() {
   const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
   const [expandedSection, setExpandedSection] = useState<'charts' | 'reports' | 'insights' | null>('reports');
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [entries, setEntries] = useState<BodyCompositionEntry[]>([]);
@@ -74,13 +76,33 @@ export default function BodyCompositionAnalysis() {
   };
 
   const filterEntriesByTimeframe = (entries: BodyCompositionEntry[], timeframe: TimeframeOption) => {
+    if (timeframe === 'CUSTOM') {
+      if (!customStartDate || !customEndDate) return entries;
+      
+      // Create dates at the start of the day in local timezone
+      const startDate = new Date(customStartDate + 'T00:00:00');
+      const endDate = new Date(customEndDate + 'T23:59:59.999');
+
+      return entries.filter(entry => {
+        const entryDate = new Date(entry.date);
+        
+        // Convert all dates to start of day for comparison
+        const entryLocalDate = new Date(entryDate.toLocaleDateString());
+        const startLocalDate = new Date(startDate.toLocaleDateString());
+        const endLocalDate = new Date(endDate.toLocaleDateString());
+        
+        return entryLocalDate >= startLocalDate && entryLocalDate <= endLocalDate;
+      });
+    }
+
     const now = new Date();
     const timeframeMap = {
       '1M': 30,
       '3M': 90,
       '6M': 180,
       '1Y': 365,
-      'ALL': Infinity
+      'ALL': Infinity,
+      'CUSTOM': 0
     };
 
     const daysToSubtract = timeframeMap[timeframe];
@@ -233,8 +255,8 @@ export default function BodyCompositionAnalysis() {
           <div className="p-6 border-t border-gray-200">
             <div className="space-y-6">
               {/* Timeframe Selection */}
-              <div>
-                <label htmlFor="timeframe" className="block text-sm font-medium text-gray-700 mb-2">
+              <div className="space-y-4">
+                <label htmlFor="timeframe" className="block text-sm font-medium text-gray-700">
                   Analysis Timeframe
                 </label>
                 <div className="relative">
@@ -250,6 +272,7 @@ export default function BodyCompositionAnalysis() {
                     <option value="6M">Last 6 Months</option>
                     <option value="1Y">Last Year</option>
                     <option value="ALL">All Time</option>
+                    <option value="CUSTOM">Custom Range</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
                     <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
@@ -257,6 +280,37 @@ export default function BodyCompositionAnalysis() {
                     </svg>
                   </div>
                 </div>
+
+                {timeframe === 'CUSTOM' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                        Start Date
+                      </label>
+                      <input
+                        type="date"
+                        id="startDate"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        max={customEndDate || undefined}
+                        className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm dark:text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                        End Date
+                      </label>
+                      <input
+                        type="date"
+                        id="endDate"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        min={customStartDate || undefined}
+                        className="w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm dark:text-slate-900"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Metric Selection */}
