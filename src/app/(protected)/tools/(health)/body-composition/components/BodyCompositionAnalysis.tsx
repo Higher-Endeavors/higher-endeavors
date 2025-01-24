@@ -15,6 +15,7 @@ import {
 } from 'chart.js';
 import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.js';
 import AssessmentReview from './AssessmentReview';
+import UserSelector from './UserSelector';
 
 ChartJS.register(
   CategoryScale,
@@ -27,12 +28,12 @@ ChartJS.register(
 );
 
 interface Props {
-  entries: BodyCompositionEntry[];
+  userId: number;
 }
 
 type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'CUSTOM';
 
-export default function BodyCompositionAnalysis() {
+export default function BodyCompositionAnalysis({ userId }: Props) {
   const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -44,13 +45,14 @@ export default function BodyCompositionAnalysis() {
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['weight']);
   const [selectedCircumferences, setSelectedCircumferences] = useState<string[]>([]);
 
+  // Fetch entries for selected user
   useEffect(() => {
     const fetchEntries = async () => {
       try {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('/api/body-composition', {
+        const response = await fetch(`/api/body-composition?userId=${userId}`, {
           credentials: 'include'
         });
         
@@ -67,6 +69,7 @@ export default function BodyCompositionAnalysis() {
 
         console.log('Debug - First Entry:', data.entries[0]);
         setEntries(data.entries);
+        setSelectedEntryId(null); // Reset selected entry when user changes
       } catch (err) {
         console.error('Error fetching entries:', err);
         setError('Failed to load body composition entries');
@@ -76,7 +79,7 @@ export default function BodyCompositionAnalysis() {
     };
 
     fetchEntries();
-  }, []);
+  }, [userId]);
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
     setExpandedSection(expandedSection === section ? null : section);

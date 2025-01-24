@@ -23,9 +23,10 @@ function isValidUserId(id: string | number | undefined | null): boolean {
   return !isNaN(numId) && numId > 0;
 }
 
-function parseUserId(id: string | number | undefined | null): number | null {
-  if (!isValidUserId(id)) return null;
-  return typeof id === 'string' ? Number(id) : id;
+function parseUserId(id: string | null): number | null {
+  if (!id) return null;
+  const parsed = parseInt(id, 10);
+  return isNaN(parsed) ? null : parsed;
 }
 
 export async function POST(request: NextRequest) {
@@ -78,10 +79,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get target user ID from query params
+    const { searchParams } = new URL(request.url);
+    const targetUserId = searchParams.get('userId');
+
+    // If targetUserId is provided and user is admin, use that; otherwise use current user's ID
+    const parsedTargetUserId = parseUserId(targetUserId);
+    const isAdmin = await checkAdminAccess(session.user.id);
+    const effectiveUserId = parsedTargetUserId && isAdmin ? parsedTargetUserId : session.user.id;
+
     console.log('API route: Fetching entries from database');
     const result = await SingleQuery(
       `SELECT * FROM body_composition_entries WHERE user_id = $1 ORDER BY created_at DESC`,
-      [session.user.id]
+      [effectiveUserId]
     );
 
     console.log('Debug - Raw DB Result:', JSON.stringify(result.rows[0], null, 2));
