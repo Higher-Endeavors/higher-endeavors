@@ -65,7 +65,7 @@ export default function BodyCompositionInput() {
   const [isSaving, setIsSaving] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  const { register, handleSubmit, control, setValue, watch } = useForm<FormInputs>({
+  const { register, handleSubmit, control, setValue, watch, formState: { errors: formErrors } } = useForm<FormInputs>({
     defaultValues: {
       weight: 0,
       bodyFatMethod: 'manual',
@@ -107,7 +107,8 @@ export default function BodyCompositionInput() {
       formValues.age,
       formValues.manualBodyFat,
       formValues.skinfold,
-      formValues.circumference
+      formValues.circumference,
+      formValues.bodyFatMethod
     );
 
     if (errors.length > 0) {
@@ -125,44 +126,124 @@ export default function BodyCompositionInput() {
   };
 
   const onSubmit = async (data: FormInputs) => {
+    console.log('Form submission started');
+    
     const errors = validateMeasurements(
       data.weight,
       data.age,
       data.manualBodyFat,
       data.skinfold,
-      data.circumference
+      data.circumference,
+      data.bodyFatMethod
     );
+    console.log('Validation completed, errors:', errors.map(err => ({
+      path: err.path.join('.'),
+      message: err.message
+    })));
 
     if (errors.length > 0) {
+      console.log('Validation failed with the following errors:', 
+        errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n')
+      );
       setValidationErrors(errors);
       return;
     }
 
+    console.log('Setting saving state to true');
     setIsSaving(true);
+    
     try {
-      const entry: BodyCompositionEntry = {
-        date: new Date(),
-        weight: data.weight,
-        manualBodyFatPercentage: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
+      console.log('Building entry data');
+      const entryData = {
+        age: data.age,
+        isMale: data.isMale,
+        bodyFatMethod: data.bodyFatMethod,
+        manualBodyFat: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
         skinfoldMeasurements: data.bodyFatMethod === 'skinfold' ? data.skinfold : undefined,
         circumferenceMeasurements: data.circumference,
-        calculatedBodyFatPercentage: calculatedMetrics?.bodyFatPercentage,
-        fatMass: calculatedMetrics?.fatMass,
-        fatFreeMass: calculatedMetrics?.fatFreeMass,
-        userId: 'placeholder-user-id',
+        calculatedMetrics: calculatedMetrics
       };
 
-      console.log('Saving entry:', entry);
-      setValidationErrors([]);
+      const payload = {
+        weight: data.weight,
+        bodyFatPercentage: calculatedMetrics?.bodyFatPercentage || data.manualBodyFat,
+        entryData: entryData
+      };
+
+      console.log('Sending payload:', payload);
+
+      try {
+        console.log('Starting fetch request');
+        const response = await fetch('/api/body-composition', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+          credentials: 'include'
+        });
+        console.log('Fetch request completed');
+
+        console.log('Response status:', response.status);
+        
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+
+        if (!response.ok) {
+          throw new Error(`Failed to save measurements: ${responseData.error || 'Unknown error'}`);
+        }
+
+        console.log('Request successful, clearing validation errors');
+        setValidationErrors([]);
+        alert('Measurements saved successfully!');
+        
+      } catch (fetchError) {
+        console.error('Fetch error:', {
+          name: fetchError instanceof Error ? fetchError.name : 'Unknown',
+          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
+          stack: fetchError instanceof Error ? fetchError.stack : undefined
+        });
+        throw fetchError; // Re-throw to be caught by outer try-catch
+      }
     } catch (error) {
-      setValidationErrors([{ path: ['save'], message: 'Failed to save measurements. Please try again.' }]);
+      console.error('Full error details:', {
+        name: error instanceof Error ? error.name : 'Unknown',
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined
+      });
+      setValidationErrors([{ 
+        path: ['save'], 
+        message: error instanceof Error ? error.message : 'Failed to save measurements. Please try again.' 
+      }]);
     } finally {
+      console.log('Setting saving state to false');
       setIsSaving(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+    <form 
+      onSubmit={(e) => {
+        e.preventDefault();
+        console.log('Form submit event triggered');
+        const formData = watch();
+        console.log('Form data:', formData);
+        
+        // Ensure we have required values
+        if (!formData.weight || formData.weight <= 0) {
+          console.log('Invalid weight value');
+          return;
+        }
+
+        if (formData.bodyFatMethod === 'manual' && (!formData.manualBodyFat || formData.manualBodyFat <= 0)) {
+          console.log('Invalid manual body fat value');
+          return;
+        }
+
+        handleSubmit(onSubmit)(e);
+      }} 
+      className="space-y-6"
+    >
       {validationErrors.some(error => error.path.join('.') === 'save') && (
         <div className="p-4 bg-red-100 text-red-700 rounded-md">
           {getErrorForField(['save'])}
@@ -178,13 +259,17 @@ export default function BodyCompositionInput() {
           <input
             type="number"
             step="0.1"
-            {...register('weight', { valueAsNumber: true })}
+            {...register('weight', { 
+              valueAsNumber: true,
+              required: 'Weight is required',
+              min: { value: 1, message: 'Weight must be greater than 0' }
+            })}
             className={`w-full rounded-md border ${
-              getErrorForField(['weight']) ? 'border-red-500' : 'border-gray-300'
+              getErrorForField(['weight']) || formErrors.weight ? 'border-red-500' : 'border-gray-300'
             } bg-white py-2 px-3 text-sm dark:text-slate-900`}
           />
-          {getErrorForField(['weight']) && (
-            <p className="text-sm text-red-500">{getErrorForField(['weight'])}</p>
+          {(getErrorForField(['weight']) || formErrors.weight) && (
+            <p className="text-sm text-red-500">{getErrorForField(['weight']) || formErrors.weight?.message}</p>
           )}
         </div>
       </div>
@@ -214,13 +299,24 @@ export default function BodyCompositionInput() {
                 <input
                   type="number"
                   step="0.1"
-                  {...register('manualBodyFat', { valueAsNumber: true })}
+                  {...register('manualBodyFat', { 
+                    valueAsNumber: true,
+                    validate: (value) => {
+                      if (watch('bodyFatMethod') === 'manual') {
+                        if (!value) return 'Body fat percentage is required';
+                        if (value < 0 || value > 100) return 'Body fat percentage must be between 0 and 100';
+                      }
+                      return true;
+                    }
+                  })}
                   className={`w-full rounded-md border ${
-                    getErrorForField(['manualBodyFatPercentage']) ? 'border-red-500' : 'border-gray-300'
+                    getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat ? 'border-red-500' : 'border-gray-300'
                   } bg-white py-2 px-3 text-sm dark:text-slate-900`}
                 />
-                {getErrorForField(['manualBodyFatPercentage']) && (
-                  <p className="text-sm text-red-500">{getErrorForField(['manualBodyFatPercentage'])}</p>
+                {(getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat) && (
+                  <p className="text-sm text-red-500">
+                    {getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat?.message}
+                  </p>
                 )}
               </div>
 

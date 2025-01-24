@@ -1,54 +1,20 @@
--- Body Composition Measurements Table
-CREATE TABLE body_composition_measurements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES users(id),
-    date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    weight DECIMAL(5,2) NOT NULL CHECK (weight > 0 AND weight < 500), -- in kg
-    manual_body_fat_percentage DECIMAL(4,1) CHECK (manual_body_fat_percentage >= 0 AND manual_body_fat_percentage <= 100),
-    calculated_body_fat_percentage DECIMAL(4,1) CHECK (calculated_body_fat_percentage >= 0 AND calculated_body_fat_percentage <= 100),
-    fat_mass DECIMAL(5,2) CHECK (fat_mass >= 0),
-    fat_free_mass DECIMAL(5,2) CHECK (fat_free_mass >= 0),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE public.body_composition_entries (
+    id SERIAL PRIMARY KEY, -- Auto-incrementing primary key
+    user_id INTEGER NOT NULL REFERENCES public.users(id) ON DELETE CASCADE, -- Foreign key reference using integer
+    entry_data JSONB NOT NULL, -- JSONB for flexible storage of additional metrics
+    weight DECIMAL(5,2) CHECK (weight > 0 AND weight < 500), -- Frequently queried metric
+    body_fat_percentage DECIMAL(4,1) CHECK (body_fat_percentage >= 0 AND body_fat_percentage <= 100), -- For analytics
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL -- Record creation timestamp
 );
 
--- Skinfold Measurements Table
-CREATE TABLE skinfold_measurements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    measurement_id UUID NOT NULL REFERENCES body_composition_measurements(id) ON DELETE CASCADE,
-    chest DECIMAL(4,1) NOT NULL CHECK (chest >= 0),
-    abdomen DECIMAL(4,1) NOT NULL CHECK (abdomen >= 0),
-    thigh DECIMAL(4,1) NOT NULL CHECK (thigh >= 0),
-    triceps DECIMAL(4,1) NOT NULL CHECK (triceps >= 0),
-    axilla DECIMAL(4,1) NOT NULL CHECK (axilla >= 0),
-    subscapula DECIMAL(4,1) NOT NULL CHECK (subscapula >= 0),
-    suprailiac DECIMAL(4,1) NOT NULL CHECK (suprailiac >= 0),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Index for JSONB queries
+CREATE INDEX idx_body_composition_entry_data ON public.body_composition_entries USING gin (entry_data);
 
--- Circumference Measurements Table
-CREATE TABLE circumference_measurements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    measurement_id UUID NOT NULL REFERENCES body_composition_measurements(id) ON DELETE CASCADE,
-    neck DECIMAL(4,1) CHECK (neck >= 0),
-    shoulders DECIMAL(4,1) CHECK (shoulders >= 0),
-    chest DECIMAL(4,1) CHECK (chest >= 0),
-    waist DECIMAL(4,1) CHECK (waist >= 0),
-    hips DECIMAL(4,1) CHECK (hips >= 0),
-    left_bicep_relaxed DECIMAL(4,1) CHECK (left_bicep_relaxed >= 0),
-    left_bicep_flexed DECIMAL(4,1) CHECK (left_bicep_flexed >= 0),
-    right_bicep_relaxed DECIMAL(4,1) CHECK (right_bicep_relaxed >= 0),
-    right_bicep_flexed DECIMAL(4,1) CHECK (right_bicep_flexed >= 0),
-    left_forearm DECIMAL(4,1) CHECK (left_forearm >= 0),
-    right_forearm DECIMAL(4,1) CHECK (right_forearm >= 0),
-    left_thigh DECIMAL(4,1) CHECK (left_thigh >= 0),
-    right_thigh DECIMAL(4,1) CHECK (right_thigh >= 0),
-    left_calf DECIMAL(4,1) CHECK (left_calf >= 0),
-    right_calf DECIMAL(4,1) CHECK (right_calf >= 0),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
+-- Composite index for querying user records chronologically
+CREATE INDEX idx_body_composition_user_date ON public.body_composition_entries (user_id, created_at);
 
--- Indexes
-CREATE INDEX idx_body_composition_user_date ON body_composition_measurements(user_id, date);
-CREATE INDEX idx_skinfold_measurement_id ON skinfold_measurements(measurement_id);
-CREATE INDEX idx_circumference_measurement_id ON circumference_measurements(measurement_id); 
+-- Index for querying by weight
+CREATE INDEX idx_body_composition_weight ON public.body_composition_entries (weight);
+
+-- Index for querying by body fat percentage
+CREATE INDEX idx_body_composition_body_fat_percentage ON public.body_composition_entries (body_fat_percentage);

@@ -7,7 +7,7 @@ const percentageNumber = z.number().min(0, 'Must be 0 or greater').max(100, 'Mus
 
 export const bodyCompositionSchema = z.object({
   weight: positiveNumber.max(500, 'Weight must be less than 500kg'),
-  age: positiveNumber.max(150, 'Age must be less than 150'),
+  age: positiveNumber.max(150, 'Age must be less than 150').optional(),
   manualBodyFatPercentage: percentageNumber.optional(),
 });
 
@@ -46,17 +46,18 @@ export type ValidationError = {
 
 export const validateMeasurements = (
   weight: number,
-  age: number,
+  age: number | undefined,
   manualBodyFat: number | undefined,
   skinfold: SkinfoldMeasurements,
-  circumference: CircumferenceMeasurements
+  circumference: CircumferenceMeasurements,
+  bodyFatMethod: 'manual' | 'skinfold' = 'manual'
 ): ValidationError[] => {
   const errors: ValidationError[] = [];
 
   try {
     bodyCompositionSchema.parse({
       weight,
-      age,
+      age: bodyFatMethod === 'skinfold' ? age : undefined,
       manualBodyFatPercentage: manualBodyFat,
     });
   } catch (error) {
@@ -68,14 +69,17 @@ export const validateMeasurements = (
     }
   }
 
-  try {
-    skinfoldSchema.parse(skinfold);
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      errors.push(...error.errors.map(err => ({
-        path: ['skinfold', ...err.path],
-        message: err.message,
-      })));
+  // Only validate skinfold measurements if using skinfold method
+  if (bodyFatMethod === 'skinfold') {
+    try {
+      skinfoldSchema.parse(skinfold);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        errors.push(...error.errors.map(err => ({
+          path: ['skinfold', ...err.path],
+          message: err.message,
+        })));
+      }
     }
   }
 
