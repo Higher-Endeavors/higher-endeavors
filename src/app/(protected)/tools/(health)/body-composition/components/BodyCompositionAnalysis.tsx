@@ -27,12 +27,12 @@ ChartJS.register(
 );
 
 interface Props {
-  userId: number;
+  entries: BodyCompositionEntry[];
 }
 
 type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'CUSTOM';
 
-export default function BodyCompositionAnalysis({ userId }: Props) {
+export default function BodyCompositionAnalysis() {
   const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -50,7 +50,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch(`/api/body-composition?userId=${userId}`, {
+        const response = await fetch('/api/body-composition', {
           credentials: 'include'
         });
         
@@ -59,6 +59,13 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         }
 
         const data = await response.json();
+        console.log('Debug - API Response:', data);
+        
+        if (!data.entries || !Array.isArray(data.entries)) {
+          throw new Error('Invalid response format');
+        }
+
+        console.log('Debug - First Entry:', data.entries[0]);
         setEntries(data.entries);
       } catch (err) {
         console.error('Error fetching entries:', err);
@@ -69,7 +76,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     };
 
     fetchEntries();
-  }, [userId]);
+  }, []);
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
     setExpandedSection(expandedSection === section ? null : section);

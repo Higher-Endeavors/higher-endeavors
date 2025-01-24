@@ -1,5 +1,6 @@
 'use client';
 
+import { format } from 'date-fns';
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
 import { useState } from 'react';
 
@@ -28,6 +29,9 @@ const getDifferenceColor = (diff: number): string => {
 };
 
 export default function AssessmentReview({ entries, selectedEntryId, onEntrySelect }: Props) {
+  console.log('Debug - AssessmentReview - All entries:', entries);
+  console.log('Debug - AssessmentReview - Selected ID:', selectedEntryId);
+  
   const sortedEntries = [...entries].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -35,6 +39,10 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
   const selectedEntry = entries.find(entry => entry.id === selectedEntryId);
   const [comparisonEntryId, setComparisonEntryId] = useState<string | null>(null);
   const comparisonEntry = entries.find(entry => entry.id === comparisonEntryId);
+
+  // Debug logging
+  console.log('Debug - AssessmentReview - Selected Entry:', selectedEntry);
+  console.log('Debug - AssessmentReview - Comparison Entry:', comparisonEntry);
 
   const renderMeasurementWithComparison = (
     label: string,
@@ -79,7 +87,7 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
             <option value="">Select an assessment</option>
             {sortedEntries.map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {new Date(entry.date).toLocaleDateString()}
+                {format(new Date(entry.date), 'MMM d, yyyy h:mm a')}
               </option>
             ))}
           </select>
@@ -101,7 +109,7 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
               .filter(entry => entry.id !== selectedEntryId)
               .map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {new Date(entry.date).toLocaleDateString()}
+                  {format(new Date(entry.date), 'MMM d, yyyy h:mm a')}
                 </option>
               ))}
           </select>
@@ -111,10 +119,10 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
       {selectedEntry && (
         <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
           <h3 className="text-xl font-semibold mb-6 text-gray-700">
-            Assessment Review - {new Date(selectedEntry.date).toLocaleDateString()}
+            Assessment Review - {format(new Date(selectedEntry.date), 'MMMM d, yyyy h:mm a')}
             {comparisonEntry && (
               <span className="text-sm font-normal ml-2 text-gray-500">
-                (Compared to {new Date(comparisonEntry.date).toLocaleDateString()})
+                (Compared to {format(new Date(comparisonEntry.date), 'MMMM d, yyyy h:mm a')})
               </span>
             )}
           </h3>
