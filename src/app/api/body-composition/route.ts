@@ -73,23 +73,55 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
-  
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   try {
+    console.log('API route: Starting authentication check');
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      console.log('API route: Unauthorized - no user ID in session');
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log('API route: Fetching entries from database');
     const result = await SingleQuery(
-      `SELECT * FROM body_composition_entries 
+      `SELECT 
+        id,
+        created_at as date,
+        weight,
+        body_fat_percentage as "bodyFatPercentage",
+        entry_data as "entryData"
+       FROM body_composition_entries 
        WHERE user_id = $1 
        ORDER BY created_at DESC`,
       [session.user.id]
     );
 
-    return NextResponse.json({
-      entries: result.rows
+    // Transform the data to match the frontend types
+    const entries = result.rows.map((entry: any) => {
+      const weight = Number(entry.weight);
+      const bodyFatPercentage = entry.bodyFatPercentage ? Number(entry.bodyFatPercentage) : null;
+      
+      // Calculate fat mass and fat free mass if we have both weight and body fat percentage
+      let fatMass = null;
+      let fatFreeMass = null;
+      if (weight && bodyFatPercentage) {
+        fatMass = (weight * bodyFatPercentage) / 100;
+        fatFreeMass = weight - fatMass;
+      }
+
+      return {
+        id: entry.id.toString(),
+        date: entry.date,
+        weight,
+        bodyFatPercentage,
+        fatMass,
+        fatFreeMass,
+        ...entry.entryData
+      };
     });
+
+    console.log('API route: Successfully fetched entries');
+    return NextResponse.json({ entries });
   } catch (error) {
     console.error("Error fetching body composition entries:", error);
     return NextResponse.json(

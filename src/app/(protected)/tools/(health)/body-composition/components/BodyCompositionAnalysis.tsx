@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -14,6 +14,7 @@ import {
   ChartOptions
 } from 'chart.js';
 import type { BodyCompositionEntry } from '../types';
+import AssessmentReview from './AssessmentReview';
 
 ChartJS.register(
   CategoryScale,
@@ -31,9 +32,40 @@ interface Props {
 
 type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 
-export default function BodyCompositionAnalysis({ entries = [] }: Props) {
+export default function BodyCompositionAnalysis() {
   const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
-  const [expandedSection, setExpandedSection] = useState<'charts' | 'reports' | 'insights' | null>('charts');
+  const [expandedSection, setExpandedSection] = useState<'charts' | 'reports' | 'insights' | null>('reports');
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [entries, setEntries] = useState<BodyCompositionEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchEntries = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/body-composition', {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch entries');
+        }
+
+        const data = await response.json();
+        setEntries(data.entries);
+      } catch (err) {
+        console.error('Error fetching entries:', err);
+        setError('Failed to load body composition entries');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEntries();
+  }, []);
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -258,6 +290,12 @@ export default function BodyCompositionAnalysis({ entries = [] }: Props) {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          {error}
+        </div>
+      )}
+
       {/* Expandable Charts Section */}
       <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md">
         <button
@@ -375,23 +413,21 @@ export default function BodyCompositionAnalysis({ entries = [] }: Props) {
         
         {expandedSection === 'reports' && (
           <div className="p-6 border-t border-gray-200">
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Progress Summary</h3>
-                <p className="text-gray-600">
-                  Detailed analysis of your body composition changes over time will appear here.
-                  This will include trends in weight, body fat percentage, and muscle mass.
-                </p>
+            {isLoading ? (
+              <div className="flex justify-center items-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="text-lg font-medium text-gray-700 mb-2">Goal Tracking</h3>
-                <p className="text-gray-600">
-                  Progress towards your fitness goals will be displayed here,
-                  including projected timelines and milestone achievements.
-                </p>
+            ) : entries.length > 0 ? (
+              <AssessmentReview
+                entries={entries}
+                selectedEntryId={selectedEntryId}
+                onEntrySelect={setSelectedEntryId}
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No assessments available. Start by adding your first body composition measurement.
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
