@@ -27,12 +27,12 @@ ChartJS.register(
 );
 
 interface Props {
-  entries: BodyCompositionEntry[];
+  userId: number;
 }
 
 type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'CUSTOM';
 
-export default function BodyCompositionAnalysis() {
+export default function BodyCompositionAnalysis({ userId }: Props) {
   const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
@@ -50,7 +50,7 @@ export default function BodyCompositionAnalysis() {
         setIsLoading(true);
         setError(null);
         
-        const response = await fetch('/api/body-composition', {
+        const response = await fetch(`/api/body-composition?userId=${userId}`, {
           credentials: 'include'
         });
         
@@ -69,7 +69,7 @@ export default function BodyCompositionAnalysis() {
     };
 
     fetchEntries();
-  }, []);
+  }, [userId]);
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
     setExpandedSection(expandedSection === section ? null : section);

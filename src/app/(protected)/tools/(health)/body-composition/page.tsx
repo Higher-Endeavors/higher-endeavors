@@ -1,27 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession, SessionProvider } from 'next-auth/react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
+import UserSelector from './components/UserSelector';
 import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
-
-import { SessionProvider } from 'next-auth/react';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 
-export default function BodyCompositionPage() {
+function BodyCompositionContent() {
+  const { data: session } = useSession();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
-  // TODO: Replace with actual API call to get user settings
   const [userSettings, setUserSettings] = useState({});
   const [showSettingsNotification, setShowSettingsNotification] = useState(true);
 
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await fetch('/api/users');
+          setIsAdmin(response.ok);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      }
+    };
+
+    checkAdminStatus();
+  }, [session?.user?.id]);
+
+  const handleUserSelect = (userId: number | null) => {
+    setSelectedUserId(userId);
+  };
+
+  if (!session?.user?.id) {
+    return <div>Please sign in to access this feature.</div>;
+  }
+
   return (
-    <SessionProvider>
-        <Header />
-      <div className="container mx-auto mb-12 px-4">
-        <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 order-2 lg:order-1">
+    <div className="container mx-auto mb-12 px-4">
+      <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-8 order-2 lg:order-1">
+          {isAdmin && (
+            <UserSelector
+              onUserSelect={handleUserSelect}
+              currentUserId={session.user.id}
+            />
+          )}
+
           <div className="mb-6 flex space-x-4">
             <button
               onClick={() => setActiveTab('input')}
@@ -46,9 +78,9 @@ export default function BodyCompositionPage() {
           </div>
 
           {activeTab === 'input' ? (
-            <BodyCompositionInput />
+            <BodyCompositionInput userId={selectedUserId || session.user.id} />
           ) : (
-            <BodyCompositionAnalysis />
+            <BodyCompositionAnalysis userId={selectedUserId || session.user.id} />
           )}
         </div>
 
@@ -60,7 +92,15 @@ export default function BodyCompositionPage() {
           />
         </div>
       </div>
-      </div>
+    </div>
+  );
+}
+
+export default function BodyCompositionPage() {
+  return (
+    <SessionProvider>
+      <Header />
+      <BodyCompositionContent />
       <Footer />
     </SessionProvider>
   );

@@ -1,5 +1,6 @@
-import { format } from 'date-fns';
-import type { BodyCompositionEntry } from '../types';
+'use client';
+
+import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
 import { useState } from 'react';
 
 interface Props {
@@ -46,7 +47,7 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
       : null;
 
     return (
-      <div className="bg-gray-50 p-3 rounded">
+      <div key={label} className="bg-gray-50 p-3 rounded">
         <p className="text-sm text-gray-600">{label}</p>
         <div className="flex items-baseline justify-between">
           <p className="text-lg font-medium text-gray-700 dark:text-gray-800">
@@ -78,7 +79,7 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
             <option value="">Select an assessment</option>
             {sortedEntries.map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {format(new Date(entry.date), 'MMM d, yyyy h:mm a')}
+                {new Date(entry.date).toLocaleDateString()}
               </option>
             ))}
           </select>
@@ -100,7 +101,7 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
               .filter(entry => entry.id !== selectedEntryId)
               .map((entry) => (
                 <option key={entry.id} value={entry.id}>
-                  {format(new Date(entry.date), 'MMM d, yyyy h:mm a')}
+                  {new Date(entry.date).toLocaleDateString()}
                 </option>
               ))}
           </select>
@@ -110,10 +111,10 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
       {selectedEntry && (
         <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
           <h3 className="text-xl font-semibold mb-6 text-gray-700">
-            Assessment Review - {format(new Date(selectedEntry.date), 'MMMM d, yyyy h:mm a')}
+            Assessment Review - {new Date(selectedEntry.date).toLocaleDateString()}
             {comparisonEntry && (
               <span className="text-sm font-normal ml-2 text-gray-500">
-                (Compared to {format(new Date(comparisonEntry.date), 'MMMM d, yyyy h:mm a')})
+                (Compared to {new Date(comparisonEntry.date).toLocaleDateString()})
               </span>
             )}
           </h3>

@@ -58,7 +58,11 @@ type FormInputs = {
   circumference: CircumferenceMeasurements;
 };
 
-export default function BodyCompositionInput() {
+interface BodyCompositionInputProps {
+  userId: number;
+}
+
+export default function BodyCompositionInput({ userId }: BodyCompositionInputProps) {
   const [calculatedMetrics, setCalculatedMetrics] = useState<{
     bodyFatPercentage: number;
     fatMass: number;
@@ -147,25 +151,16 @@ export default function BodyCompositionInput() {
       data.circumference,
       data.bodyFatMethod
     );
-    console.log('Validation completed, errors:', errors.map(err => ({
-      path: err.path.join('.'),
-      message: err.message
-    })));
 
     if (errors.length > 0) {
-      console.log('Validation failed with the following errors:', 
-        errors.map(err => `${err.path.join('.')}: ${err.message}`).join('\n')
-      );
       setValidationErrors(errors);
       return;
     }
 
-    console.log('Setting saving state to true');
     setIsSaving(true);
     setShowSuccess(false);
     
     try {
-      console.log('Building entry data');
       const entryData = {
         age: data.age,
         isMale: data.isMale,
@@ -179,73 +174,52 @@ export default function BodyCompositionInput() {
       const payload = {
         weight: data.weight,
         bodyFatPercentage: calculatedMetrics?.bodyFatPercentage || data.manualBodyFat,
-        entryData: entryData
+        entryData: entryData,
+        targetUserId: userId
       };
 
-      console.log('Sending payload:', payload);
-
-      try {
-        console.log('Starting fetch request');
-        const response = await fetch('/api/body-composition', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          credentials: 'include'
-        });
-        console.log('Fetch request completed');
-
-        console.log('Response status:', response.status);
-        
-        const responseData = await response.json();
-        console.log('Response data:', responseData);
-
-        if (!response.ok) {
-          throw new Error(`Failed to save measurements: ${responseData.error || 'Unknown error'}`);
-        }
-
-        console.log('Request successful, clearing validation errors');
-        setValidationErrors([]);
-        setShowSuccess(true);
-        
-        // Reset form to initial state
-        reset({
-          weight: 0,
-          bodyFatMethod: 'manual',
-          manualBodyFat: 0,
-          age: 0,
-          isMale: true,
-          skinfold: defaultSkinfoldMeasurements,
-          circumference: defaultCircumferenceMeasurements,
-        });
-        setCalculatedMetrics(null);
-        
-        // Hide success message after 5 seconds
-        setTimeout(() => {
-          setShowSuccess(false);
-        }, 5000);
-        
-      } catch (fetchError) {
-        console.error('Fetch error:', {
-          name: fetchError instanceof Error ? fetchError.name : 'Unknown',
-          message: fetchError instanceof Error ? fetchError.message : String(fetchError),
-          stack: fetchError instanceof Error ? fetchError.stack : undefined
-        });
-        throw fetchError; // Re-throw to be caught by outer try-catch
-      }
-    } catch (error) {
-      console.error('Full error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
+      const response = await fetch('/api/body-composition', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+        credentials: 'include'
       });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(`Failed to save measurements: ${responseData.error || 'Unknown error'}`);
+      }
+
+      setValidationErrors([]);
+      setShowSuccess(true);
+      
+      // Reset form to initial state
+      reset({
+        weight: 0,
+        bodyFatMethod: 'manual',
+        manualBodyFat: 0,
+        age: 0,
+        isMale: true,
+        skinfold: defaultSkinfoldMeasurements,
+        circumference: defaultCircumferenceMeasurements,
+      });
+      setCalculatedMetrics(null);
+      
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Error saving measurements:', error);
       setValidationErrors([{ 
         path: ['save'], 
         message: error instanceof Error ? error.message : 'Failed to save measurements. Please try again.' 
       }]);
     } finally {
-      console.log('Setting saving state to false');
       setIsSaving(false);
     }
   };
