@@ -8,13 +8,14 @@ import UserSelector from './components/UserSelector';
 import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
+import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 function BodyCompositionContent() {
   const { data: session } = useSession();
+  const { settings: userSettings, isLoading: settingsLoading } = useUserSettings();
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
-  const [userSettings, setUserSettings] = useState({});
   const [showSettingsNotification, setShowSettingsNotification] = useState(true);
 
   useEffect(() => {
@@ -41,6 +42,10 @@ function BodyCompositionContent() {
     return <div>Please sign in to access this feature.</div>;
   }
 
+  if (settingsLoading) {
+    return <div>Loading settings...</div>;
+  }
+
   return (
     <div className="container mx-auto mb-12 px-4">
       <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
@@ -50,7 +55,7 @@ function BodyCompositionContent() {
           {isAdmin && (
             <UserSelector
               onUserSelect={handleUserSelect}
-              currentUserId={session.user.id}
+              currentUserId={parseInt(session.user.id)}
             />
           )}
 
@@ -78,15 +83,15 @@ function BodyCompositionContent() {
           </div>
 
           {activeTab === 'input' ? (
-            <BodyCompositionInput userId={selectedUserId || session.user.id} />
+            <BodyCompositionInput userId={selectedUserId || parseInt(session.user.id)} />
           ) : (
-            <BodyCompositionAnalysis userId={selectedUserId || session.user.id} />
+            <BodyCompositionAnalysis userId={selectedUserId || parseInt(session.user.id)} />
           )}
         </div>
 
         <div className="lg:col-span-4 order-1 lg:order-2">
           <RequiredSettingsSidebar
-            userSettings={userSettings}
+            userSettings={userSettings || {}}
             showNotification={showSettingsNotification}
             onDismiss={() => setShowSettingsNotification(false)}
           />

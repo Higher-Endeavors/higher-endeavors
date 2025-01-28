@@ -1,6 +1,6 @@
 'use client';
 
-import { UserSettings } from '../types';
+import { UserSettings } from '@/app/lib/types/userSettings';
 
 interface RequiredSettingsSidebarProps {
   userSettings: UserSettings;
@@ -13,7 +13,10 @@ export default function RequiredSettingsSidebar({
   showNotification,
   onDismiss
 }: RequiredSettingsSidebarProps) {
-  if (!showNotification || (userSettings.age !== undefined && userSettings.preferMetric !== undefined)) {
+  const healthSettings = userSettings.pillar_settings?.health || {};
+  const generalSettings = userSettings.height_unit !== undefined;
+  
+  if (!showNotification || (generalSettings && healthSettings.age !== undefined)) {
     return null;
   }
 
@@ -39,7 +42,7 @@ export default function RequiredSettingsSidebar({
           </p>
           
           <div className="space-y-3">
-            {!userSettings.age && (
+            {!healthSettings.age && (
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-1">
                   <svg className="h-4 w-4 text-purple-500" viewBox="0 0 20 20" fill="currentColor">
@@ -50,7 +53,7 @@ export default function RequiredSettingsSidebar({
               </div>
             )}
             
-            {userSettings.preferMetric === undefined && (
+            {!generalSettings && (
               <div className="flex items-start space-x-3">
                 <div className="flex-shrink-0 mt-1">
                   <svg className="h-4 w-4 text-purple-500" viewBox="0 0 20 20" fill="currentColor">

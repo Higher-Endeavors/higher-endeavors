@@ -44,6 +44,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['weight']);
   const [selectedCircumferences, setSelectedCircumferences] = useState<string[]>([]);
+  const [userSettings, setUserSettings] = useState<any | null>(null);
 
   // Fetch entries for selected user
   useEffect(() => {
@@ -79,6 +80,30 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     };
 
     fetchEntries();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchUserSettings = async () => {
+      try {
+        const response = await fetch(`/api/user-settings?userId=${userId}`, {
+          credentials: 'include'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch user settings');
+        }
+
+        const data = await response.json();
+        console.log('Debug - API Response:', data);
+        
+        setUserSettings(data.settings);
+      } catch (err) {
+        console.error('Error fetching user settings:', err);
+        setError('Failed to load user settings');
+      }
+    };
+
+    fetchUserSettings();
   }, [userId]);
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
@@ -138,7 +163,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     // Basic metrics
     if (selectedMetrics.includes('weight')) {
       datasets.push({
-        label: 'Weight (lbs)',
+        label: `Weight (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.weight),
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
@@ -156,7 +181,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
     if (selectedMetrics.includes('fatMass')) {
       datasets.push({
-        label: 'Fat Mass (lbs)',
+        label: `Fat Mass (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.fatMass || null),
         borderColor: 'rgb(255, 159, 64)',
         tension: 0.1
@@ -165,7 +190,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
     if (selectedMetrics.includes('fatFreeMass')) {
       datasets.push({
-        label: 'Fat Free Mass (lbs)',
+        label: `Fat Free Mass (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.fatFreeMass || null),
         borderColor: 'rgb(54, 162, 235)',
         tension: 0.1
@@ -174,9 +199,29 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
     // Circumference measurements
     selectedCircumferences.forEach((key) => {
+      let label = key;
+      const isRight = key.includes('Right');
+      const isLeft = key.includes('Left');
+      const isFlexed = key.includes('Flexed');
+      
+      if (key.includes('bicep')) {
+        label = `Bicep ${isFlexed ? 'Flexed' : 'Relaxed'} - ${isRight ? 'Right' : 'Left'}`;
+      } else if (key.includes('forearm')) {
+        label = `Forearm - ${isRight ? 'Right' : 'Left'}`;
+      } else if (key.includes('thigh')) {
+        label = `Thigh - ${isRight ? 'Right' : 'Left'}`;
+      } else if (key.includes('calf')) {
+        label = `Calf - ${isRight ? 'Right' : 'Left'}`;
+      } else {
+        label = key
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^./, str => str.toUpperCase())
+          .trim();
+      }
+
       const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
       datasets.push({
-        label: `${key.replace(/([A-Z])/g, ' $1').trim()} (cm)`,
+        label: `${label} (${userSettings?.height_unit === 'metric' ? 'cm' : 'in'})`,
         data: sortedEntries.map(entry => {
           const measurements = entry.circumferenceMeasurements;
           return measurements ? measurements[key as keyof CircumferenceMeasurements] || null : null;
@@ -196,10 +241,38 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     { value: 'fatFreeMass', label: 'Fat Free Mass' }
   ];
 
-  const circumferenceOptions = Object.keys(entries[0]?.circumferenceMeasurements || {}).map(key => ({
-    value: key,
-    label: key.replace(/([A-Z])/g, ' $1').trim()
-  }));
+  const circumferenceOptions = Object.keys(entries[0]?.circumferenceMeasurements || {}).map(key => {
+    let label = key;
+    
+    // Extract side (Left/Right) and state (Flexed/Relaxed) from the key
+    const isRight = key.includes('Right');
+    const isLeft = key.includes('Left');
+    const isFlexed = key.includes('Flexed');
+    
+    // Format the label based on the measurement type
+    if (key.includes('bicep')) {
+      label = `Bicep ${isFlexed ? 'Flexed' : 'Relaxed'} - ${isRight ? 'Right' : 'Left'}`;
+    } else if (key.includes('forearm')) {
+      label = `Forearm - ${isRight ? 'Right' : 'Left'}`;
+    } else if (key.includes('thigh')) {
+      label = `Thigh - ${isRight ? 'Right' : 'Left'}`;
+    } else if (key.includes('calf')) {
+      label = `Calf - ${isRight ? 'Right' : 'Left'}`;
+    } else {
+      // Handle other measurements (neck, chest, waist, etc.)
+      label = key
+        // Insert space before capital letters
+        .replace(/([A-Z])/g, ' $1')
+        // Capitalize first letter
+        .replace(/^./, str => str.toUpperCase())
+        .trim();
+    }
+    
+    return {
+      value: key,
+      label: label
+    };
+  });
 
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
@@ -461,7 +534,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Pattern Analysis</h3>
                 <p className="text-gray-600">
-                  AI-driven insights about your body composition patterns will be shown here.
+                  <i>Coming Soon</i> - AI-driven insights about your body composition patterns will be shown here.
                   This will include correlations with other health metrics and lifestyle factors.
                 </p>
               </div>
@@ -469,7 +542,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
               <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Recommendations</h3>
                 <p className="text-gray-600">
-                  Personalized recommendations based on your data will appear here,
+                  <i>Coming Soon</i> - Personalized recommendations based on your data will appear here,
                   helping you optimize your fitness journey.
                 </p>
               </div>
