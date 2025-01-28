@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Select } from 'flowbite-react';
 
 interface User {
   id: number;
@@ -50,23 +49,30 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
 
   return (
     <div className="mb-4">
-      <Select
-        id="user-selector"
-        value={selectedUserId}
-        onChange={handleUserChange}
-        className="w-full"
-      >
-        <option value={currentUserId}>My Data</option>
-        {users
-          .filter(user => user.id !== currentUserId)
-          .map(user => (
-            <option key={user.id} value={user.id}>
-              {user.first_name && user.last_name 
-                ? `${user.first_name} ${user.last_name}`
-                : user.name || user.email}
-            </option>
-          ))}
-      </Select>
+      <div className="relative">
+        <select
+          id="user-selector"
+          value={selectedUserId}
+          onChange={handleUserChange}
+          className="appearance-none w-full rounded-md border border-gray-300 bg-white dark:bg-[#e0e0e0] py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+        >
+          <option value={currentUserId}>My Data</option>
+          {users
+            .filter(user => user.id !== currentUserId)
+            .map(user => (
+              <option key={user.id} value={user.id}>
+                {user.first_name && user.last_name 
+                  ? `${user.first_name} ${user.last_name}`
+                  : user.name || user.email}
+              </option>
+            ))}
+        </select>
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+          <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+          </svg>
+        </div>
+      </div>
     </div>
   );
 } 

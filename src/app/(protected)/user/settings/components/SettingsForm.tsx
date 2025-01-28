@@ -121,8 +121,9 @@ const SettingsForm = () => {
 
   return (
     <div className="bg-gray-50 rounded-lg shadow">
+      {/* Success Toast */}
       {showSuccessToast && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-50">
           <Toast>
             <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
               <HiCheck className="h-5 w-5" />
@@ -132,8 +133,9 @@ const SettingsForm = () => {
         </div>
       )}
 
+      {/* Error Toast */}
       {showErrorToast && (
-        <div className="fixed bottom-4 right-4 z-50">
+        <div className="fixed top-4 right-4 z-50">
           <Toast>
             <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
               <HiX className="h-5 w-5" />
@@ -163,12 +165,12 @@ const SettingsForm = () => {
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
-        <nav className="flex -mb-px">
+        <nav className="flex flex-wrap -mb-px">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`py-4 px-6 text-sm font-medium ${
+              className={`py-4 px-4 sm:px-4 md:px-6 text-xs sm:text-sm font-medium whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'border-b-2 border-blue-500 text-blue-600'
                   : 'text-gray-500 hover:text-gray-700'
