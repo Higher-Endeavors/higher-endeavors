@@ -40,10 +40,11 @@ export async function POST(request: NextRequest) {
     const data = await request.json() as BodyCompositionData;
     const { weight, bodyFatPercentage, entryData, targetUserId } = data;
 
-    const parsedTargetUserId = parseUserId(targetUserId);
-    const effectiveUserId = parsedTargetUserId && await checkAdminAccess(session.user.id)
+    const sessionUserId = parseInt(session.user.id);
+    const parsedTargetUserId = parseUserId(targetUserId ? String(targetUserId) : null);
+    const effectiveUserId = parsedTargetUserId && await checkAdminAccess(sessionUserId)
       ? parsedTargetUserId
-      : session.user.id;
+      : sessionUserId;
 
     const result = await SingleQuery(
       `INSERT INTO body_composition_entries 
@@ -85,8 +86,8 @@ export async function GET(request: NextRequest) {
 
     // If targetUserId is provided and user is admin, use that; otherwise use current user's ID
     const parsedTargetUserId = parseUserId(targetUserId);
-    const isAdmin = await checkAdminAccess(session.user.id);
-    const effectiveUserId = parsedTargetUserId && isAdmin ? parsedTargetUserId : session.user.id;
+    const isAdmin = await checkAdminAccess(parseInt(session.user.id));
+    const effectiveUserId = parsedTargetUserId && isAdmin ? parsedTargetUserId : parseInt(session.user.id);
 
     console.log('API route: Fetching entries from database');
     const result = await SingleQuery(

@@ -5,10 +5,28 @@ import { useSession, SessionProvider } from 'next-auth/react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
 import UserSelector from './components/UserSelector';
-import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
+// import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import type { UserSettings } from '@/app/lib/types/userSettings';
+
+// Default settings object that matches the UserSettings type
+const defaultSettings: UserSettings = {
+  user_id: 0,
+  height_unit: 'imperial',
+  weight_unit: 'lbs',
+  temperature_unit: 'F',
+  time_format: '12h',
+  date_format: 'MM/DD/YYYY',
+  language: 'en',
+  notifications_email: false,
+  notifications_text: false,
+  notifications_app: false,
+  pillar_settings: {},
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString()
+};
 
 function BodyCompositionContent() {
   const { data: session } = useSession();
@@ -16,7 +34,7 @@ function BodyCompositionContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
-  const [showSettingsNotification, setShowSettingsNotification] = useState(true);
+  // const [showSettingsNotification, setShowSettingsNotification] = useState(true);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -51,7 +69,7 @@ function BodyCompositionContent() {
       <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 order-2 lg:order-1">
+        <div className="lg:col-span-12 order-2 lg:order-1">
           {isAdmin && (
             <UserSelector
               onUserSelect={handleUserSelect}
@@ -89,13 +107,15 @@ function BodyCompositionContent() {
           )}
         </div>
 
+        {/* Settings Sidebar - Temporarily disabled
         <div className="lg:col-span-4 order-1 lg:order-2">
           <RequiredSettingsSidebar
-            userSettings={userSettings || {}}
+            userSettings={userSettings || defaultSettings}
             showNotification={showSettingsNotification}
             onDismiss={() => setShowSettingsNotification(false)}
           />
         </div>
+        */}
       </div>
     </div>
   );

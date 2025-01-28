@@ -63,7 +63,7 @@ export const validateMeasurements = (
   } catch (error) {
     if (error instanceof z.ZodError) {
       errors.push(...error.errors.map(err => ({
-        path: err.path,
+        path: err.path.map(String),
         message: err.message,
       })));
     }
@@ -76,7 +76,7 @@ export const validateMeasurements = (
     } catch (error) {
       if (error instanceof z.ZodError) {
         errors.push(...error.errors.map(err => ({
-          path: ['skinfold', ...err.path],
+          path: ['skinfold', ...err.path.map(String)],
           message: err.message,
         })));
       }
@@ -88,7 +88,7 @@ export const validateMeasurements = (
   } catch (error) {
     if (error instanceof z.ZodError) {
       errors.push(...error.errors.map(err => ({
-        path: ['circumference', ...err.path],
+        path: ['circumference', ...err.path.map(String)],
         message: err.message,
       })));
     }
