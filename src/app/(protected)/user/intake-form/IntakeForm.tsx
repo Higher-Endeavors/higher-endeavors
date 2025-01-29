@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import GeneralInfo from './GeneralInfo';
 import LifestyleInfo from './LifestyleInfo';
@@ -9,34 +11,51 @@ import HealthInfo from './HealthInfo';
 import NutritionInfo from './NutritionInfo';
 import FitnessInfo from './FitnessInfo';
 
-type FormData = {
-  // Weight-related fields
-  currentWeight?: number;
-  idealWeight?: number;
-  weightOneYearAgo?: number;
+// Define a schema that allows all fields to be optional but ensures correct types
+const formSchema = z.object({
+  // Weight-related fields - optional but must be numbers if provided
+  currentWeight: z.number().min(0).max(1000).optional().nullable(),
+  idealWeight: z.number().min(0).max(1000).optional().nullable(),
+  weightOneYearAgo: z.number().min(0).max(1000).optional().nullable(),
+  
   // Relationship fields
-  relationshipStatus?: string;
-  parentalStatus?: string;
-  numberOfChildren?: number;
-  children?: Array<{
-    age: number;
-    gender: string;
-  }>;
-  // Other fields
-  familyLivingSituation?: string;
-  employmentStatus?: string;
-  occupationSchedule?: string;
-  recreationHobbies?: string;
-  primaryGoal?: string;
-  goalTimeframe?: string;
-  motivationLevel?: number;
-  supportSystem?: string;
-  previousExperience?: string;
-  majorLifeChanges?: string;
-};
+  relationshipStatus: z.string().optional(),
+  parentalStatus: z.string().optional(),
+  numberOfChildren: z.number().min(0).max(20).optional().nullable(),
+  children: z.array(
+    z.object({
+      age: z.number().min(0).max(100).optional(),
+      gender: z.string().optional()
+    })
+  ).optional(),
+  
+  // Text fields - all optional
+  familyLivingSituation: z.string().optional(),
+  employmentStatus: z.string().optional(),
+  occupationSchedule: z.string().optional(),
+  recreationHobbies: z.string().optional(),
+  primaryGoal: z.string().optional(),
+  goalTimeframe: z.string().optional(),
+  motivationLevel: z.number().min(1).max(10).optional().nullable(),
+  supportSystem: z.string().optional(),
+  previousExperience: z.string().optional(),
+  majorLifeChanges: z.string().optional()
+}).partial(); // Make all fields optional
+
+type FormData = z.infer<typeof formSchema>;
 
 const IntakeForm = () => {
-  const methods = useForm<FormData>();
+  const methods = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      currentWeight: null,
+      idealWeight: null,
+      weightOneYearAgo: null,
+      numberOfChildren: null,
+      motivationLevel: null
+    }
+  });
+  
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -49,7 +68,8 @@ const IntakeForm = () => {
         // First try to load from localStorage
         const savedData = localStorage.getItem('intakeFormData');
         if (savedData) {
-          methods.reset(JSON.parse(savedData));
+          const parsedData = JSON.parse(savedData);
+          methods.reset(parsedData);
           setIsLoading(false);
           return;
         }
