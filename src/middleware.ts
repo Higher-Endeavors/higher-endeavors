@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (request.cookies.has("authjs.session-token")) {
+  if (request.cookies.has("__Secure-authjs.session-token")) {
     return NextResponse.next();
   } else {
     return NextResponse.redirect(
