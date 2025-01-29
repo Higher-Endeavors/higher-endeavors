@@ -6,7 +6,7 @@ export function middleware(request: NextRequest) {
   const publicGuideContent = [
     "/guide/fitness-overview",
     "/guide/health-overview",
-    "/guide/lifestyle-management-overview",
+    "/guide/lifestyle-overview",
     "/guide/nutrition-overview",
   ];
 

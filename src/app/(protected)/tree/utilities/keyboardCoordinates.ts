@@ -5,6 +5,7 @@ import {
   KeyboardCoordinateGetter,
   DroppableContainer,
 } from '@dnd-kit/core';
+import type { RefObject } from 'react';
 
 import type {SensorContext} from './types';
 import {getProjection} from './utilities';
@@ -19,7 +20,7 @@ const directions: string[] = [
 const horizontal: string[] = [KeyboardCode.Left, KeyboardCode.Right];
 
 export const sortableTreeKeyboardCoordinates: (
-  context: SensorContext,
+  context: RefObject<SensorContext>,
   indicator: boolean,
   indentationWidth: number
 ) => KeyboardCoordinateGetter = (context, indicator, indentationWidth) => (
@@ -30,15 +31,13 @@ export const sortableTreeKeyboardCoordinates: (
   }
 ) => {
   if (directions.includes(event.code)) {
-    if (!active || !collisionRect) {
+    if (!active || !collisionRect || !context.current) {
       return;
     }
 
     event.preventDefault();
 
-    const {
-      current: {items, offset},
-    } = context;
+    const {items, offset} = context.current;
 
     if (horizontal.includes(event.code) && over?.id) {
       const {depth, maxDepth, minDepth} = getProjection(
