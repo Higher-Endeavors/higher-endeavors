@@ -170,7 +170,7 @@ export default function SortableTree({
         indentationWidth
       )
       : null;
-  const sensorContext: SensorContext = useRef({
+  const sensorContext = useRef<SensorContext>({
     items: flattenedItems,
     offset: offsetLeft,
   });

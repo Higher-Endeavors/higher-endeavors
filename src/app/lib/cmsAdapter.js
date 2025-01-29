@@ -56,6 +56,5 @@ export async function getRecentRecipes() {
   const data = await fetchAPI(
     `/api/recipes?sort[0]=createdAt:desc&pagination[limit]=5&fields[0]=title&fields[1]=excerpt&fields[2]=slug`
   );
-  console.log('API Response from getArticles:', data);
-  return { data };
+  return data;
 }

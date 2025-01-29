@@ -1,7 +1,7 @@
 import React from 'react';
 import { SessionProvider } from 'next-auth/react';
-import Header from '@/app/components/header';
-import Footer from '@/app/components/footer';
+import Header from '@/app/components/Header';
+import Footer from '@/app/components/Footer';
 import BioForm from './components/BioForm';
 
 export default function UserBioPage() {

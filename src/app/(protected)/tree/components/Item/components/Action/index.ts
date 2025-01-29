@@ -1,3 +1,3 @@
-
-export {Action} from './Action';
-export type {Props as ActionProps} from './Action';
+import Action from './Action';
+export type { ActionProps } from './Action';
+export default Action;
