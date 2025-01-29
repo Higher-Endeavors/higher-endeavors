@@ -28,9 +28,6 @@ export default async function Dashboard() {
         {/* Four Pillars Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <PillarColumn title="Lifestyle">
-            <div className="text-gray-500">Lifestyle tools coming soon...</div>
-          </PillarColumn>
-          <PillarColumn title="Health">
             <Link 
               href="/tools/sleep-quiz" 
               className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
@@ -38,7 +35,18 @@ export default async function Dashboard() {
               <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
                 Sleep Quality Assessment →
               </h3>
-              <p className="text-gray-600"></p>
+              <p className="text-gray-600">Evaluate your sleep quality and get personalized recommendations</p>
+            </Link>
+          </PillarColumn>
+          <PillarColumn title="Health">
+            <Link 
+              href="/tools/body-composition" 
+              className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
+            >
+              <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                Body Composition Tracker →
+              </h3>
+              <p className="text-gray-600">Track and analyze your body composition measurements over time</p>
             </Link>
           </PillarColumn>
           <PillarColumn title="Nutrition">
