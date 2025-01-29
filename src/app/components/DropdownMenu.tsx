@@ -56,6 +56,7 @@ export default function DropdownMenu() {
                     <Dropdown.Item as={Link} href="/guide/table-of-contents">
                         Guide Table of Contents
                     </Dropdown.Item>
+                    <Dropdown.Item as={Link} href="/user/bio">User Bio</Dropdown.Item>
                     <Dropdown.Item as={Link} href="/user/settings">User Settings</Dropdown.Item>
                 </>
             )}
