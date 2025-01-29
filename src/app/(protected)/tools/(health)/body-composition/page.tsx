@@ -5,7 +5,7 @@ import { useSession, SessionProvider } from 'next-auth/react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
 import UserSelector from './components/UserSelector';
-// import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
+import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
@@ -34,7 +34,29 @@ function BodyCompositionContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
-  // const [showSettingsNotification, setShowSettingsNotification] = useState(true);
+  const [showSettingsNotification, setShowSettingsNotification] = useState(true);
+  const [bioData, setBioData] = useState<{ date_of_birth?: string; gender?: string } | null>(null);
+
+  // Fetch bio data
+  useEffect(() => {
+    const fetchBioData = async () => {
+      try {
+        const response = await fetch('/api/user/bio');
+        if (!response.ok) throw new Error('Failed to fetch bio data');
+        
+        const data = await response.json();
+        setBioData({
+          date_of_birth: data.date_of_birth,
+          gender: data.gender
+        });
+      } catch (error) {
+        console.error('Error loading bio data:', error);
+        setBioData(null);
+      }
+    };
+
+    fetchBioData();
+  }, []);
 
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -64,12 +86,14 @@ function BodyCompositionContent() {
     return <div>Loading settings...</div>;
   }
 
+  const showBioNotification = !bioData?.date_of_birth || !bioData?.gender;
+
   return (
     <div className="container mx-auto mb-12 px-4">
       <h1 className="text-4xl font-bold mx-auto px-12 py-8 lg:px-36 xl:px-72">Body Composition Tracker</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-12 order-2 lg:order-1">
+        <div className="lg:col-span-8 order-2 lg:order-1">
           {isAdmin && (
             <UserSelector
               onUserSelect={handleUserSelect}
@@ -107,15 +131,15 @@ function BodyCompositionContent() {
           )}
         </div>
 
-        {/* Settings Sidebar - Temporarily disabled
-        <div className="lg:col-span-4 order-1 lg:order-2">
-          <RequiredSettingsSidebar
-            userSettings={userSettings || defaultSettings}
-            showNotification={showSettingsNotification}
-            onDismiss={() => setShowSettingsNotification(false)}
-          />
-        </div>
-        */}
+        {showBioNotification && (
+          <div className="lg:col-span-4 order-1 lg:order-2">
+            <RequiredSettingsSidebar
+              userSettings={userSettings || defaultSettings}
+              showNotification={showSettingsNotification}
+              onDismiss={() => setShowSettingsNotification(false)}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
