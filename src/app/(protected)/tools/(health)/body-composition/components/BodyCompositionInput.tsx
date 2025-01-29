@@ -9,6 +9,11 @@ import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
+interface UserBioData {
+  dateOfBirth: string;
+  gender: string;
+}
+
 const defaultCircumferenceMeasurements: CircumferenceMeasurements = {
   neck: 0,
   shoulders: 0,
@@ -60,7 +65,6 @@ type FormInputs = {
   weight: number;
   bodyFatMethod: 'manual' | 'skinfold';
   manualBodyFat: number;
-  age: number;
   isMale: boolean;
   skinfold: SkinfoldMeasurements;
   circumference: CircumferenceMeasurements;
@@ -80,6 +84,47 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [bioData, setBioData] = useState<UserBioData | null>(null);
+  const [bioError, setBioError] = useState<string | null>(null);
+
+  // Fetch user's bio data
+  useEffect(() => {
+    const fetchBioData = async () => {
+      try {
+        const response = await fetch('/api/user/bio');
+        if (!response.ok) throw new Error('Failed to fetch bio data');
+        
+        const data = await response.json();
+        if (data.date_of_birth && data.gender) {
+          setBioData({
+            dateOfBirth: data.date_of_birth,
+            gender: data.gender
+          });
+        } else {
+          setBioError('Please complete your profile with date of birth and gender information.');
+        }
+      } catch (error) {
+        console.error('Error loading bio data:', error);
+        setBioError('Failed to load profile data. Some features may be limited.');
+      }
+    };
+
+    fetchBioData();
+  }, []);
+
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth: string): number => {
+    const birthDate = new Date(dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  };
 
   const { 
     register, 
@@ -94,12 +139,18 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       weight: 0,
       bodyFatMethod: 'manual',
       manualBodyFat: 0,
-      age: 0,
-      isMale: true,
+      isMale: bioData?.gender === 'male',
       skinfold: defaultSkinfoldMeasurements,
       circumference: defaultCircumferenceMeasurements,
     }
   });
+
+  // Update form when bio data is loaded
+  useEffect(() => {
+    if (bioData) {
+      setValue('isMale', bioData.gender === 'male');
+    }
+  }, [bioData, setValue]);
 
   const bodyFatMethod = watch('bodyFatMethod');
   const weight = watch('weight');
@@ -174,10 +225,19 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   };
 
   const calculateMetrics = () => {
+    if (!bioData) {
+      setValidationErrors([{ 
+        path: ['bio'], 
+        message: 'Please complete your profile with date of birth and gender information.' 
+      }]);
+      return;
+    }
+
     const formValues = watch();
+    const age = calculateAge(bioData.dateOfBirth);
     const errors = validateMeasurements(
       formValues.weight,
-      formValues.age,
+      age,
       formValues.manualBodyFat,
       formValues.skinfold,
       formValues.circumference,
@@ -192,8 +252,8 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     const metrics = calculateAllMetrics(
       formValues.weight,
       formValues.skinfold,
-      formValues.age,
-      formValues.isMale
+      age,
+      bioData.gender === 'male'
     );
     setCalculatedMetrics(metrics);
   };
@@ -203,7 +263,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     
     const errors = validateMeasurements(
       data.weight,
-      data.age,
+      bioData ? calculateAge(bioData.dateOfBirth) : 0,
       data.manualBodyFat,
       data.skinfold,
       data.circumference,
@@ -220,7 +280,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     
     try {
       const entryData = {
-        age: data.age,
+        age: bioData ? calculateAge(bioData.dateOfBirth) : 0,
         isMale: data.isMale,
         bodyFatMethod: data.bodyFatMethod,
         manualBodyFat: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
@@ -259,8 +319,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         weight: 0,
         bodyFatMethod: 'manual',
         manualBodyFat: 0,
-        age: 0,
-        isMale: true,
+        isMale: bioData?.gender === 'male',
         skinfold: defaultSkinfoldMeasurements,
         circumference: defaultCircumferenceMeasurements,
       });
@@ -284,6 +343,12 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
 
   return (
     <div className="relative">
+      {bioError && (
+        <div className="mb-4 p-4 bg-yellow-100 text-yellow-700 rounded-md">
+          {bioError}
+        </div>
+      )}
+
       {/* Success Toast */}
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50">
@@ -423,51 +488,6 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
 
               {bodyFatMethod === 'skinfold' && enabledBodyFatMethods.includes('skinfold') && (
                 <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label htmlFor="age" className="block text-sm font-medium text-gray-700">
-                        Age
-                      </label>
-                      <input
-                        type="number"
-                        {...register('age', { valueAsNumber: true })}
-                        className={`w-full rounded-md border ${
-                          getErrorForField(['age']) ? 'border-red-500' : 'border-gray-300'
-                        } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-                      />
-                      {getErrorForField(['age']) && (
-                        <p className="text-sm text-red-500">{getErrorForField(['age'])}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">Gender</label>
-                      <div className="flex space-x-4">
-                        <button
-                          type="button"
-                          onClick={() => setValue('isMale', true)}
-                          className={`flex-1 py-2 px-4 rounded-md ${
-                            watch('isMale')
-                              ? 'bg-purple-500 text-white'
-                              : 'bg-white border border-gray-300 text-gray-700'
-                          }`}
-                        >
-                          Male
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setValue('isMale', false)}
-                          className={`flex-1 py-2 px-4 rounded-md ${
-                            !watch('isMale')
-                              ? 'bg-purple-500 text-white'
-                              : 'bg-white border border-gray-300 text-gray-700'
-                          }`}
-                        >
-                          Female
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     {Object.entries(defaultSkinfoldMeasurements).map(([key]) => (
                       <div key={key} className="space-y-2">
