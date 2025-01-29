@@ -9,10 +9,11 @@ import { getRecentArticles, getRecentRecipes } from '@/app/lib/cmsAdapter';
 import RecentContent from '../../guide/components/RecentContent';
 import RecentRecipes from '../../guide/components/RecentRecipes';
 import Link from 'next/link';
+import type { Recipe } from '../../guide/components/RecentRecipes';
 
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
-  const recentRecipes = await getRecentRecipes();
+  const recentRecipes: Recipe[] = await getRecentRecipes();
   
   return (
     <SessionProvider>

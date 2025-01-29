@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 
-interface Recipe {
+export interface Recipe {
     id: number;
     title: string;
     slug: string;
