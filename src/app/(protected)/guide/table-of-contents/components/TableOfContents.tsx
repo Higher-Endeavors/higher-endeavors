@@ -76,12 +76,12 @@ export default function TableOfContents({ articles }: TableOfContentsProps) {
                                 <Link 
                                     key={article.id}
                                     href={`/guide/${article.slug}`}
-                                    className="block p-2 hover:bg-gray-100 rounded"
+                                    className="block p-2 hover:bg-gray-100 rounded group"
                                 >
                                     <div>
                                         <h3 className="font-medium text-blue-600 dark:text-[#90C3FD]">{article.title}</h3>
                                         {article.excerpt && (
-                                            <p className="text-sm text-gray-600 dark:text-gray-300 ho mt-1">{article.excerpt}</p>
+                                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 group-hover:text-gray-800 dark:group-hover:text-gray-400 transition-colors">{article.excerpt}</p>
                                         )}
                                     </div>
                                 </Link>
