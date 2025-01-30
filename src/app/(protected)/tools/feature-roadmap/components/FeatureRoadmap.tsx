@@ -8,7 +8,7 @@ interface FeatureRoadmapProps {
   }[];
 }
 
-const FeatureRoadmap = ({ features }: FeatureRoadmapProps): JSX.Element => {
+const FeatureRoadmap = ({ features }: FeatureRoadmapProps): React.ReactElement => {
   return (
     <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
       <h2 className="text-slate-800 text-xl font-semibold mb-4">Feature Roadmap</h2>

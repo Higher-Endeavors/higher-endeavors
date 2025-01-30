@@ -1,6 +1,7 @@
 import React, { HTMLAttributes, useRef } from 'react';
 
-import {Action, Handle, Add, Remove} from '../Item/components';
+import Action from '../Item/components/Action';
+import {Handle, Add, Remove} from '../Item/components';
 import styles from './TreeItem.module.scss';
 
 export interface Props extends Omit<HTMLAttributes<HTMLLIElement>, 'id'> {

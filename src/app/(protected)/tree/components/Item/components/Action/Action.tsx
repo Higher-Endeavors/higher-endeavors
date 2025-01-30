@@ -1,40 +1,37 @@
-import React, { CSSProperties, ButtonHTMLAttributes, RefObject } from 'react';
-
+import React, { forwardRef } from 'react';
 import styles from './Action.module.scss';
 
-export interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ActionProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  className?: string;
   active?: {
     fill: string;
     background: string;
   };
-  cursor?: CSSProperties['cursor'];
-  ref?: RefObject<HTMLButtonElement | null>;
+  cursor?: React.CSSProperties['cursor'];
 }
 
-export const Action = (
-  {
-    ref,
-    active,
-    className,
-    cursor,
-    style,
-    ...props
-  }: Props
-) => {
-  return (
-    <button
-      ref={ref}
-      {...props}
-      className={`${styles.Action} ${className || ''}`}
-      tabIndex={0}
-      style={
-        {
-          ...style,
-          cursor,
-          '--fill': active?.fill,
-          '--background': active?.background,
-        } as CSSProperties
-      }
-    />
-  );
-};
+const Action = forwardRef<HTMLButtonElement, ActionProps>(
+  ({ className, active, cursor, style, ...props }, ref) => {
+    return (
+      <button
+        ref={ref}
+        {...props}
+        className={`${styles.Action} ${className || ''}`}
+        tabIndex={0}
+        style={
+          {
+            ...style,
+            cursor,
+            '--fill': active?.fill,
+            '--background': active?.background,
+          } as React.CSSProperties
+        }
+      />
+    );
+  }
+);
+
+Action.displayName = 'Action';
+
+export default Action;
+export type { ActionProps };

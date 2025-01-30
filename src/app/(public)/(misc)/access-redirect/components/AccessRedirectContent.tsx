@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation'
 
 export default function AccessRedirectContent() {
   const searchParams = useSearchParams()
-  const redirectUrl = searchParams.get('redirect') || ""
+  const redirectUrl = searchParams?.get('redirect') || ""
 
   return (
     <div className="container mx-auto px-4 py-8">

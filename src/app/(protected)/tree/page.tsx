@@ -1,8 +1,8 @@
 'use client'
 import React from 'react';
 import dynamic from 'next/dynamic';
+import { auth } from "@/app/auth";
 import { SessionProvider } from "next-auth/react";
-// import SortableTree from './components/SortableTree';
 import Header from "@/app/components/Header";
 import Footer from "@/app/components/Footer";
 
@@ -12,7 +12,7 @@ const SortableTreeNoSSR = dynamic(
   )
 
 export default function Page() {
-    const Wrapper = ({ children }: { children: React.ReactNode }) => (
+  const Wrapper = ({ children }: { children: React.ReactNode }) => (
         <div
             style={{
                 maxWidth: 600,

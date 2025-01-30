@@ -17,7 +17,7 @@ export interface FlattenedItem extends TreeItem {
   index: number;
 }
 
-export type SensorContext = RefObject<{
+export interface SensorContext {
   items: FlattenedItem[];
   offset: number;
-}>;
+}
