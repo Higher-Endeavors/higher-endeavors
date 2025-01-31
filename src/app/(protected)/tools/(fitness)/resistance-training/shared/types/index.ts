@@ -5,10 +5,10 @@ import { exerciseSchema, type Exercise } from '../schemas/exercise';
 export type { Exercise };
 
 // Program phase focus options
-export type PhaseFocus = 'GPP' | 'Strength' | 'Hypertrophy' | 'Power' | 'Endurance' | 'Recovery' | 'Intensification' | 'Accumulation';
+export type PhaseFocus = 'GPP' | 'Strength' | 'Hypertrophy' | 'Intensification' | 'Accumulation';
 
 // Periodization type options
-export type PeriodizationType = 'Linear' | 'Undulating' | 'Block' | 'Custom';
+export type PeriodizationType = 'None' | 'Linear' | 'Undulating' | 'Custom';
 
 // Volume target for specific muscle groups
 export interface VolumeTarget {

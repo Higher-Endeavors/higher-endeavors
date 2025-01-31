@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,10 +28,9 @@ const phaseFocusOptions = [
 ] as const;
 
 const periodizationOptions = [
-  { value: 'Linear', label: 'Linear Progression' },
-  { value: 'Undulating', label: 'Undulating Periodization' },
-  { value: 'Block', label: 'Block Periodization' },
-  { value: 'Custom', label: 'Custom Progression' }
+  { value: 'Linear' as const, label: 'Linear Progression' },
+  { value: 'Undulating' as const, label: 'Undulating Periodization' },
+  { value: 'Custom' as const, label: 'Custom Progression' }
 ] as const;
 
 const customSelectStyles = {
@@ -55,7 +54,7 @@ export default function ProgramSettings({
   periodizationType,
   onSettingsChange
 }: ProgramSettingsProps) {
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<ProgramSettingsFormData>({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<ProgramSettingsFormData>({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
       name,
@@ -66,7 +65,8 @@ export default function ProgramSettings({
         settings: {
           volumeIncrementPercentage: 5,
           loadIncrementPercentage: 2.5,
-          programLength: 4
+          programLength: 4,
+          weeklyVolumePercentages: [100, 80, 90, 60]
         }
       }
     }
@@ -74,6 +74,13 @@ export default function ProgramSettings({
 
   const currentPeriodizationType = watch('periodizationType');
   const programLength = watch('progressionRules.settings.programLength');
+
+  // Update weeklyVolumePercentages when switching to Undulating
+  useEffect(() => {
+    if (currentPeriodizationType === 'Undulating') {
+      setValue('progressionRules.settings.weeklyVolumePercentages', [100, 80, 90, 60]);
+    }
+  }, [currentPeriodizationType, setValue]);
 
   const onSubmit = (data: ProgramSettingsFormData) => {
     console.log('Form submitted:', data);
@@ -150,7 +157,26 @@ export default function ProgramSettings({
                 {...field}
                 options={periodizationOptions}
                 value={periodizationOptions.find(option => option.value === field.value)}
-                onChange={(option) => field.onChange(option?.value)}
+                onChange={(option) => {
+                  const newType = option?.value ?? 'Linear';
+                  field.onChange(newType);
+                  // When periodization type changes, update the program settings
+                  onSettingsChange({
+                    periodizationType: newType,
+                    progressionRules: {
+                      type: newType,
+                      settings: {
+                        // Keep existing settings but initialize weeklyVolumePercentages if switching to Undulating
+                        ...(newType === 'Undulating' ? {
+                          weeklyVolumePercentages: [100, 80, 90, 60]
+                        } : {
+                          volumeIncrementPercentage: 5,
+                          loadIncrementPercentage: 2.5
+                        })
+                      }
+                    }
+                  });
+                }}
                 className="basic-single dark:text-slate-700"
                 classNamePrefix="select"
                 styles={customSelectStyles}
@@ -358,7 +384,7 @@ export default function ProgramSettings({
           <Controller
             name="progressionRules.settings.weeklyVolumePercentages"
             control={control}
-            defaultValue={[100, 50, 75, 25]}
+            defaultValue={[100, 80, 90, 60]}
             render={({ field }) => {
               const programLength = watch('progressionRules.settings.programLength') || 4;
               // Ensure we have enough values for all weeks
@@ -376,13 +402,22 @@ export default function ProgramSettings({
                       </label>
                       <input
                         type="number"
-                        value={currentValues[index] ?? ''}
+                        value={currentValues[index]}
                         onChange={(e) => {
+                          const value = e.target.value;
                           const newValue = [...currentValues];
-                          newValue[index] = Number(e.target.value);
+                          newValue[index] = value === '' ? 100 : Number(value);
                           field.onChange(newValue);
+                          onSettingsChange({
+                            progressionRules: {
+                              type: currentPeriodizationType,
+                              settings: {
+                                weeklyVolumePercentages: newValue
+                              }
+                            }
+                          });
                         }}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                         placeholder="100"
                         min="0"
                         max="100"

@@ -11,7 +11,7 @@ import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
 import WeekProgram from './components/WeekProgram';
-import { Program, Exercise, VolumeTarget } from '../shared/types';
+import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
@@ -37,7 +37,8 @@ export default function PlanPage() {
       settings: {
         volumeIncrementPercentage: 5,
         loadIncrementPercentage: 2.5,
-        programLength: 4  // Set default program length
+        programLength: 4,
+        weeklyVolumePercentages: [100, 80, 90, 60]
       }
     },
     volumeTargets: [],
@@ -306,34 +307,37 @@ export default function PlanPage() {
       const volumeIncrement = settings.progressionRules?.settings?.volumeIncrementPercentage;
       const loadIncrement = settings.progressionRules?.settings?.loadIncrementPercentage;
       const programLength = settings.progressionRules?.settings?.programLength;
+      const weeklyVolumePercentages = settings.progressionRules?.settings?.weeklyVolumePercentages;
+      const newPeriodizationType = settings.periodizationType ?? prev.periodizationType;
 
       console.log('Updating progression settings:', {
         volumeIncrement,
         loadIncrement,
-        programLength
+        programLength,
+        weeklyVolumePercentages,
+        newPeriodizationType
       });
 
       const newProgram = {
         ...prev,
         name: settings.name ?? prev.name,
         phaseFocus: settings.phaseFocus ?? prev.phaseFocus,
-        periodizationType: settings.periodizationType ?? prev.periodizationType,
+        periodizationType: newPeriodizationType,
         progressionRules: {
           ...prev.progressionRules,
-          type: settings.periodizationType ?? prev.progressionRules.type,
+          type: newPeriodizationType,
           settings: {
             ...prev.progressionRules.settings,
             volumeIncrementPercentage: volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage,
             loadIncrementPercentage: loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage,
-            programLength: programLength ?? prev.progressionRules.settings.programLength
+            programLength: programLength ?? prev.progressionRules.settings.programLength,
+            weeklyVolumePercentages: weeklyVolumePercentages ?? prev.progressionRules.settings.weeklyVolumePercentages
           }
         }
       };
 
-      // Immediately update week exercises if progression settings changed
-      if (volumeIncrement !== undefined || loadIncrement !== undefined) {
-        const newVolumeIncrement = volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage;
-        const newLoadIncrement = loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage;
+      // Immediately update week exercises if progression settings or type changed
+      if (settings.periodizationType || volumeIncrement !== undefined || loadIncrement !== undefined || weeklyVolumePercentages) {
         const length = programLength ?? prev.progressionRules.settings.programLength ?? 4;
         
         setWeekExercises(prevWeeks => {
@@ -344,16 +348,29 @@ export default function PlanPage() {
             newWeekExercises[1] = prev.exercises;
           }
 
-          // Recalculate all other weeks
+          // Recalculate all other weeks based on the new periodization type
           for (let week = 2; week <= length; week++) {
-            if (prev.periodizationType === 'Linear') {
+            if (newPeriodizationType === 'Linear') {
               newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
                 ...applyLinearProgression(
                   ex,
                   week,
-                  newVolumeIncrement,
-                  newLoadIncrement
+                  volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage ?? 0,
+                  loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage ?? 0
                 ),
+                id: `${ex.id.split('-week')[0]}-week${week}`
+              }));
+            } else if (newPeriodizationType === 'Undulating') {
+              const weeklyPercentages = weeklyVolumePercentages ?? prev.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
+              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
+                ...ex,
+                id: `${ex.id.split('-week')[0]}-week${week}`,
+                reps: Math.round(ex.reps * (weeklyPercentages[week - 1] / 100))
+              }));
+            } else {
+              // For other periodization types, just copy Week 1
+              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
+                ...ex,
                 id: `${ex.id.split('-week')[0]}-week${week}`
               }));
             }
@@ -364,7 +381,7 @@ export default function PlanPage() {
       }
 
       console.log('Updated program state:', newProgram);
-      return newProgram as Program; // Type assertion to satisfy the compiler
+      return newProgram as Program;
     });
   };
 
@@ -413,11 +430,13 @@ export default function PlanPage() {
     const programLength = program.progressionRules.settings.programLength || 4;
     const volumeIncrement = program.progressionRules.settings.volumeIncrementPercentage ?? 0;
     const loadIncrement = program.progressionRules.settings.loadIncrementPercentage ?? 0;
+    const weeklyVolumePercentages = program.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
     
     console.log('Program settings:', {
       programLength,
       volumeIncrement,
       loadIncrement,
+      weeklyVolumePercentages,
       periodizationType: program.periodizationType
     });
     
@@ -439,33 +458,35 @@ export default function PlanPage() {
           } else {
             // For other weeks, apply progression based on the type
             if (program.periodizationType === 'Linear') {
-              console.log(`Applying progression for week ${i}:`, {
+              console.log(`Applying Linear progression for week ${i}:`, {
                 volumeIncrement,
                 loadIncrement
               });
               
-              newWeekExercises[i] = program.exercises.map(exercise => {
-                const progressed = applyLinearProgression(
+              newWeekExercises[i] = program.exercises.map(exercise => ({
+                ...applyLinearProgression(
                   exercise,
                   i,
                   volumeIncrement,
                   loadIncrement
-                );
-                console.log(`Week ${i} exercise progression:`, {
-                  before: {
-                    sets: exercise.sets,
-                    reps: exercise.reps,
-                    load: exercise.load
-                  },
-                  after: {
-                    sets: progressed.sets,
-                    reps: progressed.reps,
-                    load: progressed.load
-                  }
-                });
+                ),
+                id: `${exercise.id}-week${i}`
+              }));
+            } else if (program.periodizationType === 'Undulating') {
+              const weekPercentage = weeklyVolumePercentages[i - 1] ?? 100;
+              console.log(`Applying Undulating progression for week ${i}:`, {
+                weekPercentage,
+                weeklyVolumePercentages
+              });
+              
+              // Apply the weekly volume percentage to each exercise
+              newWeekExercises[i] = program.exercises.map(exercise => {
+                const volumePercentage = weekPercentage / 100;
+                const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
                 return {
-                  ...progressed,
-                  id: `${exercise.id}-week${i}`
+                  ...exercise,
+                  id: `${exercise.id}-week${i}`,
+                  reps: newReps
                 };
               });
             } else {
@@ -488,31 +509,52 @@ export default function PlanPage() {
 
       return newWeekExercises;
     });
-  }, [program.progressionRules.settings.programLength, program.exercises, program.periodizationType, program.progressionRules.settings.volumeIncrementPercentage, program.progressionRules.settings.loadIncrementPercentage]);
+  }, [program.progressionRules.settings.programLength, program.exercises, program.periodizationType, program.progressionRules.settings.volumeIncrementPercentage, program.progressionRules.settings.loadIncrementPercentage, program.progressionRules.settings.weeklyVolumePercentages, activeWeek]);
 
   // Update exercises for the active week
   const handleWeekExercisesChange = (exercises: Exercise[]) => {
     setWeekExercises(prev => {
       const newWeekExercises = { ...prev };
       
-      // If this is Week 1 and we're using Linear Progression, update all subsequent weeks
-      if (activeWeek === 1 && program.periodizationType === 'Linear') {
+      // If this is Week 1, update all subsequent weeks
+      if (activeWeek === 1) {
         newWeekExercises[1] = exercises;
         
         const programLength = program.progressionRules.settings.programLength || 4;
+        const weeklyVolumePercentages = program.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
+
         for (let week = 2; week <= programLength; week++) {
-          newWeekExercises[week] = exercises.map(exercise => ({
-            ...applyLinearProgression(
-              exercise,
-              week,
-              program.progressionRules.settings.volumeIncrementPercentage || 5,
-              program.progressionRules.settings.loadIncrementPercentage || 2.5
-            ),
-            id: `${exercise.id.split('-week')[0]}-week${week}`
-          }));
+          if (program.periodizationType === 'Linear') {
+            newWeekExercises[week] = exercises.map(exercise => ({
+              ...applyLinearProgression(
+                exercise,
+                week,
+                program.progressionRules.settings.volumeIncrementPercentage ?? 0,
+                program.progressionRules.settings.loadIncrementPercentage ?? 0
+              ),
+              id: `${exercise.id.split('-week')[0]}-week${week}`
+            }));
+          } else if (program.periodizationType === 'Undulating') {
+            const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
+            newWeekExercises[week] = exercises.map(exercise => {
+              const volumePercentage = weekPercentage / 100;
+              const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
+              return {
+                ...exercise,
+                id: `${exercise.id.split('-week')[0]}-week${week}`,
+                reps: newReps
+              };
+            });
+          } else {
+            // For other periodization types, just copy Week 1
+            newWeekExercises[week] = exercises.map(exercise => ({
+              ...exercise,
+              id: `${exercise.id.split('-week')[0]}-week${week}`
+            }));
+          }
         }
       } else {
-        // For other weeks or non-Linear progression, just update the current week
+        // For other weeks, just update the current week
         newWeekExercises[activeWeek] = exercises;
       }
       
