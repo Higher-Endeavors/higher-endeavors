@@ -51,6 +51,8 @@ export interface NutritionSettings {
 export interface FitnessSettings {
   resistanceTraining: {
     weightUnit: WeightUnit;
+    trackRPE?: boolean;
+    trackRIR?: boolean;
   };
   cardioMetabolic: {
     speedUnit: SpeedUnit;

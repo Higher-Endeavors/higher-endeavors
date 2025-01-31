@@ -15,6 +15,7 @@ import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType } from '
 import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
+import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
@@ -24,6 +25,16 @@ const ExerciseListNoSSR = dynamic(
   )
 
 export default function PlanPage() {
+  // User settings
+  const { settings: userSettings, isLoading: isLoadingSettings } = useUserSettings();
+
+  // Debug logs for user settings
+  useEffect(() => {
+    console.log('User Settings:', userSettings);
+    console.log('Fitness Settings:', userSettings?.pillar_settings?.fitness);
+    console.log('Resistance Training Settings:', userSettings?.pillar_settings?.fitness?.resistanceTraining);
+  }, [userSettings]);
+
   // Program state
   const [program, setProgram] = useState<Program>({
     id: '',
@@ -634,13 +645,18 @@ export default function PlanPage() {
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
             <div className="grid grid-cols-3 gap-4">
-              {Object.entries(calculateSessionVolume(weekExercises[activeWeek]))
-                .filter(([key]) => key !== 'totalTimeUnderTension')
-                .map(([key, value]) => (
-                  <div key={key}>
-                    <p className="text-sm text-gray-600">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                    <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
-                  </div>
+              {Object.entries(calculateSessionVolume(
+                weekExercises[activeWeek],
+                userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg'
+              )).map(([key, value]) => (
+                <div key={key}>
+                  <p className="text-sm text-gray-600">
+                    {key === 'totalLoad' 
+                      ? `Total Load (${userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit === 'kg' ? 'kgs' : 'lbs'})`
+                      : key.replace(/([A-Z])/g, ' $1').trim()}
+                  </p>
+                  <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
+                </div>
               ))}
               <div>
                 <p className="text-sm text-gray-600">Total Duration</p>
@@ -672,6 +688,7 @@ export default function PlanPage() {
         exercises={weekExercises[activeWeek] || []}
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
         selectedExerciseName={selectedExerciseName}
+        userSettings={userSettings?.pillar_settings}
       />
 
       {/* Exercise search modal */}

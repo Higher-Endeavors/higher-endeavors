@@ -21,7 +21,11 @@ export const exerciseSchema = z.object({
     ),
   sets: z.number().min(1, 'Must have at least 1 set'),
   reps: z.number().min(1, 'Must have at least 1 rep'),
-  load: z.number().min(0, 'Load cannot be negative'),
+  load: z.union([
+    z.number().min(0, 'Load cannot be negative'),
+    z.string().regex(/^(red|blue|green|yellow|black|purple|orange|white|grey|gray|pink)$/i, 'Invalid band color'),
+    z.literal('BW')
+  ]),
   tempo: z.string().regex(/^[0-9X]{4}$/, 'Tempo must be 4 digits or X'),
   rest: z.number().min(0, 'Rest cannot be negative'),
   notes: z.string().optional(),

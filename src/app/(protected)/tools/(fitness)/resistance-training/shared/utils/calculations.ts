@@ -3,8 +3,6 @@ import { Exercise, SessionExercise } from '../types';
 interface VolumeMetrics {
   totalReps: number;
   totalLoad: number;
-  averageRPE?: number;
-  averageRIR?: number;
 }
 
 const calculateTempoTotal = (tempo: string): number => {
@@ -19,70 +17,73 @@ const calculateTempoTotal = (tempo: string): number => {
 
 const getNumericLoad = (load: string | number): number => {
   if (typeof load === 'string') {
-    // For resistance bands, we'll return 0 for volume calculations
-    // This is a simplification - you might want to assign estimated weights to bands
+    // For resistance bands or BW, we'll return 0 for volume calculations
     return 0;
   }
   return load;
 };
 
-export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => {
+// Conversion functions
+const KG_TO_LBS = 2.2;
+const LBS_TO_KG = 0.45;
+
+const convertWeight = (weight: number, fromUnit: 'kg' | 'lbs', toUnit: 'kg' | 'lbs'): number => {
+  if (fromUnit === toUnit) return weight;
+  return fromUnit === 'kg' ? weight * KG_TO_LBS : weight * LBS_TO_KG;
+};
+
+export const calculateSessionVolume = (exercises: Exercise[], preferredUnit: 'kg' | 'lbs' = 'kg'): VolumeMetrics => {
   let totalReps = 0;
   let totalLoad = 0;
-  let rpeSum = 0;
-  let rirSum = 0;
-  let rpeCount = 0;
-  let rirCount = 0;
 
-  exercises.forEach(exercise => {
-    if (exercise.isVariedSets && exercise.setDetails) {
-      exercise.setDetails.forEach(set => {
-        // Handle main set
-        if (!set.subSets?.length) {
-          // If no sub-sets, calculate normally
-          totalReps += set.reps;
-          totalLoad += getNumericLoad(set.load) * set.reps;
-        } else {
-          // If has sub-sets, calculate volume for each sub-set
-          set.subSets.forEach(subSet => {
-            totalReps += subSet.reps;
-            totalLoad += getNumericLoad(subSet.load) * subSet.reps;
+  exercises.forEach((exercise) => {
+    if (exercise.setDetails) {
+      exercise.setDetails.forEach((set) => {
+        if (Array.isArray(set)) {
+          set.forEach((subSet) => {
+            const load = getNumericLoad(subSet.load);
+            if (load > 0) {
+              totalReps += subSet.reps;
+              const convertedLoad = subSet.loadUnit && subSet.loadUnit !== preferredUnit
+                ? convertWeight(load, subSet.loadUnit, preferredUnit)
+                : load;
+              totalLoad += convertedLoad * subSet.reps;
+            }
           });
+        } else {
+          const load = getNumericLoad(set.load);
+          if (load > 0) {
+            totalReps += set.reps;
+            const convertedLoad = set.loadUnit && set.loadUnit !== preferredUnit
+              ? convertWeight(load, set.loadUnit, preferredUnit)
+              : load;
+            totalLoad += convertedLoad * set.reps;
+          }
         }
       });
     } else {
       // Regular exercise calculation
       const exerciseReps = exercise.sets * exercise.reps;
       totalReps += exerciseReps;
-      totalLoad += getNumericLoad(exercise.load) * exerciseReps;
-    }
-
-    // Calculate RPE and RIR averages
-    if (exercise.rpe !== undefined) {
-      rpeSum += exercise.rpe;
-      rpeCount++;
-    }
-    if (exercise.rir !== undefined) {
-      rirSum += exercise.rir;
-      rirCount++;
+      const numericLoad = getNumericLoad(exercise.load);
+      if (numericLoad > 0) {
+        const convertedLoad = exercise.loadUnit && exercise.loadUnit !== preferredUnit
+          ? convertWeight(numericLoad, exercise.loadUnit, preferredUnit)
+          : numericLoad;
+        totalLoad += convertedLoad * exerciseReps;
+      }
     }
   });
 
   return {
     totalReps,
-    totalLoad,
-    ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
-    ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
+    totalLoad
   };
 };
 
 export const calculateSessionExerciseVolume = (exercises: SessionExercise[]): VolumeMetrics => {
   let totalReps = 0;
   let totalLoad = 0;
-  let rpeSum = 0;
-  let rirSum = 0;
-  let rpeCount = 0;
-  let rirCount = 0;
 
   exercises.forEach(exercise => {
     exercise.actualSets.forEach(set => {
@@ -92,23 +93,12 @@ export const calculateSessionExerciseVolume = (exercises: SessionExercise[]): Vo
       
       totalReps += reps;
       totalLoad += load * reps;
-
-      if (set.rpe !== undefined) {
-        rpeSum += set.rpe;
-        rpeCount++;
-      }
-      if (set.rir !== undefined) {
-        rirSum += set.rir;
-        rirCount++;
-      }
     });
   });
 
   return {
     totalReps,
-    totalLoad,
-    ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
-    ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
+    totalLoad
   };
 };
 
@@ -118,9 +108,7 @@ export const calculateVolumeProgress = (
 ): { [key: string]: number } => {
   return {
     repsCompletion: (actualVolume.totalReps / plannedVolume.totalReps) * 100,
-    loadCompletion: (actualVolume.totalLoad / plannedVolume.totalLoad) * 100,
-    timeUnderTensionCompletion: 
-      (actualVolume.totalTimeUnderTension / plannedVolume.totalTimeUnderTension) * 100
+    loadCompletion: (actualVolume.totalLoad / plannedVolume.totalLoad) * 100
   };
 };
 

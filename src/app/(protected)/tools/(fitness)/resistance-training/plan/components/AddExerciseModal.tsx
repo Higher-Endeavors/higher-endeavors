@@ -6,7 +6,9 @@ import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
+import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
 import { exerciseSchema, type Exercise } from '../../shared/schemas/exercise';
+import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings';
 
 /**
  * Props for the Exercise Modal component
@@ -19,6 +21,7 @@ interface ExerciseModalProps {
   exercises: Exercise[];        // Used for generating next pairing
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
+  userSettings?: { fitness?: FitnessSettings };
 }
 
 /**
@@ -77,10 +80,22 @@ export default function ExerciseModal({
   exercise,
   exercises,
   onAdvancedSearch,
-  selectedExerciseName
+  selectedExerciseName,
+  userSettings
 }: ExerciseModalProps) {
+  // Debug logs for user settings
+  useEffect(() => {
+    console.log('Modal User Settings:', userSettings);
+    console.log('Track RIR:', userSettings?.fitness?.resistanceTraining?.trackRIR);
+  }, [userSettings]);
+
   // State for exercise name options in dropdown
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
+
+  // Add state for alternate unit
+  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
+  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kgs' : 'lbs';
+  const alternateUnit = defaultUnit === 'kgs' ? 'lbs' : 'kgs';
 
   /**
    * Form initialization with React Hook Form and Zod validation
@@ -228,14 +243,31 @@ export default function ExerciseModal({
     console.log('Form Data:', data);
     console.log('Form Errors:', errors);
 
+    // Add loadUnit if the load is numeric
+    const loadData = typeof data.load === 'number' ? {
+      load: data.load,
+      loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
+    } : {
+      load: data.load
+    };
+
     // Create the correct type based on isVariedSets
     const submissionData = data.isVariedSets ? {
       ...data,
+      ...loadData,
       isVariedSets: true as const,
       isAdvancedSets: Boolean(data.isAdvancedSets),
-      setDetails: data.setDetails || []
+      setDetails: (data.setDetails || []).map(set => ({
+        ...set,
+        ...(typeof set.load === 'number' ? { loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs' } : {}),
+        subSets: set.subSets?.map(subSet => ({
+          ...subSet,
+          ...(typeof subSet.load === 'number' ? { loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs' } : {})
+        }))
+      }))
     } : {
       ...data,
+      ...loadData,
       isVariedSets: false as const,
       isAdvancedSets: Boolean(data.isAdvancedSets),
       setDetails: undefined
@@ -401,17 +433,41 @@ export default function ExerciseModal({
 
             {/* Load */}
             <div>
-              <label className="block text-sm font-medium dark:text-white">Load (kg/band color)</label>
-              <input
-                {...register('load', {
-                  setValueAs: v => {
-                    const num = Number(v);
-                    return isNaN(num) ? v : num;
-                  }
-                })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                placeholder="Enter weight in kg or band color"
-              />
+              <div className="flex items-center space-x-1">
+                <label className="block text-sm font-medium dark:text-white">Load</label>
+                <div className="group relative">
+                  <HiInformationCircle className="h-4 w-4 text-gray-400 hover:text-gray-500" />
+                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50">
+                    <p>Acceptable inputs:</p>
+                    <ul className="list-disc list-inside mt-1">
+                      <li>Numeric weight in {useAlternateUnit ? alternateUnit : defaultUnit}</li>
+                      <li>BW (bodyweight)</li>
+                      <li>Band colors (e.g., red, black)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  {...register('load', {
+                    setValueAs: v => {
+                      const num = Number(v);
+                      return isNaN(num) ? v : num;
+                    }
+                  })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setUseAlternateUnit(!useAlternateUnit)}
+                  className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                  title={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
+                >
+                  <HiSwitchHorizontal className="h-4 w-4" />
+                  <span>{useAlternateUnit ? alternateUnit : defaultUnit}</span>
+                </button>
+              </div>
               {errors.load && (
                 <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
               )}
@@ -452,42 +508,46 @@ export default function ExerciseModal({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* RPE */}
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  RPE (Rate of Perceived Exertion)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  {...register('rpe', { 
-                    setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
-                  })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                  placeholder="Enter RPE (0-20)"
-                />
-                {errors.rpe && (
-                  <p className="mt-1 text-sm text-red-600">{errors.rpe.message}</p>
-                )}
-              </div>
+              {userSettings?.fitness?.resistanceTraining?.trackRPE && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+                    RPE (Rate of Perceived Exertion)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    {...register('rpe', { 
+                      setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    placeholder="Enter RPE (0-20)"
+                  />
+                  {errors.rpe && (
+                    <p className="mt-1 text-sm text-red-600">{errors.rpe.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* RIR */}
-              <div>
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
-                  RIR (Reps in Reserve)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  {...register('rir', { 
-                    setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
-                  })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                  placeholder="Enter RIR (0-10)"
-                />
-                {errors.rir && (
-                  <p className="mt-1 text-sm text-red-600">{errors.rir.message}</p>
-                )}
-              </div>
+              {userSettings?.fitness?.resistanceTraining?.trackRIR && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+                    RIR (Reps in Reserve)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    {...register('rir', { 
+                      setValueAs: v => v === "" || v === "0" ? undefined : Number(v)
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    placeholder="Enter RIR (0-10)"
+                  />
+                  {errors.rir && (
+                    <p className="mt-1 text-sm text-red-600">{errors.rir.message}</p>
+                  )}
+                </div>
+              )}
 
               {/* Notes */}
               <div className="col-span-2">
@@ -569,7 +629,7 @@ export default function ExerciseModal({
                               }
                             })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            placeholder="Enter weight in kg or band color"
+                            placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
                           />
                         </div>
                         <div>
@@ -617,7 +677,7 @@ export default function ExerciseModal({
                                 }
                               })}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                              placeholder="Enter weight in kg or band color"
+                              placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
                             />
                           </div>
                           <div>

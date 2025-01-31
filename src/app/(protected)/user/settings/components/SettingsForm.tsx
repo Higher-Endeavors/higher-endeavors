@@ -415,7 +415,7 @@ const SettingsForm = () => {
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Load Units</label>
               <select
-                value={fitness.resistanceTraining?.weightUnit}
+                value={fitness.resistanceTraining?.weightUnit || 'kgs'}
                 onChange={(e) => handlePillarSettingChange('fitness', 'resistanceTraining', {
                   ...fitness.resistanceTraining,
                   weightUnit: e.target.value
@@ -423,8 +423,39 @@ const SettingsForm = () => {
                 className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600"
               >
                 <option value="lbs">Pounds (lbs)</option>
-                <option value="kgs">Kilograms (kg)</option>
+                <option value="kgs">Kilograms (kgs)</option>
               </select>
+            </div>
+
+            {/* Tracking Preferences */}
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tracking Preferences</label>
+              <div className="space-y-2">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={fitness.resistanceTraining?.trackRPE ?? false}
+                    onChange={(e) => handlePillarSettingChange('fitness', 'resistanceTraining', {
+                      ...fitness.resistanceTraining,
+                      trackRPE: e.target.checked
+                    })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">Track RPE (Rate of Perceived Exertion)</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={fitness.resistanceTraining?.trackRIR ?? false}
+                    onChange={(e) => handlePillarSettingChange('fitness', 'resistanceTraining', {
+                      ...fitness.resistanceTraining,
+                      trackRIR: e.target.checked
+                    })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-600">Track RIR (Reps in Reserve)</span>
+                </label>
+              </div>
             </div>
 
             {/* CardioMetabolic */}

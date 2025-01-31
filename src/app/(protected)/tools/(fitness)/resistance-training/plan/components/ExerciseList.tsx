@@ -6,6 +6,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
 import { Exercise } from '../../shared/types';
 import { calculateExerciseTUT } from '../../shared/utils/calculations';
+import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 interface ExerciseItemProps {
   exercise: Exercise;
@@ -17,15 +18,18 @@ interface MenuState {
   [key: string]: boolean;
 }
 
-const formatLoad = (load: string | number): string => {
-  if (typeof load === 'number') {
-    return `${load}lbs.`;
-  }
-  return load; // Return the band color as is
-};
-
-const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
+const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete }) => {
+  const { settings: userSettings } = useUserSettings();
   const [menuOpen, setMenuOpen] = useState<MenuState>({});
+
+  const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
+    if (typeof load === 'number') {
+      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+      const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
+      return `${load}${displayUnit}`;
+    }
+    return load; // Return the band color or BW as is
+  };
 
   const {
     attributes,
@@ -125,7 +129,7 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
                   <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.reps} reps`}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.reps} reps @ {formatLoad(subSet.load)}
+                      → {subSet.reps} reps @ {formatLoad(subSet.load, subSet.loadUnit)}
                     </p>
                   ))}
                 </div>
@@ -141,17 +145,17 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
             <div className="font-medium dark:text-slate-900">
               {exercise.setDetails.map((set, idx) => (
                 <div key={idx}>
-                  <p>{formatLoad(set.load)}</p>
+                  <p>{formatLoad(set.load, set.loadUnit)}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
-                      → {formatLoad(subSet.load)}
+                      → {formatLoad(subSet.load, subSet.loadUnit)}
                     </p>
                   ))}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{formatLoad(exercise.load)}</p>
+            <p className="font-medium dark:text-slate-900">{formatLoad(exercise.load, exercise.loadUnit)}</p>
           )}
         </div>
         <div>

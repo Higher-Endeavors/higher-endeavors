@@ -28,9 +28,10 @@ const phaseFocusOptions = [
 ] as const;
 
 const periodizationOptions = [
-  { value: 'Linear' as const, label: 'Linear Progression' },
+  { value: 'None' as const, label: 'None' },
+  { value: 'Linear' as const, label: 'Linear Periodization' },
   { value: 'Undulating' as const, label: 'Undulating Periodization' },
-  { value: 'Custom' as const, label: 'Custom Progression' }
+  { value: 'Custom' as const, label: 'Custom Periodization' }
 ] as const;
 
 const customSelectStyles = {

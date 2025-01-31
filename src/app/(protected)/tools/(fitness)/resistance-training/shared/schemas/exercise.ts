@@ -13,17 +13,18 @@ const TEMPO_REGEX = /^[0-9X][0-9][0-9X][0-9]$/;
 const COLOR_REGEX = /^(red|blue|green|yellow|black|purple|orange|white|grey|gray|pink)$/i;
 
 /**
- * Load Schema: Handles both numeric weights and resistance band colors
+ * Load Schema: Handles both numeric weights, resistance band colors, and bodyweight
  * - Numeric: 0-1500 (accommodating both kg and lbs)
- * - String: Must match standard resistance band colors
+ * - String: Must match standard resistance band colors or 'BW' for bodyweight
  */
 const loadSchema = z.union([
   z.number().min(0).max(1500),
   z.string().regex(COLOR_REGEX, {
     message: "Invalid band color. Please use standard color names."
-  })
+  }),
+  z.literal('BW')
 ]).transform(val => {
-  if (typeof val === 'string') {
+  if (typeof val === 'string' && val !== 'BW') {
     return val.toLowerCase();
   }
   return val;
@@ -48,6 +49,7 @@ const optionalNumberSchema = z.number()
 export const subSetSchema = z.object({
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
+  loadUnit: z.enum(['kg', 'lbs']).optional(),
   rest: z.number().int().min(0).max(600) // Rest in seconds, max 10 minutes
 });
 
@@ -60,6 +62,7 @@ export const setDetailsSchema = z.object({
   setNumber: z.number().int().min(1),
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
+  loadUnit: z.enum(['kg', 'lbs']).optional(),
   tempo: z.string().regex(TEMPO_REGEX, {
     message: "Tempo must be 4 digits with optional 'X' in position 3"
   }),
@@ -84,6 +87,7 @@ const baseExerciseSchema = {
   sets: z.number().int().min(1).max(99),
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
+  loadUnit: z.enum(['kg', 'lbs']).optional(),
   tempo: z.string().regex(TEMPO_REGEX, {
     message: "Tempo must be 4 digits with optional 'X' in position 3"
   }),
