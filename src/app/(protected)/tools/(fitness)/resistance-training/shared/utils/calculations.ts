@@ -1,4 +1,4 @@
-import { Exercise } from '../types';
+import { Exercise, SessionExercise } from '../types';
 
 interface VolumeMetrics {
   totalReps: number;
@@ -66,6 +66,42 @@ export const calculateSessionVolume = (exercises: Exercise[]): VolumeMetrics => 
       rirSum += exercise.rir;
       rirCount++;
     }
+  });
+
+  return {
+    totalReps,
+    totalLoad,
+    ...(rpeCount > 0 && { averageRPE: rpeSum / rpeCount }),
+    ...(rirCount > 0 && { averageRIR: rirSum / rirCount })
+  };
+};
+
+export const calculateSessionExerciseVolume = (exercises: SessionExercise[]): VolumeMetrics => {
+  let totalReps = 0;
+  let totalLoad = 0;
+  let rpeSum = 0;
+  let rirSum = 0;
+  let rpeCount = 0;
+  let rirCount = 0;
+
+  exercises.forEach(exercise => {
+    exercise.actualSets.forEach(set => {
+      // Use actual values if available, otherwise planned values
+      const reps = set.actualReps || set.plannedReps;
+      const load = getNumericLoad(set.actualLoad || set.plannedLoad);
+      
+      totalReps += reps;
+      totalLoad += load * reps;
+
+      if (set.rpe !== undefined) {
+        rpeSum += set.rpe;
+        rpeCount++;
+      }
+      if (set.rir !== undefined) {
+        rirSum += set.rir;
+        rirCount++;
+      }
+    });
   });
 
   return {

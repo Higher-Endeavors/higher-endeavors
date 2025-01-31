@@ -2,28 +2,27 @@
 
 import React, { useState } from 'react';
 import Select from 'react-select';
-
-interface VolumeTarget {
-  id: string;
-  type: 'session' | 'weekly' | 'exercise';
-  muscleGroupId?: number;
-  exerciseId?: number;
-  repVolumeTarget?: number;
-  loadVolumeTarget?: number;
-  timeUnderTensionTarget?: number;
-}
+import { VolumeTarget } from '../../shared/types';
 
 interface VolumeTargetsProps {
   targets: VolumeTarget[];
-  onTargetChange: (targets: VolumeTarget[]) => void;
-  muscleGroups: Array<{ id: number; name: string }>;
+  onChange: (targets: VolumeTarget[]) => void;
 }
 
-export default function VolumeTargets({
-  targets,
-  onTargetChange,
-  muscleGroups
-}: VolumeTargetsProps) {
+const muscleGroups = [
+  { id: 1, name: 'Chest' },
+  { id: 2, name: 'Back' },
+  { id: 3, name: 'Shoulders' },
+  { id: 4, name: 'Biceps' },
+  { id: 5, name: 'Triceps' },
+  { id: 6, name: 'Legs' },
+  { id: 7, name: 'Core' },
+  { id: 8, name: 'Glutes' },
+  { id: 9, name: 'Calves' },
+  { id: 10, name: 'Forearms' }
+];
+
+export default function VolumeTargets({ targets, onChange }: VolumeTargetsProps) {
   const [selectedType, setSelectedType] = useState<'session' | 'weekly' | 'exercise'>('session');
 
   const targetTypeOptions = [
@@ -38,26 +37,36 @@ export default function VolumeTargets({
   }));
 
   const handleAddTarget = () => {
-    const newTarget: VolumeTarget = {
-      id: Math.random().toString(36).substr(2, 9),
-      type: selectedType
-    };
-    onTargetChange([...targets, newTarget]);
-  };
-
-  const handleTargetChange = (id: string, field: string, value: any) => {
-    const updatedTargets = targets.map(target => {
-      if (target.id === id) {
-        return { ...target, [field]: value };
+    onChange([
+      ...targets,
+      {
+        muscleGroup: '',
+        targetSets: 0,
+        currentSets: 0
       }
-      return target;
-    });
-    onTargetChange(updatedTargets);
+    ]);
   };
 
-  const handleRemoveTarget = (id: string) => {
-    const updatedTargets = targets.filter(target => target.id !== id);
-    onTargetChange(updatedTargets);
+  const handleRemoveTarget = (index: number) => {
+    onChange(targets.filter((_, i) => i !== index));
+  };
+
+  const handleMuscleGroupChange = (index: number, value: string) => {
+    const newTargets = [...targets];
+    newTargets[index] = {
+      ...newTargets[index],
+      muscleGroup: value
+    };
+    onChange(newTargets);
+  };
+
+  const handleSetsChange = (index: number, value: number) => {
+    const newTargets = [...targets];
+    newTargets[index] = {
+      ...newTargets[index],
+      targetSets: value
+    };
+    onChange(newTargets);
   };
 
   return (
@@ -86,9 +95,9 @@ export default function VolumeTargets({
 
       {/* Target List */}
       <div className="space-y-4">
-        {targets.map((target) => (
+        {targets.map((target, index) => (
           <div
-            key={target.id}
+            key={index}
             className="p-4 border rounded-lg bg-white space-y-4"
           >
             <div className="flex justify-between items-center">
@@ -96,7 +105,7 @@ export default function VolumeTargets({
                 {target.type.charAt(0).toUpperCase() + target.type.slice(1)} Target
               </h4>
               <button
-                onClick={() => handleRemoveTarget(target.id)}
+                onClick={() => handleRemoveTarget(index)}
                 className="text-red-600 hover:text-red-800"
               >
                 Remove
@@ -111,16 +120,11 @@ export default function VolumeTargets({
                 </label>
                 <Select
                   options={muscleGroupOptions}
-                  value={muscleGroupOptions.find(
-                    option => option.value === target.muscleGroupId?.toString()
-                  )}
-                  onChange={(option) => handleTargetChange(
-                    target.id,
-                    'muscleGroupId',
-                    option ? parseInt(option.value) : undefined
-                  )}
+                  value={muscleGroupOptions.find(option => option.value === target.muscleGroup)}
+                  onChange={(option) => handleMuscleGroupChange(index, option?.value || '')}
                   className="basic-single"
                   classNamePrefix="select"
+                  placeholder="Select muscle group"
                 />
               </div>
             )}
@@ -129,55 +133,28 @@ export default function VolumeTargets({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Rep Volume Target
+                  Target Sets
                 </label>
                 <input
                   type="number"
-                  value={target.repVolumeTarget || ''}
-                  onChange={(e) => handleTargetChange(
-                    target.id,
-                    'repVolumeTarget',
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )}
+                  value={target.targetSets}
+                  onChange={(e) => handleSetsChange(index, parseInt(e.target.value) || 0)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Total reps"
+                  placeholder="Target sets"
                   min="0"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Load Volume Target (kg)
+                  Current Sets
                 </label>
                 <input
                   type="number"
-                  value={target.loadVolumeTarget || ''}
-                  onChange={(e) => handleTargetChange(
-                    target.id,
-                    'loadVolumeTarget',
-                    e.target.value ? parseFloat(e.target.value) : undefined
-                  )}
+                  value={target.currentSets}
+                  onChange={(e) => handleSetsChange(index, parseInt(e.target.value) || 0)}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Total load"
-                  min="0"
-                  step="0.5"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700">
-                  Time Under Tension (s)
-                </label>
-                <input
-                  type="number"
-                  value={target.timeUnderTensionTarget || ''}
-                  onChange={(e) => handleTargetChange(
-                    target.id,
-                    'timeUnderTensionTarget',
-                    e.target.value ? parseInt(e.target.value) : undefined
-                  )}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                  placeholder="Total TUT"
+                  placeholder="Current sets"
                   min="0"
                 />
               </div>

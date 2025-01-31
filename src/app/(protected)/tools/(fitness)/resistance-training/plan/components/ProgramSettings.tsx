@@ -11,8 +11,8 @@ type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
 interface ProgramSettingsProps {
   name: string;
-  phaseFocus: string;
-  periodizationType: string;
+  phaseFocus: ProgramSettingsFormData['phaseFocus'];
+  periodizationType: ProgramSettingsFormData['periodizationType'];
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
 }
 
@@ -22,13 +22,14 @@ const phaseFocusOptions = [
   { value: 'Hypertrophy', label: 'Hypertrophy' },
   { value: 'Intensification', label: 'Intensification' },
   { value: 'Accumulation', label: 'Accumulation' }
-];
+] as const;
 
 const periodizationOptions = [
+  { value: 'None', label: 'None' },
   { value: 'Linear', label: 'Linear Progression' },
   { value: 'Undulating', label: 'Undulating Periodization' },
   { value: 'Custom', label: 'Custom Progression' }
-];
+] as const;
 
 const customSelectStyles = {
   control: (base: any) => ({
@@ -55,10 +56,10 @@ export default function ProgramSettings({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
       name,
-      phaseFocus: phaseFocus as ProgramSettingsFormData['phaseFocus'],
-      periodizationType: periodizationType as ProgramSettingsFormData['periodizationType'],
+      phaseFocus,
+      periodizationType,
       progressionRules: {
-        type: periodizationType as ProgramSettingsFormData['periodizationType'],
+        type: periodizationType,
         settings: {
           volumeIncrementPercentage: 5,
           loadIncrementPercentage: 2.5,
@@ -170,38 +171,50 @@ export default function ProgramSettings({
         </p>
       </div>
 
+      {/* Program Length */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Program Length (weeks)
+        </label>
+        <Controller
+          name="progressionRules.settings.programLength"
+          control={control}
+          render={({ field }) => (
+            <div>
+              <input
+                {...field}
+                type="number"
+                onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  if (value === '' || Number(value) < 1) {
+                    field.onChange(4);
+                  }
+                }}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="4"
+                min="1"
+                max="52"
+                step="1"
+              />
+              {errors.progressionRules?.settings?.programLength && (
+                <p className="mt-1 text-sm text-red-600">
+                  {errors.progressionRules.settings.programLength.message}
+                </p>
+              )}
+            </div>
+          )}
+        />
+        <p className="mt-1 text-sm text-gray-500">
+          Set the duration of your training program
+        </p>
+      </div>
+
       {/* Progression Settings */}
       {currentPeriodizationType === 'Linear' && (
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700">Linear Progression Settings</h3>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
-                Program Length (weeks)
-              </label>
-              <Controller
-                name="progressionRules.settings.programLength"
-                control={control}
-                render={({ field }) => (
-                  <div>
-                    <input
-                      {...field}
-                      type="number"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
-                      placeholder="4"
-                      min="1"
-                      max="52"
-                      step="1"
-                    />
-                    {errors.progressionRules?.settings?.programLength && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors.progressionRules.settings.programLength.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-              />
-            </div>
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Volume Increment (%)
@@ -267,31 +280,40 @@ export default function ProgramSettings({
             name="progressionRules.settings.weeklyVolumePercentages"
             control={control}
             defaultValue={[100, 50, 75, 25]}
-            render={({ field }) => (
-              <div className="grid grid-cols-2 gap-4">
-                {[1, 2, 3, 4].map((week, index) => (
-                  <div key={week}>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Week {week} Volume (%)
-                    </label>
-                    <input
-                      type="number"
-                      value={field.value?.[index] ?? ''}
-                      onChange={(e) => {
-                        const newValue = [...(field.value || [])];
-                        newValue[index] = Number(e.target.value);
-                        field.onChange(newValue);
-                      }}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                      placeholder={(index === 0 ? 100 : index === 1 ? 50 : index === 2 ? 75 : 25).toString()}
-                      min="0"
-                      max="100"
-                      step="5"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
+            render={({ field }) => {
+              const programLength = watch('progressionRules.settings.programLength') || 4;
+              // Ensure we have enough values for all weeks
+              const currentValues = [...(field.value || [])];
+              while (currentValues.length < programLength) {
+                currentValues.push(100);
+              }
+              
+              return (
+                <div className="grid grid-cols-2 gap-4">
+                  {Array.from({ length: programLength }, (_, index) => (
+                    <div key={index}>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Week {index + 1} Volume (%)
+                      </label>
+                      <input
+                        type="number"
+                        value={currentValues[index] ?? ''}
+                        onChange={(e) => {
+                          const newValue = [...currentValues];
+                          newValue[index] = Number(e.target.value);
+                          field.onChange(newValue);
+                        }}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="100"
+                        min="0"
+                        max="100"
+                        step="5"
+                      />
+                    </div>
+                  ))}
+                </div>
+              );
+            }}
           />
         </div>
       )}

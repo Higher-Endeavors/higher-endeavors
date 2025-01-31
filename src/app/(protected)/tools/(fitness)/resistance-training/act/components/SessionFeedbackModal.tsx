@@ -19,7 +19,7 @@ export default function SessionFeedbackModal({
   const [feedback, setFeedback] = useState<SessionFeedback>({
     feeling: 'Average',
     energyLevel: 'Normal',
-    musclePump: 5,
+    musclePump: 'Medium',
     notes: '',
     nextDaySoreness: 'None',
     nextDayFeeling: 'Average',
@@ -90,22 +90,23 @@ export default function SessionFeedbackModal({
           {/* Muscle Pump */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Muscle Pump (1-10)
+              Muscle Pump
             </label>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              value={feedback.musclePump}
-              onChange={(e) =>
-                setFeedback((prev) => ({ ...prev, musclePump: parseInt(e.target.value) }))
-              }
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-gray-500">
-              <span>1</span>
-              <span>5</span>
-              <span>10</span>
+            <div className="flex space-x-4">
+              {['Low', 'Medium', 'High'].map((option) => (
+                <label key={option} className="flex items-center">
+                  <input
+                    type="radio"
+                    value={option}
+                    checked={feedback.musclePump === option}
+                    onChange={(e) =>
+                      setFeedback((prev) => ({ ...prev, musclePump: e.target.value as 'Low' | 'Medium' | 'High' }))
+                    }
+                    className="mr-2"
+                  />
+                  {option}
+                </label>
+              ))}
             </div>
           </div>
 

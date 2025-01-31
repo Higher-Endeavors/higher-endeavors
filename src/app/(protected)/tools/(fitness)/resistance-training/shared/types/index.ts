@@ -45,4 +45,49 @@ export interface Program {
   volumeTargets: VolumeTarget[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Training session related types
+export interface SessionSet {
+  id?: string;
+  setNumber: number;
+  plannedReps: number;
+  actualReps?: number;
+  plannedLoad: number | string;
+  actualLoad?: number | string;
+  tempo: string;
+  restTime: number;
+  rpe?: number;
+  rir?: number;
+  notes?: string;
+}
+
+export interface SessionExercise {
+  id?: string;
+  exerciseLibraryId: number;
+  name: string;
+  pairing: string;
+  plannedSets: number;
+  actualSets: SessionSet[];
+  notes?: string;
+}
+
+export interface SessionFeedback {
+  feeling?: 'Weak' | 'Average' | 'Strong';
+  energyLevel?: 'Fatigued' | 'Normal' | 'Energetic';
+  musclePump?: 'Low' | 'Medium' | 'High';
+  notes?: string;
+  nextDaySoreness?: 'None' | 'Mild' | 'Moderate' | 'Severe';
+  nextDayFeeling?: 'Weak' | 'Average' | 'Strong';
+  nextDayEnergyLevel?: 'Fatigued' | 'Normal' | 'Energetic';
+}
+
+export interface TrainingSession {
+  id?: string;
+  programId: string;
+  scheduledDate: string;
+  actualDate?: string;
+  status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'skipped';
+  exercises: SessionExercise[];
+  feedback?: SessionFeedback;
 } 

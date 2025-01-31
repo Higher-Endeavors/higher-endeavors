@@ -50,9 +50,9 @@ export const exerciseSchema = z.object({
 export const programSettingsSchema = z.object({
   name: z.string().min(1, 'Program name is required'),
   phaseFocus: z.enum(['GPP', 'Strength', 'Hypertrophy', 'Intensification', 'Accumulation']),
-  periodizationType: z.enum(['Linear', 'Undulating', 'Custom']),
+  periodizationType: z.enum(['None', 'Linear', 'Undulating', 'Custom']),
   progressionRules: z.object({
-    type: z.enum(['Linear', 'Undulating', 'Custom']),
+    type: z.enum(['None', 'Linear', 'Undulating', 'Custom']),
     settings: z.object({
       volumeIncrementPercentage: z.number().min(0).max(100).optional(),
       loadIncrementPercentage: z.number().min(0).max(100).optional(),
@@ -68,10 +68,10 @@ export const programSchema = z.object({
   userId: z.string(),
   name: z.string().min(1, 'Program name is required'),
   phaseFocus: z.enum(['GPP', 'Strength', 'Hypertrophy', 'Intensification', 'Accumulation']),
-  periodizationType: z.enum(['Linear', 'Undulating', 'Custom']),
+  periodizationType: z.enum(['None', 'Linear', 'Undulating', 'Custom']),
   exercises: z.array(exerciseSchema),
   progressionRules: z.object({
-    type: z.enum(['Linear', 'Undulating', 'Custom']),
+    type: z.enum(['None', 'Linear', 'Undulating', 'Custom']),
     settings: z.object({
       volumeIncrementPercentage: z.number().min(0).max(100).optional(),
       loadIncrementPercentage: z.number().min(0).max(100).optional(),

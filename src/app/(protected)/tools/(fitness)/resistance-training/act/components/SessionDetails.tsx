@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TrainingSession, SessionExercise, SessionSet } from '../../shared/types';
 import { format } from 'date-fns';
-import { calculateSessionVolume } from '../../shared/utils/calculations';
+import { calculateSessionExerciseVolume } from '../../shared/utils/calculations';
 
 interface SessionDetailsProps {
   session: TrainingSession;
@@ -24,7 +24,14 @@ export default function SessionDetails({
 }: SessionDetailsProps) {
   const [expandedExercises, setExpandedExercises] = useState<string[]>([]);
 
-  const toggleExercise = (exerciseId: string) => {
+  const getLoadAsNumber = (load: string | number | undefined): number => {
+    if (typeof load === 'string') return parseFloat(load) || 0;
+    if (typeof load === 'number') return load;
+    return 0;
+  };
+
+  const toggleExercise = (exerciseId: string | undefined) => {
+    if (!exerciseId) return;
     setExpandedExercises(prev =>
       prev.includes(exerciseId)
         ? prev.filter(id => id !== exerciseId)
@@ -90,7 +97,7 @@ export default function SessionDetails({
         {session.exercises.map((exercise) => (
           <div key={exercise.id} className="p-4">
             <button
-              onClick={() => toggleExercise(exercise.id)}
+              onClick={() => exercise.id && toggleExercise(exercise.id)}
               className="w-full flex justify-between items-center"
             >
               <div className="flex-1">
@@ -102,8 +109,8 @@ export default function SessionDetails({
                 </div>
                 <div className="flex space-x-4 text-sm text-gray-500">
                   <span>{exercise.plannedSets} sets</span>
-                  <span>{exercise.reps} reps</span>
-                  <span>{exercise.load}kg</span>
+                  <span>{exercise.actualSets[0]?.plannedReps || 0} reps</span>
+                  <span>{exercise.actualSets[0]?.plannedLoad || 0}kg</span>
                 </div>
                 {/* Exercise Progress Bar */}
                 <div className="mt-2">
@@ -117,7 +124,7 @@ export default function SessionDetails({
               </div>
               <svg
                 className={`w-5 h-5 ml-4 transform transition-transform duration-200 ${
-                  expandedExercises.includes(exercise.id) ? 'rotate-180' : ''
+                  exercise.id && expandedExercises.includes(exercise.id) ? 'rotate-180' : ''
                 }`}
                 fill="none"
                 stroke="currentColor"
@@ -133,7 +140,7 @@ export default function SessionDetails({
             </button>
 
             {/* Exercise Details */}
-            {expandedExercises.includes(exercise.id) && (
+            {exercise.id && expandedExercises.includes(exercise.id) && (
               <div className="mt-4">
                 <div className="space-y-4">
                   {exercise.actualSets.map((set) => (
@@ -148,17 +155,18 @@ export default function SessionDetails({
                           <input
                             type="number"
                             value={set.actualReps || set.plannedReps}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              if (!session.id || !exercise.id) return;
                               onSetComplete(
                                 session.id,
                                 exercise.id,
                                 set.setNumber,
                                 parseInt(e.target.value),
-                                set.actualLoad || set.plannedLoad,
+                                getLoadAsNumber(set.actualLoad || set.plannedLoad),
                                 set.rpe,
                                 set.rir
-                              )
-                            }
+                              );
+                            }}
                             className="w-full rounded border-gray-300"
                             disabled={session.status === 'completed'}
                           />
@@ -168,7 +176,8 @@ export default function SessionDetails({
                           <input
                             type="number"
                             value={set.actualLoad || set.plannedLoad}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              if (!session.id || !exercise.id) return;
                               onSetComplete(
                                 session.id,
                                 exercise.id,
@@ -177,8 +186,8 @@ export default function SessionDetails({
                                 parseInt(e.target.value),
                                 set.rpe,
                                 set.rir
-                              )
-                            }
+                              );
+                            }}
                             className="w-full rounded border-gray-300"
                             disabled={session.status === 'completed'}
                           />
@@ -188,17 +197,18 @@ export default function SessionDetails({
                           <input
                             type="number"
                             value={set.rpe || ''}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              if (!session.id || !exercise.id) return;
                               onSetComplete(
                                 session.id,
                                 exercise.id,
                                 set.setNumber,
                                 set.actualReps || set.plannedReps,
-                                set.actualLoad || set.plannedLoad,
+                                getLoadAsNumber(set.actualLoad || set.plannedLoad),
                                 parseInt(e.target.value),
                                 set.rir
-                              )
-                            }
+                              );
+                            }}
                             min="1"
                             max="10"
                             step="0.5"
@@ -211,17 +221,18 @@ export default function SessionDetails({
                           <input
                             type="number"
                             value={set.rir || ''}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              if (!session.id || !exercise.id) return;
                               onSetComplete(
                                 session.id,
                                 exercise.id,
                                 set.setNumber,
                                 set.actualReps || set.plannedReps,
-                                set.actualLoad || set.plannedLoad,
+                                getLoadAsNumber(set.actualLoad || set.plannedLoad),
                                 set.rpe,
                                 parseInt(e.target.value)
-                              )
-                            }
+                              );
+                            }}
                             min="0"
                             max="5"
                             className="w-full rounded border-gray-300"
@@ -251,7 +262,7 @@ export default function SessionDetails({
           <div>
             <h4 className="text-sm font-medium text-gray-700 mb-1">Session Volume</h4>
             <div className="grid grid-cols-2 gap-4">
-              {Object.entries(calculateSessionVolume(session.exercises))
+              {Object.entries(calculateSessionExerciseVolume(session.exercises))
                 .filter(([key]) => key !== 'totalTimeUnderTension')
                 .map(([key, value]) => (
                   <div key={key} className="text-sm">

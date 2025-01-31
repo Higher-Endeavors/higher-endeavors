@@ -10,6 +10,7 @@ import ExerciseModal from './components/AddExerciseModal';
 import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
+import WeekProgram from './components/WeekProgram';
 import { Program, Exercise, VolumeTarget } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration } from '../shared/utils/calculations';
 import type { z } from 'zod';
@@ -53,6 +54,9 @@ export default function PlanPage() {
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
   const [selectedExerciseName, setSelectedExerciseName] = useState<string>('');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
+  const [activeWeek, setActiveWeek] = useState(1);
 
   // Load muscle groups on mount
   useEffect(() => {
@@ -66,6 +70,10 @@ export default function PlanPage() {
       }
     };
     fetchExerciseLibrary();
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
   }, []);
 
   // First, uncomment the DND-Kit setup
@@ -268,6 +276,45 @@ export default function PlanPage() {
     setSelectedExerciseName(exerciseName);
   };
 
+  // Initialize week exercises when program length changes or when first exercise is added
+  useEffect(() => {
+    const programLength = program.progressionRules.settings.programLength || 4;
+    const newWeekExercises = { ...weekExercises };
+
+    // Ensure we have entries for all weeks
+    for (let i = 1; i <= programLength; i++) {
+      if (!newWeekExercises[i]) {
+        // For week 1, use program.exercises
+        if (i === 1) {
+          newWeekExercises[1] = program.exercises;
+        } else {
+          // For other weeks, copy from week 1 but adjust based on periodization
+          newWeekExercises[i] = program.exercises.map(exercise => ({
+            ...exercise,
+            id: `${exercise.id}-week${i}` // Ensure unique IDs across weeks
+          }));
+        }
+      }
+    }
+
+    // Remove entries for weeks that no longer exist
+    Object.keys(newWeekExercises).forEach(week => {
+      if (Number(week) > programLength) {
+        delete newWeekExercises[Number(week)];
+      }
+    });
+
+    setWeekExercises(newWeekExercises);
+  }, [program.progressionRules.settings.programLength, program.exercises]);
+
+  // Update exercises for the active week
+  const handleWeekExercisesChange = (exercises: Exercise[]) => {
+    setWeekExercises(prev => ({
+      ...prev,
+      [activeWeek]: exercises
+    }));
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
@@ -284,9 +331,41 @@ export default function PlanPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="mb-6">
+        <VolumeTargets
+          targets={program.volumeTargets}
+          onChange={handleVolumeTargetsChange}
+        />
+      </div>
+
+      {/* Week Tabs */}
+      <div className="mt-8 border-b border-gray-200">
+        <nav className="-mb-px flex space-x-4" aria-label="Week selection">
+          {Array.from(
+            { length: program.progressionRules.settings.programLength || 4 },
+            (_, i) => i + 1
+          ).map((week) => (
+            <button
+              key={week}
+              onClick={() => setActiveWeek(week)}
+              className={`
+                whitespace-nowrap pb-4 px-4 border-b-2 font-medium text-sm
+                ${activeWeek === week
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }
+              `}
+            >
+              Week {week}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Exercises Section */}
+      <div className="mt-6 bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold dark:text-slate-900">Exercises</h2>
+          <h2 className="text-xl font-semibold dark:text-slate-900">Week {activeWeek} Exercises</h2>
           <button
             className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700"
             onClick={handleAddExercise}
@@ -295,44 +374,20 @@ export default function PlanPage() {
           </button>
         </div>
 
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={program.exercises.map(ex => ex.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            <ExerciseListNoSSR
-              exercises={program.exercises}
-              onEdit={handleEditExercise}
-              onDelete={handleDeleteExercise}
-            />
-          </SortableContext>
-
-          {createPortal(
-            <DragOverlay>
-              {activeExercise ? (
-                <div className="bg-white p-4 rounded-lg shadow border-2 border-purple-500">
-                  <p className="font-medium text-gray-600">{activeExercise.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {activeExercise.sets} × {activeExercise.reps} @ {activeExercise.load}kg
-                  </p>
-                </div>
-              ) : null}
-            </DragOverlay>,
-            document.body
-          )}
-        </DndContext>
+        <WeekProgram
+          weekNumber={activeWeek}
+          exercises={weekExercises[activeWeek] || []}
+          onExercisesChange={handleWeekExercisesChange}
+          onEdit={handleEditExercise}
+          onDelete={handleDeleteExercise}
+        />
 
         {/* Volume Summary */}
-        {program.exercises.length > 0 && (
+        {weekExercises[activeWeek]?.length > 0 && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
             <div className="grid grid-cols-3 gap-4">
-              {Object.entries(calculateSessionVolume(program.exercises))
+              {Object.entries(calculateSessionVolume(weekExercises[activeWeek]))
                 .filter(([key]) => key !== 'totalTimeUnderTension')
                 .map(([key, value]) => (
                   <div key={key}>
@@ -343,7 +398,7 @@ export default function PlanPage() {
               <div>
                 <p className="text-sm text-gray-600">Total Duration</p>
                 <p className="font-medium dark:text-slate-900">
-                  {Math.round(calculateSessionDuration(program.exercises) / 60)} min
+                  {Math.round(calculateSessionDuration(weekExercises[activeWeek]) / 60)} min
                 </p>
               </div>
             </div>
