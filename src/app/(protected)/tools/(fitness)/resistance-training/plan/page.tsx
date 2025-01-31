@@ -36,7 +36,8 @@ export default function PlanPage() {
       type: 'Linear',
       settings: {
         volumeIncrementPercentage: 5,
-        loadIncrementPercentage: 2.5
+        loadIncrementPercentage: 2.5,
+        programLength: 4  // Set default program length
       }
     },
     volumeTargets: [],
@@ -159,20 +160,14 @@ export default function PlanPage() {
 
   const handleExerciseSelect = (exerciseName: string) => {
     setIsExerciseSearchOpen(false);
-    setEditingExercise({
-      id: Math.random().toString(36).substr(2, 9),
-      name: exerciseName,
-      pairing: getNextPairing(),
-      sets: 3,
-      reps: 10,
-      load: 0,
-      tempo: '2010',
-      rest: 60,
-      isVariedSets: false,
-      isAdvancedSets: false,
-      notes: ''
-    });
-    setIsExerciseModalOpen(true);
+    setIsAdvancedSearchOpen(false);
+    setSelectedExerciseName(exerciseName);
+    if (editingExercise) {
+      setEditingExercise({
+        ...editingExercise,
+        name: exerciseName
+      });
+    }
   };
 
   const getNextPairing = (): string => {
@@ -192,47 +187,122 @@ export default function PlanPage() {
   };
 
   const handleSaveExercise = (exercise: Exercise) => {
-    setProgram(prev => ({
-      ...prev,
-      exercises: prev.exercises.map(ex =>
-        ex.id === exercise.id ? exercise : ex
-      ).concat(
-        prev.exercises.find(ex => ex.id === exercise.id) ? [] : [exercise]
-      )
-    }));
+    // Get the week number from the exercise ID if it exists
+    const weekMatch = exercise.id.match(/-week(\d+)$/);
+    const weekNumber = weekMatch ? parseInt(weekMatch[1]) : 1;
+    const baseId = exercise.id.split('-week')[0];
+
+    // If this is Week 1 or a new exercise, update program exercises and mirror to all weeks
+    if (weekNumber === 1 || !weekMatch) {
+      // Update program exercises
+      setProgram((prev: Program) => {
+        const updatedExercises = prev.exercises.map(ex =>
+          ex.id === baseId ? exercise : ex
+        ).concat(
+          prev.exercises.find(ex => ex.id === baseId) ? [] : [exercise]
+        );
+
+        return {
+          ...prev,
+          exercises: updatedExercises
+        };
+      });
+
+      // Update all weeks
+      setWeekExercises(prev => {
+        const newWeekExercises = { ...prev };
+        const programLength = program.progressionRules.settings.programLength || 4;
+        
+        // Update Week 1
+        if (!prev[1]?.find(ex => ex.id === baseId)) {
+          newWeekExercises[1] = [...(prev[1] || []), exercise];
+        } else {
+          newWeekExercises[1] = prev[1].map(ex =>
+            ex.id === baseId ? exercise : ex
+          );
+        }
+
+        // Mirror Week 1's exercises to all other weeks
+        for (let week = 2; week <= programLength; week++) {
+          newWeekExercises[week] = newWeekExercises[1].map(ex => ({
+            ...ex,
+            id: `${ex.id.split('-week')[0]}-week${week}`
+          }));
+        }
+        
+        return newWeekExercises;
+      });
+    } else {
+      // This is an edit to a week other than Week 1, only update that specific week
+      setWeekExercises(prev => {
+        const newWeekExercises = { ...prev };
+        newWeekExercises[weekNumber] = prev[weekNumber].map(ex =>
+          ex.id === exercise.id ? exercise : ex
+        );
+        return newWeekExercises;
+      });
+    }
+
     setIsExerciseModalOpen(false);
     setEditingExercise(undefined);
   };
 
   const handleEditExercise = (id: string) => {
-    const exercise = program.exercises.find(ex => ex.id === id);
+    // Find the exercise in the current week's exercises
+    const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
     if (exercise) {
-      setEditingExercise(exercise);
+      setEditingExercise({
+        ...exercise,
+        // Ensure we maintain the week-specific ID when editing
+        id: exercise.id
+      });
       setIsExerciseModalOpen(true);
     }
   };
 
   const handleDeleteExercise = (id: string) => {
+    // Get the base ID (remove week suffix if present)
+    const baseId = id.split('-week')[0];
+
+    // Remove from program exercises
     setProgram(prev => ({
       ...prev,
-      exercises: prev.exercises.filter(ex => ex.id !== id)
+      exercises: prev.exercises.filter(ex => !ex.id.startsWith(baseId))
     }));
+
+    // Remove from all weeks
+    setWeekExercises(prev => {
+      const newWeekExercises = { ...prev };
+      Object.keys(newWeekExercises).forEach(week => {
+        newWeekExercises[Number(week)] = newWeekExercises[Number(week)]?.filter(
+          ex => !ex.id.startsWith(baseId)
+        ) || [];
+      });
+      return newWeekExercises;
+    });
   };
 
   // Program settings management
   const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    setProgram(prev => ({
-      ...prev,
-      ...settings,
-      progressionRules: {
-        ...prev.progressionRules,
-        ...settings.progressionRules,
-        settings: {
-          ...prev.progressionRules.settings,
-          ...settings.progressionRules?.settings
+    console.log('Settings changed:', settings); // Debug log
+    setProgram(prev => {
+      const newProgram = {
+        ...prev,
+        name: settings.name ?? prev.name,
+        phaseFocus: settings.phaseFocus ?? prev.phaseFocus,
+        periodizationType: settings.periodizationType ?? prev.periodizationType,
+        progressionRules: {
+          ...prev.progressionRules,
+          type: settings.periodizationType ?? prev.progressionRules.type,
+          settings: {
+            ...prev.progressionRules.settings,
+            ...(settings.progressionRules?.settings ?? {})
+          }
         }
-      }
-    }));
+      };
+      console.log('New program state:', newProgram); // Debug log
+      return newProgram;
+    });
   };
 
   // Volume targets management
@@ -272,13 +342,19 @@ export default function PlanPage() {
 
   // Add handler for advanced search selection
   const handleAdvancedSearchSelect = (exerciseName: string) => {
-    setIsAdvancedSearchOpen(false);
-    setSelectedExerciseName(exerciseName);
+    handleExerciseSelect(exerciseName);
   };
 
-  // Initialize week exercises when program length changes or when first exercise is added
+  // Watch for program length changes
   useEffect(() => {
     const programLength = program.progressionRules.settings.programLength || 4;
+    
+    // If active week is beyond the new program length, set it to the last week
+    if (activeWeek > programLength) {
+      setActiveWeek(programLength);
+    }
+    
+    // Update week exercises
     const newWeekExercises = { ...weekExercises };
 
     // Ensure we have entries for all weeks
@@ -305,7 +381,7 @@ export default function PlanPage() {
     });
 
     setWeekExercises(newWeekExercises);
-  }, [program.progressionRules.settings.programLength, program.exercises]);
+  }, [program.progressionRules.settings.programLength]);
 
   // Update exercises for the active week
   const handleWeekExercisesChange = (exercises: Exercise[]) => {
@@ -422,17 +498,29 @@ export default function PlanPage() {
         onClose={() => setIsExerciseModalOpen(false)}
         onSave={handleSaveExercise}
         exercise={editingExercise}
-        exercises={program.exercises}
+        exercises={weekExercises[activeWeek] || []}
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
         selectedExerciseName={selectedExerciseName}
       />
 
-      {/* Advanced search modal */}
+      {/* Exercise search modal */}
       <ExerciseSearch
-        isOpen={isAdvancedSearchOpen}
-        onClose={() => setIsAdvancedSearchOpen(false)}
-        onSelect={handleAdvancedSearchSelect}
+        isOpen={isExerciseSearchOpen || isAdvancedSearchOpen}
+        onClose={() => {
+          setIsExerciseSearchOpen(false);
+          setIsAdvancedSearchOpen(false);
+        }}
+        onSelect={handleExerciseSelect}
       />
+
+      {mounted && activeExercise && createPortal(
+        <DragOverlay>
+          <div className="bg-white p-4 rounded shadow-lg border border-gray-200">
+            {activeExercise.name}
+          </div>
+        </DragOverlay>,
+        document.body
+      )}
     </div>
   );
 } 

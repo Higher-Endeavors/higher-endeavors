@@ -20,14 +20,17 @@ const phaseFocusOptions = [
   { value: 'GPP', label: 'General Physical Preparedness' },
   { value: 'Strength', label: 'Strength' },
   { value: 'Hypertrophy', label: 'Hypertrophy' },
+  { value: 'Power', label: 'Power' },
+  { value: 'Endurance', label: 'Endurance' },
+  { value: 'Recovery', label: 'Recovery' },
   { value: 'Intensification', label: 'Intensification' },
   { value: 'Accumulation', label: 'Accumulation' }
 ] as const;
 
 const periodizationOptions = [
-  { value: 'None', label: 'None' },
   { value: 'Linear', label: 'Linear Progression' },
   { value: 'Undulating', label: 'Undulating Periodization' },
+  { value: 'Block', label: 'Block Periodization' },
   { value: 'Custom', label: 'Custom Progression' }
 ] as const;
 
@@ -70,23 +73,15 @@ export default function ProgramSettings({
   });
 
   const currentPeriodizationType = watch('periodizationType');
+  const programLength = watch('progressionRules.settings.programLength');
 
   const onSubmit = (data: ProgramSettingsFormData) => {
+    console.log('Form submitted:', data);
     onSettingsChange(data);
   };
 
-  // Auto-save on form changes
-  React.useEffect(() => {
-    const subscription = watch((value, { name }) => {
-      if (name) {
-        handleSubmit(onSubmit)();
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, handleSubmit, onSubmit]);
-
   return (
-    <form onChange={handleSubmit(onSubmit)} className="space-y-6">
+    <form className="space-y-6">
       {/* Program Name */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -184,11 +179,31 @@ export default function ProgramSettings({
               <input
                 {...field}
                 type="number"
-                onChange={(e) => field.onChange(e.target.value === '' ? '' : Number(e.target.value))}
+                onChange={(e) => {
+                  const value = e.target.value === '' ? '' : Number(e.target.value);
+                  field.onChange(value);
+                  onSettingsChange({
+                    progressionRules: {
+                      type: currentPeriodizationType,
+                      settings: {
+                        programLength: value === '' ? 4 : Number(value)
+                      }
+                    }
+                  });
+                }}
                 onBlur={(e) => {
                   const value = e.target.value;
                   if (value === '' || Number(value) < 1) {
-                    field.onChange(4);
+                    const defaultValue = 4;
+                    field.onChange(defaultValue);
+                    onSettingsChange({
+                      progressionRules: {
+                        type: currentPeriodizationType,
+                        settings: {
+                          programLength: defaultValue
+                        }
+                      }
+                    });
                   }
                 }}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
