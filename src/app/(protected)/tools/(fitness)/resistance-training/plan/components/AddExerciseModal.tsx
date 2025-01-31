@@ -235,11 +235,27 @@ export default function ExerciseModal({
     }
   }, [isVariedSets, currentSets, setValue, watch]);
 
+  // Reset form and toggle when modal opens/closes
+  useEffect(() => {
+    if (isOpen) {
+      if (exercise) {
+        reset({
+          ...exercise,
+          name: selectedExerciseName || exercise.name
+        });
+      } else {
+        reset();
+      }
+      // Reset the toggle to false (use default unit) when modal opens
+      setUseAlternateUnit(false);
+    }
+  }, [isOpen, exercise, selectedExerciseName, reset]);
+
   /**
    * Form submission handler
    * Ensures correct typing for discriminated union before saving
    */
-  const onSubmit = (data: Exercise) => {
+  const onSubmit = async (data: Exercise) => {
     console.log('Form Data:', data);
     console.log('Form Errors:', errors);
 
@@ -276,6 +292,8 @@ export default function ExerciseModal({
     console.log('Submission Data:', submissionData);
     onSave(submissionData);
     onClose();
+    // Reset the toggle after saving
+    setUseAlternateUnit(false);
   };
 
   /**

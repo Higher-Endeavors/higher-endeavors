@@ -31,6 +31,49 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
     return load; // Return the band color or BW as is
   };
 
+  const calculateTotalReps = (): number => {
+    if (exercise.isVariedSets && exercise.setDetails) {
+      return exercise.setDetails.reduce((total, set) => {
+        if (set.subSets?.length) {
+          return total + set.subSets.reduce((subTotal, subSet) => subTotal + subSet.reps, 0);
+        }
+        return total + set.reps;
+      }, 0);
+    }
+    return exercise.sets * exercise.reps;
+  };
+
+  const calculateTotalLoad = (): string => {
+    let totalLoad = 0;
+    let unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+
+    if (typeof exercise.load !== 'number') {
+      return 'N/A'; // Return N/A for band colors or BW
+    }
+
+    if (exercise.isVariedSets && exercise.setDetails) {
+      totalLoad = exercise.setDetails.reduce((total, set) => {
+        if (set.subSets?.length) {
+          return total + set.subSets.reduce((subTotal, subSet) => {
+            if (typeof subSet.load === 'number') {
+              return subTotal + (subSet.load * subSet.reps);
+            }
+            return subTotal;
+          }, 0);
+        }
+        if (typeof set.load === 'number') {
+          return total + (set.load * set.reps);
+        }
+        return total;
+      }, 0);
+    } else {
+      totalLoad = exercise.load * exercise.sets * exercise.reps;
+    }
+
+    const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
+    return `${totalLoad}${displayUnit}`;
+  };
+
   const {
     attributes,
     listeners,
@@ -227,18 +270,32 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         </div>
       </div>
 
-      {(exercise.rpe || exercise.rir || exercise.notes) && (
-        <div className="mt-3 text-sm text-gray-600">
-          {exercise.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.rpe}</span>}
-          {exercise.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.rir}</span>}
-          {exercise.notes && (
-            <div className="mt-1">
-              <span className="font-medium dark:text-slate-900">Notes: </span>
-              <span className="dark:text-slate-900">{exercise.notes}</span>
+      <div className="mt-3 border-t pt-3">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center space-x-6 text-sm font-medium text-purple-700">
+            <div>
+              <span className="mr-1">Total Reps:</span>
+              <span>{calculateTotalReps()}</span>
+            </div>
+            <div>
+              <span className="mr-1">Total Load:</span>
+              <span>{calculateTotalLoad()}</span>
+            </div>
+          </div>
+          {(exercise.rpe || exercise.rir || exercise.notes) && (
+            <div className="text-sm text-gray-600">
+              {exercise.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.rpe}</span>}
+              {exercise.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.rir}</span>}
+              {exercise.notes && (
+                <span>
+                  <span className="font-medium dark:text-slate-900">Notes: </span>
+                  <span className="dark:text-slate-900">{exercise.notes}</span>
+                </span>
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 };
@@ -254,22 +311,41 @@ interface GroupedExercises {
 }
 
 export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseListProps) {
-  // Group exercises by their pairing letter
+  // Group exercises by their pairing prefix
   const groupedExercises = exercises.reduce((groups: GroupedExercises, exercise) => {
-    const letter = exercise.pairing.charAt(0);
-    if (!groups[letter]) {
-      groups[letter] = [];
+    // For WU and CD, use the full prefix, otherwise just use the first letter
+    const groupKey = exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD') 
+      ? exercise.pairing.substring(0, 2)  // Take 'WU' or 'CD'
+      : exercise.pairing.charAt(0);       // Take just the letter for regular groups
+    
+    if (!groups[groupKey]) {
+      groups[groupKey] = [];
     }
-    groups[letter].push(exercise);
+    groups[groupKey].push(exercise);
     return groups;
   }, {});
+
+  const getGroupLabel = (groupKey: string): string => {
+    // No need for switch case anymore since we're using the actual group key
+    return groupKey;
+  };
 
   return (
     <div className="space-y-4">
       {/* Render all exercises in a flat list for drag and drop */}
       {exercises.map((exercise, index) => {
-        const letter = exercise.pairing.charAt(0);
-        const isFirstInGroup = !exercises[index - 1] || exercises[index - 1].pairing.charAt(0) !== letter;
+        // Use the same grouping logic for checking group changes
+        const currentGroupKey = exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')
+          ? exercise.pairing.substring(0, 2)
+          : exercise.pairing.charAt(0);
+        
+        const previousGroupKey = index > 0 && (
+          exercises[index - 1].pairing.startsWith('WU') || exercises[index - 1].pairing.startsWith('CD')
+            ? exercises[index - 1].pairing.substring(0, 2)
+            : exercises[index - 1].pairing.charAt(0)
+        );
+        
+        const isFirstInGroup = index === 0 || currentGroupKey !== previousGroupKey;
 
         return (
           <React.Fragment key={exercise.id}>
@@ -277,7 +353,7 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
               <div className="flex items-center gap-4 mb-2">
                 <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                 <h3 className="text-lg font-semibold text-gray-700 dark:text-slate-200">
-                  Group {letter}
+                  Group {getGroupLabel(currentGroupKey)}
                 </h3>
                 <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
               </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,10 +21,11 @@ const phaseFocusOptions = [
   { value: 'Strength', label: 'Strength' },
   { value: 'Hypertrophy', label: 'Hypertrophy' },
   { value: 'Power', label: 'Power' },
-  { value: 'Endurance', label: 'Endurance' },
+  { value: 'Endurance', label: 'Muscular Endurance' },
   { value: 'Recovery', label: 'Recovery' },
   { value: 'Intensification', label: 'Intensification' },
-  { value: 'Accumulation', label: 'Accumulation' }
+  { value: 'Accumulation', label: 'Accumulation' },
+  { value: 'Other', label: 'Other (Custom)' }
 ] as const;
 
 const periodizationOptions = [
@@ -55,6 +56,11 @@ export default function ProgramSettings({
   periodizationType,
   onSettingsChange
 }: ProgramSettingsProps) {
+  const [customPhaseFocus, setCustomPhaseFocus] = useState('');
+  const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(
+    !phaseFocusOptions.find(option => option.value === phaseFocus)
+  );
+
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<ProgramSettingsFormData>({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
@@ -127,12 +133,36 @@ export default function ProgramSettings({
               <Select
                 {...field}
                 options={phaseFocusOptions}
-                value={phaseFocusOptions.find(option => option.value === field.value)}
-                onChange={(option) => field.onChange(option?.value)}
+                value={phaseFocusOptions.find(option => 
+                  showCustomPhaseFocus ? option.value === 'Other' : option.value === field.value
+                )}
+                onChange={(option) => {
+                  if (option?.value === 'Other') {
+                    setShowCustomPhaseFocus(true);
+                    setCustomPhaseFocus(field.value);
+                  } else {
+                    setShowCustomPhaseFocus(false);
+                    field.onChange(option?.value);
+                    onSettingsChange({ phaseFocus: option?.value });
+                  }
+                }}
                 className="basic-single dark:text-slate-700"
                 classNamePrefix="select"
                 styles={customSelectStyles}
               />
+              {showCustomPhaseFocus && (
+                <input
+                  type="text"
+                  value={customPhaseFocus}
+                  onChange={(e) => {
+                    setCustomPhaseFocus(e.target.value);
+                    field.onChange(e.target.value);
+                    onSettingsChange({ phaseFocus: e.target.value });
+                  }}
+                  placeholder="Enter custom phase/focus"
+                  className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900"
+                />
+              )}
               {errors.phaseFocus && (
                 <p className="mt-1 text-sm text-red-600">{errors.phaseFocus.message}</p>
               )}

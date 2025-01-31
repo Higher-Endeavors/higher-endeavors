@@ -53,7 +53,10 @@ export const exerciseSchema = z.object({
 // Program settings schema
 export const programSettingsSchema = z.object({
   name: z.string().min(1, 'Program name is required'),
-  phaseFocus: z.enum(['GPP', 'Strength', 'Hypertrophy', 'Intensification', 'Accumulation']),
+  phaseFocus: z.union([
+    z.enum(['GPP', 'Strength', 'Hypertrophy', 'Power', 'Endurance', 'Recovery', 'Intensification', 'Accumulation']),
+    z.string().min(1, 'Custom phase focus is required')
+  ]),
   periodizationType: z.enum(['None', 'Linear', 'Undulating', 'Custom']),
   progressionRules: z.object({
     type: z.enum(['None', 'Linear', 'Undulating', 'Custom']),

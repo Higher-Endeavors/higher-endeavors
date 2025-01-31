@@ -4,7 +4,7 @@ import { z } from 'zod';
  * Regular expression patterns for validation
  */
 // Validates exercise pairing format: single letter A-Z followed by 1-2 digits, or WU/CD for warm-up/cool-down
-const PAIRING_REGEX = /^([A-Z]|WU|CD)\d{1,2}$/;
+const PAIRING_REGEX = /^([A-Z]\d{1,2}|WU|CD)$/;
 
 // Validates tempo format: 4 digits where 'X' is allowed (typically in third position for explosive movements)
 const TEMPO_REGEX = /^[0-9X][0-9][0-9X][0-9]$/;
