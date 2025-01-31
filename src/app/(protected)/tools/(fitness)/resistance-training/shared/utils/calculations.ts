@@ -203,4 +203,92 @@ export const calculateSessionDuration = (exercises: Exercise[]): number => {
       return total + exerciseTime;
     }
   }, 0);
+};
+
+export interface VolumeAdjustment {
+  sets?: number;
+  reps?: number;
+}
+
+export const calculateLinearProgression = (
+  baseExercise: Exercise,
+  weekNumber: number,
+  volumeIncrementPercentage: number
+): VolumeAdjustment => {
+  // No adjustment for week 1 or when volume increment is 0
+  if (weekNumber === 1 || volumeIncrementPercentage === 0) {
+    return {
+      sets: baseExercise.sets,
+      reps: baseExercise.reps
+    };
+  }
+
+  // Calculate target volume increase
+  const baseVolume = baseExercise.sets * baseExercise.reps;
+  // Calculate cumulative increase for the current week (e.g., 10%, 20%, 30%)
+  const cumulativeIncrease = volumeIncrementPercentage * (weekNumber - 1);
+  const targetVolume = baseVolume * (1 + (cumulativeIncrease / 100));
+  
+  // Calculate target reps per set to achieve the volume
+  const targetRepsPerSet = Math.round(targetVolume / baseExercise.sets);
+
+  console.log(`Week ${weekNumber} progression:`, {
+    baseVolume,
+    volumeIncrementPercentage,
+    cumulativeIncrease,
+    targetVolume,
+    targetRepsPerSet
+  });
+
+  // Always try to achieve the target volume by adjusting reps first
+  return {
+    sets: baseExercise.sets,
+    reps: targetRepsPerSet
+  };
+};
+
+export const applyLinearProgression = (
+  exercise: Exercise,
+  weekNumber: number,
+  volumeIncrementPercentage: number,
+  loadIncrementPercentage: number
+): Exercise => {
+  // For week 1, return the exercise as is
+  if (weekNumber === 1) return exercise;
+
+  // Calculate volume adjustments
+  const volumeAdjustment = calculateLinearProgression(
+    exercise,
+    weekNumber,
+    volumeIncrementPercentage
+  );
+
+  // Handle load adjustments
+  let loadAdjustment = exercise.load;
+  
+  // Only adjust load if:
+  // 1. loadIncrementPercentage is explicitly greater than 0
+  // 2. exercise.load is a number (not a band color)
+  // 3. We're past week 1
+  if (loadIncrementPercentage > 0 && typeof exercise.load === 'number' && weekNumber > 1) {
+    const cumulativeLoadIncrease = loadIncrementPercentage * (weekNumber - 1);
+    const rawAdjustedLoad = exercise.load * (1 + (cumulativeLoadIncrease / 100));
+    
+    // Round to nearest 5
+    loadAdjustment = Math.round(rawAdjustedLoad / 5) * 5;
+  }
+
+  console.log(`Week ${weekNumber} load progression:`, {
+    originalLoad: exercise.load,
+    loadIncrementPercentage,
+    adjustedLoad: loadAdjustment,
+    weekNumber
+  });
+
+  return {
+    ...exercise,
+    sets: volumeAdjustment.sets || exercise.sets,
+    reps: volumeAdjustment.reps || exercise.reps,
+    load: loadAdjustment
+  };
 }; 

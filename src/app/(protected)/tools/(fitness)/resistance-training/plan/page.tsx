@@ -12,7 +12,7 @@ import ProgramSettings from './components/ProgramSettings';
 import VolumeTargets from './components/VolumeTargets';
 import WeekProgram from './components/WeekProgram';
 import { Program, Exercise, VolumeTarget } from '../shared/types';
-import { calculateSessionVolume, calculateSessionDuration } from '../shared/utils/calculations';
+import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
 
@@ -222,12 +222,27 @@ export default function PlanPage() {
           );
         }
 
-        // Mirror Week 1's exercises to all other weeks
-        for (let week = 2; week <= programLength; week++) {
-          newWeekExercises[week] = newWeekExercises[1].map(ex => ({
-            ...ex,
-            id: `${ex.id.split('-week')[0]}-week${week}`
-          }));
+        // Mirror Week 1's exercises to all other weeks with progression applied
+        if (program.periodizationType === 'Linear') {
+          for (let week = 2; week <= programLength; week++) {
+            newWeekExercises[week] = newWeekExercises[1].map(ex => ({
+              ...applyLinearProgression(
+                ex,
+                week,
+                program.progressionRules.settings.volumeIncrementPercentage ?? 0,
+                program.progressionRules.settings.loadIncrementPercentage ?? 0
+              ),
+              id: `${ex.id.split('-week')[0]}-week${week}`
+            }));
+          }
+        } else {
+          // For other periodization types, just copy Week 1
+          for (let week = 2; week <= programLength; week++) {
+            newWeekExercises[week] = newWeekExercises[1].map(ex => ({
+              ...ex,
+              id: `${ex.id.split('-week')[0]}-week${week}`
+            }));
+          }
         }
         
         return newWeekExercises;
@@ -284,8 +299,20 @@ export default function PlanPage() {
 
   // Program settings management
   const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    console.log('Settings changed:', settings); // Debug log
+    console.log('Settings received:', settings);
+    
     setProgram(prev => {
+      // Extract progression settings
+      const volumeIncrement = settings.progressionRules?.settings?.volumeIncrementPercentage;
+      const loadIncrement = settings.progressionRules?.settings?.loadIncrementPercentage;
+      const programLength = settings.progressionRules?.settings?.programLength;
+
+      console.log('Updating progression settings:', {
+        volumeIncrement,
+        loadIncrement,
+        programLength
+      });
+
       const newProgram = {
         ...prev,
         name: settings.name ?? prev.name,
@@ -296,12 +323,48 @@ export default function PlanPage() {
           type: settings.periodizationType ?? prev.progressionRules.type,
           settings: {
             ...prev.progressionRules.settings,
-            ...(settings.progressionRules?.settings ?? {})
+            volumeIncrementPercentage: volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage,
+            loadIncrementPercentage: loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage,
+            programLength: programLength ?? prev.progressionRules.settings.programLength
           }
         }
       };
-      console.log('New program state:', newProgram); // Debug log
-      return newProgram;
+
+      // Immediately update week exercises if progression settings changed
+      if (volumeIncrement !== undefined || loadIncrement !== undefined) {
+        const newVolumeIncrement = volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage;
+        const newLoadIncrement = loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage;
+        const length = programLength ?? prev.progressionRules.settings.programLength ?? 4;
+        
+        setWeekExercises(prevWeeks => {
+          const newWeekExercises = { ...prevWeeks };
+
+          // Keep week 1 as is
+          if (!newWeekExercises[1]) {
+            newWeekExercises[1] = prev.exercises;
+          }
+
+          // Recalculate all other weeks
+          for (let week = 2; week <= length; week++) {
+            if (prev.periodizationType === 'Linear') {
+              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
+                ...applyLinearProgression(
+                  ex,
+                  week,
+                  newVolumeIncrement,
+                  newLoadIncrement
+                ),
+                id: `${ex.id.split('-week')[0]}-week${week}`
+              }));
+            }
+          }
+
+          return newWeekExercises;
+        });
+      }
+
+      console.log('Updated program state:', newProgram);
+      return newProgram as Program; // Type assertion to satisfy the compiler
     });
   };
 
@@ -348,6 +411,15 @@ export default function PlanPage() {
   // Watch for program length changes
   useEffect(() => {
     const programLength = program.progressionRules.settings.programLength || 4;
+    const volumeIncrement = program.progressionRules.settings.volumeIncrementPercentage ?? 0;
+    const loadIncrement = program.progressionRules.settings.loadIncrementPercentage ?? 0;
+    
+    console.log('Program settings:', {
+      programLength,
+      volumeIncrement,
+      loadIncrement,
+      periodizationType: program.periodizationType
+    });
     
     // If active week is beyond the new program length, set it to the last week
     if (activeWeek > programLength) {
@@ -355,40 +427,97 @@ export default function PlanPage() {
     }
     
     // Update week exercises
-    const newWeekExercises = { ...weekExercises };
+    setWeekExercises(prev => {
+      const newWeekExercises = { ...prev };
 
-    // Ensure we have entries for all weeks
-    for (let i = 1; i <= programLength; i++) {
-      if (!newWeekExercises[i]) {
-        // For week 1, use program.exercises
-        if (i === 1) {
-          newWeekExercises[1] = program.exercises;
-        } else {
-          // For other weeks, copy from week 1 but adjust based on periodization
-          newWeekExercises[i] = program.exercises.map(exercise => ({
-            ...exercise,
-            id: `${exercise.id}-week${i}` // Ensure unique IDs across weeks
-          }));
+      // Ensure we have entries for all weeks
+      for (let i = 1; i <= programLength; i++) {
+        if (!newWeekExercises[i]) {
+          // For week 1, use program.exercises
+          if (i === 1) {
+            newWeekExercises[1] = program.exercises;
+          } else {
+            // For other weeks, apply progression based on the type
+            if (program.periodizationType === 'Linear') {
+              console.log(`Applying progression for week ${i}:`, {
+                volumeIncrement,
+                loadIncrement
+              });
+              
+              newWeekExercises[i] = program.exercises.map(exercise => {
+                const progressed = applyLinearProgression(
+                  exercise,
+                  i,
+                  volumeIncrement,
+                  loadIncrement
+                );
+                console.log(`Week ${i} exercise progression:`, {
+                  before: {
+                    sets: exercise.sets,
+                    reps: exercise.reps,
+                    load: exercise.load
+                  },
+                  after: {
+                    sets: progressed.sets,
+                    reps: progressed.reps,
+                    load: progressed.load
+                  }
+                });
+                return {
+                  ...progressed,
+                  id: `${exercise.id}-week${i}`
+                };
+              });
+            } else {
+              // For other periodization types, just copy Week 1
+              newWeekExercises[i] = program.exercises.map(exercise => ({
+                ...exercise,
+                id: `${exercise.id}-week${i}`
+              }));
+            }
+          }
         }
       }
-    }
 
-    // Remove entries for weeks that no longer exist
-    Object.keys(newWeekExercises).forEach(week => {
-      if (Number(week) > programLength) {
-        delete newWeekExercises[Number(week)];
-      }
+      // Remove entries for weeks that no longer exist
+      Object.keys(newWeekExercises).forEach(week => {
+        if (Number(week) > programLength) {
+          delete newWeekExercises[Number(week)];
+        }
+      });
+
+      return newWeekExercises;
     });
-
-    setWeekExercises(newWeekExercises);
-  }, [program.progressionRules.settings.programLength]);
+  }, [program.progressionRules.settings.programLength, program.exercises, program.periodizationType, program.progressionRules.settings.volumeIncrementPercentage, program.progressionRules.settings.loadIncrementPercentage]);
 
   // Update exercises for the active week
   const handleWeekExercisesChange = (exercises: Exercise[]) => {
-    setWeekExercises(prev => ({
-      ...prev,
-      [activeWeek]: exercises
-    }));
+    setWeekExercises(prev => {
+      const newWeekExercises = { ...prev };
+      
+      // If this is Week 1 and we're using Linear Progression, update all subsequent weeks
+      if (activeWeek === 1 && program.periodizationType === 'Linear') {
+        newWeekExercises[1] = exercises;
+        
+        const programLength = program.progressionRules.settings.programLength || 4;
+        for (let week = 2; week <= programLength; week++) {
+          newWeekExercises[week] = exercises.map(exercise => ({
+            ...applyLinearProgression(
+              exercise,
+              week,
+              program.progressionRules.settings.volumeIncrementPercentage || 5,
+              program.progressionRules.settings.loadIncrementPercentage || 2.5
+            ),
+            id: `${exercise.id.split('-week')[0]}-week${week}`
+          }));
+        }
+      } else {
+        // For other weeks or non-Linear progression, just update the current week
+        newWeekExercises[activeWeek] = exercises;
+      }
+      
+      return newWeekExercises;
+    });
   };
 
   return (

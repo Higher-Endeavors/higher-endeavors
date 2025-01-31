@@ -242,6 +242,38 @@ export default function ProgramSettings({
                     <input
                       {...field}
                       type="number"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string for in-progress typing
+                        field.onChange(value === '' ? '' : Number(value));
+                        // Only update settings if we have a valid number
+                        if (value !== '') {
+                          onSettingsChange({
+                            progressionRules: {
+                              type: currentPeriodizationType,
+                              settings: {
+                                volumeIncrementPercentage: Number(value)
+                              }
+                            }
+                          });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        // On blur, if empty, revert to default
+                        if (value === '') {
+                          const defaultValue = 5;
+                          field.onChange(defaultValue);
+                          onSettingsChange({
+                            progressionRules: {
+                              type: currentPeriodizationType,
+                              settings: {
+                                volumeIncrementPercentage: defaultValue
+                              }
+                            }
+                          });
+                        }
+                      }}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                       placeholder="5"
                       min="0"
@@ -269,6 +301,38 @@ export default function ProgramSettings({
                     <input
                       {...field}
                       type="number"
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty string for in-progress typing
+                        field.onChange(value === '' ? '' : Number(value));
+                        // Only update settings if we have a valid number
+                        if (value !== '') {
+                          onSettingsChange({
+                            progressionRules: {
+                              type: currentPeriodizationType,
+                              settings: {
+                                loadIncrementPercentage: Number(value)
+                              }
+                            }
+                          });
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        // On blur, if empty, revert to default
+                        if (value === '') {
+                          const defaultValue = 2.5;
+                          field.onChange(defaultValue);
+                          onSettingsChange({
+                            progressionRules: {
+                              type: currentPeriodizationType,
+                              settings: {
+                                loadIncrementPercentage: defaultValue
+                              }
+                            }
+                          });
+                        }
+                      }}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                       placeholder="2.5"
                       min="0"
