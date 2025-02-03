@@ -16,6 +16,8 @@ import { calculateSessionVolume, calculateSessionDuration, applyLinearProgressio
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import { Toast } from 'flowbite-react';
+import { HiCheck, HiX } from 'react-icons/hi';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
@@ -70,6 +72,9 @@ export default function PlanPage() {
   const [mounted, setMounted] = useState(false);
   const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
   const [activeWeek, setActiveWeek] = useState(1);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [showErrorToast, setShowErrorToast] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Load muscle groups on mount
   useEffect(() => {
@@ -311,89 +316,15 @@ export default function PlanPage() {
 
   // Program settings management
   const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    console.log('Settings received:', settings);
-    
-    setProgram(prev => {
-      // Extract progression settings
-      const volumeIncrement = settings.progressionRules?.settings?.volumeIncrementPercentage;
-      const loadIncrement = settings.progressionRules?.settings?.loadIncrementPercentage;
-      const programLength = settings.progressionRules?.settings?.programLength;
-      const weeklyVolumePercentages = settings.progressionRules?.settings?.weeklyVolumePercentages;
-      const newPeriodizationType = settings.periodizationType ?? prev.periodizationType;
-
-      console.log('Updating progression settings:', {
-        volumeIncrement,
-        loadIncrement,
-        programLength,
-        weeklyVolumePercentages,
-        newPeriodizationType
-      });
-
-      const newProgram = {
-        ...prev,
-        name: settings.name ?? prev.name,
-        phaseFocus: settings.phaseFocus ?? prev.phaseFocus,
-        periodizationType: newPeriodizationType,
-        progressionRules: {
-          ...prev.progressionRules,
-          type: newPeriodizationType,
-          settings: {
-            ...prev.progressionRules.settings,
-            volumeIncrementPercentage: volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage,
-            loadIncrementPercentage: loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage,
-            programLength: programLength ?? prev.progressionRules.settings.programLength,
-            weeklyVolumePercentages: weeklyVolumePercentages ?? prev.progressionRules.settings.weeklyVolumePercentages
-          }
-        }
-      };
-
-      // Immediately update week exercises if progression settings or type changed
-      if (settings.periodizationType || volumeIncrement !== undefined || loadIncrement !== undefined || weeklyVolumePercentages) {
-        const length = programLength ?? prev.progressionRules.settings.programLength ?? 4;
-        
-        setWeekExercises(prevWeeks => {
-          const newWeekExercises = { ...prevWeeks };
-
-          // Keep week 1 as is
-          if (!newWeekExercises[1]) {
-            newWeekExercises[1] = prev.exercises;
-          }
-
-          // Recalculate all other weeks based on the new periodization type
-          for (let week = 2; week <= length; week++) {
-            if (newPeriodizationType === 'Linear') {
-              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
-                ...applyLinearProgression(
-                  ex,
-                  week,
-                  volumeIncrement ?? prev.progressionRules.settings.volumeIncrementPercentage ?? 0,
-                  loadIncrement ?? prev.progressionRules.settings.loadIncrementPercentage ?? 0
-                ),
-                id: `${ex.id.split('-week')[0]}-week${week}`
-              }));
-            } else if (newPeriodizationType === 'Undulating') {
-              const weeklyPercentages = weeklyVolumePercentages ?? prev.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
-              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
-                ...ex,
-                id: `${ex.id.split('-week')[0]}-week${week}`,
-                reps: Math.round(ex.reps * (weeklyPercentages[week - 1] / 100))
-              }));
-            } else {
-              // For other periodization types, just copy Week 1
-              newWeekExercises[week] = (newWeekExercises[1] || []).map(ex => ({
-                ...ex,
-                id: `${ex.id.split('-week')[0]}-week${week}`
-              }));
-            }
-          }
-
-          return newWeekExercises;
-        });
-      }
-
-      console.log('Updated program state:', newProgram);
-      return newProgram as Program;
-    });
+    console.log('Settings changed:', settings);
+    setProgram(prev => ({
+      ...prev,
+      ...settings,
+      progressionRules: settings.progressionRules ? {
+        ...prev.progressionRules,
+        ...settings.progressionRules
+      } : prev.progressionRules
+    }));
   };
 
   // Volume targets management
@@ -408,24 +339,116 @@ export default function PlanPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch('/api/resistance-programs', {
-        method: program.id ? 'PUT' : 'POST',
+      console.log('Current program state:', program);
+      console.log('Program name:', program.name);
+
+      // Client-side validation
+      if (!program.name?.trim()) {
+        const error = 'Please enter a program name';
+        setErrorMessage(error);
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+        return; // Return instead of throwing
+      }
+
+      // Transform the program data into the format expected by the API
+      const weeks = Array.from(
+        { length: program.progressionRules.settings.programLength || 4 },
+        (_, weekIndex) => {
+          const weekNumber = weekIndex + 1;
+          const weekExerciseList = weekExercises[weekNumber] || [];
+          
+          // Group exercises by day (assuming exercises are named with day numbers)
+          const exercisesByDay = weekExerciseList.reduce((acc, exercise) => {
+            const dayMatch = exercise.id.match(/day(\d+)/);
+            const dayNumber = dayMatch ? parseInt(dayMatch[1]) : 1;
+            
+            if (!acc[dayNumber]) {
+              acc[dayNumber] = [];
+            }
+            acc[dayNumber].push(exercise);
+            return acc;
+          }, {} as Record<number, any[]>);
+
+          // Create days array
+          const days = Object.entries(exercisesByDay).map(([dayNumber, exercises]) => ({
+            dayNumber: parseInt(dayNumber),
+            dayName: `Day ${dayNumber}`,
+            exercises: exercises.map((exercise, index) => ({
+              source: 'library', // or 'user' if it's a custom exercise
+              libraryId: exercise.libraryId,
+              userExerciseId: exercise.userExerciseId,
+              customName: exercise.customName,
+              pairing: exercise.pairing,
+              notes: exercise.notes,
+              orderIndex: index,
+              sets: Array.from({ length: exercise.sets }, (_, setIndex) => ({
+                setNumber: setIndex + 1,
+                reps: exercise.reps,
+                load: exercise.load,
+                loadUnit: exercise.loadUnit || 'lbs',
+                rest: exercise.rest,
+                tempo: exercise.tempo,
+                notes: ''
+              }))
+            }))
+          }));
+
+          return {
+            weekNumber,
+            notes: '',
+            days
+          };
+        }
+      );
+
+      const programData = {
+        name: program.name.trim(),
+        periodizationType: program.periodizationType,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+        notes: '',
+        weeks
+      };
+
+      console.log('Sending program data:', programData);
+
+      const response = await fetch('/api/resistance-training/program', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(program),
+        body: JSON.stringify(programData),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to save program');
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        const error = `Invalid response from server: ${responseText}`;
+        setErrorMessage(error);
+        throw new Error(error);
       }
 
-      const data = await response.json();
-      if (!program.id) {
-        setProgram(prev => ({ ...prev, id: data.id }));
+      if (!response.ok) {
+        const error = result.details?.name || result.error || 'Failed to save program';
+        setErrorMessage(error);
+        throw new Error(error);
       }
+
+      console.log('Program saved successfully:', result);
+
+      setShowSuccessToast(true);
+      setTimeout(() => setShowSuccessToast(false), 3000);
+
     } catch (error) {
       console.error('Error saving program:', error);
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
     } finally {
       setIsSaving(false);
     }
@@ -708,6 +731,32 @@ export default function PlanPage() {
           </div>
         </DragOverlay>,
         document.body
+      )}
+
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
+              <HiCheck className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">Program saved successfully</div>
+          </Toast>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {showErrorToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
+              <HiX className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">
+              {errorMessage || 'Failed to save program. Please try again.'}
+            </div>
+          </Toast>
+        </div>
       )}
     </div>
   );
