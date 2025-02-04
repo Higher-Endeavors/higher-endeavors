@@ -20,6 +20,7 @@ import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import UserSelector from '@/app/components/UserSelector';
 import { useSession, SessionProvider } from 'next-auth/react';
+import ProgramBrowser from './components/ProgramBrowser';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
@@ -713,6 +714,73 @@ function PlanPageContent() {
     setWeekExercises({});
   };
 
+  const handleProgramSelect = (selectedProgram: SavedProgram) => {
+    // Set program state
+    setProgram({
+      ...selectedProgram,
+      exercises: [], // We'll load these separately
+      progressionRules: selectedProgram.progressionRules || {
+        type: selectedProgram.periodizationType,
+        settings: {
+          volumeIncrementPercentage: 5,
+          loadIncrementPercentage: 2.5,
+          programLength: 4,
+          weeklyVolumePercentages: [100, 80, 90, 60]
+        }
+      }
+    });
+
+    // Load program weeks and exercises
+    loadProgramExercises(selectedProgram.id);
+  };
+
+  const loadProgramExercises = async (programId: string) => {
+    try {
+      const response = await fetch(`/api/resistance-training/program/${programId}`);
+      if (!response.ok) throw new Error('Failed to load program exercises');
+      
+      const data = await response.json();
+      
+      // Transform the data into our week exercises format
+      const newWeekExercises: { [key: number]: Exercise[] } = {};
+      
+      data.weeks.forEach((week: any) => {
+        const weekExercises: Exercise[] = [];
+        week.days.forEach((day: any) => {
+          day.exercises.forEach((exercise: any) => {
+            weekExercises.push({
+              id: `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
+              name: exercise.customName || exercise.name,
+              pairing: exercise.pairing,
+              sets: exercise.sets.length,
+              reps: exercise.sets[0]?.reps || 0,
+              load: exercise.sets[0]?.load || 0,
+              loadUnit: exercise.sets[0]?.loadUnit || 'lbs',
+              tempo: exercise.sets[0]?.tempo || '2010',
+              rest: exercise.sets[0]?.rest || 60,
+              notes: exercise.notes || '',
+              source: exercise.source,
+              libraryId: exercise.libraryId,
+              userExerciseId: exercise.userExerciseId,
+              customName: exercise.customName,
+              isVariedSets: false,
+              isAdvancedSets: false
+            });
+          });
+        });
+        newWeekExercises[week.weekNumber] = weekExercises;
+      });
+
+      setWeekExercises(newWeekExercises);
+    } catch (error) {
+      console.error('Error loading program exercises:', error);
+      // Show error toast
+      setErrorMessage('Failed to load program exercises');
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
@@ -728,6 +796,15 @@ function PlanPageContent() {
           />
         </div>
       )}
+
+      {/* Program Browser */}
+      <div className="mb-6">
+        <ProgramBrowser
+          onProgramSelect={handleProgramSelect}
+          currentUserId={selectedUserId || parseInt(session?.user?.id)}
+          isAdmin={isAdmin}
+        />
+      </div>
 
       <div className="mb-6">
         <div className="bg-white rounded-lg shadow p-6">
