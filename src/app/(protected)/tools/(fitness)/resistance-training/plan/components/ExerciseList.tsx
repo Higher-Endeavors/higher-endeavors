@@ -22,6 +22,8 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
   const { settings: userSettings } = useUserSettings();
   const [menuOpen, setMenuOpen] = useState<MenuState>({});
 
+  console.log('Exercise data:', JSON.stringify(exercise, null, 2));
+
   const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
     if (typeof load === 'number') {
       const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';

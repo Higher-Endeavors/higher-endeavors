@@ -83,6 +83,24 @@ export default function WeekProgram({
     });
   };
 
+  const ExerciseRow = ({ exercise }: { exercise: Exercise }) => {
+    return (
+      <tr className="border-b dark:border-gray-700">
+        <td className="px-4 py-2">{exercise.pairing}</td>
+        <td className="px-4 py-2">{exercise.name || 'Unnamed Exercise'}</td>
+        <td className="px-4 py-2">{`${exercise.sets || 0} x ${exercise.reps || 0}`}</td>
+        <td className="px-4 py-2">
+          {typeof exercise.load === 'number' 
+            ? `${exercise.load || 0} ${exercise.loadUnit || 'lbs'}`
+            : exercise.load || 'BW'}
+        </td>
+        <td className="px-4 py-2">{exercise.tempo || '2010'}</td>
+        <td className="px-4 py-2">{`${exercise.rest || 0}s`}</td>
+        <td className="px-4 py-2">{exercise.notes || ''}</td>
+      </tr>
+    );
+  };
+
   return (
     <div>
       <DndContext

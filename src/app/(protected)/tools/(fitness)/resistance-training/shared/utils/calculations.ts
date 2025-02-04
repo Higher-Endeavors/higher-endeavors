@@ -32,52 +32,29 @@ const convertWeight = (weight: number, fromUnit: 'kg' | 'lbs', toUnit: 'kg' | 'l
   return fromUnit === 'kg' ? weight * KG_TO_LBS : weight * LBS_TO_KG;
 };
 
-export const calculateSessionVolume = (exercises: Exercise[], preferredUnit: 'kg' | 'lbs' = 'kg'): VolumeMetrics => {
+export const calculateSessionVolume = (exercises: Exercise[], weightUnit: string = 'kg') => {
+  let totalSets = 0;
   let totalReps = 0;
   let totalLoad = 0;
 
-  exercises.forEach((exercise) => {
-    if (exercise.setDetails) {
-      exercise.setDetails.forEach((set) => {
-        if (Array.isArray(set)) {
-          set.forEach((subSet) => {
-            const load = getNumericLoad(subSet.load);
-            if (load > 0) {
-              totalReps += subSet.reps;
-              const convertedLoad = subSet.loadUnit && subSet.loadUnit !== preferredUnit
-                ? convertWeight(load, subSet.loadUnit, preferredUnit)
-                : load;
-              totalLoad += convertedLoad * subSet.reps;
-            }
-          });
-        } else {
-          const load = getNumericLoad(set.load);
-          if (load > 0) {
-            totalReps += set.reps;
-            const convertedLoad = set.loadUnit && set.loadUnit !== preferredUnit
-              ? convertWeight(load, set.loadUnit, preferredUnit)
-              : load;
-            totalLoad += convertedLoad * set.reps;
-          }
-        }
-      });
-    } else {
-      // Regular exercise calculation
-      const exerciseReps = exercise.sets * exercise.reps;
-      totalReps += exerciseReps;
-      const numericLoad = getNumericLoad(exercise.load);
-      if (numericLoad > 0) {
-        const convertedLoad = exercise.loadUnit && exercise.loadUnit !== preferredUnit
-          ? convertWeight(numericLoad, exercise.loadUnit, preferredUnit)
-          : numericLoad;
-        totalLoad += convertedLoad * exerciseReps;
-      }
+  exercises.forEach(exercise => {
+    const sets = Number(exercise.sets) || 0;
+    const reps = Number(exercise.reps) || 0;
+    const load = typeof exercise.load === 'number' ? exercise.load : 0;
+
+    totalSets += sets;
+    totalReps += sets * reps;
+
+    // Only add to total load if the load is numeric
+    if (typeof load === 'number' && !isNaN(load)) {
+      totalLoad += sets * reps * load;
     }
   });
 
   return {
-    totalReps,
-    totalLoad
+    totalSets: isNaN(totalSets) ? 0 : totalSets,
+    totalReps: isNaN(totalReps) ? 0 : totalReps,
+    totalLoad: isNaN(totalLoad) ? 0 : totalLoad
   };
 };
 
@@ -171,26 +148,19 @@ export const calculateExerciseTUT = (exercise: Exercise): number => {
   }
 };
 
-export const calculateSessionDuration = (exercises: Exercise[]): number => {
-  return exercises.reduce((total, exercise) => {
-    if (exercise.isVariedSets && exercise.setDetails) {
-      return total + exercise.setDetails.reduce((setTotal, set) => {
-        const tempoTotal = calculateTempoTotal(set.tempo);
-        
-        if (!set.subSets?.length) {
-          return setTotal + (tempoTotal * set.reps) + (set.rest || 0);
-        } else {
-          return setTotal + set.subSets.reduce((subTotal, subSet) => {
-            return subTotal + (tempoTotal * subSet.reps) + subSet.rest;
-          }, 0);
-        }
-      }, 0);
-    } else {
-      const exerciseTime = (calculateExerciseTUT(exercise) * exercise.sets) + 
-        ((exercise.sets - 1) * exercise.rest);
-      return total + exerciseTime;
-    }
-  }, 0);
+export const calculateSessionDuration = (exercises: Exercise[]) => {
+  let totalDuration = 0;
+
+  exercises.forEach(exercise => {
+    const sets = Number(exercise.sets) || 0;
+    const rest = Number(exercise.rest) || 0;
+    // Assume each set takes about 45 seconds to complete
+    const setDuration = 45;
+    
+    totalDuration += sets * (setDuration + rest);
+  });
+
+  return isNaN(totalDuration) ? 0 : Math.round(totalDuration / 60); // Convert to minutes
 };
 
 export interface VolumeAdjustment {
@@ -241,42 +211,22 @@ export const applyLinearProgression = (
   volumeIncrementPercentage: number,
   loadIncrementPercentage: number
 ): Exercise => {
-  // For week 1, return the exercise as is
-  if (weekNumber === 1) return exercise;
-
-  // Calculate volume adjustments
-  const volumeAdjustment = calculateLinearProgression(
-    exercise,
-    weekNumber,
-    volumeIncrementPercentage
-  );
-
-  // Handle load adjustments
-  let loadAdjustment = exercise.load;
+  const baseReps = Number(exercise.reps) || 0;
+  const baseLoad = typeof exercise.load === 'number' ? exercise.load : 0;
   
-  // Only adjust load if:
-  // 1. loadIncrementPercentage is explicitly greater than 0
-  // 2. exercise.load is a number (not a band color)
-  // 3. We're past week 1
-  if (loadIncrementPercentage > 0 && typeof exercise.load === 'number' && weekNumber > 1) {
-    const cumulativeLoadIncrease = loadIncrementPercentage * (weekNumber - 1);
-    const rawAdjustedLoad = exercise.load * (1 + (cumulativeLoadIncrease / 100));
-    
-    // Round to nearest 5
-    loadAdjustment = Math.round(rawAdjustedLoad / 5) * 5;
-  }
+  // Calculate increments
+  const volumeMultiplier = 1 + ((weekNumber - 1) * (volumeIncrementPercentage / 100));
+  const loadMultiplier = 1 + ((weekNumber - 1) * (loadIncrementPercentage / 100));
 
-  console.log(`Week ${weekNumber} load progression:`, {
-    originalLoad: exercise.load,
-    loadIncrementPercentage,
-    adjustedLoad: loadAdjustment,
-    weekNumber
-  });
+  // Apply progression
+  const newReps = Math.max(1, Math.round(baseReps * volumeMultiplier));
+  const newLoad = typeof exercise.load === 'number' 
+    ? Math.round(baseLoad * loadMultiplier * 100) / 100 
+    : exercise.load;
 
   return {
     ...exercise,
-    sets: volumeAdjustment.sets || exercise.sets,
-    reps: volumeAdjustment.reps || exercise.reps,
-    load: loadAdjustment
+    reps: isNaN(newReps) ? baseReps : newReps,
+    load: typeof newLoad === 'number' && isNaN(newLoad) ? baseLoad : newLoad
   };
 }; 

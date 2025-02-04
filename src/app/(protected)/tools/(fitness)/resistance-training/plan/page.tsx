@@ -101,18 +101,46 @@ function PlanPageContent() {
   const [showErrorToast, setShowErrorToast] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Load muscle groups on mount
+  // Load exercise library on mount
   useEffect(() => {
-    const fetchExerciseLibrary = async () => {
+    const loadExerciseLibrary = async () => {
       try {
         const response = await fetch('/api/exercises');
+        if (!response.ok) {
+          throw new Error('Failed to fetch exercise library');
+        }
         const data = await response.json();
-        setExerciseLibrary(data);
+        console.log('Loaded exercise library:', data);
+        
+        if (!Array.isArray(data)) {
+          throw new Error('Invalid exercise library data format');
+        }
+        
+        // Map the data to ensure all required fields are present
+        const formattedData = data.map((exercise: any) => ({
+          id: exercise.id,
+          exercise_name: exercise.exercise_name || 'Unknown Exercise',
+          difficulty_id: exercise.difficulty_id || 1,
+          target_muscle_group_id: exercise.target_muscle_group_id || 1,
+          prime_mover_muscle_id: exercise.prime_mover_muscle_id || 1,
+          exercise_type: exercise.exercise_type || 'strength',
+          description: exercise.description || '',
+          instructions: exercise.instructions || '',
+          tips: exercise.tips || '',
+          video_url: exercise.video_url || '',
+          image_url: exercise.image_url || ''
+        }));
+        
+        setExerciseLibrary(formattedData);
       } catch (error) {
-        console.error('Error fetching exercise library:', error);
+        console.error('Error loading exercise library:', error);
+        setErrorMessage(error instanceof Error ? error.message : 'Failed to load exercise library');
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
       }
     };
-    fetchExerciseLibrary();
+
+    loadExerciseLibrary();
   }, []);
 
   useEffect(() => {
@@ -210,11 +238,21 @@ function PlanPageContent() {
     setSelectedExerciseName(exerciseName);
     setIsExerciseSearchOpen(false);
     setIsAdvancedSearchOpen(false);
-    if (editingExercise) {
-      setEditingExercise({
+    
+    // Find the selected exercise in the library
+    const selectedLibraryExercise = exerciseLibrary.find(ex => ex.exercise_name === exerciseName);
+    console.log('Selected library exercise:', selectedLibraryExercise);
+    
+    if (editingExercise && selectedLibraryExercise) {
+      const updatedExercise = {
         ...editingExercise,
-        name: exerciseName
-      });
+        name: exerciseName,
+        source: 'library',
+        libraryId: selectedLibraryExercise.id,
+        customName: undefined
+      };
+      console.log('Updated exercise data:', updatedExercise);
+      setEditingExercise(updatedExercise);
     }
   };
 
@@ -235,21 +273,41 @@ function PlanPageContent() {
   };
 
   const handleSaveExercise = (exercise: Exercise) => {
+    console.log('Received exercise data in handleSaveExercise:', exercise);
+    
     // Get the week number from the exercise ID if it exists
     const weekMatch = exercise.id.match(/-week(\d+)$/);
     const weekNumber = weekMatch ? parseInt(weekMatch[1]) : 1;
     const baseId = exercise.id.split('-week')[0];
+
+    // Find the library exercise to ensure we have the correct ID
+    const libraryExercise = exerciseLibrary.find(ex => ex.exercise_name === exercise.name);
+    console.log('Found library exercise:', libraryExercise);
+    
+    // Ensure sets is a number and exercise data is properly formatted
+    const exerciseWithNumberSets = {
+      ...exercise,
+      sets: typeof exercise.sets === 'number' ? exercise.sets : exercise.setDetails?.length || 3,
+      source: 'library',
+      libraryId: libraryExercise?.id,  // Use only the library ID, no fallback
+      customName: undefined,  // Clear customName for library exercises
+      name: exercise.name || '',
+      loadUnit: exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs'
+    };
+
+    console.log('Formatted exercise data:', exerciseWithNumberSets);
 
     // If this is Week 1 or a new exercise, update program exercises and mirror to all weeks
     if (weekNumber === 1 || !weekMatch) {
       // Update program exercises
       setProgram((prev: Program) => {
         const updatedExercises = prev.exercises.map(ex =>
-          ex.id === baseId ? exercise : ex
+          ex.id === baseId ? exerciseWithNumberSets : ex
         ).concat(
-          prev.exercises.find(ex => ex.id === baseId) ? [] : [exercise]
+          prev.exercises.find(ex => ex.id === baseId) ? [] : [exerciseWithNumberSets]
         );
 
+        console.log('Updated program exercises:', updatedExercises);
         return {
           ...prev,
           exercises: updatedExercises
@@ -263,12 +321,14 @@ function PlanPageContent() {
         
         // Update Week 1
         if (!prev[1]?.find(ex => ex.id === baseId)) {
-          newWeekExercises[1] = [...(prev[1] || []), exercise];
+          newWeekExercises[1] = [...(prev[1] || []), exerciseWithNumberSets];
         } else {
           newWeekExercises[1] = prev[1].map(ex =>
-            ex.id === baseId ? exercise : ex
+            ex.id === baseId ? exerciseWithNumberSets : ex
           );
         }
+
+        console.log('Week 1 exercises:', newWeekExercises[1]);
 
         // Mirror Week 1's exercises to all other weeks with progression applied
         if (program.periodizationType === 'Linear') {
@@ -280,7 +340,8 @@ function PlanPageContent() {
                 program.progressionRules.settings.volumeIncrementPercentage ?? 0,
                 program.progressionRules.settings.loadIncrementPercentage ?? 0
               ),
-              id: `${ex.id.split('-week')[0]}-week${week}`
+              id: `${ex.id.split('-week')[0]}-week${week}`,
+              libraryId: ex.libraryId  // Preserve libraryId during progression
             }));
           }
         } else {
@@ -300,7 +361,7 @@ function PlanPageContent() {
       setWeekExercises(prev => {
         const newWeekExercises = { ...prev };
         newWeekExercises[weekNumber] = prev[weekNumber].map(ex =>
-          ex.id === exercise.id ? exercise : ex
+          ex.id === exercise.id ? exerciseWithNumberSets : ex
         );
         return newWeekExercises;
       });
@@ -461,6 +522,8 @@ function PlanPageContent() {
           const weekNumber = weekIndex + 1;
           const weekExerciseList = weekExercises[weekNumber] || [];
           
+          console.log(`Processing week ${weekNumber} exercises:`, weekExerciseList);
+          
           // Group exercises by day (assuming exercises are named with day numbers)
           const exercisesByDay = weekExerciseList.reduce((acc, exercise) => {
             const dayMatch = exercise.id.match(/day(\d+)/);
@@ -474,29 +537,35 @@ function PlanPageContent() {
           }, {} as Record<number, any[]>);
 
           // Create days array
-          const days = Object.entries(exercisesByDay).map(([dayNumber, exercises]) => ({
-            dayNumber: parseInt(dayNumber),
-            dayName: `Day ${dayNumber}`,
-            notes: '',
-            exercises: exercises.map((exercise, index) => ({
-              source: exercise.source || 'library',
-              libraryId: exercise.libraryId,
-              userExerciseId: exercise.userExerciseId,
-              customName: exercise.customName,
-              pairing: exercise.pairing,
-              notes: exercise.notes || '',
-              orderIndex: index,
-              sets: Array.from({ length: exercise.sets }, (_, setIndex) => ({
-                setNumber: setIndex + 1,
-                reps: exercise.reps,
-                load: exercise.load,
-                loadUnit: exercise.loadUnit || 'lbs',
-                rest: exercise.rest,
-                tempo: exercise.tempo,
-                notes: ''
-              }))
-            }))
-          }));
+          const days = Object.entries(exercisesByDay).map(([dayNumber, exercises]) => {
+            console.log(`Processing day ${dayNumber} exercises:`, exercises);
+            return {
+              dayNumber: parseInt(dayNumber),
+              dayName: `Day ${dayNumber}`,
+              notes: '',
+              exercises: exercises.map((exercise, index) => {
+                console.log(`Processing exercise at index ${index}:`, exercise);
+                return {
+                  source: 'library',  // Force library source
+                  libraryId: exercise.libraryId,  // Use library ID directly
+                  userExerciseId: null,  // Clear user exercise ID
+                  customName: undefined,  // Clear custom name for library exercises
+                  pairing: exercise.pairing,
+                  notes: exercise.notes || '',
+                  orderIndex: index,
+                  sets: Array.from({ length: exercise.sets }, (_, setIndex) => ({
+                    setNumber: setIndex + 1,
+                    reps: exercise.reps,
+                    load: exercise.load,
+                    loadUnit: exercise.loadUnit || 'lbs',
+                    rest: exercise.rest || 60,
+                    tempo: exercise.tempo || '2010',
+                    notes: ''
+                  }))
+                };
+              })
+            };
+          });
 
           return {
             weekNumber,
@@ -513,10 +582,10 @@ function PlanPageContent() {
         endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
         notes: '',
         weeks,
-        userId: selectedUserId || parseInt(session?.user?.id) // Add the selected user ID or fall back to current user
+        userId: selectedUserId || parseInt(session?.user?.id)
       };
 
-      console.log('Sending program data:', programData);
+      console.log('Final program data being sent:', JSON.stringify(programData, null, 2));
 
       const response = await fetch('/api/resistance-training/program', {
         method: 'POST',
@@ -715,19 +784,26 @@ function PlanPageContent() {
   };
 
   const handleProgramSelect = (selectedProgram: SavedProgram) => {
-    // Set program state
+    // Set program state with default values for missing fields
     setProgram({
-      ...selectedProgram,
+      id: selectedProgram.id,
+      userId: selectedProgram.userId || '',
+      name: selectedProgram.program_name,
+      phaseFocus: selectedProgram.phaseFocus || 'GPP',
+      periodizationType: selectedProgram.periodization_type || 'Linear',
       exercises: [], // We'll load these separately
       progressionRules: selectedProgram.progressionRules || {
-        type: selectedProgram.periodizationType,
+        type: selectedProgram.periodization_type || 'Linear',
         settings: {
           volumeIncrementPercentage: 5,
           loadIncrementPercentage: 2.5,
           programLength: 4,
           weeklyVolumePercentages: [100, 80, 90, 60]
         }
-      }
+      },
+      volumeTargets: selectedProgram.volumeTargets || [],
+      createdAt: new Date(selectedProgram.created_at),
+      updatedAt: new Date(selectedProgram.updated_at)
     });
 
     // Load program weeks and exercises
@@ -736,46 +812,113 @@ function PlanPageContent() {
 
   const loadProgramExercises = async (programId: string) => {
     try {
+      // Ensure we have the exercise library
+      if (exerciseLibrary.length === 0) {
+        throw new Error('Exercise library not loaded');
+      }
+
       const response = await fetch(`/api/resistance-training/program/${programId}`);
       if (!response.ok) throw new Error('Failed to load program exercises');
       
       const data = await response.json();
+      console.log('Loaded program data:', data);
+      
+      if (!data.weeks || !Array.isArray(data.weeks)) {
+        throw new Error('Invalid program data: missing weeks array');
+      }
       
       // Transform the data into our week exercises format
       const newWeekExercises: { [key: number]: Exercise[] } = {};
       
       data.weeks.forEach((week: any) => {
+        if (!week.days || !Array.isArray(week.days)) {
+          console.warn(`Week ${week.weekNumber} has no days array`);
+          return;
+        }
+
         const weekExercises: Exercise[] = [];
         week.days.forEach((day: any) => {
+          if (!day.exercises || !Array.isArray(day.exercises)) {
+            console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
+            return;
+          }
+
           day.exercises.forEach((exercise: any) => {
-            weekExercises.push({
+            console.log('Processing exercise:', exercise);
+            
+            // Handle both formats - exercises with sets array and exercises with just sets number
+            let setDetails;
+            if (Array.isArray(exercise.sets)) {
+              setDetails = exercise.sets;
+            } else {
+              // Create sets array from the exercise properties
+              setDetails = Array.from({ length: exercise.sets || 3 }, (_, i) => ({
+                setNumber: i + 1,
+                reps: exercise.reps || 0,
+                load: exercise.load || 0,
+                loadUnit: exercise.loadUnit || 'lbs',
+                tempo: exercise.tempo || '2010',
+                rest: exercise.rest || 60,
+                notes: ''
+              }));
+            }
+            
+            // Find the exercise in the library
+            const libraryExercise = exerciseLibrary.find(ex => ex.id === exercise.libraryId);
+            console.log('Found library exercise:', libraryExercise);
+            
+            if (!libraryExercise) {
+              console.warn(`Could not find library exercise with ID ${exercise.libraryId}`);
+            }
+            
+            const exerciseData = {
               id: `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
-              name: exercise.customName || exercise.name,
-              pairing: exercise.pairing,
-              sets: exercise.sets.length,
-              reps: exercise.sets[0]?.reps || 0,
-              load: exercise.sets[0]?.load || 0,
-              loadUnit: exercise.sets[0]?.loadUnit || 'lbs',
-              tempo: exercise.sets[0]?.tempo || '2010',
-              rest: exercise.sets[0]?.rest || 60,
+              name: libraryExercise?.exercise_name || exercise.name || exercise.customName || 'Unknown Exercise',
+              pairing: exercise.pairing || 'A1',
+              sets: setDetails.length,
+              reps: exercise.reps || setDetails[0]?.reps || 0,
+              load: exercise.load || setDetails[0]?.load || 0,
+              loadUnit: exercise.loadUnit || setDetails[0]?.loadUnit || 'lbs',
+              tempo: exercise.tempo || setDetails[0]?.tempo || '2010',
+              rest: exercise.rest || setDetails[0]?.rest || 60,
               notes: exercise.notes || '',
-              source: exercise.source,
-              libraryId: exercise.libraryId,
-              userExerciseId: exercise.userExerciseId,
-              customName: exercise.customName,
+              source: 'library',
+              libraryId: exercise.libraryId || exercise.id, // Handle both libraryId and id
+              userExerciseId: null,
+              customName: undefined,
               isVariedSets: false,
-              isAdvancedSets: false
-            });
+              isAdvancedSets: false,
+              setDetails: setDetails
+            };
+            
+            console.log('Created exercise data:', exerciseData);
+            weekExercises.push(exerciseData);
           });
         });
-        newWeekExercises[week.weekNumber] = weekExercises;
+
+        if (weekExercises.length > 0) {
+          newWeekExercises[week.weekNumber] = weekExercises;
+        }
       });
 
+      console.log('Transformed week exercises:', newWeekExercises);
+      
+      if (Object.keys(newWeekExercises).length === 0) {
+        throw new Error('No exercises were loaded');
+      }
+
       setWeekExercises(newWeekExercises);
+      
+      // Also update the program exercises with Week 1 exercises
+      if (newWeekExercises[1]) {
+        setProgram(prev => ({
+          ...prev,
+          exercises: newWeekExercises[1]
+        }));
+      }
     } catch (error) {
       console.error('Error loading program exercises:', error);
-      // Show error toast
-      setErrorMessage('Failed to load program exercises');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load program exercises');
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 3000);
     }

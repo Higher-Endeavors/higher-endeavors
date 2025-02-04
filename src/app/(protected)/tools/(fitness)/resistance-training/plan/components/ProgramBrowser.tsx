@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Program } from '../../shared/types';
+import { HiDotsVertical } from 'react-icons/hi';
 
 interface SavedProgram extends Program {
   createdAt: string;
@@ -19,6 +20,7 @@ interface ProgramBrowserProps {
 export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin }: ProgramBrowserProps) {
   const [programs, setPrograms] = useState<SavedProgram[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [filters, setFilters] = useState({
     search: '',
     dateRange: 'all', // all, week, month, year
@@ -101,6 +103,46 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
         return 0;
     }
   });
+
+  const handleMenuClick = (e: React.MouseEvent, programId: string) => {
+    e.stopPropagation(); // Prevent card click when clicking menu
+    setActiveMenu(activeMenu === programId ? null : programId);
+  };
+
+  const handleViewEdit = (e: React.MouseEvent, program: SavedProgram) => {
+    e.stopPropagation();
+    onProgramSelect(program);
+    setActiveMenu(null);
+  };
+
+  const handleDuplicate = async (e: React.MouseEvent, program: SavedProgram) => {
+    e.stopPropagation();
+    try {
+      const duplicatedProgram = {
+        ...program,
+        program_name: `${program.program_name} (Copy)`,
+        id: undefined // Let the server generate a new ID
+      };
+      
+      const response = await fetch('/api/resistance-training/program', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(duplicatedProgram),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to duplicate program');
+      }
+
+      // Refresh the programs list
+      fetchPrograms();
+    } catch (error) {
+      console.error('Error duplicating program:', error);
+    }
+    setActiveMenu(null);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-lg dark:bg-gray-800">
@@ -194,14 +236,42 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               {filteredPrograms.map((program) => (
                 <div
                   key={program.id}
-                  className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700"
+                  className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 relative"
                   onClick={() => onProgramSelect(program)}
                 >
-                  <div className="flex flex-col">
-                    <h3 className="font-medium dark:text-white">{program.program_name}</h3>
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {format(new Date(program.created_at), 'MMM d, yyyy')}
-                    </span>
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col">
+                      <h3 className="font-medium dark:text-white">{program.program_name}</h3>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        {format(new Date(program.created_at), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                    <div className="relative">
+                      <button
+                        onClick={(e) => handleMenuClick(e, program.id)}
+                        className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-600"
+                      >
+                        <HiDotsVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                      </button>
+                      {activeMenu === program.id && (
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                          <div className="py-1">
+                            <button
+                              onClick={(e) => handleViewEdit(e, program)}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                            >
+                              View/Edit
+                            </button>
+                            <button
+                              onClick={(e) => handleDuplicate(e, program)}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                            >
+                              Duplicate
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     <div className="flex space-x-4">

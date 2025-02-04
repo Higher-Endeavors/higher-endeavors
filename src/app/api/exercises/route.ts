@@ -9,7 +9,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
-    const result = await SingleQuery('SELECT * FROM exercise_library_list', []);
+    const result = await SingleQuery(
+      `SELECT 
+        id,
+        exercise_name,
+        difficulty_id,
+        target_muscle_group_id,
+        prime_mover_muscle_id
+      FROM exercise_library 
+      ORDER BY exercise_name ASC`,
+      []
+    );
     
     // Return just the rows array instead of the full result object
     return NextResponse.json(result.rows || result);

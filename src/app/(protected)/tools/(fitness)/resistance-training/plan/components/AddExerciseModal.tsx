@@ -30,6 +30,7 @@ interface ExerciseModalProps {
 interface ExerciseOption {
   value: string;
   label: string;
+  libraryId?: number;
 }
 
 /**
@@ -56,15 +57,32 @@ const customSelectStyles = {
   }),
   input: (base: any) => ({
     ...base,
-    color: 'black',
+    color: '#1f2937 !important',
   }),
-  option: (base: any) => ({
+  option: (base: any, state: any) => ({
     ...base,
-    color: 'black',
+    backgroundColor: state.isFocused ? '#f3f4f6' : 'white',
+    color: '#1f2937 !important',
+    '&:hover': {
+      backgroundColor: '#f3f4f6',
+    }
   }),
   singleValue: (base: any) => ({
     ...base,
-    color: 'black',
+    color: '#1f2937 !important',
+  }),
+  menu: (base: any) => ({
+    ...base,
+    backgroundColor: 'white',
+    zIndex: 9999,
+  }),
+  menuList: (base: any) => ({
+    ...base,
+    backgroundColor: 'white',
+  }),
+  dropdownIndicator: (base: any) => ({
+    ...base,
+    color: '#6b7280 !important',
   }),
 };
 
@@ -194,7 +212,8 @@ export default function ExerciseModal({
         const data = await response.json();
         const options = data.map((ex: any) => ({
           value: ex.exercise_name,
-          label: ex.exercise_name
+          label: ex.exercise_name,
+          libraryId: ex.id
         }));
         setExerciseOptions(options);
       } catch (error) {
@@ -267,18 +286,34 @@ export default function ExerciseModal({
       load: data.load
     };
 
+    // Format sets data
+    const setsArray = Array.from({ length: data.sets }, (_, i) => ({
+      setNumber: i + 1,
+      reps: data.reps,
+      load: loadData.load,
+      loadUnit: loadData.loadUnit,
+      tempo: data.tempo,
+      rest: data.rest,
+      notes: ''
+    }));
+
     // Create the correct type based on isVariedSets
     const submissionData = data.isVariedSets ? {
       ...data,
       ...loadData,
       isVariedSets: true as const,
       isAdvancedSets: Boolean(data.isAdvancedSets),
-      setDetails: (data.setDetails || []).map(set => ({
-        ...set,
-        ...(typeof set.load === 'number' ? { loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs' } : {}),
+      sets: data.setDetails?.map(set => ({
+        setNumber: set.setNumber,
+        reps: set.reps,
+        load: set.load,
+        loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs',
+        tempo: data.tempo,
+        rest: set.rest,
+        notes: '',
         subSets: set.subSets?.map(subSet => ({
           ...subSet,
-          ...(typeof subSet.load === 'number' ? { loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs' } : {})
+          loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
         }))
       }))
     } : {
@@ -286,7 +321,9 @@ export default function ExerciseModal({
       ...loadData,
       isVariedSets: false as const,
       isAdvancedSets: Boolean(data.isAdvancedSets),
-      setDetails: undefined
+      sets: setsArray,
+      setDetails: undefined,
+      customName: data.source === 'custom' ? data.name : undefined
     };
 
     console.log('Submission Data:', submissionData);
@@ -340,6 +377,14 @@ export default function ExerciseModal({
     setValue('setDetails', updatedSetDetails);
   };
 
+  const handleExerciseChange = (selectedOption: ExerciseOption | null) => {
+    if (selectedOption) {
+      setValue('name', selectedOption.value);
+      setValue('source', 'library');
+      setValue('libraryId', selectedOption.libraryId);
+    }
+  };
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -367,15 +412,12 @@ export default function ExerciseModal({
                   <Select
                     {...field}
                     options={exerciseOptions}
-                    value={exerciseOptions.find(option => option.value === field.value)}
-                    onChange={(option) => field.onChange(option?.value)}
-                    className="basic-single"
-                    classNamePrefix="select"
-                    placeholder="Search for an exercise..."
-                    isClearable
-                    isSearchable
-                    styles={customSelectStyles}
                     filterOption={filterExerciseOptions}
+                    onChange={handleExerciseChange}
+                    value={exerciseOptions.find(option => option.value === field.value)}
+                    placeholder="Search exercises..."
+                    className="mb-4"
+                    styles={customSelectStyles}
                   />
                 )}
               />
