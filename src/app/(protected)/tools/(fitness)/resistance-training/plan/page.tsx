@@ -18,6 +18,8 @@ import { programSettingsSchema } from '../shared/schemas/program';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
+import UserSelector from '@/app/components/UserSelector';
+import { useSession, SessionProvider } from 'next-auth/react';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
@@ -26,16 +28,38 @@ const ExerciseListNoSSR = dynamic(
     { ssr: false }
   )
 
-export default function PlanPage() {
-  // User settings
-  const { settings: userSettings, isLoading: isLoadingSettings } = useUserSettings();
+function PlanPageContent() {
+  const { data: session } = useSession();
+  const { settings: userSettings, isLoading: settingsLoading } = useUserSettings();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
-  // Debug logs for user settings
+  // Check admin status
   useEffect(() => {
-    console.log('User Settings:', userSettings);
-    console.log('Fitness Settings:', userSettings?.pillar_settings?.fitness);
-    console.log('Resistance Training Settings:', userSettings?.pillar_settings?.fitness?.resistanceTraining);
-  }, [userSettings]);
+    const checkAdminStatus = async () => {
+      if (session?.user?.id) {
+        try {
+          const response = await fetch('/api/users');
+          setIsAdmin(response.ok);
+        } catch (error) {
+          console.error('Error checking admin status:', error);
+          setIsAdmin(false);
+        }
+      }
+    };
+
+    checkAdminStatus();
+  }, [session?.user?.id]);
+
+  // Debug logs
+  useEffect(() => {
+    console.log('Component State:', {
+      isAdmin,
+      sessionUserId: session?.user?.id,
+      selectedUserId,
+      settingsLoading
+    });
+  }, [isAdmin, session?.user?.id, selectedUserId, settingsLoading]);
 
   // Program state
   const [program, setProgram] = useState<Program>({
@@ -160,7 +184,7 @@ export default function PlanPage() {
   // Exercise management
   const handleAddExercise = () => {
     setEditingExercise({
-      id: Math.random().toString(36).substr(2, 9),
+      id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
       name: '',
       pairing: getNextPairing(),
       sets: 3,
@@ -170,15 +194,21 @@ export default function PlanPage() {
       rest: 60,
       isVariedSets: false,
       isAdvancedSets: false,
-      notes: ''
+      notes: '',
+      source: 'library',
+      libraryId: null,
+      userExerciseId: null,
+      customName: '',
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs'
     });
+    setSelectedExerciseName('');
     setIsExerciseModalOpen(true);
   };
 
   const handleExerciseSelect = (exerciseName: string) => {
+    setSelectedExerciseName(exerciseName);
     setIsExerciseSearchOpen(false);
     setIsAdvancedSearchOpen(false);
-    setSelectedExerciseName(exerciseName);
     if (editingExercise) {
       setEditingExercise({
         ...editingExercise,
@@ -316,15 +346,77 @@ export default function PlanPage() {
 
   // Program settings management
   const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    console.log('Settings changed:', settings);
-    setProgram(prev => ({
-      ...prev,
+    console.log('Settings change received:', settings);
+    
+    // Create the new program state
+    const newProgram = {
+      ...program,
       ...settings,
-      progressionRules: settings.progressionRules ? {
-        ...prev.progressionRules,
-        ...settings.progressionRules
-      } : prev.progressionRules
-    }));
+      // Ensure periodization type is explicitly updated
+      periodizationType: settings.periodizationType || program.periodizationType,
+      progressionRules: {
+        ...program.progressionRules,
+        type: settings.periodizationType || program.progressionRules.type, // Update progression rules type to match
+        settings: settings.progressionRules ? {
+          ...program.progressionRules.settings,
+          ...settings.progressionRules.settings
+        } : program.progressionRules.settings
+      }
+    };
+
+    console.log('Updated program state:', {
+      oldType: program.periodizationType,
+      newType: newProgram.periodizationType,
+      progressionRules: newProgram.progressionRules
+    });
+
+    setProgram(newProgram);
+
+    // If periodization type changed, update week exercises accordingly
+    if (settings.periodizationType && settings.periodizationType !== program.periodizationType) {
+      console.log('Periodization type changed, updating week exercises');
+      setWeekExercises(prev => {
+        const newWeekExercises = { ...prev };
+        const programLength = newProgram.progressionRules.settings.programLength || 4;
+        
+        // Keep Week 1 as is
+        if (!newWeekExercises[1]) return newWeekExercises;
+
+        // Update subsequent weeks based on new periodization type
+        for (let week = 2; week <= programLength; week++) {
+          if (settings.periodizationType === 'Linear') {
+            newWeekExercises[week] = newWeekExercises[1].map(exercise => ({
+              ...applyLinearProgression(
+                exercise,
+                week,
+                newProgram.progressionRules.settings.volumeIncrementPercentage ?? 0,
+                newProgram.progressionRules.settings.loadIncrementPercentage ?? 0
+              ),
+              id: `${exercise.id.split('-week')[0]}-week${week}`
+            }));
+          } else if (settings.periodizationType === 'Undulating') {
+            const weeklyVolumePercentages = newProgram.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
+            const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
+            newWeekExercises[week] = newWeekExercises[1].map(exercise => {
+              const volumePercentage = weekPercentage / 100;
+              const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
+              return {
+                ...exercise,
+                id: `${exercise.id.split('-week')[0]}-week${week}`,
+                reps: newReps
+              };
+            });
+          } else {
+            // For 'None' or other types, just copy Week 1
+            newWeekExercises[week] = newWeekExercises[1].map(exercise => ({
+              ...exercise,
+              id: `${exercise.id.split('-week')[0]}-week${week}`
+            }));
+          }
+        }
+        return newWeekExercises;
+      });
+    }
   };
 
   // Volume targets management
@@ -341,6 +433,7 @@ export default function PlanPage() {
     try {
       console.log('Current program state:', program);
       console.log('Program name:', program.name);
+      console.log('Selected User ID:', selectedUserId);
 
       // Client-side validation
       if (!program.name?.trim()) {
@@ -348,7 +441,16 @@ export default function PlanPage() {
         setErrorMessage(error);
         setShowErrorToast(true);
         setTimeout(() => setShowErrorToast(false), 3000);
-        return; // Return instead of throwing
+        return;
+      }
+
+      // Check if there are any exercises in week 1
+      if (!weekExercises[1] || weekExercises[1].length === 0) {
+        const error = 'Please add at least one exercise to the program';
+        setErrorMessage(error);
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+        return;
       }
 
       // Transform the program data into the format expected by the API
@@ -374,13 +476,14 @@ export default function PlanPage() {
           const days = Object.entries(exercisesByDay).map(([dayNumber, exercises]) => ({
             dayNumber: parseInt(dayNumber),
             dayName: `Day ${dayNumber}`,
+            notes: '',
             exercises: exercises.map((exercise, index) => ({
-              source: 'library', // or 'user' if it's a custom exercise
+              source: exercise.source || 'library',
               libraryId: exercise.libraryId,
               userExerciseId: exercise.userExerciseId,
               customName: exercise.customName,
               pairing: exercise.pairing,
-              notes: exercise.notes,
+              notes: exercise.notes || '',
               orderIndex: index,
               sets: Array.from({ length: exercise.sets }, (_, setIndex) => ({
                 setNumber: setIndex + 1,
@@ -408,7 +511,8 @@ export default function PlanPage() {
         startDate: new Date().toISOString(),
         endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
         notes: '',
-        weeks
+        weeks,
+        userId: selectedUserId || parseInt(session?.user?.id) // Add the selected user ID or fall back to current user
       };
 
       console.log('Sending program data:', programData);
@@ -424,29 +528,15 @@ export default function PlanPage() {
       const responseText = await response.text();
       console.log('Raw response:', responseText);
 
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('Failed to parse response:', parseError);
-        const error = `Invalid response from server: ${responseText}`;
-        setErrorMessage(error);
-        throw new Error(error);
-      }
-
       if (!response.ok) {
-        const error = result.details?.name || result.error || 'Failed to save program';
-        setErrorMessage(error);
-        throw new Error(error);
+        throw new Error(responseText);
       }
-
-      console.log('Program saved successfully:', result);
 
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
-
     } catch (error) {
       console.error('Error saving program:', error);
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to save program');
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 3000);
     } finally {
@@ -596,13 +686,60 @@ export default function PlanPage() {
     });
   };
 
+  // Handle user selection
+  const handleUserSelect = (userId: number | null) => {
+    setSelectedUserId(userId);
+    // Reset program state when switching users
+    setProgram({
+      id: '',
+      userId: userId?.toString() || '',
+      name: '',
+      phaseFocus: 'GPP',
+      periodizationType: 'Linear',
+      exercises: [],
+      progressionRules: {
+        type: 'Linear',
+        settings: {
+          volumeIncrementPercentage: 5,
+          loadIncrementPercentage: 2.5,
+          programLength: 4,
+          weeklyVolumePercentages: [100, 80, 90, 60]
+        }
+      },
+      volumeTargets: [],
+      createdAt: new Date(),
+      updatedAt: new Date()
+    });
+    setWeekExercises({});
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
 
+      {/* UserSelector - show for admin users */}
+      {isAdmin && (
+        <div className="mb-6">
+          <UserSelector
+            onUserSelect={handleUserSelect}
+            currentUserId={parseInt(session?.user?.id)}
+            label="Select Client"
+            className="w-full max-w-md"
+          />
+        </div>
+      )}
+
       <div className="mb-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-4 dark:text-slate-900">Program Settings</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold dark:text-slate-900">Program Settings</h2>
+            <button
+              onClick={handleAddExercise}
+              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+            >
+              Add Exercise
+            </button>
+          </div>
           <ProgramSettings
             name={program.name}
             phaseFocus={program.phaseFocus}
@@ -620,7 +757,7 @@ export default function PlanPage() {
       </div>
 
       {/* Week Tabs */}
-      <div className="mt-8 border-b border-gray-200">
+      <div className="mt-8 border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-4" aria-label="Week selection">
           {Array.from(
             { length: program.progressionRules.settings.programLength || 4 },
@@ -632,8 +769,8 @@ export default function PlanPage() {
               className={`
                 whitespace-nowrap pb-4 px-4 border-b-2 font-medium text-sm
                 ${activeWeek === week
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  ? 'border-purple-500 text-purple-600 dark:text-purple-400 dark:border-purple-400'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500'
                 }
               `}
             >
@@ -675,34 +812,39 @@ export default function PlanPage() {
                 <div key={key}>
                   <p className="text-sm text-gray-600">
                     {key === 'totalLoad' 
-                      ? `Total Load (${userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit === 'kg' ? 'kgs' : 'lbs'})`
-                      : key.replace(/([A-Z])/g, ' $1').trim()}
+                      ? `Total Load: ${value} ${userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg'}`
+                      : `${key}: ${value}`}
                   </p>
-                  <p className="font-medium dark:text-slate-900">{Math.round(value)}</p>
                 </div>
               ))}
-              <div>
-                <p className="text-sm text-gray-600">Total Duration</p>
-                <p className="font-medium dark:text-slate-900">
-                  {Math.round(calculateSessionDuration(weekExercises[activeWeek]) / 60)} min
-                </p>
-              </div>
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6">
         <button
+          className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-300 font-medium"
           onClick={handleSave}
           disabled={isSaving}
-          className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-300 font-medium"
         >
           {isSaving ? 'Saving...' : 'Save Program'}
         </button>
       </div>
 
-      {/* Modals */}
+      {showSuccessToast && (
+        <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-lg">
+          <p>Program saved successfully!</p>
+        </div>
+      )}
+
+      {showErrorToast && (
+        <div className="mt-6 p-4 bg-red-100 text-red-800 rounded-lg">
+          <p>{errorMessage || 'Failed to save program. Please try again later.'}</p>
+        </div>
+      )}
+
+      {/* Exercise Modals */}
       <ExerciseModal
         isOpen={isExerciseModalOpen}
         onClose={() => setIsExerciseModalOpen(false)}
@@ -714,7 +856,6 @@ export default function PlanPage() {
         userSettings={userSettings?.pillar_settings}
       />
 
-      {/* Exercise search modal */}
       <ExerciseSearch
         isOpen={isExerciseSearchOpen || isAdvancedSearchOpen}
         onClose={() => {
@@ -732,32 +873,8 @@ export default function PlanPage() {
         </DragOverlay>,
         document.body
       )}
-
-      {/* Success Toast */}
-      {showSuccessToast && (
-        <div className="fixed top-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
-              <HiCheck className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">Program saved successfully</div>
-          </Toast>
-        </div>
-      )}
-
-      {/* Error Toast */}
-      {showErrorToast && (
-        <div className="fixed top-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
-              <HiX className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">
-              {errorMessage || 'Failed to save program. Please try again.'}
-            </div>
-          </Toast>
-        </div>
-      )}
     </div>
   );
-} 
+}
+
+export default PlanPageContent;

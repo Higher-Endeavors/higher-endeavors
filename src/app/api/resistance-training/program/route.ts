@@ -16,7 +16,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
     let data;
     try {
       const rawBody = await request.text();
@@ -37,8 +36,18 @@ export async function POST(request: Request) {
       startDate,
       endDate,
       notes,
-      weeks 
+      weeks,
+      userId: targetUserId // The user we're creating the program for
     } = data;
+
+    // Check if the current user has permission to create programs for the target user
+    const currentUserId = parseInt(session.user.id);
+    const isAdmin = session.user.role === 'admin';
+    const effectiveUserId = isAdmin && targetUserId ? parseInt(targetUserId) : currentUserId;
+
+    if (targetUserId && !isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized to create programs for other users' }, { status: 403 });
+    }
 
     // Validate required fields
     if (!name || !periodizationType || !weeks || !Array.isArray(weeks)) {
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
         VALUES 
         ($1, $2, $3, $4, $5, $6)
         RETURNING id`,
-        [userId, name, periodizationType, startDate, endDate, notes]
+        [effectiveUserId, name, periodizationType, startDate, endDate, notes]
       );
       const programId = programResult.rows[0].id;
       console.log('Program created with ID:', programId);
