@@ -25,6 +25,9 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
   const [programs, setPrograms] = useState<SavedProgram[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isOpen, setIsOpen] = useState(false);
+  const ITEMS_PER_PAGE = 5;
   const [filters, setFilters] = useState({
     search: '',
     dateRange: 'all', // all, week, month, year
@@ -33,7 +36,6 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
     exercise: '',
     sortBy: 'newest' // newest, oldest, name
   });
-  const [isOpen, setIsOpen] = useState(false);
 
   const fetchPrograms = async () => {
     try {
@@ -58,6 +60,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
 
   useEffect(() => {
     console.log('Debug - useEffect triggered with currentUserId:', currentUserId);
+    setCurrentPage(1); // Reset to first page when user changes
     fetchPrograms();
   }, [currentUserId, isAdmin]);
 
@@ -107,6 +110,17 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
         return 0;
     }
   });
+
+  // Get current programs
+  const indexOfLastProgram = currentPage * ITEMS_PER_PAGE;
+  const indexOfFirstProgram = indexOfLastProgram - ITEMS_PER_PAGE;
+  const currentPrograms = filteredPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
+  const totalPages = Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE);
+
+  // Change page
+  const handlePageChange = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+  };
 
   const handleMenuClick = (e: React.MouseEvent, programId: string) => {
     e.stopPropagation(); // Prevent card click when clicking menu
@@ -268,65 +282,110 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               No programs found
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredPrograms.map((program) => (
-                <div
-                  key={program.id}
-                  className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer relative bg-white text-gray-900"
-                  onClick={() => onProgramSelect(program)}
-                >
-                  <div className="flex justify-between items-start">
-                    <div className="flex flex-col">
-                      <h3 className="font-medium text-gray-900">{program.program_name}</h3>
-                      <span className="text-sm text-gray-500">
-                        {format(new Date(program.created_at), 'MMM d, yyyy')}
-                      </span>
-                      {program.exerciseCount && (
+            <>
+              <div className="space-y-4">
+                {currentPrograms.map((program) => (
+                  <div
+                    key={program.id}
+                    className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer relative bg-white text-gray-900"
+                    onClick={() => onProgramSelect(program)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <h3 className="font-medium text-gray-900">{program.program_name}</h3>
                         <span className="text-sm text-gray-500">
-                          {program.exerciseCount} exercises
+                          {format(new Date(program.created_at), 'MMM d, yyyy')}
                         </span>
-                      )}
-                    </div>
-                    <div className="relative">
-                      <button
-                        onClick={(e) => handleMenuClick(e, program.id)}
-                        className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-600"
-                      >
-                        <HiDotsVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-                      </button>
-                      {activeMenu === program.id && (
-                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
-                          <div className="py-1">
-                            <button
-                              onClick={(e) => handleViewEdit(e, program)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
-                            >
-                              View/Edit
-                            </button>
-                            <button
-                              onClick={(e) => handleDuplicate(e, program)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
-                            >
-                              Duplicate
-                            </button>
+                        {program.exerciseCount && (
+                          <span className="text-sm text-gray-500">
+                            {program.exerciseCount} exercises
+                          </span>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={(e) => handleMenuClick(e, program.id)}
+                          className="p-2 hover:bg-gray-100 rounded-full dark:hover:bg-gray-600"
+                        >
+                          <HiDotsVertical className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                        </button>
+                        {activeMenu === program.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                            <div className="py-1">
+                              <button
+                                onClick={(e) => handleViewEdit(e, program)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                              >
+                                View/Edit
+                              </button>
+                              <button
+                                onClick={(e) => handleDuplicate(e, program)}
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
+                              >
+                                Duplicate
+                              </button>
+                            </div>
                           </div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex space-x-4">
+                          <span>{program.periodization_type || 'No type'}</span>
                         </div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex flex-col space-y-2">
-                      <div className="flex space-x-4">
-                        <span>{program.periodization_type || 'No type'}</span>
-                      </div>
-                      <div className="text-xs">
-                        {program.exercises?.map(exercise => exercise.name).join(', ') || 'No exercises'}
+                        <div className="text-xs">
+                          {program.exercises?.map(exercise => exercise.name).join(', ') || 'No exercises'}
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex justify-center items-center space-x-2 mt-4">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === 1
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                    <button
+                      key={number}
+                      onClick={() => handlePageChange(number)}
+                      className={`px-3 py-1 rounded ${
+                        currentPage === number
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                      }`}
+                    >
+                      {number}
+                    </button>
+                  ))}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 rounded ${
+                      currentPage === totalPages
+                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-300 text-gray-700 hover:bg-gray-400'
+                    }`}
+                  >
+                    Next
+                  </button>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       )}
