@@ -5,10 +5,14 @@ import { format } from 'date-fns';
 import { Program } from '../../shared/types';
 import { HiDotsVertical } from 'react-icons/hi';
 
-interface SavedProgram extends Program {
-  createdAt: string;
-  updatedAt: string;
+interface SavedProgram extends Omit<Program, 'createdAt' | 'updatedAt'> {
+  program_name: string;
+  periodization_type: string;
+  created_at: string;
+  updated_at: string;
   exerciseCount?: number;
+  notes?: string;
+  weeks?: any[];
 }
 
 interface ProgramBrowserProps {
@@ -118,11 +122,47 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
   const handleDuplicate = async (e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
     try {
+      // First, fetch the original program to get its weeks and exercises
+      const originalResponse = await fetch(`/api/resistance-training/program/${program.id}`);
+      if (!originalResponse.ok) {
+        throw new Error('Failed to fetch original program data');
+      }
+      const originalData = await originalResponse.json();
+
+      // Transform the weeks data to ensure each exercise has a sets array
+      const transformedWeeks = originalData.weeks.map((week: any) => ({
+        ...week,
+        days: week.days.map((day: any) => ({
+          ...day,
+          exercises: day.exercises.map((exercise: any) => ({
+            ...exercise,
+            // Transform sets number into an array of set objects
+            sets: Array.isArray(exercise.sets) ? exercise.sets : Array.from({ length: exercise.sets }, (_, i) => ({
+              setNumber: i + 1,
+              reps: exercise.reps,
+              load: exercise.load,
+              loadUnit: exercise.loadUnit || 'lbs',
+              tempo: exercise.tempo || '2010',
+              rest: exercise.rest || 60,
+              notes: ''
+            }))
+          }))
+        }))
+      }));
+
       const duplicatedProgram = {
-        ...program,
-        program_name: `${program.program_name} (Copy)`,
-        id: undefined // Let the server generate a new ID
+        name: `${program.program_name} (Copy)`,
+        periodizationType: program.periodization_type,
+        phaseFocus: program.phaseFocus,
+        progressionRules: program.progressionRules,
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + (4 * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+        notes: program.notes || '',
+        weeks: transformedWeeks,
+        userId: currentUserId
       };
+      
+      console.log('Sending duplicated program data:', duplicatedProgram);
       
       const response = await fetch('/api/resistance-training/program', {
         method: 'POST',
@@ -133,7 +173,8 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
       });
 
       if (!response.ok) {
-        throw new Error('Failed to duplicate program');
+        const errorText = await response.text();
+        throw new Error(`Failed to duplicate program: ${errorText}`);
       }
 
       // Refresh the programs list
@@ -145,20 +186,15 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg dark:bg-gray-800">
-      <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+    <div className="bg-gray-100 rounded-lg shadow p-6">
+      <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
+        <h2 className="text-xl font-semibold dark:text-slate-900">Saved Programs</h2>
         <button
-          onClick={() => setIsOpen(!isOpen)}
-          className="flex items-center justify-between w-full"
+          className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200"
+          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
         >
-          <h2 className="text-lg font-semibold dark:text-white">Saved Programs</h2>
-          <svg
-            className={`w-5 h-5 transition-transform ${isOpen ? 'transform rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
           </svg>
         </button>
       </div>
@@ -170,14 +206,14 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
             <input
               type="text"
               placeholder="Search programs..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
 
             <div className="grid grid-cols-2 gap-4">
               <select
-                className="px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.dateRange}
                 onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
               >
@@ -188,7 +224,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               </select>
 
               <select
-                className="px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.sortBy}
                 onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
               >
@@ -198,7 +234,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               </select>
 
               <select
-                className="px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.phaseFocus}
                 onChange={(e) => setFilters({ ...filters, phaseFocus: e.target.value })}
               >
@@ -211,7 +247,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               </select>
 
               <select
-                className="px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.periodizationType}
                 onChange={(e) => setFilters({ ...filters, periodizationType: e.target.value })}
               >
@@ -226,9 +262,9 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
 
           {/* Programs List */}
           {loading ? (
-            <div className="text-center py-4 dark:text-white">Loading programs...</div>
+            <div className="text-center py-4 text-gray-900">Loading programs...</div>
           ) : filteredPrograms.length === 0 ? (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+            <div className="text-center py-4 text-gray-500">
               No programs found
             </div>
           ) : (
@@ -236,15 +272,20 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
               {filteredPrograms.map((program) => (
                 <div
                   key={program.id}
-                  className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer dark:border-gray-700 dark:hover:bg-gray-700 relative"
+                  className="border border-gray-200 rounded-md p-4 hover:bg-gray-50 cursor-pointer relative bg-white text-gray-900"
                   onClick={() => onProgramSelect(program)}
                 >
                   <div className="flex justify-between items-start">
                     <div className="flex flex-col">
-                      <h3 className="font-medium dark:text-white">{program.program_name}</h3>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                      <h3 className="font-medium text-gray-900">{program.program_name}</h3>
+                      <span className="text-sm text-gray-500">
                         {format(new Date(program.created_at), 'MMM d, yyyy')}
                       </span>
+                      {program.exerciseCount && (
+                        <span className="text-sm text-gray-500">
+                          {program.exerciseCount} exercises
+                        </span>
+                      )}
                     </div>
                     <div className="relative">
                       <button
@@ -274,10 +315,13 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
                     </div>
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    <div className="flex space-x-4">
-                      <span>{program.periodization_type || 'No type'}</span>
-                      <span>•</span>
-                      <span>{program.exercise_count || 0} exercises</span>
+                    <div className="flex flex-col space-y-2">
+                      <div className="flex space-x-4">
+                        <span>{program.periodization_type || 'No type'}</span>
+                      </div>
+                      <div className="text-xs">
+                        {program.exercises?.map(exercise => exercise.name).join(', ') || 'No exercises'}
+                      </div>
                     </div>
                   </div>
                 </div>

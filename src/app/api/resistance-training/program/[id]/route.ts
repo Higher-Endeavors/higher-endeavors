@@ -172,4 +172,198 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+export async function PUT(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const client = await getClient();
+
+  try {
+    console.log('Starting program update...');
+    const session = await auth();
+    console.log('Session:', session);
+
+    if (!session?.user?.id) {
+      console.log('Unauthorized: No user ID in session');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    let data;
+    try {
+      const rawBody = await request.text();
+      console.log('Raw request body:', rawBody);
+      data = JSON.parse(rawBody);
+      console.log('Parsed request data:', data);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return NextResponse.json({ 
+        error: 'Invalid request body',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 400 });
+    }
+
+    const { 
+      program_name, 
+      periodization_type,
+      phase_focus,
+      progression_rules,
+      start_date,
+      end_date,
+      notes,
+      weeks,
+      userId: targetUserId
+    } = data;
+
+    // Check if the current user has permission to update the program
+    const currentUserId = parseInt(session.user.id);
+    const isAdmin = session.user.role === 'admin';
+    const effectiveUserId = isAdmin && targetUserId ? parseInt(targetUserId) : currentUserId;
+
+    if (targetUserId && !isAdmin) {
+      return NextResponse.json({ error: 'Unauthorized to update programs for other users' }, { status: 403 });
+    }
+
+    // Validate required fields
+    if (!program_name || !periodization_type || !weeks || !Array.isArray(weeks)) {
+      console.log('Missing required fields:', { program_name, periodization_type, weeks });
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        details: {
+          program_name: !program_name ? 'Program name is required' : undefined,
+          periodization_type: !periodization_type ? 'Periodization type is required' : undefined,
+          weeks: !weeks ? 'Weeks are required' : !Array.isArray(weeks) ? 'Weeks must be an array' : undefined
+        }
+      }, { status: 400 });
+    }
+
+    try {
+      // Start a transaction
+      await client.query('BEGIN');
+      console.log('Transaction started');
+
+      // 1. Update the program
+      await client.query(
+        `UPDATE resistance_programs 
+        SET program_name = $1, 
+            periodization_type = $2, 
+            phase_focus = $3,
+            progression_rules = $4,
+            start_date = $5, 
+            end_date = $6, 
+            notes = $7,
+            updated_at = NOW()
+        WHERE id = $8 AND user_id = $9`,
+        [program_name, periodization_type, phase_focus, JSON.stringify(progression_rules), 
+         start_date, end_date, notes, params.id, effectiveUserId]
+      );
+
+      // 2. Delete existing weeks, days, exercises, and sets
+      const weekIds = await client.query(
+        'DELETE FROM program_weeks WHERE resistance_program_id = $1 RETURNING id',
+        [params.id]
+      );
+
+      // 3. Create new weeks
+      for (const week of weeks) {
+        if (!week.weekNumber) {
+          throw new Error(`Week number is required for week: ${JSON.stringify(week)}`);
+        }
+
+        const weekResult = await client.query(
+          `INSERT INTO program_weeks 
+          (resistance_program_id, week_number, notes)
+          VALUES 
+          ($1, $2, $3)
+          RETURNING id`,
+          [params.id, week.weekNumber, week.notes]
+        );
+        const weekId = weekResult.rows[0].id;
+
+        // 4. Create days for each week
+        if (!Array.isArray(week.days)) {
+          throw new Error(`Days array is required for week ${week.weekNumber}`);
+        }
+
+        for (const day of week.days) {
+          const dayResult = await client.query(
+            `INSERT INTO program_days 
+            (program_week_id, day_number, day_name, notes)
+            VALUES 
+            ($1, $2, $3, $4)
+            RETURNING id`,
+            [weekId, day.dayNumber, day.dayName, day.notes]
+          );
+          const dayId = dayResult.rows[0].id;
+
+          // 5. Create exercises for each day
+          if (!Array.isArray(day.exercises)) {
+            throw new Error(`Exercises array is required for day ${day.dayNumber} in week ${week.weekNumber}`);
+          }
+
+          for (const exercise of day.exercises) {
+            const exerciseResult = await client.query(
+              `INSERT INTO program_day_exercises 
+              (program_day_id, exercise_source, exercise_library_id, user_exercise_id, 
+               custom_exercise_name, pairing, notes, order_index)
+              VALUES 
+              ($1, $2, $3, $4, $5, $6, $7, $8)
+              RETURNING id`,
+              [dayId, exercise.source, exercise.libraryId, exercise.userExerciseId,
+               exercise.customName, exercise.pairing, exercise.notes, exercise.orderIndex]
+            );
+            const exerciseId = exerciseResult.rows[0].id;
+
+            // 6. Create sets for each exercise
+            if (!Array.isArray(exercise.sets)) {
+              throw new Error(`Sets array is required for exercise ${exercise.customName || exercise.libraryId} in day ${day.dayNumber}, week ${week.weekNumber}`);
+            }
+
+            for (const set of exercise.sets) {
+              await client.query(
+                `INSERT INTO program_day_exercise_sets 
+                (program_day_exercise_id, set_number, planned_reps, planned_load, 
+                 load_unit, planned_rest, planned_tempo, notes)
+                VALUES 
+                ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                [exerciseId, set.setNumber, set.reps, set.load,
+                 set.loadUnit, set.rest, set.tempo, set.notes]
+              );
+            }
+          }
+        }
+      }
+
+      // Commit the transaction
+      await client.query('COMMIT');
+      console.log('Transaction committed successfully');
+
+      return NextResponse.json({ 
+        success: true,
+        programId: params.id
+      });
+
+    } catch (error) {
+      // Rollback the transaction on error
+      await client.query('ROLLBACK');
+      console.error('Database operation failed:', error);
+      throw error;
+    } finally {
+      // Release the client back to the pool
+      client.release();
+      console.log('Database client released');
+    }
+
+  } catch (error) {
+    console.error('Error updating program:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to update program',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: process.env.NODE_ENV === 'development' ? error instanceof Error ? error.stack : undefined : undefined
+      },
+      { status: 500 }
+    );
+  }
 } 

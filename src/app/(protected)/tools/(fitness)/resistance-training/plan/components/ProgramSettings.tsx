@@ -13,6 +13,15 @@ interface ProgramSettingsProps {
   name: string;
   phaseFocus: ProgramSettingsFormData['phaseFocus'];
   periodizationType: ProgramSettingsFormData['periodizationType'];
+  progressionRules?: {
+    type: string;
+    settings: {
+      volumeIncrementPercentage?: number;
+      loadIncrementPercentage?: number;
+      programLength?: number;
+      weeklyVolumePercentages?: number[];
+    };
+  };
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
 }
 
@@ -54,6 +63,7 @@ export default function ProgramSettings({
   name,
   phaseFocus,
   periodizationType,
+  progressionRules,
   onSettingsChange
 }: ProgramSettingsProps) {
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -70,24 +80,49 @@ export default function ProgramSettings({
       progressionRules: {
         type: periodizationType,
         settings: {
-          volumeIncrementPercentage: 5,
-          loadIncrementPercentage: 2.5,
-          programLength: 4,
-          weeklyVolumePercentages: [100, 80, 90, 60]
+          volumeIncrementPercentage: progressionRules?.settings?.volumeIncrementPercentage ?? 5,
+          loadIncrementPercentage: progressionRules?.settings?.loadIncrementPercentage ?? 2.5,
+          programLength: progressionRules?.settings?.programLength ?? 4,
+          weeklyVolumePercentages: progressionRules?.settings?.weeklyVolumePercentages ?? [100, 80, 90, 60]
         }
       }
     }
   });
 
+  // Update form values when props change
+  useEffect(() => {
+    console.log('Props updated:', { name, phaseFocus, periodizationType, progressionRules });
+    setValue('name', name);
+    setValue('phaseFocus', phaseFocus);
+    setValue('periodizationType', periodizationType);
+    setValue('progressionRules', {
+      type: periodizationType,
+      settings: {
+        volumeIncrementPercentage: progressionRules?.settings?.volumeIncrementPercentage ?? 5,
+        loadIncrementPercentage: progressionRules?.settings?.loadIncrementPercentage ?? 2.5,
+        programLength: progressionRules?.settings?.programLength ?? 4,
+        weeklyVolumePercentages: progressionRules?.settings?.weeklyVolumePercentages ?? [100, 80, 90, 60]
+      }
+    });
+  }, [name, phaseFocus, periodizationType, progressionRules, setValue]);
+
   const currentPeriodizationType = watch('periodizationType');
   const programLength = watch('progressionRules.settings.programLength');
 
-  // Update weeklyVolumePercentages when switching to Undulating
+  // Only update weeklyVolumePercentages when explicitly switching to Undulating
   useEffect(() => {
-    if (currentPeriodizationType === 'Undulating') {
+    if (currentPeriodizationType === 'Undulating' && periodizationType !== 'Undulating') {
       setValue('progressionRules.settings.weeklyVolumePercentages', [100, 80, 90, 60]);
     }
-  }, [currentPeriodizationType, setValue]);
+  }, [currentPeriodizationType, periodizationType, setValue]);
+
+  // Log form values on change
+  useEffect(() => {
+    const subscription = watch((value, { name, type }) => {
+      console.log('Form value changed:', { name, type, value });
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
 
   const onSubmit = (data: ProgramSettingsFormData) => {
     console.log('Form submitted:', data);
@@ -196,18 +231,17 @@ export default function ProgramSettings({
                   const newType = option?.value ?? 'Linear';
                   field.onChange(newType);
                   // When periodization type changes, update the program settings
+                  const currentSettings = watch('progressionRules.settings');
                   onSettingsChange({
                     periodizationType: newType,
                     progressionRules: {
                       type: newType,
                       settings: {
-                        // Keep existing settings but initialize weeklyVolumePercentages if switching to Undulating
-                        ...(newType === 'Undulating' ? {
+                        ...currentSettings,
+                        // Only override settings if explicitly switching to Undulating
+                        ...(newType === 'Undulating' && field.value !== 'Undulating' ? {
                           weeklyVolumePercentages: [100, 80, 90, 60]
-                        } : {
-                          volumeIncrementPercentage: 5,
-                          loadIncrementPercentage: 2.5
-                        })
+                        } : {})
                       }
                     }
                   });

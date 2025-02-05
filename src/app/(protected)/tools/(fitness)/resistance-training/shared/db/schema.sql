@@ -66,10 +66,12 @@ CREATE TABLE public.resistance_programs (
     user_id             integer NOT NULL,
     program_name        character varying(100) NOT NULL,
     periodization_type  character varying(50),
+    phase_focus         character varying(50),
     template_id         integer,
     start_date          date,
     end_date            date,
     notes               text,
+    progression_rules   JSONB,
     created_at          timestamp with time zone DEFAULT now(),
     updated_at          timestamp with time zone
 );

@@ -68,10 +68,10 @@ function PlanPageContent() {
     userId: '',
     name: '',
     phaseFocus: 'GPP',
-    periodizationType: 'Linear',
+    periodizationType: 'None',
     exercises: [],
     progressionRules: {
-      type: 'Linear',
+      type: 'None',
       settings: {
         volumeIncrementPercentage: 5,
         loadIncrementPercentage: 2.5,
@@ -91,6 +91,7 @@ function PlanPageContent() {
   const [exerciseLibrary, setExerciseLibrary] = useState<Array<{ id: number; name: string }>>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [isProgramSettingsExpanded, setIsProgramSettingsExpanded] = useState(true);
   const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
   const [selectedExerciseName, setSelectedExerciseName] = useState<string>('');
   const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
@@ -272,14 +273,31 @@ function PlanPageContent() {
     return letter + '2';
   };
 
+  const handleEditExercise = (id: string) => {
+    // Find the exercise in the current week's exercises
+    const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
+    if (exercise) {
+      console.log('Editing exercise:', exercise);
+      setEditingExercise({
+        ...exercise,
+        // Keep the original ID intact
+        id: id
+      });
+      setSelectedExerciseName(exercise.name);
+      setIsExerciseModalOpen(true);
+    }
+  };
+
   const handleSaveExercise = (exercise: Exercise) => {
     console.log('Received exercise data in handleSaveExercise:', exercise);
     
-    // Get the week number from the exercise ID if it exists
-    const weekMatch = exercise.id.match(/-week(\d+)$/);
-    const weekNumber = weekMatch ? parseInt(weekMatch[1]) : 1;
+    // Get the base ID without any week suffix
     const baseId = exercise.id.split('-week')[0];
-
+    const isEditing = editingExercise !== undefined;
+    
+    // When editing, use the original exercise's base ID
+    const editingBaseId = isEditing ? editingExercise.id.split('-week')[0] : null;
+    
     // Find the library exercise to ensure we have the correct ID
     const libraryExercise = exerciseLibrary.find(ex => ex.exercise_name === exercise.name);
     console.log('Found library exercise:', libraryExercise);
@@ -289,25 +307,30 @@ function PlanPageContent() {
       ...exercise,
       sets: typeof exercise.sets === 'number' ? exercise.sets : exercise.setDetails?.length || 3,
       source: 'library',
-      libraryId: libraryExercise?.id,  // Use only the library ID, no fallback
-      customName: undefined,  // Clear customName for library exercises
+      libraryId: libraryExercise?.id,
+      customName: undefined,
       name: exercise.name || '',
-      loadUnit: exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs'
+      loadUnit: exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
+      // When editing, maintain the original base ID
+      id: isEditing ? editingBaseId : baseId
     };
 
     console.log('Formatted exercise data:', exerciseWithNumberSets);
 
-    // If this is Week 1 or a new exercise, update program exercises and mirror to all weeks
-    if (weekNumber === 1 || !weekMatch) {
+    // If this is Week 1, update program exercises and mirror to all weeks
+    if (activeWeek === 1) {
       // Update program exercises
       setProgram((prev: Program) => {
-        const updatedExercises = prev.exercises.map(ex =>
-          ex.id === baseId ? exerciseWithNumberSets : ex
-        ).concat(
-          prev.exercises.find(ex => ex.id === baseId) ? [] : [exerciseWithNumberSets]
+        const existingExercise = prev.exercises.find(ex => 
+          isEditing ? ex.id === editingBaseId : ex.id === baseId
         );
-
-        console.log('Updated program exercises:', updatedExercises);
+        const updatedExercises = existingExercise 
+          ? prev.exercises.map(ex => 
+              isEditing ? (ex.id === editingBaseId ? { ...exerciseWithNumberSets } : ex)
+                       : (ex.id === baseId ? { ...exerciseWithNumberSets } : ex)
+            )
+          : [...prev.exercises, { ...exerciseWithNumberSets }];
+        
         return {
           ...prev,
           exercises: updatedExercises
@@ -320,38 +343,49 @@ function PlanPageContent() {
         const programLength = program.progressionRules.settings.programLength || 4;
         
         // Update Week 1
-        if (!prev[1]?.find(ex => ex.id === baseId)) {
-          newWeekExercises[1] = [...(prev[1] || []), exerciseWithNumberSets];
-        } else {
-          newWeekExercises[1] = prev[1].map(ex =>
-            ex.id === baseId ? exerciseWithNumberSets : ex
-          );
-        }
-
-        console.log('Week 1 exercises:', newWeekExercises[1]);
+        const existingExerciseWeek1 = prev[1]?.find(ex => 
+          isEditing ? ex.id === editingBaseId : ex.id === baseId
+        );
+        newWeekExercises[1] = prev[1] ? (
+          existingExerciseWeek1
+            ? prev[1].map(ex => 
+                isEditing ? (ex.id === editingBaseId ? { ...exerciseWithNumberSets } : ex)
+                         : (ex.id === baseId ? { ...exerciseWithNumberSets } : ex)
+              )
+            : [...prev[1], { ...exerciseWithNumberSets }]
+        ) : [{ ...exerciseWithNumberSets }];
 
         // Mirror Week 1's exercises to all other weeks with progression applied
-        if (program.periodizationType === 'Linear') {
-          for (let week = 2; week <= programLength; week++) {
-            newWeekExercises[week] = newWeekExercises[1].map(ex => ({
-              ...applyLinearProgression(
-                ex,
-                week,
-                program.progressionRules.settings.volumeIncrementPercentage ?? 0,
-                program.progressionRules.settings.loadIncrementPercentage ?? 0
-              ),
-              id: `${ex.id.split('-week')[0]}-week${week}`,
-              libraryId: ex.libraryId  // Preserve libraryId during progression
-            }));
-          }
-        } else {
-          // For other periodization types, just copy Week 1
-          for (let week = 2; week <= programLength; week++) {
-            newWeekExercises[week] = newWeekExercises[1].map(ex => ({
-              ...ex,
-              id: `${ex.id.split('-week')[0]}-week${week}`
-            }));
-          }
+        for (let week = 2; week <= programLength; week++) {
+          const weekId = isEditing 
+            ? `${editingBaseId}-week${week}`
+            : `${baseId}-week${week}`;
+          
+          const existingExerciseWeekN = prev[week]?.find(ex => 
+            isEditing ? ex.id === `${editingBaseId}-week${week}` : ex.id === weekId
+          );
+          
+          const weekExercise = {
+            ...exerciseWithNumberSets,
+            id: weekId,
+            ...(program.periodizationType === 'Linear' 
+              ? applyLinearProgression(
+                  exerciseWithNumberSets,
+                  week,
+                  program.progressionRules.settings.volumeIncrementPercentage ?? 0,
+                  program.progressionRules.settings.loadIncrementPercentage ?? 0
+                )
+              : {})
+          };
+
+          newWeekExercises[week] = prev[week] ? (
+            existingExerciseWeekN
+              ? prev[week].map(ex => 
+                  isEditing ? (ex.id === `${editingBaseId}-week${week}` ? weekExercise : ex)
+                           : (ex.id === weekId ? weekExercise : ex)
+                )
+              : [...prev[week], weekExercise]
+          ) : [weekExercise];
         }
         
         return newWeekExercises;
@@ -360,28 +394,29 @@ function PlanPageContent() {
       // This is an edit to a week other than Week 1, only update that specific week
       setWeekExercises(prev => {
         const newWeekExercises = { ...prev };
-        newWeekExercises[weekNumber] = prev[weekNumber].map(ex =>
-          ex.id === exercise.id ? exerciseWithNumberSets : ex
+        const weekId = isEditing 
+          ? `${editingBaseId}-week${activeWeek}`
+          : `${baseId}-week${activeWeek}`;
+        
+        const existingExercise = prev[activeWeek]?.find(ex => 
+          isEditing ? ex.id === editingExercise.id : ex.id === exercise.id
         );
+        
+        newWeekExercises[activeWeek] = prev[activeWeek] ? (
+          existingExercise
+            ? prev[activeWeek].map(ex => 
+                isEditing ? (ex.id === editingExercise.id ? { ...exerciseWithNumberSets, id: weekId } : ex)
+                         : (ex.id === exercise.id ? { ...exerciseWithNumberSets, id: weekId } : ex)
+              )
+            : [...prev[activeWeek], { ...exerciseWithNumberSets, id: weekId }]
+        ) : [{ ...exerciseWithNumberSets, id: weekId }];
+        
         return newWeekExercises;
       });
     }
 
     setIsExerciseModalOpen(false);
     setEditingExercise(undefined);
-  };
-
-  const handleEditExercise = (id: string) => {
-    // Find the exercise in the current week's exercises
-    const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
-    if (exercise) {
-      setEditingExercise({
-        ...exercise,
-        // Ensure we maintain the week-specific ID when editing
-        id: exercise.id
-      });
-      setIsExerciseModalOpen(true);
-    }
   };
 
   const handleDeleteExercise = (id: string) => {
@@ -576,10 +611,12 @@ function PlanPageContent() {
       );
 
       const programData = {
-        name: program.name.trim(),
-        periodizationType: program.periodizationType,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+        program_name: program.name.trim(),
+        periodization_type: program.periodizationType,
+        phase_focus: program.phaseFocus,
+        progression_rules: program.progressionRules,
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
         notes: '',
         weeks,
         userId: selectedUserId || parseInt(session?.user?.id)
@@ -587,8 +624,14 @@ function PlanPageContent() {
 
       console.log('Final program data being sent:', JSON.stringify(programData, null, 2));
 
-      const response = await fetch('/api/resistance-training/program', {
-        method: 'POST',
+      // Determine if this is a new program or an update
+      const isUpdate = Boolean(program.id);
+      const url = isUpdate 
+        ? `/api/resistance-training/program/${program.id}`
+        : '/api/resistance-training/program';
+
+      const response = await fetch(url, {
+        method: isUpdate ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -765,10 +808,10 @@ function PlanPageContent() {
       userId: userId?.toString() || '',
       name: '',
       phaseFocus: 'GPP',
-      periodizationType: 'Linear',
+      periodizationType: 'None',
       exercises: [],
       progressionRules: {
-        type: 'Linear',
+        type: 'None',
         settings: {
           volumeIncrementPercentage: 5,
           loadIncrementPercentage: 2.5,
@@ -784,24 +827,25 @@ function PlanPageContent() {
   };
 
   const handleProgramSelect = (selectedProgram: SavedProgram) => {
+    console.log('Selected program:', selectedProgram);
     // Set program state with default values for missing fields
     setProgram({
       id: selectedProgram.id,
       userId: selectedProgram.userId || '',
-      name: selectedProgram.program_name,
-      phaseFocus: selectedProgram.phaseFocus || 'GPP',
-      periodizationType: selectedProgram.periodization_type || 'Linear',
+      name: selectedProgram.program_name, // Use program_name from database
+      phaseFocus: selectedProgram.phase_focus || 'GPP', // Use phase_focus from database
+      periodizationType: selectedProgram.periodization_type, // Remove default to preserve custom types
       exercises: [], // We'll load these separately
-      progressionRules: selectedProgram.progressionRules || {
-        type: selectedProgram.periodization_type || 'Linear',
-        settings: {
+      progressionRules: {
+        type: selectedProgram.periodization_type, // Use the same type without default
+        settings: selectedProgram.progression_rules?.settings || {
           volumeIncrementPercentage: 5,
           loadIncrementPercentage: 2.5,
           programLength: 4,
           weeklyVolumePercentages: [100, 80, 90, 60]
         }
       },
-      volumeTargets: selectedProgram.volumeTargets || [],
+      volumeTargets: selectedProgram.volume_targets || [],
       createdAt: new Date(selectedProgram.created_at),
       updatedAt: new Date(selectedProgram.updated_at)
     });
@@ -872,7 +916,7 @@ function PlanPageContent() {
             }
             
             const exerciseData = {
-              id: `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
+              id: exercise.id || `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
               name: libraryExercise?.exercise_name || exercise.name || exercise.customName || 'Unknown Exercise',
               pairing: exercise.pairing || 'A1',
               sets: setDetails.length,
@@ -951,21 +995,26 @@ function PlanPageContent() {
 
       <div className="mb-6">
         <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setIsProgramSettingsExpanded(!isProgramSettingsExpanded)}>
             <h2 className="text-xl font-semibold dark:text-slate-900">Program Settings</h2>
             <button
-              onClick={handleAddExercise}
-              className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700"
+              className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200"
+              style={{ transform: isProgramSettingsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
             >
-              Add Exercise
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
             </button>
           </div>
-          <ProgramSettings
-            name={program.name}
-            phaseFocus={program.phaseFocus}
-            periodizationType={program.periodizationType}
-            onSettingsChange={handleSettingsChange}
-          />
+          {isProgramSettingsExpanded && (
+            <ProgramSettings
+              name={program.name}
+              phaseFocus={program.phaseFocus}
+              periodizationType={program.periodizationType}
+              progressionRules={program.progressionRules}
+              onSettingsChange={handleSettingsChange}
+            />
+          )}
         </div>
       </div>
 

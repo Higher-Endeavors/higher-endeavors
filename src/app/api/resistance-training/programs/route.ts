@@ -51,12 +51,19 @@ export async function GET(request: Request) {
         TO_CHAR(rp.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as created_at,
         TO_CHAR(rp.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at,
         (
-          SELECT COUNT(DISTINCT pde.id)
+          SELECT json_agg(
+            json_build_object(
+              'name', COALESCE(el.exercise_name, pde.custom_exercise_name),
+              'id', pde.id
+            )
+          )
           FROM program_weeks pw
           LEFT JOIN program_days pd ON pw.id = pd.program_week_id
           LEFT JOIN program_day_exercises pde ON pd.id = pde.program_day_id
+          LEFT JOIN exercise_library el ON pde.exercise_library_id = el.id
           WHERE pw.resistance_program_id = rp.id
-        ) as exercise_count
+          AND pw.week_number = 1
+        ) as exercises
         ${isAdmin ? ', u.first_name, u.last_name, u.email' : ''}
       FROM resistance_programs rp
       ${isAdmin ? 'LEFT JOIN users u ON rp.user_id = u.id' : ''}
