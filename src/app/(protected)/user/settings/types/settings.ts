@@ -53,6 +53,7 @@ export interface FitnessSettings {
     weightUnit: WeightUnit;
     trackRPE?: boolean;
     trackRIR?: boolean;
+    availableEquipment?: number[]; // Array of equipment IDs
   };
   cardioMetabolic: {
     speedUnit: SpeedUnit;
