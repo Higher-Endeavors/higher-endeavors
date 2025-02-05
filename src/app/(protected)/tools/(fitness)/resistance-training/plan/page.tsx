@@ -9,7 +9,7 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import ExerciseModal from './components/AddExerciseModal';
 import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
-import VolumeTargets from './components/VolumeTargets';
+// import VolumeTargets from './components/VolumeTargets';
 import WeekProgram from './components/WeekProgram';
 import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
@@ -516,13 +516,13 @@ function PlanPageContent() {
     }
   };
 
-  // Volume targets management
-  const handleVolumeTargetsChange = (targets: VolumeTarget[]) => {
+  // Volume targets management - commented out for now
+  /*const handleVolumeTargetsChange = (targets: VolumeTarget[]) => {
     setProgram(prev => ({
       ...prev,
       volumeTargets: targets
     }));
-  };
+  };*/
 
   // Save program
   const handleSave = async () => {
@@ -1018,12 +1018,13 @@ function PlanPageContent() {
         </div>
       </div>
 
-      <div className="mb-6">
+      {/* Volume Targets - commented out for now */}
+      {/*<div className="mb-6">
         <VolumeTargets
           targets={program.volumeTargets}
           onChange={handleVolumeTargetsChange}
         />
-      </div>
+      </div>*/}
 
       {/* Week Tabs */}
       <div className="mt-8 border-b border-gray-200 dark:border-gray-700">
@@ -1086,6 +1087,11 @@ function PlanPageContent() {
                   </p>
                 </div>
               ))}
+              <div>
+                <p className="text-sm text-gray-600">
+                  Duration: {calculateSessionDuration(weekExercises[activeWeek])} min
+                </p>
+              </div>
             </div>
           </div>
         )}

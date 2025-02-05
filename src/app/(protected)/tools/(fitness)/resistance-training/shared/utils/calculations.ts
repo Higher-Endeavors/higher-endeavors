@@ -38,16 +38,34 @@ export const calculateSessionVolume = (exercises: Exercise[], weightUnit: string
   let totalLoad = 0;
 
   exercises.forEach(exercise => {
-    const sets = Number(exercise.sets) || 0;
-    const reps = Number(exercise.reps) || 0;
-    const load = typeof exercise.load === 'number' ? exercise.load : 0;
+    if (exercise.isAdvancedSets && exercise.setDetails) {
+      // For Advanced Sets, count each set and its sub-sets
+      totalSets += exercise.setDetails.length;
+      
+      exercise.setDetails.forEach(set => {
+        if (set.subSets) {
+          // Add up reps and load from each sub-set
+          set.subSets.forEach(subSet => {
+            totalReps += subSet.reps;
+            if (typeof subSet.load === 'number' && !isNaN(subSet.load)) {
+              totalLoad += subSet.load * subSet.reps;
+            }
+          });
+        }
+      });
+    } else {
+      // For regular sets
+      const sets = Number(exercise.sets) || 0;
+      const reps = Number(exercise.reps) || 0;
+      const load = typeof exercise.load === 'number' ? exercise.load : 0;
 
-    totalSets += sets;
-    totalReps += sets * reps;
+      totalSets += sets;
+      totalReps += sets * reps;
 
-    // Only add to total load if the load is numeric
-    if (typeof load === 'number' && !isNaN(load)) {
-      totalLoad += sets * reps * load;
+      // Only add to total load if the load is numeric
+      if (typeof load === 'number' && !isNaN(load)) {
+        totalLoad += sets * reps * load;
+      }
     }
   });
 
@@ -152,15 +170,29 @@ export const calculateSessionDuration = (exercises: Exercise[]) => {
   let totalDuration = 0;
 
   exercises.forEach(exercise => {
-    const sets = Number(exercise.sets) || 0;
-    const rest = Number(exercise.rest) || 0;
-    // Assume each set takes about 45 seconds to complete
-    const setDuration = 45;
-    
-    totalDuration += sets * (setDuration + rest);
+    if (exercise.isAdvancedSets && exercise.setDetails) {
+      exercise.setDetails.forEach(set => {
+        if (set.subSets) {
+          // For each sub-set, add its duration and rest time
+          set.subSets.forEach(subSet => {
+            // Assume each rep takes about 5 seconds to complete
+            const setDuration = 5 * subSet.reps;
+            totalDuration += setDuration + (subSet.rest || 0);
+          });
+        }
+      });
+    } else {
+      const sets = Number(exercise.sets) || 0;
+      const rest = Number(exercise.rest) || 0;
+      const reps = Number(exercise.reps) || 0;
+      // Assume each rep takes about 5 seconds to complete
+      const setDuration = 5 * reps;
+      
+      totalDuration += sets * (setDuration + rest);
+    }
   });
 
-  return isNaN(totalDuration) ? 0 : Math.round(totalDuration / 60); // Convert to minutes
+  return Math.ceil(totalDuration / 60); // Convert to minutes and round up
 };
 
 export interface VolumeAdjustment {

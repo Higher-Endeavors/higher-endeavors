@@ -42,7 +42,7 @@ export interface Program {
   periodizationType: PeriodizationType;
   exercises: Exercise[];
   progressionRules: ProgressionRules;
-  volumeTargets: VolumeTarget[];
+  volumeTargets?: VolumeTarget[];
   createdAt: Date;
   updatedAt: Date;
 }

@@ -297,12 +297,15 @@ export default function ExerciseModal({
       notes: ''
     }));
 
-    // Create the correct type based on isVariedSets
+    // Create the correct type based on isVariedSets and isAdvancedSets
     const submissionData = data.isVariedSets ? {
       ...data,
       ...loadData,
       isVariedSets: true as const,
       isAdvancedSets: Boolean(data.isAdvancedSets),
+      // If using advanced sets, don't include the main section's load and rest
+      load: data.isAdvancedSets ? 0 : loadData.load,
+      rest: data.isAdvancedSets ? 0 : data.rest,
       sets: data.setDetails?.map(set => ({
         setNumber: set.setNumber,
         reps: set.reps,
@@ -479,59 +482,63 @@ export default function ExerciseModal({
             </div>
 
             {/* Reps */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Reps</label>
-              <input
-                type="number"
-                {...register('reps', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.reps && (
-                <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
-              )}
-            </div>
+            {(!isVariedSets || !isAdvancedSets) && (
+              <div>
+                <label className="block text-sm font-medium dark:text-white">Reps</label>
+                <input
+                  type="number"
+                  {...register('reps', { valueAsNumber: true })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                />
+                {errors.reps && (
+                  <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
+                )}
+              </div>
+            )}
 
             {/* Load */}
-            <div>
-              <div className="flex items-center space-x-1">
-                <label className="block text-sm font-medium dark:text-white">Load</label>
-                <div className="group relative">
-                  <HiInformationCircle className="h-4 w-4 text-gray-400 hover:text-gray-500" />
-                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50">
-                    <p>Acceptable inputs:</p>
-                    <ul className="list-disc list-inside mt-1">
-                      <li>Numeric weight in {useAlternateUnit ? alternateUnit : defaultUnit}</li>
-                      <li>BW (bodyweight)</li>
-                      <li>Band colors (e.g., red, black)</li>
-                    </ul>
+            {(!isVariedSets || !isAdvancedSets) && (
+              <div>
+                <div className="flex items-center space-x-1">
+                  <label className="block text-sm font-medium dark:text-white">Load</label>
+                  <div className="group relative">
+                    <HiInformationCircle className="h-4 w-4 text-gray-400 hover:text-gray-500" />
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50">
+                      <p>Acceptable inputs:</p>
+                      <ul className="list-disc list-inside mt-1">
+                        <li>Numeric weight in {useAlternateUnit ? alternateUnit : defaultUnit}</li>
+                        <li>BW (bodyweight)</li>
+                        <li>Band colors (e.g., red, black)</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    {...register('load', {
+                      setValueAs: v => {
+                        const num = Number(v);
+                        return isNaN(num) ? v : num;
+                      }
+                    })}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setUseAlternateUnit(!useAlternateUnit)}
+                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                    title={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
+                  >
+                    <HiSwitchHorizontal className="h-4 w-4" />
+                    <span>{useAlternateUnit ? alternateUnit : defaultUnit}</span>
+                  </button>
+                </div>
+                {errors.load && (
+                  <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
+                )}
               </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  {...register('load', {
-                    setValueAs: v => {
-                      const num = Number(v);
-                      return isNaN(num) ? v : num;
-                    }
-                  })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                  placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
-                />
-                <button
-                  type="button"
-                  onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                  className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
-                  title={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
-                >
-                  <HiSwitchHorizontal className="h-4 w-4" />
-                  <span>{useAlternateUnit ? alternateUnit : defaultUnit}</span>
-                </button>
-              </div>
-              {errors.load && (
-                <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
-              )}
-            </div>
+            )}
 
             {/* Tempo */}
             <div>
@@ -549,17 +556,19 @@ export default function ExerciseModal({
             </div>
 
             {/* Rest */}
-            <div>
-              <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
-              <input
-                type="number"
-                {...register('rest', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              />
-              {errors.rest && (
-                <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
-              )}
-            </div>
+            {(!isVariedSets || !isAdvancedSets) && (
+              <div>
+                <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
+                <input
+                  type="number"
+                  {...register('rest', { valueAsNumber: true })}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                />
+                {errors.rest && (
+                  <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Optional Fields Section */}

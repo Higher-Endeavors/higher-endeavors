@@ -167,9 +167,9 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
-          {exercise.isVariedSets && exercise.setDetails ? (
+          {exercise.isVariedSets || exercise.isAdvancedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.setDetails?.map((set, idx) => (
                 <div key={idx}>
                   <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.reps} reps`}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
@@ -186,11 +186,11 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
-          {exercise.isVariedSets && exercise.setDetails ? (
+          {exercise.isVariedSets || exercise.isAdvancedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.setDetails?.map((set, idx) => (
                 <div key={idx}>
-                  <p>{formatLoad(set.load, set.loadUnit)}</p>
+                  <p className="invisible">Placeholder</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
                       → {formatLoad(subSet.load, subSet.loadUnit)}
@@ -205,15 +205,13 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-          {exercise.isVariedSets && exercise.setDetails ? (
+          {exercise.isVariedSets || exercise.isAdvancedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.setDetails?.map((set, idx) => (
                 <div key={idx}>
                   <p>{set.tempo}</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.tempo}
-                    </p>
+                    <p key={subIdx} className="invisible">Placeholder</p>
                   ))}
                 </div>
               ))}
@@ -224,11 +222,11 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-          {exercise.isVariedSets && exercise.setDetails ? (
+          {exercise.isVariedSets || exercise.isAdvancedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.setDetails?.map((set, idx) => (
                 <div key={idx}>
-                  <p>{set.rest}s</p>
+                  <p className="invisible">Placeholder</p>
                   {set.subSets && set.subSets.map((subSet, subIdx) => (
                     <p key={subIdx} className="ml-4 text-sm">
                       → {subSet.rest}s
@@ -243,17 +241,16 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-          {exercise.isVariedSets && exercise.setDetails ? (
+          {exercise.isVariedSets || exercise.isAdvancedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => {
+              {exercise.setDetails?.map((set, idx) => {
                 const tempoTotal = set.tempo.split('').reduce((sum, char) => {
                   if (char.toLowerCase() === 'x') return sum + 1;
                   return sum + parseInt(char) || 0;
                 }, 0);
-                const setTUT = tempoTotal * set.reps;
                 return (
                   <div key={idx}>
-                    <p>{setTUT}s</p>
+                    <p className="invisible">Placeholder</p>
                     {set.subSets && set.subSets.map((subSet, subIdx) => {
                       const subSetTUT = tempoTotal * subSet.reps;
                       return (
