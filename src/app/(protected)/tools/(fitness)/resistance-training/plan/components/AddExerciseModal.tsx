@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
@@ -31,6 +31,10 @@ interface ExerciseOption {
   value: string;
   label: string;
   libraryId?: number;
+  data: {
+    source: string;
+    id: string;
+  };
 }
 
 /**
@@ -51,39 +55,41 @@ const filterExerciseOptions = (option: { label: string }, inputValue: string) =>
  * Ensures proper color contrast in both light and dark modes
  */
 const customSelectStyles = {
-  control: (base: any) => ({
-    ...base,
-    backgroundColor: 'white',
-  }),
-  input: (base: any) => ({
-    ...base,
-    color: '#1f2937 !important',
-  }),
-  option: (base: any, state: any) => ({
-    ...base,
-    backgroundColor: state.isFocused ? '#f3f4f6' : 'white',
-    color: '#1f2937 !important',
+  option: (provided: any, state: any) => ({
+    ...provided,
+    color: state.isFocused ? 'white' : 'black',
+    backgroundColor: state.isFocused ? '#6366F1' : 'white',
+    padding: '8px 12px',
+    fontSize: '14px',
+    lineHeight: '20px',
     '&:hover': {
-      backgroundColor: '#f3f4f6',
+      backgroundColor: '#6366F1',
+      color: 'white'
     }
   }),
-  singleValue: (base: any) => ({
-    ...base,
-    color: '#1f2937 !important',
-  }),
-  menu: (base: any) => ({
-    ...base,
+  control: (provided: any) => ({
+    ...provided,
     backgroundColor: 'white',
-    zIndex: 9999,
+    borderColor: '#E5E7EB',
+    minHeight: '38px',
+    boxShadow: 'none',
+    '&:hover': {
+      borderColor: '#6366F1'
+    }
   }),
-  menuList: (base: any) => ({
-    ...base,
+  singleValue: (provided: any) => ({
+    ...provided,
+    color: 'black'
+  }),
+  input: (provided: any) => ({
+    ...provided,
+    color: 'black'
+  }),
+  menu: (provided: any) => ({
+    ...provided,
     backgroundColor: 'white',
-  }),
-  dropdownIndicator: (base: any) => ({
-    ...base,
-    color: '#6b7280 !important',
-  }),
+    zIndex: 10
+  })
 };
 
 /**
@@ -101,6 +107,14 @@ export default function ExerciseModal({
   selectedExerciseName,
   userSettings
 }: ExerciseModalProps) {
+  useEffect(() => {
+    console.log('AddExerciseModal - Received props:', {
+      selectedExerciseName,
+      exercise,
+      exercises
+    });
+  }, [selectedExerciseName, exercise, exercises]);
+
   // Debug logs for user settings
   useEffect(() => {
     console.log('Modal User Settings:', userSettings);
@@ -108,7 +122,9 @@ export default function ExerciseModal({
   }, [userSettings]);
 
   // State for exercise name options in dropdown
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
@@ -202,36 +218,73 @@ export default function ExerciseModal({
     }
   }, [exercise, exercises, reset]);
 
-  /**
-   * Effect: Fetch available exercises for name dropdown
-   */
+  const handleExerciseChange = useCallback((selectedOption: ExerciseOption | null) => {
+    if (selectedOption) {
+      setSelectedExercise(selectedOption);
+      setValue('name', selectedOption.label);
+      setValue('source', selectedOption.data.source);
+      if (selectedOption.data.source === 'library') {
+        setValue('libraryId', parseInt(selectedOption.data.id));
+      }
+    }
+  }, [setValue]);
+
+  // Effect for handling selectedExerciseName
+  useEffect(() => {
+    if (selectedExerciseName && exerciseOptions.length > 0) {
+      const matchingExercise = exerciseOptions.find(
+        option => option.label === selectedExerciseName
+      );
+      if (matchingExercise) {
+        handleExerciseChange(matchingExercise);
+      }
+    }
+  }, [selectedExerciseName, exerciseOptions, handleExerciseChange]);
+
+  // Fetch exercises effect
   useEffect(() => {
     const fetchExercises = async () => {
       try {
+        setIsLoading(true);
         const response = await fetch('/api/exercises');
         const data = await response.json();
-        const options = data.map((ex: any) => ({
-          value: ex.exercise_name,
-          label: ex.exercise_name,
-          libraryId: ex.id
+        
+        if (data.error) {
+          console.error('Error fetching exercises:', data.error);
+          return;
+        }
+
+        const options = data.map((exercise: any) => ({
+          value: `${exercise.source}-${exercise.id}`,
+          label: exercise.exercise_name,
+          libraryId: exercise.source === 'library' ? exercise.id : undefined,
+          data: {
+            source: exercise.source,
+            id: exercise.id
+          }
         }));
+
         setExerciseOptions(options);
+
+        // If we have a selectedExerciseName, find and select it
+        if (selectedExerciseName) {
+          const matchingExercise = options.find(opt => opt.label === selectedExerciseName);
+          if (matchingExercise) {
+            setSelectedExercise(matchingExercise);
+            setValue('name', matchingExercise.label);
+          }
+        }
       } catch (error) {
         console.error('Error fetching exercises:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    fetchExercises();
-  }, []);
-
-  /**
-   * Effect: Update exercise name when selected from advanced search
-   */
-  useEffect(() => {
-    if (selectedExerciseName) {
-      setValue('name', selectedExerciseName);
+    if (isOpen) {
+      fetchExercises();
     }
-  }, [selectedExerciseName, setValue]);
+  }, [isOpen, selectedExerciseName]);
 
   /**
    * Effect: Manage setDetails array when varied sets is enabled
@@ -380,14 +433,6 @@ export default function ExerciseModal({
     setValue('setDetails', updatedSetDetails);
   };
 
-  const handleExerciseChange = (selectedOption: ExerciseOption | null) => {
-    if (selectedOption) {
-      setValue('name', selectedOption.value);
-      setValue('source', 'library');
-      setValue('libraryId', selectedOption.libraryId);
-    }
-  };
-
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -408,22 +453,21 @@ export default function ExerciseModal({
                   Advanced Search
                 </button>
               </div>
-              <Controller
-                name="name"
-                control={control}
-                render={({ field }) => (
+              <div className="flex gap-2">
+                <div className="flex-1">
                   <Select
-                    {...field}
-                    options={exerciseOptions}
-                    filterOption={filterExerciseOptions}
+                    value={selectedExercise}
                     onChange={handleExerciseChange}
-                    value={exerciseOptions.find(option => option.value === field.value)}
-                    placeholder="Search exercises..."
-                    className="mb-4"
+                    options={exerciseOptions}
+                    isLoading={isLoading}
+                    className="basic-single"
+                    classNamePrefix="select"
+                    placeholder="Select or search for an exercise..."
+                    isClearable
                     styles={customSelectStyles}
                   />
-                )}
-              />
+                </div>
+              </div>
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
               )}

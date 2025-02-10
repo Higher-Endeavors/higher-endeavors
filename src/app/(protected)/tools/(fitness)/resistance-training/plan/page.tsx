@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
@@ -21,8 +21,77 @@ import { HiCheck, HiX } from 'react-icons/hi';
 import UserSelector from '@/app/components/UserSelector';
 import { useSession, SessionProvider } from 'next-auth/react';
 import ProgramBrowser from './components/ProgramBrowser';
+import { type Exercise as ExerciseType } from '../shared/schemas/exercise';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
+
+// Import or define SavedProgram type
+interface SavedProgram {
+  id: string;
+  userId: string;
+  program_name: string;
+  phase_focus: PhaseFocus;
+  periodization_type: PeriodizationType;
+  progression_rules: {
+    type: PeriodizationType;
+    settings: {
+      volumeIncrementPercentage?: number;
+      loadIncrementPercentage?: number;
+      weeklyVolumePercentages?: number[];
+      programLength?: number;
+      rules?: Array<{
+        variable: string;
+        changeType: string;
+        value: number;
+      }>;
+    };
+  };
+  volumeTargets?: VolumeTarget[];
+  created_at: string;
+  updated_at: string;
+  exercises?: ExerciseType[];
+}
+
+// Helper function to convert SavedProgram to Program
+const convertSavedProgramToProgram = (savedProgram: SavedProgram): Program => ({
+  id: savedProgram.id,
+  userId: savedProgram.userId,
+  name: savedProgram.program_name,
+  phaseFocus: savedProgram.phase_focus,
+  periodizationType: savedProgram.periodization_type,
+  progressionRules: savedProgram.progression_rules,
+  volumeTargets: savedProgram.volumeTargets || [],
+  exercises: savedProgram.exercises || [],
+  createdAt: new Date(savedProgram.created_at),
+  updatedAt: new Date(savedProgram.updated_at)
+});
+
+// Helper function to convert Program to SavedProgram
+const convertProgramToSaved = (program: Program): SavedProgram => ({
+  id: program.id,
+  userId: program.userId,
+  program_name: program.name,
+  phase_focus: program.phaseFocus,
+  periodization_type: program.periodizationType,
+  progression_rules: program.progressionRules,
+  volumeTargets: program.volumeTargets,
+  exercises: program.exercises,
+  created_at: program.createdAt.toISOString(),
+  updated_at: program.updatedAt.toISOString()
+});
+
+// Import or define ExerciseOption type
+interface ExerciseOption {
+  id: string;
+  value: string;
+  label: string;
+  libraryId?: number;
+  data: {
+    id: string;
+    name: string;
+    source: 'user' | 'library';
+  };
+}
 
 const ExerciseListNoSSR = dynamic(
     () => import('./components/ExerciseList'),
@@ -87,16 +156,17 @@ function PlanPageContent() {
   // UI state
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
-  const [exerciseLibrary, setExerciseLibrary] = useState<Array<{ id: number; name: string }>>([]);
+  const [editingExercise, setEditingExercise] = useState<ExerciseType | undefined>();
+  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isProgramSettingsExpanded, setIsProgramSettingsExpanded] = useState(true);
-  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
-  const [selectedExerciseName, setSelectedExerciseName] = useState<string>('');
-  const [activeExercise, setActiveExercise] = useState<Exercise | null>(null);
+  const [currentExercise, setCurrentExercise] = useState<ExerciseType | undefined>();
+  const [selectedExerciseName, setSelectedExerciseName] = useState('');
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseType | null>(null);
+  const [activeExercise, setActiveExercise] = useState<ExerciseType | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
+  const [weekExercises, setWeekExercises] = useState<{ [key: number]: ExerciseType[] }>({});
   const [activeWeek, setActiveWeek] = useState(1);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
@@ -117,19 +187,27 @@ function PlanPageContent() {
           throw new Error('Invalid exercise library data format');
         }
         
-        // Map the data to ensure all required fields are present
-        const formattedData = data.map((exercise: any) => ({
-          id: exercise.id,
-          exercise_name: exercise.exercise_name || 'Unknown Exercise',
-          difficulty_id: exercise.difficulty_id || 1,
-          target_muscle_group_id: exercise.target_muscle_group_id || 1,
-          prime_mover_muscle_id: exercise.prime_mover_muscle_id || 1,
-          exercise_type: exercise.exercise_type || 'strength',
-          description: exercise.description || '',
-          instructions: exercise.instructions || '',
-          tips: exercise.tips || '',
-          video_url: exercise.video_url || '',
-          image_url: exercise.image_url || ''
+        // Transform the data to match ExerciseOption type
+        const formattedData: ExerciseOption[] = data.map((exercise: any) => ({
+          id: exercise.id.toString(),
+          value: `${exercise.source}-${exercise.id}`,
+          label: exercise.exercise_name,
+          libraryId: exercise.source === 'library' ? parseInt(exercise.id) : undefined,
+          source: exercise.source,
+          data: {
+            id: exercise.id.toString(),
+            name: exercise.exercise_name,
+            source: exercise.source || 'library',
+            difficulty: exercise.difficulty_name,
+            targetMuscleGroup: exercise.target_muscle_group || 'N/A',
+            primaryEquipment: exercise.primary_equipment || 'N/A',
+            secondaryEquipment: exercise.secondary_equipment,
+            exerciseFamily: exercise.exercise_family || 'N/A',
+            bodyRegion: exercise.body_region || 'N/A',
+            movementPattern: exercise.movement_pattern || 'N/A',
+            movementPlane: exercise.movement_plane || 'N/A',
+            laterality: exercise.laterality || 'N/A'
+          }
         }));
         
         setExerciseLibrary(formattedData);
@@ -186,7 +264,7 @@ function PlanPageContent() {
   };
 
   // Modified updatePairings function to handle group changes
-  const updatePairings = (exercises: Exercise[]): Exercise[] => {
+  const updatePairings = (exercises: ExerciseType[]): ExerciseType[] => {
     let currentGroup = 'A';
     let currentNumber = 1;
 
@@ -235,26 +313,25 @@ function PlanPageContent() {
     setIsExerciseModalOpen(true);
   };
 
-  const handleExerciseSelect = (exerciseName: string) => {
-    setSelectedExerciseName(exerciseName);
-    setIsExerciseSearchOpen(false);
+  const handleExerciseSelect = (exercise: ExerciseOption) => {
+    const newExercise = {
+      id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
+      name: exercise.label,
+      pairing: getNextPairing(),
+      sets: 3,
+      reps: 10,
+      load: 0,
+      tempo: '2010',
+      rest: 60,
+      isVariedSets: false as const,
+      isAdvancedSets: false,
+      setDetails: undefined,
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
+      notes: ''
+    } as const;
+    
+    setSelectedExercise(newExercise);
     setIsAdvancedSearchOpen(false);
-    
-    // Find the selected exercise in the library
-    const selectedLibraryExercise = exerciseLibrary.find(ex => ex.exercise_name === exerciseName);
-    console.log('Selected library exercise:', selectedLibraryExercise);
-    
-    if (editingExercise && selectedLibraryExercise) {
-      const updatedExercise = {
-        ...editingExercise,
-        name: exerciseName,
-        source: 'library',
-        libraryId: selectedLibraryExercise.id,
-        customName: undefined
-      };
-      console.log('Updated exercise data:', updatedExercise);
-      setEditingExercise(updatedExercise);
-    }
   };
 
   const getNextPairing = (): string => {
@@ -288,7 +365,7 @@ function PlanPageContent() {
     }
   };
 
-  const handleSaveExercise = (exercise: Exercise) => {
+  const handleSaveExercise = (exercise: ExerciseType) => {
     console.log('Received exercise data in handleSaveExercise:', exercise);
     
     // Get the base ID without any week suffix
@@ -299,124 +376,103 @@ function PlanPageContent() {
     const editingBaseId = isEditing ? editingExercise.id.split('-week')[0] : null;
     
     // Find the library exercise to ensure we have the correct ID
-    const libraryExercise = exerciseLibrary.find(ex => ex.exercise_name === exercise.name);
+    const libraryExercise = exerciseLibrary.find(ex => ex.label === exercise.name);
     console.log('Found library exercise:', libraryExercise);
     
-    // Ensure sets is a number and exercise data is properly formatted
-    const exerciseWithNumberSets = {
-      ...exercise,
-      sets: typeof exercise.sets === 'number' ? exercise.sets : exercise.setDetails?.length || 3,
-      source: 'library',
-      libraryId: libraryExercise?.id,
-      customName: undefined,
+    // Create base exercise properties
+    const baseProps = {
+      id: exercise.id || '',
       name: exercise.name || '',
+      pairing: exercise.pairing || 'A1',
+      sets: exercise.sets || 1,
+      id: exercise.id,
+      name: exercise.name,
+      pairing: exercise.pairing,
+      sets: exercise.sets,
+      reps: exercise.reps,
+      load: exercise.load,
       loadUnit: exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
-      // When editing, maintain the original base ID
-      id: isEditing ? editingBaseId : baseId
+      tempo: exercise.tempo,
+      rest: exercise.rest,
+      notes: exercise.notes || '',
+      rpe: exercise.rpe,
+      rir: exercise.rir,
+      isAdvancedSets: exercise.isAdvancedSets
+    } as const;
+
+    // Create a properly typed exercise object based on isVariedSets
+    const formattedExercise: ExerciseType = exercise.isVariedSets ? {
+      ...baseProps,
+      isVariedSets: true as const,
+      setDetails: exercise.setDetails || Array.from({ length: baseProps.sets }, (_, i) => ({
+        setNumber: i + 1,
+        reps: baseProps.reps || 0,
+        load: baseProps.load || 0,
+        loadUnit: baseProps.loadUnit,
+        tempo: baseProps.tempo || '2010',
+        rest: baseProps.rest || 60
+      }))
+    } : {
+      ...baseProps,
+      isVariedSets: false as const,
+      setDetails: undefined
     };
 
-    console.log('Formatted exercise data:', exerciseWithNumberSets);
+    // Update the program state with the new exercise
+    setProgram((prev) => {
+      const updatedExercises = [...prev.exercises];
+      const existingIndex = updatedExercises.findIndex(ex => 
+        ex.id.split('-week')[0] === (isEditing ? editingBaseId : baseId)
+      );
 
-    // If this is Week 1, update program exercises and mirror to all weeks
-    if (activeWeek === 1) {
-      // Update program exercises
-      setProgram((prev: Program) => {
-        const existingExercise = prev.exercises.find(ex => 
-          isEditing ? ex.id === editingBaseId : ex.id === baseId
-        );
-        const updatedExercises = existingExercise 
-          ? prev.exercises.map(ex => 
-              isEditing ? (ex.id === editingBaseId ? { ...exerciseWithNumberSets } : ex)
-                       : (ex.id === baseId ? { ...exerciseWithNumberSets } : ex)
-            )
-          : [...prev.exercises, { ...exerciseWithNumberSets }];
-        
-        return {
-          ...prev,
-          exercises: updatedExercises
-        };
-      });
+      if (existingIndex >= 0) {
+        updatedExercises[existingIndex] = formattedExercise;
+      } else {
+        updatedExercises.push(formattedExercise);
+      }
 
-      // Update all weeks
+      // Create a new program object with the correct types
+      const updatedProgram: Program = {
+        id: prev.id || '',
+        userId: prev.userId || '',
+        name: prev.name || '',
+        exercises: updatedExercises,
+        phaseFocus: prev.phaseFocus as PhaseFocus,
+        periodizationType: prev.periodizationType as PeriodizationType,
+        progressionRules: {
+          type: prev.progressionRules.type as PeriodizationType,
+          settings: prev.progressionRules.settings
+        },
+        volumeTargets: prev.volumeTargets || [],
+        createdAt: prev.createdAt || new Date(),
+        updatedAt: new Date()
+      };
+
+      return updatedProgram;
+    });
+
+    // Update week exercises if needed
+    if (activeWeek) {
       setWeekExercises(prev => {
-        const newWeekExercises = { ...prev };
-        const programLength = program.progressionRules.settings.programLength || 4;
-        
-        // Update Week 1
-        const existingExerciseWeek1 = prev[1]?.find(ex => 
-          isEditing ? ex.id === editingBaseId : ex.id === baseId
+        const updatedWeekExercises = { ...prev };
+        const weekExercises = updatedWeekExercises[activeWeek] || [];
+        const existingIndex = weekExercises.findIndex(ex => 
+          ex.id.split('-week')[0] === (isEditing ? editingBaseId : baseId)
         );
-        newWeekExercises[1] = prev[1] ? (
-          existingExerciseWeek1
-            ? prev[1].map(ex => 
-                isEditing ? (ex.id === editingBaseId ? { ...exerciseWithNumberSets } : ex)
-                         : (ex.id === baseId ? { ...exerciseWithNumberSets } : ex)
-              )
-            : [...prev[1], { ...exerciseWithNumberSets }]
-        ) : [{ ...exerciseWithNumberSets }];
 
-        // Mirror Week 1's exercises to all other weeks with progression applied
-        for (let week = 2; week <= programLength; week++) {
-          const weekId = isEditing 
-            ? `${editingBaseId}-week${week}`
-            : `${baseId}-week${week}`;
-          
-          const existingExerciseWeekN = prev[week]?.find(ex => 
-            isEditing ? ex.id === `${editingBaseId}-week${week}` : ex.id === weekId
-          );
-          
-          const weekExercise = {
-            ...exerciseWithNumberSets,
-            id: weekId,
-            ...(program.periodizationType === 'Linear' 
-              ? applyLinearProgression(
-                  exerciseWithNumberSets,
-                  week,
-                  program.progressionRules.settings.volumeIncrementPercentage ?? 0,
-                  program.progressionRules.settings.loadIncrementPercentage ?? 0
-                )
-              : {})
-          };
-
-          newWeekExercises[week] = prev[week] ? (
-            existingExerciseWeekN
-              ? prev[week].map(ex => 
-                  isEditing ? (ex.id === `${editingBaseId}-week${week}` ? weekExercise : ex)
-                           : (ex.id === weekId ? weekExercise : ex)
-                )
-              : [...prev[week], weekExercise]
-          ) : [weekExercise];
+        if (existingIndex >= 0) {
+          weekExercises[existingIndex] = formattedExercise;
+        } else {
+          weekExercises.push(formattedExercise);
         }
-        
-        return newWeekExercises;
-      });
-    } else {
-      // This is an edit to a week other than Week 1, only update that specific week
-      setWeekExercises(prev => {
-        const newWeekExercises = { ...prev };
-        const weekId = isEditing 
-          ? `${editingBaseId}-week${activeWeek}`
-          : `${baseId}-week${activeWeek}`;
-        
-        const existingExercise = prev[activeWeek]?.find(ex => 
-          isEditing ? ex.id === editingExercise.id : ex.id === exercise.id
-        );
-        
-        newWeekExercises[activeWeek] = prev[activeWeek] ? (
-          existingExercise
-            ? prev[activeWeek].map(ex => 
-                isEditing ? (ex.id === editingExercise.id ? { ...exerciseWithNumberSets, id: weekId } : ex)
-                         : (ex.id === exercise.id ? { ...exerciseWithNumberSets, id: weekId } : ex)
-              )
-            : [...prev[activeWeek], { ...exerciseWithNumberSets, id: weekId }]
-        ) : [{ ...exerciseWithNumberSets, id: weekId }];
-        
-        return newWeekExercises;
+
+        updatedWeekExercises[activeWeek] = weekExercises;
+        return updatedWeekExercises;
       });
     }
 
-    setIsExerciseModalOpen(false);
     setEditingExercise(undefined);
+    setIsExerciseModalOpen(false);
   };
 
   const handleDeleteExercise = (id: string) => {
@@ -424,7 +480,7 @@ function PlanPageContent() {
     const baseId = id.split('-week')[0];
 
     // Remove from program exercises
-    setProgram(prev => ({
+    setProgram((prev) => ({
       ...prev,
       exercises: prev.exercises.filter(ex => !ex.id.startsWith(baseId))
     }));
@@ -658,8 +714,31 @@ function PlanPageContent() {
   };
 
   // Add handler for advanced search selection
-  const handleAdvancedSearchSelect = (exerciseName: string) => {
-    handleExerciseSelect(exerciseName);
+  const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {
+    console.log('Page - Received exercise from search:', exercise);
+    
+    // Transform the exercise data
+    const transformedExercise = {
+      id: `${exercise.data.source}-${exercise.data.id}-${Date.now()}`, // Ensure unique ID
+      name: exercise.data.name,
+      pairing: getNextPairing(),
+      sets: 3, // Default values
+      reps: 10,
+      load: 0,
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
+      tempo: '2010',
+      rest: 60,
+      isVariedSets: false as const,
+      isAdvancedSets: false,
+      notes: '',
+      setDetails: undefined
+    };
+
+    console.log('Page - Transformed exercise:', transformedExercise);
+    
+    setSelectedExerciseName(exercise.data.name);
+    setEditingExercise(transformedExercise);
+    setIsExerciseModalOpen(true);
   };
 
   // Watch for program length changes
@@ -749,7 +828,7 @@ function PlanPageContent() {
   }, [program.progressionRules.settings.programLength, program.exercises, program.periodizationType, program.progressionRules.settings.volumeIncrementPercentage, program.progressionRules.settings.loadIncrementPercentage, program.progressionRules.settings.weeklyVolumePercentages, activeWeek]);
 
   // Update exercises for the active week
-  const handleWeekExercisesChange = (exercises: Exercise[]) => {
+  const handleWeekExercisesChange = (exercises: ExerciseType[]) => {
     setWeekExercises(prev => {
       const newWeekExercises = { ...prev };
       
@@ -827,31 +906,12 @@ function PlanPageContent() {
   };
 
   const handleProgramSelect = (selectedProgram: SavedProgram) => {
-    console.log('Selected program:', selectedProgram);
-    // Set program state with default values for missing fields
-    setProgram({
-      id: selectedProgram.id,
-      userId: selectedProgram.userId || '',
-      name: selectedProgram.program_name, // Use program_name from database
-      phaseFocus: selectedProgram.phase_focus || 'GPP', // Use phase_focus from database
-      periodizationType: selectedProgram.periodization_type, // Remove default to preserve custom types
-      exercises: [], // We'll load these separately
-      progressionRules: {
-        type: selectedProgram.periodization_type, // Use the same type without default
-        settings: selectedProgram.progression_rules?.settings || {
-          volumeIncrementPercentage: 5,
-          loadIncrementPercentage: 2.5,
-          programLength: 4,
-          weeklyVolumePercentages: [100, 80, 90, 60]
-        }
-      },
-      volumeTargets: selectedProgram.volume_targets || [],
-      createdAt: new Date(selectedProgram.created_at),
-      updatedAt: new Date(selectedProgram.updated_at)
-    });
-
-    // Load program weeks and exercises
-    loadProgramExercises(selectedProgram.id);
+    const program = convertSavedProgramToProgram(selectedProgram);
+    setProgram(program);
+    setActiveWeek(1);
+    if (program.id) {
+      loadProgramExercises(program.id);
+    }
   };
 
   const loadProgramExercises = async (programId: string) => {
@@ -872,7 +932,7 @@ function PlanPageContent() {
       }
       
       // Transform the data into our week exercises format
-      const newWeekExercises: { [key: number]: Exercise[] } = {};
+      const newWeekExercises: { [key: number]: ExerciseType[] } = {};
       
       data.weeks.forEach((week: any) => {
         if (!week.days || !Array.isArray(week.days)) {
@@ -880,7 +940,7 @@ function PlanPageContent() {
           return;
         }
 
-        const weekExercises: Exercise[] = [];
+        const weekExercises: ExerciseType[] = [];
         week.days.forEach((day: any) => {
           if (!day.exercises || !Array.isArray(day.exercises)) {
             console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
@@ -908,7 +968,7 @@ function PlanPageContent() {
             }
             
             // Find the exercise in the library
-            const libraryExercise = exerciseLibrary.find(ex => ex.id === exercise.libraryId);
+            const libraryExercise = exerciseLibrary.find(ex => ex.label === exercise.name);
             console.log('Found library exercise:', libraryExercise);
             
             if (!libraryExercise) {
@@ -917,7 +977,7 @@ function PlanPageContent() {
             
             const exerciseData = {
               id: exercise.id || `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
-              name: libraryExercise?.exercise_name || exercise.name || exercise.customName || 'Unknown Exercise',
+              name: libraryExercise?.label || exercise.name || exercise.customName || 'Unknown Exercise',
               pairing: exercise.pairing || 'A1',
               sets: setDetails.length,
               reps: exercise.reps || setDetails[0]?.reps || 0,
@@ -1137,7 +1197,7 @@ function PlanPageContent() {
           setIsExerciseSearchOpen(false);
           setIsAdvancedSearchOpen(false);
         }}
-        onSelect={handleExerciseSelect}
+        onSelect={handleAdvancedSearchSelect}
       />
 
       {mounted && activeExercise && createPortal(
