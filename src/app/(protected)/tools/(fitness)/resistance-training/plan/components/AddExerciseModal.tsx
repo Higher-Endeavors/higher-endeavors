@@ -9,6 +9,7 @@ import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
 import { exerciseSchema, type Exercise } from '../../shared/schemas/exercise';
 import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings';
+import { Exercise as ExerciseType } from '../../shared/types';
 
 /**
  * Props for the Exercise Modal component
@@ -16,9 +17,9 @@ import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings'
 interface ExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (exercise: Exercise) => void;
-  exercise?: Exercise;          // Provided when editing an existing exercise
-  exercises: Exercise[];        // Used for generating next pairing
+  onSave: (exercise: ExerciseType) => void;
+  exercise?: ExerciseType;          // Provided when editing an existing exercise
+  exercises: ExerciseType[];        // Used for generating next pairing
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
   userSettings?: { fitness?: FitnessSettings };
@@ -30,10 +31,9 @@ interface ExerciseModalProps {
 interface ExerciseOption {
   value: string;
   label: string;
-  libraryId?: number;
   data: {
-    source: string;
     id: string;
+    name: string;
   };
 }
 
@@ -43,11 +43,7 @@ interface ExerciseOption {
  */
 const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
   if (!inputValue) return true;
-  
-  const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
-  const exerciseName = option.label.toLowerCase();
-  
-  return searchTerms.every(term => exerciseName.includes(term));
+  return option.label.toLowerCase().includes(inputValue.toLowerCase());
 };
 
 /**
@@ -89,6 +85,31 @@ const customSelectStyles = {
     ...provided,
     backgroundColor: 'white',
     zIndex: 10
+  }),
+  container: (provided: any) => ({
+    ...provided,
+    '.dark &': {
+      '& input': {
+        color: 'black !important'
+      },
+      '& .select__single-value': {
+        color: 'black'
+      },
+      '& .select__control': {
+        backgroundColor: '#e0e0e0'
+      },
+      '& .select__menu': {
+        backgroundColor: '#e0e0e0'
+      },
+      '& .select__option': {
+        backgroundColor: '#e0e0e0',
+        color: 'black',
+        '&:hover': {
+          backgroundColor: '#6366F1',
+          color: 'white'
+        }
+      }
+    }
   })
 };
 
@@ -131,6 +152,10 @@ export default function ExerciseModal({
   const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kgs' : 'lbs';
   const alternateUnit = defaultUnit === 'kgs' ? 'lbs' : 'kgs';
 
+  // Add state for creating new exercise
+  const [isCreatingExercise, setIsCreatingExercise] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState('');
+
   /**
    * Form initialization with React Hook Form and Zod validation
    * Handles both standard and varied set exercises through discriminated union
@@ -143,7 +168,7 @@ export default function ExerciseModal({
     setValue,
     formState: { errors },
     reset
-  } = useForm<Exercise>({
+  } = useForm<ExerciseType>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       id: '',
@@ -327,7 +352,7 @@ export default function ExerciseModal({
    * Form submission handler
    * Ensures correct typing for discriminated union before saving
    */
-  const onSubmit = async (data: Exercise) => {
+  const onSubmit = async (data: ExerciseType) => {
     console.log('Form Data:', data);
     console.log('Form Errors:', errors);
 
@@ -433,6 +458,114 @@ export default function ExerciseModal({
     setValue('setDetails', updatedSetDetails);
   };
 
+  const getNextPairing = (existingExercises: ExerciseType[]): string => {
+    if (existingExercises.length === 0) return 'A1';
+    
+    const lastExercise = existingExercises[existingExercises.length - 1];
+    const currentPairing = lastExercise.pairing;
+    
+    if (currentPairing.startsWith('WU') || currentPairing.startsWith('CD')) {
+      return currentPairing;
+    }
+
+    const letter = currentPairing.charAt(0);
+    const number = parseInt(currentPairing.charAt(1));
+    
+    if (number === 1) return `${letter}2`;
+    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
+  };
+
+  // Function to handle exercise creation
+  const handleCreateExercise = async (exerciseName: string) => {
+    try {
+      const response = await fetch('/api/user-exercises', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ exercise_name: exerciseName }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to create exercise');
+      }
+
+      const newExercise = await response.json();
+      
+      // Create a properly typed exercise object
+      const exerciseData: ExerciseType = {
+        id: newExercise.id.toString(),
+        name: newExercise.exercise_name,
+        pairing: getNextPairing(exercises),
+        sets: 3,
+        reps: 10,
+        load: 0,
+        tempo: '2010',
+        rest: 60,
+        isVariedSets: false,
+        isAdvancedSets: false
+      };
+
+      // Set the form values
+      reset(exerciseData);
+      setIsCreatingExercise(false);
+      setNewExerciseName('');
+    } catch (error) {
+      console.error('Error creating exercise:', error);
+    }
+  };
+
+  // Modify the existing exercise search component
+  const NoOptionsMessage = ({ inputValue }: { inputValue: string }) => {
+    return (
+      <div className="text-center">
+        <p className="text-gray-900 dark:text-white font-medium">No matches found</p>
+        <button
+          type="button"
+          onClick={() => {
+            setIsCreatingExercise(true);
+            setNewExerciseName(inputValue);
+          }}
+          className="mt-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+        >
+          Create new exercise: {inputValue}
+        </button>
+      </div>
+    );
+  };
+
+  // Add confirmation dialog
+  const ConfirmationDialog = () => {
+    if (!isCreatingExercise) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Exercise</h3>
+          <p className="mb-6 text-gray-700 dark:text-gray-300">Are you sure you want to create "{newExerciseName}"?</p>
+          <div className="flex justify-end space-x-4">
+            <button
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+              onClick={() => {
+                setIsCreatingExercise(false);
+                setNewExerciseName('');
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              onClick={() => handleCreateExercise(newExerciseName)}
+            >
+              Create Exercise
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -465,6 +598,11 @@ export default function ExerciseModal({
                     placeholder="Select or search for an exercise..."
                     isClearable
                     styles={customSelectStyles}
+                    components={{
+                      NoOptionsMessage: ({ children, ...props }: any) => (
+                        <NoOptionsMessage inputValue={props.selectProps.inputValue} />
+                      )
+                    }}
                   />
                 </div>
               </div>
@@ -827,6 +965,7 @@ export default function ExerciseModal({
           </div>
         </form>
       </Modal.Body>
+      {isCreatingExercise && <ConfirmationDialog />}
     </Modal>
   );
 } 
