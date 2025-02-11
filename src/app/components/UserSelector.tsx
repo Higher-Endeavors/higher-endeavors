@@ -14,14 +14,12 @@ interface UserSelectorProps {
   onUserSelect: (userId: number | null) => void;
   currentUserId: number;
   className?: string;
-  label?: string;
 }
 
 export default function UserSelector({ 
   onUserSelect, 
   currentUserId, 
-  className = "mb-4",
-  label = "Select User"
+  className = "mb-4"
 }: UserSelectorProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number>(currentUserId);
@@ -56,9 +54,6 @@ export default function UserSelector({
 
   return (
     <div className={className}>
-      <label htmlFor="user-selector" className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
       <div className="relative">
         <select
           id="user-selector"

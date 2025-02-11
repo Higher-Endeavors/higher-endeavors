@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
+// Commenting out DnD imports
+// import { useSortable } from '@dnd-kit/sortable';
+// import { CSS } from '@dnd-kit/utilities';
+import { BsThreeDotsVertical } from 'react-icons/bs'; // Removed BsGripVertical
 import { Exercise, SetDetail, SubSet } from '../../shared/types';
 import { calculateExerciseTUT } from '../../shared/utils/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
@@ -133,19 +134,6 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
     return `${totalLoad}${displayUnit}`;
   };
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: exercise.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
-
   const toggleMenu = (id: string) => {
     setMenuOpen(prev => ({
       ...prev,
@@ -159,12 +147,14 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      // Remove drag and drop refs and styles
+      // ref={setNodeRef}
+      // style={style}
       className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
+          {/* Remove drag handle
           <div
             {...attributes}
             {...listeners}
@@ -172,6 +162,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
           >
             <BsGripVertical className="h-5 w-5 text-gray-400 dark:text-slate-600" />
           </div>
+          */}
           <span className="text-gray-600 dark:text-slate-900 font-semibold">{exercise.pairing}</span>
           <span className="font-medium dark:text-slate-900">{exercise.name}</span>
         </div>
@@ -416,9 +407,8 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
 
   return (
     <div className="space-y-4">
-      {/* Render all exercises in a flat list for drag and drop */}
+      {/* Remove DnD Context wrapper and just map over exercises directly */}
       {exercises.map((exercise, index) => {
-        // Use the same grouping logic for checking group changes
         const currentGroupKey = !exercise.pairing ? 'A' :
           exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')
             ? exercise.pairing.substring(0, 2)

@@ -1072,6 +1072,10 @@ function PlanPageContent() {
                   <p className="text-sm text-gray-600">
                     {key === 'totalLoad' 
                       ? `Total Load: ${value} ${userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg'}`
+                      : key === 'totalSets'
+                      ? `Total Sets: ${value}`
+                      : key === 'totalReps'
+                      ? `Total Reps: ${value}`
                       : `${key}: ${value}`}
                   </p>
                 </div>

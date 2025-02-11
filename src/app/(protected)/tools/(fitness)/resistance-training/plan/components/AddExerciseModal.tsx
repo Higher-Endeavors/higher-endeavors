@@ -12,6 +12,21 @@ import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings'
 import { Exercise as ExerciseType } from '../../shared/types';
 
 /**
+ * Filter function for exercise name search
+ * Matches if all search terms are found in the exercise name in any order
+ */
+const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
+  if (!inputValue) return true;
+  
+  // Split input into words and convert to lowercase
+  const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
+  const exerciseName = option.label.toLowerCase();
+  
+  // Check if all search terms are found in the exercise name
+  return searchTerms.every(term => exerciseName.includes(term));
+};
+
+/**
  * Props for the Exercise Modal component
  */
 interface ExerciseModalProps {
@@ -36,15 +51,6 @@ interface ExerciseOption {
     name: string;
   };
 }
-
-/**
- * Filter function for exercise name search
- * Matches if all search terms are found in the exercise name
- */
-const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
-  if (!inputValue) return true;
-  return option.label.toLowerCase().includes(inputValue.toLowerCase());
-};
 
 /**
  * Custom styles for the exercise name select dropdown
@@ -600,6 +606,7 @@ export default function ExerciseModal({
                     placeholder="Select or search for an exercise..."
                     isClearable
                     styles={customSelectStyles}
+                    filterOption={filterExerciseOptions}
                     components={{
                       NoOptionsMessage: ({ children, ...props }: any) => (
                         <NoOptionsMessage inputValue={props.selectProps.inputValue} />

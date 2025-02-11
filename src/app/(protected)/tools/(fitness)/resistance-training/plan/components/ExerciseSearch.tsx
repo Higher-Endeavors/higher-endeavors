@@ -104,18 +104,25 @@ const customStyles = {
 const filterExercises = (candidate: { label: string, value: string, data: any }, input: string) => {
   if (!input) return true;
   
-  // Convert both to lowercase for case-insensitive matching
-  const searchTerms = input.toLowerCase().split(' ');
+  // Convert both to lowercase for case-insensitive matching and clean up whitespace
+  const searchTerms = input.toLowerCase().trim().split(/\s+/);
   const exerciseName = candidate.label.toLowerCase();
-  const muscleGroup = (candidate.data.targetMuscleGroup || '').toLowerCase();
-  const equipment = (candidate.data.primaryEquipment || '').toLowerCase();
   
-  // Check if all search terms are found in either the name, muscle group, or equipment
-  return searchTerms.every(term => 
-    exerciseName.includes(term) || 
-    muscleGroup.includes(term) || 
-    equipment.includes(term)
-  );
+  console.log('Filtering exercise:', {
+    searchTerms,
+    exerciseName,
+    candidate: candidate.data
+  });
+
+  // Check if all search terms are found in the exercise name
+  const allTermsFound = searchTerms.every(term => exerciseName.includes(term));
+  
+  console.log('Match result:', {
+    exercise: exerciseName,
+    allTermsFound
+  });
+
+  return allTermsFound;
 };
 
 export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSearchProps) {
