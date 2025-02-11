@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
-import { Exercise } from '../../shared/types';
+import { Exercise, SetDetail, SubSet } from '../../shared/types';
 import { calculateExerciseTUT } from '../../shared/utils/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
@@ -22,7 +22,21 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
   const { settings: userSettings } = useUserSettings();
   const [menuOpen, setMenuOpen] = useState<MenuState>({});
 
-  console.log('Exercise data:', JSON.stringify(exercise, null, 2));
+  // Detailed debug logging
+  console.log('Exercise data (detailed):', {
+    id: exercise.id,
+    name: exercise.name,
+    isVariedSets: exercise.isVariedSets,
+    isAdvancedSets: exercise.isAdvancedSets,
+    sets: exercise.sets,
+    reps: exercise.reps,
+    load: exercise.load,
+    loadUnit: exercise.loadUnit,
+    tempo: exercise.tempo,
+    rest: exercise.rest,
+    setDetails: exercise.setDetails,
+    fullObject: exercise
+  });
 
   const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
     if (typeof load === 'number') {
@@ -30,46 +44,89 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
       const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
       return `${load}${displayUnit}`;
     }
-    return load; // Return the band color or BW as is
+    return String(load || 'BW');
+  };
+
+  const renderSetDetails = (set: SetDetail): string => {
+    try {
+      if (!set || typeof set !== 'object') {
+        console.error('Invalid set data:', set);
+        return '';
+      }
+      
+      const reps = set.reps || 0;
+      const load = set.load || 0;
+      const loadUnit = set.loadUnit;
+      
+      if (!set.subSets?.length) {
+        const loadStr = formatLoad(load, loadUnit);
+        return `${reps} reps @ ${loadStr}`;
+      }
+      
+      const subSetDetails = set.subSets.map((subSet) => {
+        if (!subSet || typeof subSet !== 'object') {
+          console.error('Invalid subset data:', subSet);
+          return '';
+        }
+        const subReps = subSet.reps || 0;
+        const subLoad = subSet.load || 0;
+        const subLoadUnit = subSet.loadUnit;
+        const loadStr = formatLoad(subLoad, subLoadUnit);
+        return `${subReps} reps @ ${loadStr}`;
+      }).filter(Boolean).join(', ');
+
+      return subSetDetails || 'No details available';
+    } catch (error) {
+      console.error('Error rendering set details:', error);
+      return 'Error rendering set';
+    }
   };
 
   const calculateTotalReps = (): number => {
-    if (exercise.isVariedSets && exercise.setDetails) {
+    if (exercise.isVariedSets && Array.isArray(exercise.setDetails)) {
       return exercise.setDetails.reduce((total, set) => {
-        if (set.subSets?.length) {
-          return total + set.subSets.reduce((subTotal, subSet) => subTotal + subSet.reps, 0);
+        if (!set || typeof set !== 'object') return total;
+        if (Array.isArray(set.subSets) && set.subSets.length > 0) {
+          return total + set.subSets.reduce((subTotal, subSet) => {
+            if (!subSet || typeof subSet !== 'object') return subTotal;
+            return subTotal + (Number(subSet.reps) || 0);
+          }, 0);
         }
-        return total + set.reps;
+        return total + (Number(set.reps) || 0);
       }, 0);
     }
-    return exercise.sets * exercise.reps;
+    const sets = Array.isArray(exercise.sets) ? exercise.sets.length : Number(exercise.sets) || 0;
+    return sets * (Number(exercise.reps) || 0);
   };
 
   const calculateTotalLoad = (): string => {
     let totalLoad = 0;
-    let unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+    const unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
 
-    if (typeof exercise.load !== 'number') {
-      return 'N/A'; // Return N/A for band colors or BW
+    if (typeof exercise.load !== 'number' && exercise.load !== undefined) {
+      return String(exercise.load); // Return the non-numeric load (e.g., 'BW' or band color)
     }
 
-    if (exercise.isVariedSets && exercise.setDetails) {
+    if (exercise.isVariedSets && Array.isArray(exercise.setDetails)) {
       totalLoad = exercise.setDetails.reduce((total, set) => {
-        if (set.subSets?.length) {
+        if (!set || typeof set !== 'object') return total;
+        if (Array.isArray(set.subSets) && set.subSets.length > 0) {
           return total + set.subSets.reduce((subTotal, subSet) => {
-            if (typeof subSet.load === 'number') {
-              return subTotal + (subSet.load * subSet.reps);
-            }
-            return subTotal;
+            if (!subSet || typeof subSet !== 'object') return subTotal;
+            const load = Number(subSet.load) || 0;
+            const reps = Number(subSet.reps) || 0;
+            return subTotal + (load * reps);
           }, 0);
         }
-        if (typeof set.load === 'number') {
-          return total + (set.load * set.reps);
-        }
-        return total;
+        const load = Number(set.load) || 0;
+        const reps = Number(set.reps) || 0;
+        return total + (load * reps);
       }, 0);
     } else {
-      totalLoad = exercise.load * exercise.sets * exercise.reps;
+      const load = Number(exercise.load) || 0;
+      const sets = Array.isArray(exercise.sets) ? exercise.sets.length : Number(exercise.sets) || 0;
+      const reps = Number(exercise.reps) || 0;
+      totalLoad = load * sets * reps;
     }
 
     const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
@@ -167,104 +224,123 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
-          {exercise.isVariedSets || exercise.isAdvancedSets ? (
+          {exercise.isVariedSets ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails?.map((set, idx) => (
-                <div key={idx}>
-                  <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.reps} reps`}</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.reps} reps @ {formatLoad(subSet.load, subSet.loadUnit)}
-                    </p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.sets} x {exercise.reps}</p>
-          )}
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
-          {exercise.isVariedSets || exercise.isAdvancedSets ? (
-            <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails?.map((set, idx) => (
-                <div key={idx}>
-                  <p className="invisible">Placeholder</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {formatLoad(subSet.load, subSet.loadUnit)}
-                    </p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="font-medium dark:text-slate-900">{formatLoad(exercise.load, exercise.loadUnit)}</p>
-          )}
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-          {exercise.isVariedSets || exercise.isAdvancedSets ? (
-            <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails?.map((set, idx) => (
-                <div key={idx}>
-                  <p>{set.tempo}</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="invisible">Placeholder</p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.tempo}</p>
-          )}
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-          {exercise.isVariedSets || exercise.isAdvancedSets ? (
-            <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails?.map((set, idx) => (
-                <div key={idx}>
-                  <p className="invisible">Placeholder</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.rest}s
-                    </p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.rest}s</p>
-          )}
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-          {exercise.isVariedSets || exercise.isAdvancedSets ? (
-            <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails?.map((set, idx) => {
-                const tempoTotal = set.tempo.split('').reduce((sum, char) => {
-                  if (char.toLowerCase() === 'x') return sum + 1;
-                  return sum + parseInt(char) || 0;
-                }, 0);
+              {Array.isArray(exercise.setDetails) && exercise.setDetails.map((set, idx) => {
+                if (!set || typeof set !== 'object') return null;
+                const setNumber = String(set.setNumber || idx + 1);
+                const reps = String(set.reps || 0);
+                const load = formatLoad(set.load || 0, set.loadUnit);
+                
+                if (Array.isArray(set.subSets) && set.subSets.length > 0) {
+                  const subSetsString = set.subSets.map((subSet, subIdx) => {
+                    if (!subSet || typeof subSet !== 'object') return '';
+                    const subReps = String(subSet.reps || 0);
+                    const subLoad = formatLoad(subSet.load || 0, subSet.loadUnit);
+                    return `${subReps} reps @ ${subLoad}${subIdx < set.subSets.length - 1 ? ', ' : ''}`;
+                  }).join('');
+                  
+                  return (
+                    <div key={idx}>
+                      <p>Set {setNumber}: {subSetsString}</p>
+                    </div>
+                  );
+                }
+                
                 return (
                   <div key={idx}>
-                    <p className="invisible">Placeholder</p>
-                    {set.subSets && set.subSets.map((subSet, subIdx) => {
-                      const subSetTUT = tempoTotal * subSet.reps;
-                      return (
-                        <p key={subIdx} className="ml-4 text-sm">
-                          → {subSetTUT}s
-                        </p>
-                      );
-                    })}
+                    <p>Set {setNumber}: {reps} reps @ {load}</p>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{calculateExerciseTUT(exercise)}s</p>
+            <p className="font-medium dark:text-slate-900">
+              {Array.isArray(exercise.sets) ? exercise.sets.length : String(exercise.sets || 0)} × {String(exercise.reps || 0)} reps @ {formatLoad(exercise.load || 0, exercise.loadUnit)}
+            </p>
+          )}
+        </div>
+        <div>
+          <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
+          {exercise.isVariedSets && Array.isArray(exercise.setDetails) ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => {
+                if (!set || typeof set !== 'object') return null;
+                const setNumber = String(set.setNumber || idx + 1);
+                const loadDisplay = formatLoad(set.load || 0, set.loadUnit);
+                return (
+                  <div key={idx}>
+                    <p>Set {setNumber}: {loadDisplay}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{formatLoad(exercise.load || 0, exercise.loadUnit)}</p>
+          )}
+        </div>
+        <div>
+          <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
+          {exercise.isVariedSets && Array.isArray(exercise.setDetails) ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => {
+                if (!set || typeof set !== 'object') return null;
+                const setNumber = String(set.setNumber || idx + 1);
+                const tempoDisplay = String(set.tempo || '2010');
+                return (
+                  <div key={idx}>
+                    <p>Set {setNumber}: {tempoDisplay}</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{String(exercise.tempo || '2010')}</p>
+          )}
+        </div>
+        <div>
+          <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
+          {exercise.isVariedSets && Array.isArray(exercise.setDetails) ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => {
+                if (!set || typeof set !== 'object') return null;
+                const setNumber = String(set.setNumber || idx + 1);
+                const restDisplay = String(set.rest || 0);
+                return (
+                  <div key={idx}>
+                    <p>Set {setNumber}: {restDisplay}s</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{String(exercise.rest || 0)}s</p>
+          )}
+        </div>
+        <div>
+          <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
+          {exercise.isVariedSets && Array.isArray(exercise.setDetails) ? (
+            <div className="font-medium dark:text-slate-900">
+              {exercise.setDetails.map((set, idx) => {
+                if (!set || typeof set !== 'object') return null;
+                const setNumber = String(set.setNumber || idx + 1);
+                const tempo = String(set.tempo || '2010');
+                const tempoTotal = tempo.split('').reduce((sum, char) => {
+                  if (char.toLowerCase() === 'x') return sum + 1;
+                  const num = parseInt(char);
+                  return sum + (isNaN(num) ? 0 : num);
+                }, 0);
+                const reps = set.reps || 0;
+                const tutDisplay = String(tempoTotal * reps);
+                return (
+                  <div key={idx}>
+                    <p>Set {setNumber}: {tutDisplay}s</p>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="font-medium dark:text-slate-900">{String(calculateExerciseTUT(exercise))}s</p>
           )}
         </div>
       </div>
@@ -312,6 +388,15 @@ interface GroupedExercises {
 export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseListProps) {
   // Group exercises by their pairing prefix
   const groupedExercises = exercises.reduce((groups: GroupedExercises, exercise) => {
+    // Default to 'A' if no pairing exists
+    if (!exercise.pairing) {
+      if (!groups['A']) {
+        groups['A'] = [];
+      }
+      groups['A'].push(exercise);
+      return groups;
+    }
+
     // For WU and CD, use the full prefix, otherwise just use the first letter
     const groupKey = exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD') 
       ? exercise.pairing.substring(0, 2)  // Take 'WU' or 'CD'
@@ -322,7 +407,7 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
     }
     groups[groupKey].push(exercise);
     return groups;
-  }, {});
+  }, {} as GroupedExercises);
 
   const getGroupLabel = (groupKey: string): string => {
     // No need for switch case anymore since we're using the actual group key
@@ -334,15 +419,16 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
       {/* Render all exercises in a flat list for drag and drop */}
       {exercises.map((exercise, index) => {
         // Use the same grouping logic for checking group changes
-        const currentGroupKey = exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')
-          ? exercise.pairing.substring(0, 2)
-          : exercise.pairing.charAt(0);
+        const currentGroupKey = !exercise.pairing ? 'A' :
+          exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')
+            ? exercise.pairing.substring(0, 2)
+            : exercise.pairing.charAt(0);
         
-        const previousGroupKey = index > 0 && (
+        const previousGroupKey = index > 0 && exercises[index - 1].pairing ? (
           exercises[index - 1].pairing.startsWith('WU') || exercises[index - 1].pairing.startsWith('CD')
             ? exercises[index - 1].pairing.substring(0, 2)
             : exercises[index - 1].pairing.charAt(0)
-        );
+        ) : 'A';
         
         const isFirstInGroup = index === 0 || currentGroupKey !== previousGroupKey;
 

@@ -366,4 +366,66 @@ export async function PUT(
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const client = await getClient();
+
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if the current user has permission to delete the program
+    const programAccess = await SingleQuery(
+      `SELECT user_id FROM resistance_programs WHERE id = $1`,
+      [params.id]
+    );
+
+    if (!programAccess.rows.length) {
+      return NextResponse.json({ error: 'Program not found' }, { status: 404 });
+    }
+
+    const isAdmin = session.user.role === 'admin';
+    if (!isAdmin && programAccess.rows[0].user_id !== parseInt(session.user.id)) {
+      return NextResponse.json({ error: 'Unauthorized to delete this program' }, { status: 403 });
+    }
+
+    try {
+      // Start a transaction
+      await client.query('BEGIN');
+
+      // Delete the program (cascading will handle related records)
+      await client.query(
+        'DELETE FROM resistance_programs WHERE id = $1',
+        [params.id]
+      );
+
+      // Commit the transaction
+      await client.query('COMMIT');
+
+      return NextResponse.json({ success: true });
+
+    } catch (error) {
+      // Rollback the transaction on error
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+  } catch (error) {
+    console.error('Error deleting program:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to delete program',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
 } 

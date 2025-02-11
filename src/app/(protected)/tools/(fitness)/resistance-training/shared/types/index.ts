@@ -1,8 +1,10 @@
-import { z } from 'zod';
-import { exerciseSchema, type Exercise } from '../schemas/exercise';
+import { Exercise, ExerciseSource } from './exercise.types';
 
-// Re-export the Exercise type from our Zod schema
-export type { Exercise };
+// Base types
+export type LoadUnit = 'kg' | 'lbs';
+
+// Re-export exercise types
+export type { Exercise, ExerciseSource };
 
 // Program phase focus options
 export type PhaseFocus = 'GPP' | 'Strength' | 'Hypertrophy' | 'Intensification' | 'Accumulation';
@@ -17,34 +19,49 @@ export interface VolumeTarget {
   maxSets: number;
 }
 
+// Progression rule settings
+export interface ProgressionRuleSettings {
+  volumeIncrementPercentage?: number;
+  loadIncrementPercentage?: number;
+  weeklyVolumePercentages?: number[];
+  programLength?: number;
+  rules?: Array<{
+    variable: string;
+    changeType: string;
+    value: number;
+  }>;
+}
+
 // Progression rules for the program
 export interface ProgressionRules {
   type: PeriodizationType;
-  settings: {
-    volumeIncrementPercentage?: number;
-    loadIncrementPercentage?: number;
-    weeklyVolumePercentages?: number[];
-    programLength?: number;
-    rules?: Array<{
-      variable: string;
-      changeType: string;
-      value: number;
-    }>;
-  };
+  settings: ProgressionRuleSettings;
 }
 
-// Complete program structure
-export interface Program {
+// Base program interface
+export interface BaseProgram {
   id: string;
   userId: string;
   name: string;
   phaseFocus: PhaseFocus;
   periodizationType: PeriodizationType;
-  exercises: Exercise[];
   progressionRules: ProgressionRules;
   volumeTargets?: VolumeTarget[];
+}
+
+// Complete program structure
+export interface Program extends BaseProgram {
+  exercises: Exercise[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Saved program structure (for API responses)
+export interface SavedProgram extends Omit<BaseProgram, 'name'> {
+  program_name: string;
+  exercises?: Exercise[];
+  created_at: string;
+  updated_at: string;
 }
 
 // Training session related types

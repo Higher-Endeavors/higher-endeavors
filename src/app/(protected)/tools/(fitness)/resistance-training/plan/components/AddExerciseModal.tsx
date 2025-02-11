@@ -211,7 +211,9 @@ export default function ExerciseModal({
       reset(resetData);
     } else {
       // Generate next pairing for new exercise
-      const existingPairings = exercises.map(ex => ex.pairing)
+      const existingPairings = exercises
+        .map(ex => ex.pairing)
+        .filter((p): p is string => !!p) // Type guard to ensure p is a string
         .filter(p => !p.includes('WU') && !p.includes('CD'));
       
       let nextPairing = 'A1';

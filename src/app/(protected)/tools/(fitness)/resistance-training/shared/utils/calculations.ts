@@ -5,7 +5,8 @@ interface VolumeMetrics {
   totalLoad: number;
 }
 
-const calculateTempoTotal = (tempo: string): number => {
+const calculateTempoTotal = (tempo?: string): number => {
+  if (!tempo) return 0;  // Return 0 if tempo is undefined
   return tempo.split('').reduce((sum, char) => {
     // Treat 'X' or 'x' as 1 second
     if (char.toLowerCase() === 'x') {

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { Program } from '../../shared/types';
 import { HiDotsVertical } from 'react-icons/hi';
+import { Modal } from 'flowbite-react';
 
 interface SavedProgram extends Omit<Program, 'createdAt' | 'updatedAt'> {
   program_name: string;
@@ -27,6 +28,8 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isOpen, setIsOpen] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [programToDelete, setProgramToDelete] = useState<SavedProgram | null>(null);
   const ITEMS_PER_PAGE = 5;
   const [filters, setFilters] = useState({
     search: '',
@@ -127,10 +130,36 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
     setActiveMenu(activeMenu === programId ? null : programId);
   };
 
-  const handleViewEdit = (e: React.MouseEvent, program: SavedProgram) => {
+  const handleViewEdit = async (e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
-    onProgramSelect(program);
-    setActiveMenu(null);
+    try {
+      // Fetch the complete program data including exercises and progression rules
+      const response = await fetch(`/api/resistance-training/program/${program.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch program data');
+      }
+      const programData = await response.json();
+
+      // Combine the program metadata with the fetched data
+      const fullProgram = {
+        ...program,
+        exercises: programData.weeks?.[0]?.days?.[0]?.exercises || [],
+        progressionRules: program.progressionRules || {
+          type: program.periodization_type,
+          settings: {
+            volumeIncrementPercentage: 10,
+            loadIncrementPercentage: 5,
+            programLength: 4,
+            weeklyVolumePercentages: [100, 80, 90, 60]
+          }
+        }
+      };
+
+      onProgramSelect(fullProgram);
+      setActiveMenu(null);
+    } catch (error) {
+      console.error('Error loading program:', error);
+    }
   };
 
   const handleDuplicate = async (e: React.MouseEvent, program: SavedProgram) => {
@@ -197,6 +226,36 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
       console.error('Error duplicating program:', error);
     }
     setActiveMenu(null);
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent, program: SavedProgram) => {
+    e.stopPropagation();
+    setProgramToDelete(program);
+    setShowDeleteConfirm(true);
+    setActiveMenu(null);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!programToDelete) return;
+
+    try {
+      const response = await fetch(`/api/resistance-training/program/${programToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to delete program');
+      }
+
+      // Update the local state by removing the deleted program
+      setPrograms(programs.filter(p => p.id !== programToDelete.id));
+      setShowDeleteConfirm(false);
+      setProgramToDelete(null);
+
+    } catch (error) {
+      console.error('Error deleting program:', error);
+    }
   };
 
   return (
@@ -324,6 +383,12 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
                               >
                                 Duplicate
                               </button>
+                              <button
+                                onClick={(e) => handleDeleteClick(e, program)}
+                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600"
+                              >
+                                Delete
+                              </button>
                             </div>
                           </div>
                         )}
@@ -389,6 +454,42 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
           )}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        show={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setProgramToDelete(null);
+        }}
+        size="md"
+      >
+        <Modal.Header>Delete Program</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              Are you sure you want to delete "{programToDelete?.program_name}"? This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setProgramToDelete(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+              >
+                Delete Program
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 } 

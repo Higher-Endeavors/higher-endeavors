@@ -11,7 +11,7 @@ import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 // import VolumeTargets from './components/VolumeTargets';
 import WeekProgram from './components/WeekProgram';
-import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType } from '../shared/types';
+import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType, ProgressionRules } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
@@ -22,6 +22,7 @@ import UserSelector from '@/app/components/UserSelector';
 import { useSession, SessionProvider } from 'next-auth/react';
 import ProgramBrowser from './components/ProgramBrowser';
 import { type Exercise as ExerciseType } from '../shared/schemas/exercise';
+import { RegularExercise, VariedExercise, createRegularExercise, createVariedExercise, BaseExercise } from '../shared/types/exercise.types';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
@@ -32,24 +33,11 @@ interface SavedProgram {
   program_name: string;
   phase_focus: PhaseFocus;
   periodization_type: PeriodizationType;
-  progression_rules: {
-    type: PeriodizationType;
-    settings: {
-      volumeIncrementPercentage?: number;
-      loadIncrementPercentage?: number;
-      weeklyVolumePercentages?: number[];
-      programLength?: number;
-      rules?: Array<{
-        variable: string;
-        changeType: string;
-        value: number;
-      }>;
-    };
-  };
+  progression_rules: ProgressionRules;
   volumeTargets?: VolumeTarget[];
   created_at: string;
   updated_at: string;
-  exercises?: ExerciseType[];
+  exercises?: Exercise[];
 }
 
 // Helper function to convert SavedProgram to Program
@@ -142,10 +130,9 @@ function PlanPageContent() {
     progressionRules: {
       type: 'None',
       settings: {
-        volumeIncrementPercentage: 5,
-        loadIncrementPercentage: 2.5,
         programLength: 4,
-        weeklyVolumePercentages: [100, 80, 90, 60]
+        volumeIncrementPercentage: 0,
+        loadIncrementPercentage: 0
       }
     },
     volumeTargets: [],
@@ -156,14 +143,14 @@ function PlanPageContent() {
   // UI state
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<ExerciseType | undefined>();
+  const [editingExercise, setEditingExercise] = useState<RegularExercise | null>(null);
   const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isProgramSettingsExpanded, setIsProgramSettingsExpanded] = useState(true);
   const [currentExercise, setCurrentExercise] = useState<ExerciseType | undefined>();
   const [selectedExerciseName, setSelectedExerciseName] = useState('');
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseType | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<RegularExercise | null>(null);
   const [activeExercise, setActiveExercise] = useState<ExerciseType | null>(null);
   const [mounted, setMounted] = useState(false);
   const [weekExercises, setWeekExercises] = useState<{ [key: number]: ExerciseType[] }>({});
@@ -264,16 +251,15 @@ function PlanPageContent() {
   };
 
   // Modified updatePairings function to handle group changes
-  const updatePairings = (exercises: ExerciseType[]): ExerciseType[] => {
+  const updatePairings = (exercises: Exercise[]): Exercise[] => {
     let currentGroup = 'A';
     let currentNumber = 1;
 
-    return exercises.map((exercise, index) => {
+    return exercises.map((exercise, index): Exercise => {
       if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
         return exercise;
       }
 
-      // Start a new group if this is the first exercise or if previous exercise was in a different group
       if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
         currentGroup = String.fromCharCode(currentGroup.charCodeAt(0));
         currentNumber = 1;
@@ -285,13 +271,35 @@ function PlanPageContent() {
         currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
       }
 
-      return { ...exercise, pairing: newPairing };
+      // Extract only the BaseExercise properties
+      const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
+        id: exercise.id,
+        name: exercise.name || '',
+        pairing: newPairing,
+        sets: exercise.sets,
+        reps: exercise.reps,
+        load: exercise.load,
+        tempo: exercise.tempo,
+        rest: exercise.rest,
+        notes: exercise.notes || '',
+        rpe: exercise.rpe,
+        rir: exercise.rir,
+        loadUnit: exercise.loadUnit,
+        source: exercise.source || 'custom',
+        libraryId: exercise.libraryId
+      };
+
+      if (!exercise.isVariedSets) {
+        return createRegularExercise(baseExercise);
+      } else {
+        return createVariedExercise(baseExercise, exercise.setDetails);
+      }
     });
   };
 
   // Exercise management
   const handleAddExercise = () => {
-    setEditingExercise({
+    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
       id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
       name: '',
       pairing: getNextPairing(),
@@ -300,36 +308,34 @@ function PlanPageContent() {
       load: 0,
       tempo: '2010',
       rest: 60,
-      isVariedSets: false,
-      isAdvancedSets: false,
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
       notes: '',
-      source: 'library',
-      libraryId: null,
-      userExerciseId: null,
-      customName: '',
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs'
-    });
+      source: 'custom' as const
+    };
+    
+    const newExercise = createRegularExercise(baseExercise);
+    setEditingExercise(newExercise);
     setSelectedExerciseName('');
     setIsExerciseModalOpen(true);
   };
 
   const handleExerciseSelect = (exercise: ExerciseOption) => {
-    const newExercise = {
+    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
       id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
-      name: exercise.label,
+      name: exercise.label || '',
       pairing: getNextPairing(),
       sets: 3,
       reps: 10,
       load: 0,
       tempo: '2010',
       rest: 60,
-      isVariedSets: false as const,
-      isAdvancedSets: false,
-      setDetails: undefined,
       loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
-      notes: ''
-    } as const;
+      notes: '',
+      source: 'library' as const,
+      libraryId: exercise.libraryId
+    };
     
+    const newExercise = createRegularExercise(baseExercise);
     setSelectedExercise(newExercise);
     setIsAdvancedSearchOpen(false);
   };
@@ -353,73 +359,33 @@ function PlanPageContent() {
   const handleEditExercise = (id: string) => {
     // Find the exercise in the current week's exercises
     const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
-    if (exercise) {
+    if (exercise && !exercise.isVariedSets) {
       console.log('Editing exercise:', exercise);
-      setEditingExercise({
+      setEditingExercise(createRegularExercise({
         ...exercise,
-        // Keep the original ID intact
         id: id
-      });
+      }));
       setSelectedExerciseName(exercise.name);
       setIsExerciseModalOpen(true);
     }
   };
 
-  const handleSaveExercise = (exercise: ExerciseType) => {
-    console.log('Received exercise data in handleSaveExercise:', exercise);
+  const handleSaveExercise = (formattedExercise: Exercise) => {
+    console.log('Received exercise data in handleSaveExercise:', formattedExercise);
     
     // Get the base ID without any week suffix
-    const baseId = exercise.id.split('-week')[0];
+    const baseId = formattedExercise.id.split('-week')[0];
     const isEditing = editingExercise !== undefined;
     
     // When editing, use the original exercise's base ID
     const editingBaseId = isEditing ? editingExercise.id.split('-week')[0] : null;
     
     // Find the library exercise to ensure we have the correct ID
-    const libraryExercise = exerciseLibrary.find(ex => ex.label === exercise.name);
+    const libraryExercise = exerciseLibrary.find(ex => ex.label === formattedExercise.name);
     console.log('Found library exercise:', libraryExercise);
     
-    // Create base exercise properties
-    const baseProps = {
-      id: exercise.id || '',
-      name: exercise.name || '',
-      pairing: exercise.pairing || 'A1',
-      sets: exercise.sets || 1,
-      id: exercise.id,
-      name: exercise.name,
-      pairing: exercise.pairing,
-      sets: exercise.sets,
-      reps: exercise.reps,
-      load: exercise.load,
-      loadUnit: exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
-      tempo: exercise.tempo,
-      rest: exercise.rest,
-      notes: exercise.notes || '',
-      rpe: exercise.rpe,
-      rir: exercise.rir,
-      isAdvancedSets: exercise.isAdvancedSets
-    } as const;
-
-    // Create a properly typed exercise object based on isVariedSets
-    const formattedExercise: ExerciseType = exercise.isVariedSets ? {
-      ...baseProps,
-      isVariedSets: true as const,
-      setDetails: exercise.setDetails || Array.from({ length: baseProps.sets }, (_, i) => ({
-        setNumber: i + 1,
-        reps: baseProps.reps || 0,
-        load: baseProps.load || 0,
-        loadUnit: baseProps.loadUnit,
-        tempo: baseProps.tempo || '2010',
-        rest: baseProps.rest || 60
-      }))
-    } : {
-      ...baseProps,
-      isVariedSets: false as const,
-      setDetails: undefined
-    };
-
-    // Update the program state with the new exercise
-    setProgram((prev) => {
+    // Update program exercises
+    setProgram(prev => {
       const updatedExercises = [...prev.exercises];
       const existingIndex = updatedExercises.findIndex(ex => 
         ex.id.split('-week')[0] === (isEditing ? editingBaseId : baseId)
@@ -431,24 +397,27 @@ function PlanPageContent() {
         updatedExercises.push(formattedExercise);
       }
 
-      // Create a new program object with the correct types
-      const updatedProgram: Program = {
+      const defaultProgressionRules = {
+        type: 'None' as const,
+        settings: {
+          programLength: 4,
+          volumeIncrementPercentage: 0,
+          loadIncrementPercentage: 0
+        }
+      };
+
+      return {
         id: prev.id || '',
         userId: prev.userId || '',
         name: prev.name || '',
         exercises: updatedExercises,
         phaseFocus: prev.phaseFocus as PhaseFocus,
         periodizationType: prev.periodizationType as PeriodizationType,
-        progressionRules: {
-          type: prev.progressionRules.type as PeriodizationType,
-          settings: prev.progressionRules.settings
-        },
+        progressionRules: prev.progressionRules || defaultProgressionRules,
         volumeTargets: prev.volumeTargets || [],
         createdAt: prev.createdAt || new Date(),
         updatedAt: new Date()
       };
-
-      return updatedProgram;
     });
 
     // Update week exercises if needed
@@ -502,19 +471,24 @@ function PlanPageContent() {
     console.log('Settings change received:', settings);
     
     // Create the new program state
-    const newProgram = {
+    const newProgram: Program = {
       ...program,
-      ...settings,
-      // Ensure periodization type is explicitly updated
-      periodizationType: settings.periodizationType || program.periodizationType,
+      periodizationType: (settings.periodizationType || program.periodizationType) as PeriodizationType,
+      phaseFocus: (settings.phaseFocus || program.phaseFocus) as PhaseFocus,
       progressionRules: {
         ...program.progressionRules,
-        type: settings.periodizationType || program.progressionRules.type, // Update progression rules type to match
+        type: (settings.periodizationType || program.progressionRules.type) as PeriodizationType,
         settings: settings.progressionRules ? {
           ...program.progressionRules.settings,
           ...settings.progressionRules.settings
         } : program.progressionRules.settings
-      }
+      },
+      name: program.name || '',  // Ensure name is never undefined
+      userId: program.userId || '',  // Ensure userId is never undefined
+      exercises: program.exercises,
+      createdAt: program.createdAt,
+      updatedAt: program.updatedAt,
+      volumeTargets: program.volumeTargets
     };
 
     console.log('Updated program state:', {
@@ -743,89 +717,45 @@ function PlanPageContent() {
 
   // Watch for program length changes
   useEffect(() => {
-    const programLength = program.progressionRules.settings.programLength || 4;
-    const volumeIncrement = program.progressionRules.settings.volumeIncrementPercentage ?? 0;
-    const loadIncrement = program.progressionRules.settings.loadIncrementPercentage ?? 0;
-    const weeklyVolumePercentages = program.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
-    
-    console.log('Program settings:', {
-      programLength,
-      volumeIncrement,
-      loadIncrement,
-      weeklyVolumePercentages,
-      periodizationType: program.periodizationType
-    });
-    
-    // If active week is beyond the new program length, set it to the last week
-    if (activeWeek > programLength) {
-      setActiveWeek(programLength);
-    }
-    
-    // Update week exercises
-    setWeekExercises(prev => {
-      const newWeekExercises = { ...prev };
+    if (!program) return;
 
-      // Ensure we have entries for all weeks
-      for (let i = 1; i <= programLength; i++) {
-        if (!newWeekExercises[i]) {
-          // For week 1, use program.exercises
-          if (i === 1) {
-            newWeekExercises[1] = program.exercises;
-          } else {
-            // For other weeks, apply progression based on the type
-            if (program.periodizationType === 'Linear') {
-              console.log(`Applying Linear progression for week ${i}:`, {
-                volumeIncrement,
-                loadIncrement
-              });
-              
-              newWeekExercises[i] = program.exercises.map(exercise => ({
-                ...applyLinearProgression(
-                  exercise,
-                  i,
-                  volumeIncrement,
-                  loadIncrement
-                ),
-                id: `${exercise.id}-week${i}`
-              }));
-            } else if (program.periodizationType === 'Undulating') {
-              const weekPercentage = weeklyVolumePercentages[i - 1] ?? 100;
-              console.log(`Applying Undulating progression for week ${i}:`, {
-                weekPercentage,
-                weeklyVolumePercentages
-              });
-              
-              // Apply the weekly volume percentage to each exercise
-              newWeekExercises[i] = program.exercises.map(exercise => {
-                const volumePercentage = weekPercentage / 100;
-                const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
-                return {
-                  ...exercise,
-                  id: `${exercise.id}-week${i}`,
-                  reps: newReps
-                };
-              });
-            } else {
-              // For other periodization types, just copy Week 1
-              newWeekExercises[i] = program.exercises.map(exercise => ({
-                ...exercise,
-                id: `${exercise.id}-week${i}`
-              }));
-            }
-          }
-        }
+    setWeekExercises((prevWeekExercises) => {
+      // If no exercises for this week yet, initialize with program exercises
+      if (!prevWeekExercises[activeWeek]) {
+        return {
+          ...prevWeekExercises,
+          [activeWeek]: program.exercises || []
+        };
       }
 
-      // Remove entries for weeks that no longer exist
-      Object.keys(newWeekExercises).forEach(week => {
-        if (Number(week) > programLength) {
-          delete newWeekExercises[Number(week)];
+      // Apply progression based on program type and settings
+      const baseExercises = program.exercises || [];
+      const newWeekExercises = baseExercises.map(exercise => {
+        if (program.periodizationType === 'Linear' && program.progressionRules?.settings) {
+          return applyLinearProgression(
+            exercise,
+            activeWeek,
+            program.progressionRules.settings.volumeIncrementPercentage || 0,
+            program.progressionRules.settings.loadIncrementPercentage || 0
+          );
         }
+        return exercise;
       });
 
-      return newWeekExercises;
+      return {
+        ...prevWeekExercises,
+        [activeWeek]: newWeekExercises
+      };
     });
-  }, [program.progressionRules.settings.programLength, program.exercises, program.periodizationType, program.progressionRules.settings.volumeIncrementPercentage, program.progressionRules.settings.loadIncrementPercentage, program.progressionRules.settings.weeklyVolumePercentages, activeWeek]);
+  }, [
+    program?.exercises,
+    program?.periodizationType,
+    program?.progressionRules?.settings?.programLength,
+    program?.progressionRules?.settings?.volumeIncrementPercentage,
+    program?.progressionRules?.settings?.loadIncrementPercentage,
+    program?.progressionRules?.settings?.weeklyVolumePercentages,
+    activeWeek
+  ]);
 
   // Update exercises for the active week
   const handleWeekExercisesChange = (exercises: ExerciseType[]) => {
@@ -892,10 +822,9 @@ function PlanPageContent() {
       progressionRules: {
         type: 'None',
         settings: {
-          volumeIncrementPercentage: 5,
-          loadIncrementPercentage: 2.5,
           programLength: 4,
-          weeklyVolumePercentages: [100, 80, 90, 60]
+          volumeIncrementPercentage: 0,
+          loadIncrementPercentage: 0
         }
       },
       volumeTargets: [],
@@ -1090,7 +1019,7 @@ function PlanPageContent() {
       <div className="mt-8 border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-4" aria-label="Week selection">
           {Array.from(
-            { length: program.progressionRules.settings.programLength || 4 },
+            { length: program?.progressionRules?.settings?.programLength || 4 },
             (_, i) => i + 1
           ).map((week) => (
             <button
