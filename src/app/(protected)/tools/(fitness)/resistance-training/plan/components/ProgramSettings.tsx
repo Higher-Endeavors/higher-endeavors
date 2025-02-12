@@ -89,23 +89,6 @@ export default function ProgramSettings({
     }
   });
 
-  // Update form values when props change
-  useEffect(() => {
-    console.log('Props updated:', { name, phaseFocus, periodizationType, progressionRules });
-    setValue('name', name);
-    setValue('phaseFocus', phaseFocus);
-    setValue('periodizationType', periodizationType);
-    setValue('progressionRules', {
-      type: periodizationType,
-      settings: {
-        volumeIncrementPercentage: progressionRules?.settings?.volumeIncrementPercentage ?? 5,
-        loadIncrementPercentage: progressionRules?.settings?.loadIncrementPercentage ?? 2.5,
-        programLength: progressionRules?.settings?.programLength ?? 4,
-        weeklyVolumePercentages: progressionRules?.settings?.weeklyVolumePercentages ?? [100, 80, 90, 60]
-      }
-    });
-  }, [name, phaseFocus, periodizationType, progressionRules, setValue]);
-
   const currentPeriodizationType = watch('periodizationType');
   const programLength = watch('progressionRules.settings.programLength');
 
@@ -133,23 +116,25 @@ export default function ProgramSettings({
     <form className="space-y-6">
       {/* Program Name */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Program Name
         </label>
         <Controller
           name="name"
           control={control}
+          defaultValue={name}
           render={({ field }) => (
             <div>
               <input
-                {...field}
                 type="text"
-                onChange={(e) => {
-                  field.onChange(e);
-                  onSettingsChange({ name: e.target.value });
-                }}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 dark:placeholder-gray-300"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
                 placeholder="Enter program name"
+                value={field.value || ''}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  field.onChange(newValue);
+                  onSettingsChange({ name: newValue });
+                }}
               />
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>

@@ -53,12 +53,15 @@ export default async function Dashboard() {
             <div className="text-gray-500">Nutrition tools coming soon...</div>
           </PillarColumn>
           <PillarColumn title="Fitness">
-            {/* <ToolCard 
-              title="Structural Balance"
-              description="Calculate balanced lift loads based on your master lift"
+            <Link 
+              href="/tools/resistance-training/plan" 
+              className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow mb-4"
             >
-              <StructuralBalanceMini />
-            </ToolCard> */}
+              <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                Resistance Training Program Design →
+              </h3>
+              <p className="text-gray-600">Design and manage personalized resistance training programs with progressive overload</p>
+            </Link>
             <Link 
               href="/tools/structural-balance" 
               className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"

@@ -65,21 +65,22 @@ export default function WeekProgram({
     let currentNumber = 1;
 
     return exercises.map((exercise, index) => {
-      if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
+      // Keep warm-up and cool-down exercises as is
+      if (exercise.pairing?.startsWith('WU') || exercise.pairing?.startsWith('CD')) {
         return exercise;
       }
 
-      // Start a new group if this is the first exercise or if previous exercise was in a different group
-      if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
-        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0));
+      // If this is the first exercise or if we need to start a new group
+      if (index === 0 || currentNumber > 2) {
         currentNumber = 1;
+        if (index > 0) {
+          // Increment the group letter (A -> B -> C, etc.)
+          currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
+        }
       }
 
       const newPairing = `${currentGroup}${currentNumber}`;
-      currentNumber = currentNumber === 1 ? 2 : 1;
-      if (currentNumber === 1) {
-        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
-      }
+      currentNumber++;
 
       return { ...exercise, pairing: newPairing };
     });

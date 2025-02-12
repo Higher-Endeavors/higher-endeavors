@@ -2,13 +2,19 @@
 
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
-import { Program } from '../../shared/types';
+import { Program, Exercise, PhaseFocus, PeriodizationType, ProgressionRules, VolumeTarget } from '../../shared/types';
 import { HiDotsVertical } from 'react-icons/hi';
 import { Modal } from 'flowbite-react';
 
-interface SavedProgram extends Omit<Program, 'createdAt' | 'updatedAt'> {
+interface SavedProgram {
+  id: string;
+  userId: string;
   program_name: string;
-  periodization_type: string;
+  phase_focus: PhaseFocus;
+  periodization_type: PeriodizationType;
+  progression_rules: ProgressionRules;
+  volumeTargets?: VolumeTarget[];
+  exercises?: Exercise[];
   created_at: string;
   updated_at: string;
   exerciseCount?: number;
@@ -16,8 +22,12 @@ interface SavedProgram extends Omit<Program, 'createdAt' | 'updatedAt'> {
   weeks?: any[];
 }
 
+interface SavedProgramWithOptional extends Omit<SavedProgram, 'progression_rules'> {
+  progression_rules?: ProgressionRules;
+}
+
 interface ProgramBrowserProps {
-  onProgramSelect: (program: SavedProgram) => void;
+  onProgramSelect: (program: SavedProgramWithOptional) => void;
   currentUserId: number;
   isAdmin: boolean;
 }
@@ -72,7 +82,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
       return false;
     }
 
-    if (filters.phaseFocus && program.phaseFocus !== filters.phaseFocus) {
+    if (filters.phaseFocus && program.phase_focus !== filters.phaseFocus) {
       return false;
     }
 
@@ -141,10 +151,10 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
       const programData = await response.json();
 
       // Combine the program metadata with the fetched data
-      const fullProgram = {
+      const fullProgram: SavedProgramWithOptional = {
         ...program,
         exercises: programData.weeks?.[0]?.days?.[0]?.exercises || [],
-        progressionRules: program.progressionRules || {
+        progression_rules: program.progression_rules || {
           type: program.periodization_type,
           settings: {
             volumeIncrementPercentage: 10,
@@ -162,51 +172,16 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
     }
   };
 
-  const handleDuplicate = async (e: React.MouseEvent, program: SavedProgram) => {
+  const handleDuplicateClick = async (e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
     try {
-      // First, fetch the original program to get its weeks and exercises
-      const originalResponse = await fetch(`/api/resistance-training/program/${program.id}`);
-      if (!originalResponse.ok) {
-        throw new Error('Failed to fetch original program data');
-      }
-      const originalData = await originalResponse.json();
-
-      // Transform the weeks data to ensure each exercise has a sets array
-      const transformedWeeks = originalData.weeks.map((week: any) => ({
-        ...week,
-        days: week.days.map((day: any) => ({
-          ...day,
-          exercises: day.exercises.map((exercise: any) => ({
-            ...exercise,
-            // Transform sets number into an array of set objects
-            sets: Array.isArray(exercise.sets) ? exercise.sets : Array.from({ length: exercise.sets }, (_, i) => ({
-              setNumber: i + 1,
-              reps: exercise.reps,
-              load: exercise.load,
-              loadUnit: exercise.loadUnit || 'lbs',
-              tempo: exercise.tempo || '2010',
-              rest: exercise.rest || 60,
-              notes: ''
-            }))
-          }))
-        }))
-      }));
-
-      const duplicatedProgram = {
-        name: `${program.program_name} (Copy)`,
-        periodizationType: program.periodization_type,
-        phaseFocus: program.phaseFocus,
-        progressionRules: program.progressionRules,
-        startDate: new Date().toISOString(),
-        endDate: new Date(Date.now() + (4 * 7 * 24 * 60 * 60 * 1000)).toISOString(),
-        notes: program.notes || '',
-        weeks: transformedWeeks,
-        userId: currentUserId
+      const duplicatedProgram: SavedProgramWithOptional = {
+        ...program,
+        program_name: `${program.program_name} (Copy)`,
+        phase_focus: program.phase_focus,
+        progression_rules: program.progression_rules
       };
-      
-      console.log('Sending duplicated program data:', duplicatedProgram);
-      
+
       const response = await fetch('/api/resistance-training/program', {
         method: 'POST',
         headers: {
@@ -378,7 +353,7 @@ export default function ProgramBrowser({ onProgramSelect, currentUserId, isAdmin
                                 View/Edit
                               </button>
                               <button
-                                onClick={(e) => handleDuplicate(e, program)}
+                                onClick={(e) => handleDuplicateClick(e, program)}
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-600"
                               >
                                 Duplicate

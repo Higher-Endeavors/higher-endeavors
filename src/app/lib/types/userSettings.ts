@@ -1,5 +1,19 @@
+export interface FitnessSettings {
+  resistanceTraining: {
+    weightUnit: WeightUnit;
+    trackRPE?: boolean;
+    trackRIR?: boolean;
+    availableEquipment?: number[];
+  };
+  cardioMetabolic: {
+    speedUnit: 'mph' | 'kph' | 'min_mile' | 'min_km';
+  };
+}
+
+export type WeightUnit = 'lbs' | 'kg';
+
 export interface PillarSettings {
-  [key: string]: any; // This can be extended with specific pillar types as needed
+  fitness?: FitnessSettings;
 }
 
 export interface UserSettings {

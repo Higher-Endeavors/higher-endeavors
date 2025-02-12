@@ -1,5 +1,5 @@
 export type HeightUnit = 'ft_in' | 'in' | 'cm';
-export type WeightUnit = 'lbs' | 'kgs';
+export type WeightUnit = 'lbs' | 'kg';
 export type TemperatureUnit = 'F' | 'C';
 export type FoodMeasurementUnit = 'grams' | 'lbs_oz' | 'oz';
 export type HydrationUnit = 'grams' | 'oz' | 'liters';

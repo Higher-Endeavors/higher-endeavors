@@ -7,22 +7,33 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
-import { exerciseSchema, type Exercise } from '../../shared/schemas/exercise';
 import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings';
-import { Exercise as ExerciseType } from '../../shared/types';
+import { 
+  Exercise,
+  ExerciseSource,
+  exerciseSchema,
+  getNextPairing,
+  isValidPairing,
+  createRegularExercise,
+  createVariedExercise,
+  ExerciseOption,
+  ExerciseSelectHandler
+} from '../../shared/types/exercise.types';
+import { LoadUnit } from '../../shared/types';
+import { FilterOptionOption } from 'react-select';
 
 /**
- * Filter function for exercise name search
- * Matches if all search terms are found in the exercise name in any order
+ * Filter function for the exercise select dropdown
  */
-const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
+const filterExerciseOptions = (
+  option: FilterOptionOption<ExerciseOption>,
+  inputValue: string
+): boolean => {
   if (!inputValue) return true;
   
-  // Split input into words and convert to lowercase
   const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
   const exerciseName = option.label.toLowerCase();
   
-  // Check if all search terms are found in the exercise name
   return searchTerms.every(term => exerciseName.includes(term));
 };
 
@@ -32,24 +43,12 @@ const filterExerciseOptions = (option: { label: string }, inputValue: string) =>
 interface ExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (exercise: ExerciseType) => void;
-  exercise?: ExerciseType;          // Provided when editing an existing exercise
-  exercises: ExerciseType[];        // Used for generating next pairing
+  onSave: (exercise: Exercise) => void;
+  exercise?: Exercise;          // Provided when editing an existing exercise
+  exercises: Exercise[];        // Used for generating next pairing
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
   userSettings?: { fitness?: FitnessSettings };
-}
-
-/**
- * Option type for exercise name select dropdown
- */
-interface ExerciseOption {
-  value: string;
-  label: string;
-  data: {
-    id: string;
-    name: string;
-  };
 }
 
 /**
@@ -155,8 +154,8 @@ export default function ExerciseModal({
 
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kgs' : 'lbs';
-  const alternateUnit = defaultUnit === 'kgs' ? 'lbs' : 'kgs';
+  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kg' : 'lbs';
+  const alternateUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
 
   // Add state for creating new exercise
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
@@ -174,7 +173,7 @@ export default function ExerciseModal({
     setValue,
     formState: { errors },
     reset
-  } = useForm<ExerciseType>({
+  } = useForm<Exercise>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       id: '',
@@ -203,64 +202,45 @@ export default function ExerciseModal({
    */
   useEffect(() => {
     if (exercise) {
-      // Ensure correct literal types for discriminated union
-      const resetData = exercise.isVariedSets ? {
-        ...exercise,
-        isVariedSets: true as const,
-        isAdvancedSets: Boolean(exercise.isAdvancedSets)
-      } : {
-        ...exercise,
-        isVariedSets: false as const,
-        isAdvancedSets: Boolean(exercise.isAdvancedSets),
-        setDetails: undefined
-      };
-      reset(resetData);
+      reset(exercise); // The exercise type is already correct from our consolidated types
     } else {
-      // Generate next pairing for new exercise
-      const existingPairings = exercises
-        .map(ex => ex.pairing)
-        .filter((p): p is string => !!p) // Type guard to ensure p is a string
-        .filter(p => !p.includes('WU') && !p.includes('CD'));
-      
-      let nextPairing = 'A1';
-      if (existingPairings.length > 0) {
-        const lastPairing = existingPairings[existingPairings.length - 1];
-        const letter = lastPairing.charAt(0);
-        const number = parseInt(lastPairing.charAt(1));
-        
-        if (number === 2) {
-          nextPairing = String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
-        } else {
-          nextPairing = letter + '2';
-        }
-      }
+      // Use our utility function to get the next pairing
+      const nextPairing = getNextPairing(exercises.map(ex => ex.pairing));
 
-      reset({
+      reset(createRegularExercise({
         id: Math.random().toString(36).substr(2, 9),
+        name: '',
         pairing: nextPairing,
         sets: 1,
         reps: 1,
         load: 0,
         tempo: '2010',
         rest: 60,
-        notes: '',
-        isVariedSets: false as const,
-        isAdvancedSets: false,
-        setDetails: undefined
-      });
+        notes: ''
+      }));
     }
   }, [exercise, exercises, reset]);
 
-  const handleExerciseChange = useCallback((selectedOption: ExerciseOption | null) => {
-    if (selectedOption) {
-      setSelectedExercise(selectedOption);
-      setValue('name', selectedOption.label);
-      setValue('source', selectedOption.data.source);
-      if (selectedOption.data.source === 'library') {
-        setValue('libraryId', parseInt(selectedOption.data.id));
-      }
+  /**
+   * Handles selection of an exercise from the dropdown
+   */
+  const handleExerciseSelect: ExerciseSelectHandler = (newValue, actionMeta) => {
+    setSelectedExercise(newValue);
+    if (!newValue) {
+      // Clear form values when no exercise is selected
+      setValue('name', '');
+      setValue('source', undefined);
+      setValue('libraryId', undefined);
+      setValue('id', '');
+      return;
     }
-  }, [setValue]);
+    
+    setValue('name', newValue.data.name);
+    setValue('source', newValue.data.source);
+    if (newValue.data.libraryId) {
+      setValue('libraryId', newValue.data.libraryId);
+    }
+  };
 
   // Effect for handling selectedExerciseName
   useEffect(() => {
@@ -269,10 +249,18 @@ export default function ExerciseModal({
         option => option.label === selectedExerciseName
       );
       if (matchingExercise) {
-        handleExerciseChange(matchingExercise);
+        handleExerciseSelect(matchingExercise, {
+          action: 'select-option',
+          option: matchingExercise,
+          name: 'exercise-select'
+        });
       }
+    } else if (!selectedExerciseName && !exercise) {
+      // Clear the selected exercise if there's no name and we're not editing
+      setSelectedExercise(null);
+      setValue('name', '');
     }
-  }, [selectedExerciseName, exerciseOptions, handleExerciseChange]);
+  }, [selectedExerciseName, exerciseOptions, handleExerciseSelect, exercise, setValue]);
 
   // Fetch exercises effect
   useEffect(() => {
@@ -287,20 +275,25 @@ export default function ExerciseModal({
           return;
         }
 
-        const options = data.map((exercise: any) => ({
+        const options: ExerciseOption[] = data.map((exercise: {
+          id: string | number;
+          exercise_name: string;
+          source: ExerciseSource;
+        }) => ({
           value: `${exercise.source}-${exercise.id}`,
           label: exercise.exercise_name,
-          libraryId: exercise.source === 'library' ? exercise.id : undefined,
           data: {
+            id: exercise.id.toString(),
+            name: exercise.exercise_name,
             source: exercise.source,
-            id: exercise.id
+            libraryId: exercise.source === 'library' ? Number(exercise.id) : undefined
           }
         }));
 
         setExerciseOptions(options);
 
-        // If we have a selectedExerciseName, find and select it
-        if (selectedExerciseName) {
+        // Only set selected exercise if we have a name and we're not adding a new exercise
+        if (selectedExerciseName && exercise) {
           const matchingExercise = options.find(opt => opt.label === selectedExerciseName);
           if (matchingExercise) {
             setSelectedExercise(matchingExercise);
@@ -317,7 +310,7 @@ export default function ExerciseModal({
     if (isOpen) {
       fetchExercises();
     }
-  }, [isOpen, selectedExerciseName]);
+  }, [isOpen, selectedExerciseName, exercise, setValue]);
 
   /**
    * Effect: Manage setDetails array when varied sets is enabled
@@ -349,74 +342,52 @@ export default function ExerciseModal({
           name: selectedExerciseName || exercise.name
         });
       } else {
-        reset();
+        reset(); // Reset to default values
+        setSelectedExercise(null); // Clear the selected exercise
+        setValue('name', ''); // Explicitly clear the name field
       }
       // Reset the toggle to false (use default unit) when modal opens
       setUseAlternateUnit(false);
     }
-  }, [isOpen, exercise, selectedExerciseName, reset]);
+  }, [isOpen, exercise, selectedExerciseName, reset, setValue]);
+
+  // Clear selected exercise when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedExercise(null);
+      setValue('name', '');
+    }
+  }, [isOpen, setValue]);
 
   /**
-   * Form submission handler
-   * Ensures correct typing for discriminated union before saving
+   * Handles form submission with proper type conversion
    */
-  const onSubmit = async (data: ExerciseType) => {
+  const onSubmit = async (data: Exercise) => {
     console.log('Form Data:', data);
     console.log('Form Errors:', errors);
 
-    // Add loadUnit if the load is numeric
-    const loadData = typeof data.load === 'number' ? {
-      load: data.load,
-      loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
-    } : {
-      load: data.load
-    };
+    const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as LoadUnit;
 
-    // Format sets data
-    const setsArray = Array.from({ length: data.sets }, (_, i) => ({
-      setNumber: i + 1,
-      reps: data.reps,
-      load: loadData.load,
-      loadUnit: loadData.loadUnit,
-      tempo: data.tempo,
-      rest: data.rest,
-      notes: ''
-    }));
-
-    // Create the correct type based on isVariedSets and isAdvancedSets
-    const submissionData = data.isVariedSets ? {
-      ...data,
-      ...loadData,
-      isVariedSets: true as const,
-      isAdvancedSets: Boolean(data.isAdvancedSets),
-      // If using advanced sets, don't include the main section's load and rest
-      load: data.isAdvancedSets ? 0 : loadData.load,
-      rest: data.isAdvancedSets ? 0 : data.rest,
-      sets: data.setDetails?.map(set => ({
-        setNumber: set.setNumber,
-        reps: set.reps,
-        load: set.load,
-        loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs',
-        tempo: data.tempo,
-        rest: set.rest,
-        notes: '',
+    if (data.isVariedSets) {
+      const setDetails = data.setDetails?.map(set => ({
+        ...set,
+        loadUnit,
         subSets: set.subSets?.map(subSet => ({
           ...subSet,
-          loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
+          loadUnit
         }))
-      }))
-    } : {
-      ...data,
-      ...loadData,
-      isVariedSets: false as const,
-      isAdvancedSets: Boolean(data.isAdvancedSets),
-      sets: setsArray,
-      setDetails: undefined,
-      customName: data.source === 'custom' ? data.name : undefined
-    };
+      })) || [];
 
-    console.log('Submission Data:', submissionData);
-    onSave(submissionData);
+      onSave(createVariedExercise({
+        ...data,
+        loadUnit
+      }, setDetails));
+    } else {
+      onSave(createRegularExercise({
+        ...data,
+        loadUnit
+      }));
+    }
     onClose();
     // Reset the toggle after saving
     setUseAlternateUnit(false);
@@ -466,23 +437,6 @@ export default function ExerciseModal({
     setValue('setDetails', updatedSetDetails);
   };
 
-  const getNextPairing = (existingExercises: ExerciseType[]): string => {
-    if (existingExercises.length === 0) return 'A1';
-    
-    const lastExercise = existingExercises[existingExercises.length - 1];
-    const currentPairing = lastExercise.pairing;
-    
-    if (currentPairing.startsWith('WU') || currentPairing.startsWith('CD')) {
-      return currentPairing;
-    }
-
-    const letter = currentPairing.charAt(0);
-    const number = parseInt(currentPairing.charAt(1));
-    
-    if (number === 1) return `${letter}2`;
-    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
-  };
-
   // Function to handle exercise creation
   const handleCreateExercise = async (exerciseName: string) => {
     try {
@@ -501,24 +455,38 @@ export default function ExerciseModal({
 
       const newExercise = await response.json();
       
-      // Create a properly typed exercise object
-      const exerciseData: ExerciseType = {
-        id: newExercise.id.toString(),
-        name: newExercise.exercise_name,
-        pairing: getNextPairing(exercises),
-        sets: 3,
-        reps: 10,
-        load: 0,
-        tempo: '2010',
-        rest: 60,
-        isVariedSets: false,
-        isAdvancedSets: false
+      // Create a new exercise option
+      const newOption: ExerciseOption = {
+        value: `user-${newExercise.id}`,
+        label: newExercise.exercise_name,
+        data: {
+          id: newExercise.id.toString(),
+          name: newExercise.exercise_name,
+          source: 'user' as ExerciseSource
+        }
       };
 
-      // Set the form values
-      reset(exerciseData);
+      // Update exercise options
+      setExerciseOptions(prev => [...prev, newOption]);
+      
+      // Select the new exercise
+      setSelectedExercise(newOption);
+      
+      // Update form values
+      setValue('name', newExercise.exercise_name);
+      setValue('source', 'user' as ExerciseSource);
+      setValue('id', newExercise.id.toString());
+      
+      // Reset modal state
       setIsCreatingExercise(false);
       setNewExerciseName('');
+
+      // Don't close the modal - let the user configure the exercise details
+      handleExerciseSelect(newOption, {
+        action: 'select-option',
+        option: newOption,
+        name: 'exercise-select'
+      });
     } catch (error) {
       console.error('Error creating exercise:', error);
     }
@@ -596,9 +564,10 @@ export default function ExerciseModal({
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Select
+                  <Select<ExerciseOption>
+                    key={isOpen ? 'open' : 'closed'} // Force re-render when modal opens/closes
                     value={selectedExercise}
-                    onChange={handleExerciseChange}
+                    onChange={handleExerciseSelect}
                     options={exerciseOptions}
                     isLoading={isLoading}
                     className="basic-single"

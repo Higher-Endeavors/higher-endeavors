@@ -11,7 +11,7 @@ import ExerciseSearch from './components/ExerciseSearch';
 import ProgramSettings from './components/ProgramSettings';
 // import VolumeTargets from './components/VolumeTargets';
 import WeekProgram from './components/WeekProgram';
-import { Program, Exercise, VolumeTarget, PhaseFocus, PeriodizationType, ProgressionRules } from '../shared/types';
+import { Program, VolumeTarget, PhaseFocus, PeriodizationType, ProgressionRules, LoadUnit } from '../shared/types';
 import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
 import type { z } from 'zod';
 import { programSettingsSchema } from '../shared/schemas/program';
@@ -19,54 +19,22 @@ import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import UserSelector from '@/app/components/UserSelector';
-import { useSession, SessionProvider } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import ProgramBrowser from './components/ProgramBrowser';
-import { type Exercise as ExerciseType } from '../shared/schemas/exercise';
-import { RegularExercise, VariedExercise, createRegularExercise, createVariedExercise, BaseExercise } from '../shared/types/exercise.types';
+import {
+  Exercise,
+  BaseExercise,
+  RegularExercise,
+  VariedExercise,
+  createRegularExercise,
+  createVariedExercise,
+  getNextPairing,
+  type SetDetail
+} from '../shared/types/exercise.types';
+import type { SavedProgram } from '../shared/types';
+import type { FitnessSettings } from '@/app/lib/types/userSettings';
 
 type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
-
-// Import or define SavedProgram type
-interface SavedProgram {
-  id: string;
-  userId: string;
-  program_name: string;
-  phase_focus: PhaseFocus;
-  periodization_type: PeriodizationType;
-  progression_rules: ProgressionRules;
-  volumeTargets?: VolumeTarget[];
-  created_at: string;
-  updated_at: string;
-  exercises?: Exercise[];
-}
-
-// Helper function to convert SavedProgram to Program
-const convertSavedProgramToProgram = (savedProgram: SavedProgram): Program => ({
-  id: savedProgram.id,
-  userId: savedProgram.userId,
-  name: savedProgram.program_name,
-  phaseFocus: savedProgram.phase_focus,
-  periodizationType: savedProgram.periodization_type,
-  progressionRules: savedProgram.progression_rules,
-  volumeTargets: savedProgram.volumeTargets || [],
-  exercises: savedProgram.exercises || [],
-  createdAt: new Date(savedProgram.created_at),
-  updatedAt: new Date(savedProgram.updated_at)
-});
-
-// Helper function to convert Program to SavedProgram
-const convertProgramToSaved = (program: Program): SavedProgram => ({
-  id: program.id,
-  userId: program.userId,
-  program_name: program.name,
-  phase_focus: program.phaseFocus,
-  periodization_type: program.periodizationType,
-  progression_rules: program.progressionRules,
-  volumeTargets: program.volumeTargets,
-  exercises: program.exercises,
-  created_at: program.createdAt.toISOString(),
-  updated_at: program.updatedAt.toISOString()
-});
 
 // Import or define ExerciseOption type
 interface ExerciseOption {
@@ -74,10 +42,20 @@ interface ExerciseOption {
   value: string;
   label: string;
   libraryId?: number;
+  source?: 'user' | 'library';
   data: {
     id: string;
     name: string;
     source: 'user' | 'library';
+    difficulty?: string;
+    targetMuscleGroup: string;
+    primaryEquipment: string;
+    secondaryEquipment?: string;
+    exerciseFamily: string;
+    bodyRegion: string;
+    movementPattern: string;
+    movementPlane: string;
+    laterality: string;
   };
 }
 
@@ -143,17 +121,17 @@ function PlanPageContent() {
   // UI state
   const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
   const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<RegularExercise | null>(null);
+  const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
   const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseOption[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isProgramSettingsExpanded, setIsProgramSettingsExpanded] = useState(true);
-  const [currentExercise, setCurrentExercise] = useState<ExerciseType | undefined>();
+  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
   const [selectedExerciseName, setSelectedExerciseName] = useState('');
-  const [selectedExercise, setSelectedExercise] = useState<RegularExercise | null>(null);
-  const [activeExercise, setActiveExercise] = useState<ExerciseType | null>(null);
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | undefined>();
+  const [activeExercise, setActiveExercise] = useState<Exercise | undefined>();
   const [mounted, setMounted] = useState(false);
-  const [weekExercises, setWeekExercises] = useState<{ [key: number]: ExerciseType[] }>({});
+  const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
   const [activeWeek, setActiveWeek] = useState(1);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
@@ -224,11 +202,11 @@ function PlanPageContent() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event;
     const draggedExercise = program.exercises.find(ex => ex.id === active.id);
-    setActiveExercise(draggedExercise || null);
+    setActiveExercise(draggedExercise);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    setActiveExercise(null);
+    setActiveExercise(undefined);
     const { active, over } = event;
 
     if (active.id !== over?.id) {
@@ -261,15 +239,15 @@ function PlanPageContent() {
       }
 
       if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
-        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0));
+        if (index > 0) {
+          // Only increment group if not first exercise
+          currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
+        }
         currentNumber = 1;
       }
 
       const newPairing = `${currentGroup}${currentNumber}`;
       currentNumber = currentNumber === 1 ? 2 : 1;
-      if (currentNumber === 1) {
-        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
-      }
 
       // Extract only the BaseExercise properties
       const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
@@ -299,22 +277,7 @@ function PlanPageContent() {
 
   // Exercise management
   const handleAddExercise = () => {
-    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
-      id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
-      name: '',
-      pairing: getNextPairing(),
-      sets: 3,
-      reps: 10,
-      load: 0,
-      tempo: '2010',
-      rest: 60,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
-      notes: '',
-      source: 'custom' as const
-    };
-    
-    const newExercise = createRegularExercise(baseExercise);
-    setEditingExercise(newExercise);
+    setEditingExercise(undefined);
     setSelectedExerciseName('');
     setIsExerciseModalOpen(true);
   };
@@ -329,31 +292,35 @@ function PlanPageContent() {
       load: 0,
       tempo: '2010',
       rest: 60,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg',
       notes: '',
       source: 'library' as const,
       libraryId: exercise.libraryId
     };
     
-    const newExercise = createRegularExercise(baseExercise);
-    setSelectedExercise(newExercise);
+    setSelectedExercise(createRegularExercise(baseExercise));
     setIsAdvancedSearchOpen(false);
   };
 
   const getNextPairing = (): string => {
+    // Filter out warm-up and cool-down exercises
     const exercises = program.exercises.filter(
-      ex => !ex.pairing.startsWith('WU') && !ex.pairing.startsWith('CD')
+      ex => !ex.pairing?.startsWith('WU') && !ex.pairing?.startsWith('CD')
     );
+
     if (exercises.length === 0) return 'A1';
 
-    const lastPairing = exercises[exercises.length - 1].pairing;
-    const letter = lastPairing.charAt(0);
-    const number = parseInt(lastPairing.charAt(1));
+    const lastExercise = exercises[exercises.length - 1];
+    const letter = lastExercise.pairing.charAt(0);
+    const number = parseInt(lastExercise.pairing.charAt(1));
 
-    if (number === 2) {
-      return String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
+    // If we're at number 1, return same letter with number 2
+    if (number === 1) {
+      return `${letter}2`;
     }
-    return letter + '2';
+    
+    // If we're at number 2, move to next letter and start at 1
+    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
   };
 
   const handleEditExercise = (id: string) => {
@@ -373,74 +340,55 @@ function PlanPageContent() {
   const handleSaveExercise = (formattedExercise: Exercise) => {
     console.log('Received exercise data in handleSaveExercise:', formattedExercise);
     
-    // Get the base ID without any week suffix
-    const baseId = formattedExercise.id.split('-week')[0];
-    const isEditing = editingExercise !== undefined;
-    
-    // When editing, use the original exercise's base ID
-    const editingBaseId = isEditing ? editingExercise.id.split('-week')[0] : null;
-    
-    // Find the library exercise to ensure we have the correct ID
-    const libraryExercise = exerciseLibrary.find(ex => ex.label === formattedExercise.name);
-    console.log('Found library exercise:', libraryExercise);
-    
+    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
+      id: formattedExercise.id,
+      name: formattedExercise.name,
+      pairing: formattedExercise.pairing || 'A1',
+      sets: formattedExercise.sets,
+      reps: formattedExercise.reps,
+      load: formattedExercise.load,
+      tempo: formattedExercise.tempo || '2010',
+      rest: formattedExercise.rest,
+      notes: formattedExercise.notes || '',
+      source: formattedExercise.source || 'library',
+      libraryId: formattedExercise.libraryId,
+      loadUnit: formattedExercise.loadUnit || 'kg'
+    };
+
+    const exerciseData = formattedExercise.isVariedSets 
+      ? createVariedExercise(baseExercise, formattedExercise.setDetails || [])
+      : createRegularExercise(baseExercise);
+
     // Update program exercises
-    setProgram(prev => {
-      const updatedExercises = [...prev.exercises];
-      const existingIndex = updatedExercises.findIndex(ex => 
-        ex.id.split('-week')[0] === (isEditing ? editingBaseId : baseId)
-      );
+    setProgram(prev => ({
+      ...prev,
+      exercises: editingExercise 
+        ? prev.exercises.map(ex => ex.id === exerciseData.id ? exerciseData : ex)
+        : [...prev.exercises, exerciseData]
+    }));
 
-      if (existingIndex >= 0) {
-        updatedExercises[existingIndex] = formattedExercise;
+    // Update week exercises
+    setWeekExercises(prev => {
+      const newWeekExercises = { ...prev };
+      
+      // If editing an existing exercise
+      if (editingExercise) {
+        Object.keys(newWeekExercises).forEach(weekNum => {
+          newWeekExercises[Number(weekNum)] = newWeekExercises[Number(weekNum)]?.map(ex =>
+            ex.id === exerciseData.id ? exerciseData : ex
+          ) || [];
+        });
       } else {
-        updatedExercises.push(formattedExercise);
-      }
-
-      const defaultProgressionRules = {
-        type: 'None' as const,
-        settings: {
-          programLength: 4,
-          volumeIncrementPercentage: 0,
-          loadIncrementPercentage: 0
+        // If adding a new exercise
+        if (!newWeekExercises[activeWeek]) {
+          newWeekExercises[activeWeek] = [];
         }
-      };
-
-      return {
-        id: prev.id || '',
-        userId: prev.userId || '',
-        name: prev.name || '',
-        exercises: updatedExercises,
-        phaseFocus: prev.phaseFocus as PhaseFocus,
-        periodizationType: prev.periodizationType as PeriodizationType,
-        progressionRules: prev.progressionRules || defaultProgressionRules,
-        volumeTargets: prev.volumeTargets || [],
-        createdAt: prev.createdAt || new Date(),
-        updatedAt: new Date()
-      };
+        newWeekExercises[activeWeek] = [...newWeekExercises[activeWeek], exerciseData];
+      }
+      
+      return newWeekExercises;
     });
 
-    // Update week exercises if needed
-    if (activeWeek) {
-      setWeekExercises(prev => {
-        const updatedWeekExercises = { ...prev };
-        const weekExercises = updatedWeekExercises[activeWeek] || [];
-        const existingIndex = weekExercises.findIndex(ex => 
-          ex.id.split('-week')[0] === (isEditing ? editingBaseId : baseId)
-        );
-
-        if (existingIndex >= 0) {
-          weekExercises[existingIndex] = formattedExercise;
-        } else {
-          weekExercises.push(formattedExercise);
-        }
-
-        updatedWeekExercises[activeWeek] = weekExercises;
-        return updatedWeekExercises;
-      });
-    }
-
-    setEditingExercise(undefined);
     setIsExerciseModalOpen(false);
   };
 
@@ -483,7 +431,7 @@ function PlanPageContent() {
           ...settings.progressionRules.settings
         } : program.progressionRules.settings
       },
-      name: program.name || '',  // Ensure name is never undefined
+      name: settings.name || program.name || '',  // Update name from settings if provided
       userId: program.userId || '',  // Ensure userId is never undefined
       exercises: program.exercises,
       createdAt: program.createdAt,
@@ -604,31 +552,94 @@ function PlanPageContent() {
           // Create days array
           const days = Object.entries(exercisesByDay).map(([dayNumber, exercises]) => {
             console.log(`Processing day ${dayNumber} exercises:`, exercises);
+
+            // Fix pairings for this day's exercises
+            let currentGroup = 'A';
+            let currentNumber = 1;
+            const fixedExercises = exercises.map((exercise, index) => {
+              // Keep warm-up and cool-down exercises as is
+              if (exercise.pairing?.startsWith('WU') || exercise.pairing?.startsWith('CD')) {
+                return exercise;
+              }
+
+              // If this is the first exercise or if we need to start a new pair
+              if (index === 0 || currentNumber > 2) {
+                currentNumber = 1;
+                if (index > 0) {
+                  // Increment the group letter (A -> B -> C, etc.)
+                  currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
+                }
+              }
+
+              const newPairing = `${currentGroup}${currentNumber}`;
+              currentNumber++;
+
+              // Create the exercise data for API
+              const exerciseData = {
+                source: exercise.source || 'library',
+                libraryId: exercise.libraryId,
+                userExerciseId: exercise.userExerciseId || null,
+                customName: exercise.customName,
+                pairing: exercise.pairing,
+                notes: exercise.notes || '',
+                orderIndex: index,
+                sets: exercise.isVariedSets && exercise.setDetails 
+                  ? exercise.setDetails.map((set: SetDetail) => ({
+                      setNumber: set.setNumber,
+                      reps: set.reps,
+                      load: set.load,
+                      loadUnit: set.loadUnit || exercise.loadUnit || 'lbs',
+                      rest: set.rest,
+                      tempo: set.tempo,
+                      notes: set.notes || ''
+                    }))
+                  : Array.from({ length: exercise.sets }, (_, setIndex) => ({
+                      setNumber: setIndex + 1,
+                      reps: exercise.reps,
+                      load: exercise.load,
+                      loadUnit: exercise.loadUnit || 'lbs',
+                      rest: exercise.rest || 60,
+                      tempo: exercise.tempo || '2010',
+                      notes: ''
+                    }))
+              };
+
+              console.log(`Preparing exercise ${exercise.name} for API:`, exerciseData);
+              return exerciseData;
+            });
+
             return {
               dayNumber: parseInt(dayNumber),
               dayName: `Day ${dayNumber}`,
               notes: '',
-              exercises: exercises.map((exercise, index) => {
-                console.log(`Processing exercise at index ${index}:`, exercise);
-                return {
-                  source: 'library',  // Force library source
-                  libraryId: exercise.libraryId,  // Use library ID directly
-                  userExerciseId: null,  // Clear user exercise ID
-                  customName: undefined,  // Clear custom name for library exercises
-                  pairing: exercise.pairing,
-                  notes: exercise.notes || '',
-                  orderIndex: index,
-                  sets: Array.from({ length: exercise.sets }, (_, setIndex) => ({
-                    setNumber: setIndex + 1,
-                    reps: exercise.reps,
-                    load: exercise.load,
-                    loadUnit: exercise.loadUnit || 'lbs',
-                    rest: exercise.rest || 60,
-                    tempo: exercise.tempo || '2010',
-                    notes: ''
-                  }))
-                };
-              })
+              exercises: fixedExercises.map((exercise, index) => ({
+                source: exercise.source || 'library',
+                libraryId: exercise.libraryId,
+                userExerciseId: exercise.userExerciseId || null,
+                customName: exercise.customName,
+                pairing: exercise.pairing,
+                notes: exercise.notes || '',
+                orderIndex: index,
+                sets: exercise.isVariedSets && exercise.setDetails 
+                  ? exercise.setDetails.map((set: SetDetail) => ({
+                      setNumber: set.setNumber,
+                      reps: set.reps,
+                      load: set.load,
+                      loadUnit: set.loadUnit || exercise.loadUnit || 'lbs',
+                      rest: set.rest,
+                      tempo: set.tempo,
+                      notes: set.notes || ''
+                    }))
+                  : Array.from({ length: exercise.sets }, (_, setIndex) => ({
+                      setNumber: setIndex + 1,
+                      reps: exercise.reps,
+                      load: exercise.load,
+                      loadUnit: exercise.loadUnit || 'lbs',
+                      rest: exercise.rest || 60,
+                      tempo: exercise.tempo || '2010',
+                      notes: ''
+                    }))
+              }))
             };
           });
 
@@ -641,15 +652,17 @@ function PlanPageContent() {
       );
 
       const programData = {
-        program_name: program.name.trim(),
+        id: program.id,
+        name: program.name.trim(),
         periodization_type: program.periodizationType,
         phase_focus: program.phaseFocus,
         progression_rules: program.progressionRules,
-        start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
         notes: '',
-        weeks,
-        userId: selectedUserId || parseInt(session?.user?.id)
+        weeks: weeks,
+        userId: selectedUserId?.toString() || session?.user?.id || '0',
+        program_name: program.name.trim()
       };
 
       console.log('Final program data being sent:', JSON.stringify(programData, null, 2));
@@ -689,26 +702,22 @@ function PlanPageContent() {
 
   // Add handler for advanced search selection
   const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {
-    console.log('Page - Received exercise from search:', exercise);
-    
-    // Transform the exercise data
-    const transformedExercise = {
-      id: `${exercise.data.source}-${exercise.data.id}-${Date.now()}`, // Ensure unique ID
+    const transformedExercise: RegularExercise = {
+      id: exercise.data.id,
       name: exercise.data.name,
       pairing: getNextPairing(),
-      sets: 3, // Default values
+      sets: 3,
       reps: 10,
       load: 0,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'lbs',
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg',
       tempo: '2010',
       rest: 60,
-      isVariedSets: false as const,
-      isAdvancedSets: false,
+      source: exercise.data.source,
+      libraryId: exercise.libraryId,
       notes: '',
-      setDetails: undefined
+      isVariedSets: false,
+      isAdvancedSets: false
     };
-
-    console.log('Page - Transformed exercise:', transformedExercise);
     
     setSelectedExerciseName(exercise.data.name);
     setEditingExercise(transformedExercise);
@@ -758,7 +767,7 @@ function PlanPageContent() {
   ]);
 
   // Update exercises for the active week
-  const handleWeekExercisesChange = (exercises: ExerciseType[]) => {
+  const handleWeekExercisesChange = (exercises: Exercise[]) => {
     setWeekExercises(prev => {
       const newWeekExercises = { ...prev };
       
@@ -835,7 +844,27 @@ function PlanPageContent() {
   };
 
   const handleProgramSelect = (selectedProgram: SavedProgram) => {
-    const program = convertSavedProgramToProgram(selectedProgram);
+    console.log('Selected program:', selectedProgram);
+    const program: Program = {
+      id: selectedProgram.id,
+      userId: selectedProgram.userId,
+      name: selectedProgram.program_name,
+      phaseFocus: selectedProgram.phase_focus || 'GPP',
+      periodizationType: selectedProgram.periodization_type || 'None',
+      progressionRules: selectedProgram.progression_rules || {
+        type: 'None',
+        settings: {
+          programLength: 4,
+          volumeIncrementPercentage: 0,
+          loadIncrementPercentage: 0
+        }
+      },
+      volumeTargets: selectedProgram.volumeTargets || [],
+      exercises: selectedProgram.exercises || [],
+      createdAt: new Date(selectedProgram.created_at),
+      updatedAt: new Date(selectedProgram.updated_at)
+    };
+    console.log('Transformed program:', program);
     setProgram(program);
     setActiveWeek(1);
     if (program.id) {
@@ -845,11 +874,6 @@ function PlanPageContent() {
 
   const loadProgramExercises = async (programId: string) => {
     try {
-      // Ensure we have the exercise library
-      if (exerciseLibrary.length === 0) {
-        throw new Error('Exercise library not loaded');
-      }
-
       const response = await fetch(`/api/resistance-training/program/${programId}`);
       if (!response.ok) throw new Error('Failed to load program exercises');
       
@@ -860,8 +884,7 @@ function PlanPageContent() {
         throw new Error('Invalid program data: missing weeks array');
       }
       
-      // Transform the data into our week exercises format
-      const newWeekExercises: { [key: number]: ExerciseType[] } = {};
+      const newWeekExercises: { [key: number]: Exercise[] } = {};
       
       data.weeks.forEach((week: any) => {
         if (!week.days || !Array.isArray(week.days)) {
@@ -869,7 +892,7 @@ function PlanPageContent() {
           return;
         }
 
-        const weekExercises: ExerciseType[] = [];
+        const weekExercises: Exercise[] = [];
         week.days.forEach((day: any) => {
           if (!day.exercises || !Array.isArray(day.exercises)) {
             console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
@@ -877,53 +900,47 @@ function PlanPageContent() {
           }
 
           day.exercises.forEach((exercise: any) => {
-            console.log('Processing exercise:', exercise);
+            console.log('Processing exercise from API:', exercise);
             
-            // Handle both formats - exercises with sets array and exercises with just sets number
-            let setDetails;
-            if (Array.isArray(exercise.sets)) {
-              setDetails = exercise.sets;
-            } else {
-              // Create sets array from the exercise properties
-              setDetails = Array.from({ length: exercise.sets || 3 }, (_, i) => ({
-                setNumber: i + 1,
-                reps: exercise.reps || 0,
-                load: exercise.load || 0,
-                loadUnit: exercise.loadUnit || 'lbs',
-                tempo: exercise.tempo || '2010',
-                rest: exercise.rest || 60,
-                notes: ''
-              }));
-            }
-            
-            // Find the exercise in the library
-            const libraryExercise = exerciseLibrary.find(ex => ex.label === exercise.name);
-            console.log('Found library exercise:', libraryExercise);
-            
-            if (!libraryExercise) {
-              console.warn(`Could not find library exercise with ID ${exercise.libraryId}`);
-            }
-            
-            const exerciseData = {
+            // Create base exercise properties
+            const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
               id: exercise.id || `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
-              name: libraryExercise?.label || exercise.name || exercise.customName || 'Unknown Exercise',
+              name: exercise.name || exercise.customName || 'Unknown Exercise',
               pairing: exercise.pairing || 'A1',
-              sets: setDetails.length,
-              reps: exercise.reps || setDetails[0]?.reps || 0,
-              load: exercise.load || setDetails[0]?.load || 0,
-              loadUnit: exercise.loadUnit || setDetails[0]?.loadUnit || 'lbs',
-              tempo: exercise.tempo || setDetails[0]?.tempo || '2010',
-              rest: exercise.rest || setDetails[0]?.rest || 60,
+              sets: Array.isArray(exercise.sets) ? exercise.sets.length : 3,
+              reps: exercise.sets?.[0]?.reps || 10,
+              load: exercise.sets?.[0]?.load || 0,
+              loadUnit: exercise.sets?.[0]?.loadUnit || 'lbs',
+              tempo: exercise.sets?.[0]?.tempo || '2010',
+              rest: exercise.sets?.[0]?.rest || 60,
               notes: exercise.notes || '',
-              source: 'library',
-              libraryId: exercise.libraryId || exercise.id, // Handle both libraryId and id
-              userExerciseId: null,
-              customName: undefined,
-              isVariedSets: false,
-              isAdvancedSets: false,
-              setDetails: setDetails
+              source: exercise.source || 'library',
+              libraryId: exercise.libraryId,
+              userExerciseId: exercise.userExerciseId || null
             };
-            
+
+            // Check if exercise has varied sets
+            const hasVariedSets = Array.isArray(exercise.sets) && exercise.sets.some((set: any, idx: number, arr: any[]) => {
+              if (idx === 0) return false;
+              const prevSet = arr[idx - 1];
+              return set.reps !== prevSet.reps || set.load !== prevSet.load || set.tempo !== prevSet.tempo;
+            });
+
+            let exerciseData: Exercise;
+            if (hasVariedSets) {
+              exerciseData = createVariedExercise(baseExercise, exercise.sets.map((set: any) => ({
+                setNumber: set.setNumber,
+                reps: set.reps,
+                load: set.load,
+                loadUnit: set.loadUnit,
+                tempo: set.tempo,
+                rest: set.rest,
+                notes: set.notes || ''
+              })));
+            } else {
+              exerciseData = createRegularExercise(baseExercise);
+            }
+
             console.log('Created exercise data:', exerciseData);
             weekExercises.push(exerciseData);
           });
@@ -935,14 +952,9 @@ function PlanPageContent() {
       });
 
       console.log('Transformed week exercises:', newWeekExercises);
-      
-      if (Object.keys(newWeekExercises).length === 0) {
-        throw new Error('No exercises were loaded');
-      }
-
       setWeekExercises(newWeekExercises);
       
-      // Also update the program exercises with Week 1 exercises
+      // Update program exercises with Week 1 exercises
       if (newWeekExercises[1]) {
         setProgram(prev => ({
           ...prev,
@@ -957,6 +969,53 @@ function PlanPageContent() {
     }
   };
 
+  const currentUserId = session?.user?.id ? parseInt(session.user.id) : 0;
+
+  // Fix set parameter typing
+  const transformExerciseForSave = (exercise: Exercise, index: number) => {
+    if (exercise.isVariedSets) {
+      return {
+        ...exercise,
+        orderIndex: index,
+        sets: exercise.setDetails.map((set: SetDetail) => ({
+          setNumber: set.setNumber,
+          reps: set.reps,
+          load: set.load,
+          loadUnit: set.loadUnit,
+          tempo: set.tempo,
+          rest: set.rest,
+          notes: set.notes
+        }))
+      };
+    }
+    
+    // For regular exercises, omit the varied set properties
+    const { isVariedSets, isAdvancedSets, setDetails, ...baseExercise } = exercise;
+    return {
+      ...baseExercise,
+      orderIndex: index
+    };
+  };
+
+  // Fix UserSelector props
+  const UserSelectorWrapper = ({ currentUserId, onUserSelect, className }: {
+    currentUserId: number;
+    onUserSelect: (userId: number | null) => void;
+    className?: string;
+  }) => (
+    <UserSelector
+      currentUserId={currentUserId}
+      onUserSelect={onUserSelect}
+      className={className}
+    />
+  );
+
+  // Fix ProgramBrowser props and types
+  interface SavedProgramWithOptional extends Omit<SavedProgram, 'phase_focus' | 'progression_rules'> {
+    phase_focus?: SavedProgram['phase_focus'];
+    progression_rules?: SavedProgram['progression_rules'];
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6">Resistance Training Program Planning</h1>
@@ -964,10 +1023,9 @@ function PlanPageContent() {
       {/* UserSelector - show for admin users */}
       {isAdmin && (
         <div className="mb-6">
-          <UserSelector
+          <UserSelectorWrapper
+            currentUserId={currentUserId}
             onUserSelect={handleUserSelect}
-            currentUserId={parseInt(session?.user?.id)}
-            label="Select Client"
             className="w-full max-w-md"
           />
         </div>
@@ -976,8 +1034,8 @@ function PlanPageContent() {
       {/* Program Browser */}
       <div className="mb-6">
         <ProgramBrowser
-          onProgramSelect={handleProgramSelect}
-          currentUserId={selectedUserId || parseInt(session?.user?.id)}
+          onProgramSelect={(program: SavedProgramWithOptional) => handleProgramSelect(program as SavedProgram)}
+          currentUserId={selectedUserId || currentUserId}
           isAdmin={isAdmin}
         />
       </div>
@@ -1121,7 +1179,7 @@ function PlanPageContent() {
         exercises={weekExercises[activeWeek] || []}
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
         selectedExerciseName={selectedExerciseName}
-        userSettings={userSettings?.pillar_settings}
+        userSettings={{ fitness: userSettings?.pillar_settings?.fitness }}
       />
 
       <ExerciseSearch

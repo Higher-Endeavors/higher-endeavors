@@ -5,7 +5,8 @@ import React, { useState } from 'react';
 // import { useSortable } from '@dnd-kit/sortable';
 // import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical } from 'react-icons/bs'; // Removed BsGripVertical
-import { Exercise, SetDetail, SubSet } from '../../shared/types';
+import { Exercise } from '../../shared/types';
+import { SetDetail, SubSet } from '../../shared/types/exercise.types';
 import { calculateExerciseTUT } from '../../shared/utils/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
@@ -42,7 +43,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
   const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
     if (typeof load === 'number') {
       const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
-      const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
+      const displayUnit = unit === 'kg' ? 'kg' : 'lbs';
       return `${load}${displayUnit}`;
     }
     return String(load || 'BW');
@@ -64,7 +65,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         return `${reps} reps @ ${loadStr}`;
       }
       
-      const subSetDetails = set.subSets.map((subSet) => {
+      const subSetDetails = set.subSets?.map((subSet: SubSet) => {
         if (!subSet || typeof subSet !== 'object') {
           console.error('Invalid subset data:', subSet);
           return '';
@@ -130,7 +131,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
       totalLoad = load * sets * reps;
     }
 
-    const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
+    const displayUnit = unit === 'kg' ? 'kg' : 'lbs';
     return `${totalLoad}${displayUnit}`;
   };
 
@@ -224,11 +225,11 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
                 const load = formatLoad(set.load || 0, set.loadUnit);
                 
                 if (Array.isArray(set.subSets) && set.subSets.length > 0) {
-                  const subSetsString = set.subSets.map((subSet, subIdx) => {
+                  const subSetsString = set.subSets?.map((subSet: SubSet, subIdx) => {
                     if (!subSet || typeof subSet !== 'object') return '';
                     const subReps = String(subSet.reps || 0);
                     const subLoad = formatLoad(subSet.load || 0, subSet.loadUnit);
-                    return `${subReps} reps @ ${subLoad}${subIdx < set.subSets.length - 1 ? ', ' : ''}`;
+                    return `${subReps} reps @ ${subLoad}${subIdx < (set.subSets?.length || 0) - 1 ? ', ' : ''}`;
                   }).join('');
                   
                   return (

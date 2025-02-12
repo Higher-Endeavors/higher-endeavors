@@ -57,8 +57,14 @@ export interface Program extends BaseProgram {
 }
 
 // Saved program structure (for API responses)
-export interface SavedProgram extends Omit<BaseProgram, 'name'> {
+export interface SavedProgram {
+  id: string;
+  userId: string;
   program_name: string;
+  phase_focus: PhaseFocus;
+  periodization_type: PeriodizationType;
+  progression_rules?: ProgressionRules;
+  volumeTargets?: VolumeTarget[];
   exercises?: Exercise[];
   created_at: string;
   updated_at: string;
@@ -107,4 +113,22 @@ export interface TrainingSession {
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled' | 'skipped';
   exercises: SessionExercise[];
   feedback?: SessionFeedback;
+}
+
+export interface FitnessSettings {
+  resistanceTraining: {
+    weightUnit: LoadUnit;
+    trackRPE?: boolean;
+    trackRIR?: boolean;
+    availableEquipment?: number[];
+  };
+  cardioMetabolic: {
+    speedUnit: 'mph' | 'kph' | 'min_mile' | 'min_km';
+  };
+}
+
+export interface UserSettings {
+  pillar_settings: {
+    fitness?: FitnessSettings;
+  };
 } 
