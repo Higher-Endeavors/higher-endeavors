@@ -5,64 +5,117 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-// import ExerciseList from './components/ExerciseList';
 import ExerciseModal from './components/AddExerciseModal';
 import ExerciseSearch from './components/ExerciseSearch';
-import ProgramSettings from './components/ProgramSettings';
-// import VolumeTargets from './components/VolumeTargets';
+import ProgramSettings, { ProgramSettingsFormData } from './components/ProgramSettings';
 import WeekProgram from './components/WeekProgram';
-import { Program, VolumeTarget, PhaseFocus, PeriodizationType, ProgressionRules, LoadUnit } from '../shared/types';
-import { calculateSessionVolume, calculateSessionDuration, applyLinearProgression } from '../shared/utils/calculations';
-import type { z } from 'zod';
-import { programSettingsSchema } from '../shared/schemas/program';
+import { z } from 'zod';
+import { KG_TO_LBS, LBS_TO_KG } from '@/app/lib/utils/fitness/unit-conversions';
+import { calculateSessionVolume } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { 
+  Exercise, 
+  BaseExercise, 
+  RegularExercise, 
+  VariedExercise, 
+  SetDetail,
+  ExerciseOption,
+  programSettingsSchema, 
+  programSchema,
+  createRegularExercise,
+  createVariedExercise,
+  getNextPairing,
+  PhaseFocusType,
+  PeriodizationTypeEnum,
+  ProgressionFrequencyType,
+  PhaseFocus,
+  PeriodizationType,
+  ProgressionFrequency,
+  isPhaseFocus,
+  isPeriodizationType,
+  isProgressionFrequency,
+  applyLinearProgression
+} from '@/app/lib/types/pillars/fitness';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import UserSelector from '@/app/components/UserSelector';
 import { useSession } from 'next-auth/react';
 import ProgramBrowser from './components/ProgramBrowser';
-import {
-  Exercise,
-  BaseExercise,
-  RegularExercise,
-  VariedExercise,
-  createRegularExercise,
-  createVariedExercise,
-  getNextPairing,
-  type SetDetail
-} from '../shared/types/exercise.types';
-import type { SavedProgram } from '../shared/types';
-import type { FitnessSettings } from '@/app/lib/types/userSettings';
-
-type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
-
-// Import or define ExerciseOption type
-interface ExerciseOption {
-  id: string;
-  value: string;
-  label: string;
-  libraryId?: number;
-  source?: 'user' | 'library';
-  data: {
-    id: string;
-    name: string;
-    source: 'user' | 'library';
-    difficulty?: string;
-    targetMuscleGroup: string;
-    primaryEquipment: string;
-    secondaryEquipment?: string;
-    exerciseFamily: string;
-    bodyRegion: string;
-    movementPattern: string;
-    movementPlane: string;
-    laterality: string;
-  };
-}
+import type { FitnessSettings } from '@/app/lib/types/user_settings';
+import { SavedProgram, VolumeTarget, ProgressionRules, Program } from '@/app/lib/types/pillars/fitness';
+import { APIProgramResponse, APIWeek, APIDay, APIExercise } from '@/app/lib/types/pillars/fitness/api.types';
 
 const ExerciseListNoSSR = dynamic(
     () => import('./components/ExerciseList'),
     { ssr: false }
   )
+
+// Add type guards for exercise details
+const isVariedExercise = (exercise: Exercise): exercise is VariedExercise => {
+  return 'setDetails' in exercise && exercise.setDetails !== undefined;
+};
+
+const calculateSessionDuration = (exercises: Exercise[]): number => {
+  const REST_TIME_BETWEEN_SETS = 90; // seconds
+  const TIME_PER_REP = 4; // seconds
+  
+  return exercises.reduce((total, exercise) => {
+    if (isVariedExercise(exercise)) {
+      const sets = exercise.setDetails.length;
+      const avgReps = exercise.setDetails.reduce((sum, set) => sum + Number(set.reps), 0) / sets;
+      const timePerSet = (avgReps * TIME_PER_REP) + REST_TIME_BETWEEN_SETS;
+      return total + (sets * timePerSet);
+    }
+    const timePerSet = (Number(exercise.reps) * TIME_PER_REP) + REST_TIME_BETWEEN_SETS;
+    return total + (Number(exercise.sets) * timePerSet);
+  }, 0);
+};
+
+// Initialize default program state
+const defaultProgram: Program = {
+    id: '',
+    name: '',
+  userId: '',
+  phaseFocus: 'Hypertrophy',
+    periodizationType: 'Linear',
+    progressionRules: {
+      type: 'Linear',
+      settings: {
+      volumeIncrementPercentage: 0,
+      loadIncrementPercentage: 0,
+        programLength: 4,
+        weeklyVolumePercentages: [100, 80, 90, 60]
+      }
+    },
+  exercises: [],
+    createdAt: new Date(),
+    updatedAt: new Date()
+};
+
+// Helper functions for weight calculations
+const getNumericLoad = (load: number | string | undefined): number => {
+  // If it's a number, return it directly
+  if (typeof load === 'number') return load;
+  
+  // If it's undefined, return 0
+  if (load === undefined) return 0;
+  
+  // If it's a string, try to parse it as a number
+  const parsed = parseFloat(load);
+  
+  // If it's a valid number, return it
+  if (!isNaN(parsed)) return parsed;
+  
+  // If it's a color or "BW" or any other non-numeric string, return 0
+  return 0;
+};
+
+const convertWeight = (weight: number, fromUnit: string, toUnit: string): number => {
+  if (fromUnit === toUnit) return weight;
+  if (fromUnit === 'kg' && toUnit === 'lbs') return weight * KG_TO_LBS;
+  if (fromUnit === 'lbs' && toUnit === 'kg') return weight * LBS_TO_KG;
+  return weight;
+};
 
 function PlanPageContent() {
   const { data: session } = useSession();
@@ -99,23 +152,16 @@ function PlanPageContent() {
 
   // Program state
   const [program, setProgram] = useState<Program>({
-    id: '',
-    userId: '',
-    name: '',
-    phaseFocus: 'GPP',
-    periodizationType: 'None',
-    exercises: [],
+    ...defaultProgram,
     progressionRules: {
-      type: 'None',
+      type: PeriodizationType.Linear,
       settings: {
-        programLength: 4,
         volumeIncrementPercentage: 0,
-        loadIncrementPercentage: 0
+        loadIncrementPercentage: 0,
+        programLength: 4,
+        weeklyVolumePercentages: [100, 80, 90, 60]
       }
-    },
-    volumeTargets: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
+    }
   });
 
   // UI state
@@ -292,7 +338,7 @@ function PlanPageContent() {
       load: 0,
       tempo: '2010',
       rest: 60,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg',
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg',
       notes: '',
       source: 'library' as const,
       libraryId: exercise.libraryId
@@ -368,8 +414,8 @@ function PlanPageContent() {
     }));
 
     // Update week exercises
-    setWeekExercises(prev => {
-      const newWeekExercises = { ...prev };
+      setWeekExercises(prev => {
+        const newWeekExercises = { ...prev };
       
       // If editing an existing exercise
       if (editingExercise) {
@@ -378,16 +424,16 @@ function PlanPageContent() {
             ex.id === exerciseData.id ? exerciseData : ex
           ) || [];
         });
-      } else {
+        } else {
         // If adding a new exercise
         if (!newWeekExercises[activeWeek]) {
           newWeekExercises[activeWeek] = [];
         }
         newWeekExercises[activeWeek] = [...newWeekExercises[activeWeek], exerciseData];
-      }
-      
-      return newWeekExercises;
-    });
+        }
+        
+        return newWeekExercises;
+      });
 
     setIsExerciseModalOpen(false);
   };
@@ -416,82 +462,22 @@ function PlanPageContent() {
 
   // Program settings management
   const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    console.log('Settings change received:', settings);
-    
-    // Create the new program state
-    const newProgram: Program = {
-      ...program,
-      periodizationType: (settings.periodizationType || program.periodizationType) as PeriodizationType,
-      phaseFocus: (settings.phaseFocus || program.phaseFocus) as PhaseFocus,
-      progressionRules: {
-        ...program.progressionRules,
-        type: (settings.periodizationType || program.progressionRules.type) as PeriodizationType,
-        settings: settings.progressionRules ? {
-          ...program.progressionRules.settings,
-          ...settings.progressionRules.settings
-        } : program.progressionRules.settings
-      },
-      name: settings.name || program.name || '',  // Update name from settings if provided
-      userId: program.userId || '',  // Ensure userId is never undefined
-      exercises: program.exercises,
-      createdAt: program.createdAt,
-      updatedAt: program.updatedAt,
-      volumeTargets: program.volumeTargets
-    };
+    setProgram(prevProgram => {
+      if (!prevProgram) return prevProgram;
 
-    console.log('Updated program state:', {
-      oldType: program.periodizationType,
-      newType: newProgram.periodizationType,
-      progressionRules: newProgram.progressionRules
-    });
-
-    setProgram(newProgram);
-
-    // If periodization type changed, update week exercises accordingly
-    if (settings.periodizationType && settings.periodizationType !== program.periodizationType) {
-      console.log('Periodization type changed, updating week exercises');
-      setWeekExercises(prev => {
-        const newWeekExercises = { ...prev };
-        const programLength = newProgram.progressionRules.settings.programLength || 4;
-        
-        // Keep Week 1 as is
-        if (!newWeekExercises[1]) return newWeekExercises;
-
-        // Update subsequent weeks based on new periodization type
-        for (let week = 2; week <= programLength; week++) {
-          if (settings.periodizationType === 'Linear') {
-            newWeekExercises[week] = newWeekExercises[1].map(exercise => ({
-              ...applyLinearProgression(
-                exercise,
-                week,
-                newProgram.progressionRules.settings.volumeIncrementPercentage ?? 0,
-                newProgram.progressionRules.settings.loadIncrementPercentage ?? 0
-              ),
-              id: `${exercise.id.split('-week')[0]}-week${week}`
-            }));
-          } else if (settings.periodizationType === 'Undulating') {
-            const weeklyVolumePercentages = newProgram.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
-            const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
-            newWeekExercises[week] = newWeekExercises[1].map(exercise => {
-              const volumePercentage = weekPercentage / 100;
-              const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
-              return {
-                ...exercise,
-                id: `${exercise.id.split('-week')[0]}-week${week}`,
-                reps: newReps
-              };
-            });
-          } else {
-            // For 'None' or other types, just copy Week 1
-            newWeekExercises[week] = newWeekExercises[1].map(exercise => ({
-              ...exercise,
-              id: `${exercise.id.split('-week')[0]}-week${week}`
-            }));
+      return {
+        ...prevProgram,
+        periodizationType: (settings.periodizationType || prevProgram.periodizationType) as PeriodizationTypeEnum,
+        phaseFocus: (settings.phaseFocus || prevProgram.phaseFocus) as PhaseFocusType,
+        progressionRules: {
+          type: (settings.periodizationType || prevProgram.progressionRules.type) as PeriodizationTypeEnum,
+          settings: {
+            ...prevProgram.progressionRules.settings,
+            ...settings.progressionRules?.settings
           }
         }
-        return newWeekExercises;
-      });
-    }
+      };
+    });
   };
 
   // Volume targets management - commented out for now
@@ -530,7 +516,7 @@ function PlanPageContent() {
 
       // Transform the program data into the format expected by the API
       const weeks = Array.from(
-        { length: program.progressionRules.settings.programLength || 4 },
+        { length: program.progressionRules?.settings?.programLength ?? 4 },
         (_, weekIndex) => {
           const weekNumber = weekIndex + 1;
           const weekExerciseList = weekExercises[weekNumber] || [];
@@ -709,7 +695,7 @@ function PlanPageContent() {
       sets: 3,
       reps: 10,
       load: 0,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg',
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg',
       tempo: '2010',
       rest: 60,
       source: exercise.data.source,
@@ -733,16 +719,16 @@ function PlanPageContent() {
       if (!prevWeekExercises[activeWeek]) {
         return {
           ...prevWeekExercises,
-          [activeWeek]: program.exercises || []
+          [activeWeek]: program.exercises ?? []
         };
       }
 
       // Apply progression based on program type and settings
-      const baseExercises = program.exercises || [];
+      const baseExercises = program.exercises ?? [];
       const newWeekExercises = baseExercises.map(exercise => {
         if (program.periodizationType === 'Linear' && program.progressionRules?.settings) {
           return applyLinearProgression(
-            exercise,
+                  exercise,
             activeWeek,
             program.progressionRules.settings.volumeIncrementPercentage || 0,
             program.progressionRules.settings.loadIncrementPercentage || 0
@@ -751,11 +737,11 @@ function PlanPageContent() {
         return exercise;
       });
 
-      return {
+                return {
         ...prevWeekExercises,
         [activeWeek]: newWeekExercises
-      };
-    });
+                };
+              });
   }, [
     program?.exercises,
     program?.periodizationType,
@@ -775,8 +761,8 @@ function PlanPageContent() {
       if (activeWeek === 1) {
         newWeekExercises[1] = exercises;
         
-        const programLength = program.progressionRules.settings.programLength || 4;
-        const weeklyVolumePercentages = program.progressionRules.settings.weeklyVolumePercentages ?? [100, 80, 90, 60];
+        const programLength = program.progressionRules?.settings?.programLength ?? 4;
+        const weeklyVolumePercentages = program.progressionRules?.settings?.weeklyVolumePercentages ?? [100, 100, 100, 100];
 
         for (let week = 2; week <= programLength; week++) {
           if (program.periodizationType === 'Linear') {
@@ -784,8 +770,8 @@ function PlanPageContent() {
               ...applyLinearProgression(
                 exercise,
                 week,
-                program.progressionRules.settings.volumeIncrementPercentage ?? 0,
-                program.progressionRules.settings.loadIncrementPercentage ?? 0
+                program.progressionRules?.settings?.volumeIncrementPercentage ?? 0,
+                program.progressionRules?.settings?.loadIncrementPercentage ?? 0
               ),
               id: `${exercise.id.split('-week')[0]}-week${week}`
             }));
@@ -825,15 +811,18 @@ function PlanPageContent() {
       id: '',
       userId: userId?.toString() || '',
       name: '',
-      phaseFocus: 'GPP',
-      periodizationType: 'None',
+      phaseFocus: PhaseFocus.Hypertrophy,
+      periodizationType: PeriodizationType.Linear,
       exercises: [],
       progressionRules: {
-        type: 'None',
+        type: PeriodizationType.Linear,
+        loadIncrement: 2.5,
+        frequency: ProgressionFrequency.PerSession,
         settings: {
           programLength: 4,
-          volumeIncrementPercentage: 0,
-          loadIncrementPercentage: 0
+          volumeIncrementPercentage: 5,
+          loadIncrementPercentage: 2.5,
+          weeklyVolumePercentages: [100, 80, 90, 60]
         }
       },
       volumeTargets: [],
@@ -844,32 +833,25 @@ function PlanPageContent() {
   };
 
   const handleProgramSelect = (selectedProgram: SavedProgram) => {
-    console.log('Selected program:', selectedProgram);
-    const program: Program = {
+    if (!selectedProgram.program_name) return;
+
+    setProgram({
       id: selectedProgram.id,
-      userId: selectedProgram.userId,
+      userId: selectedProgram.userId || '',
       name: selectedProgram.program_name,
-      phaseFocus: selectedProgram.phase_focus || 'GPP',
-      periodizationType: selectedProgram.periodization_type || 'None',
-      progressionRules: selectedProgram.progression_rules || {
-        type: 'None',
-        settings: {
-          programLength: 4,
-          volumeIncrementPercentage: 0,
-          loadIncrementPercentage: 0
-        }
+      phaseFocus: selectedProgram.phase_focus,
+      periodizationType: selectedProgram.periodization_type,
+      progressionRules: {
+        type: selectedProgram.progression_rules.type,
+        loadIncrement: selectedProgram.progression_rules.loadIncrement,
+        frequency: selectedProgram.progression_rules.frequency,
+        settings: selectedProgram.progression_rules.settings
       },
       volumeTargets: selectedProgram.volumeTargets || [],
-      exercises: selectedProgram.exercises || [],
-      createdAt: new Date(selectedProgram.created_at),
-      updatedAt: new Date(selectedProgram.updated_at)
-    };
-    console.log('Transformed program:', program);
-    setProgram(program);
-    setActiveWeek(1);
-    if (program.id) {
-      loadProgramExercises(program.id);
-    }
+      exercises: selectedProgram.exercises ?? [],
+      createdAt: typeof selectedProgram.created_at === 'string' ? new Date(selectedProgram.created_at) : selectedProgram.created_at,
+      updatedAt: typeof selectedProgram.updated_at === 'string' ? new Date(selectedProgram.updated_at) : selectedProgram.updated_at
+    });
   };
 
   const loadProgramExercises = async (programId: string) => {
@@ -877,7 +859,7 @@ function PlanPageContent() {
       const response = await fetch(`/api/resistance-training/program/${programId}`);
       if (!response.ok) throw new Error('Failed to load program exercises');
       
-      const data = await response.json();
+      const data: APIProgramResponse = await response.json();
       console.log('Loaded program data:', data);
       
       if (!data.weeks || !Array.isArray(data.weeks)) {
@@ -886,20 +868,20 @@ function PlanPageContent() {
       
       const newWeekExercises: { [key: number]: Exercise[] } = {};
       
-      data.weeks.forEach((week: any) => {
+      data.weeks.forEach((week: APIWeek) => {
         if (!week.days || !Array.isArray(week.days)) {
           console.warn(`Week ${week.weekNumber} has no days array`);
           return;
         }
 
         const weekExercises: Exercise[] = [];
-        week.days.forEach((day: any) => {
+        week.days.forEach((day: APIDay) => {
           if (!day.exercises || !Array.isArray(day.exercises)) {
             console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
             return;
           }
 
-          day.exercises.forEach((exercise: any) => {
+          day.exercises.forEach((exercise: APIExercise) => {
             console.log('Processing exercise from API:', exercise);
             
             // Create base exercise properties
@@ -907,20 +889,20 @@ function PlanPageContent() {
               id: exercise.id || `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
               name: exercise.name || exercise.customName || 'Unknown Exercise',
               pairing: exercise.pairing || 'A1',
-              sets: Array.isArray(exercise.sets) ? exercise.sets.length : 3,
-              reps: exercise.sets?.[0]?.reps || 10,
-              load: exercise.sets?.[0]?.load || 0,
-              loadUnit: exercise.sets?.[0]?.loadUnit || 'lbs',
-              tempo: exercise.sets?.[0]?.tempo || '2010',
-              rest: exercise.sets?.[0]?.rest || 60,
+              sets: exercise.sets.length,
+              reps: exercise.sets[0]?.reps || 10,
+              load: exercise.sets[0]?.load || 0,
+              loadUnit: exercise.sets[0]?.loadUnit || 'lbs',
+              tempo: exercise.sets[0]?.tempo || '2010',
+              rest: exercise.sets[0]?.rest || 60,
               notes: exercise.notes || '',
-              source: exercise.source || 'library',
+              source: exercise.source,
               libraryId: exercise.libraryId,
-              userExerciseId: exercise.userExerciseId || null
+              userExerciseId: exercise.userExerciseId
             };
 
             // Check if exercise has varied sets
-            const hasVariedSets = Array.isArray(exercise.sets) && exercise.sets.some((set: any, idx: number, arr: any[]) => {
+            const hasVariedSets = exercise.sets.length > 1 && exercise.sets.some((set, idx, arr) => {
               if (idx === 0) return false;
               const prevSet = arr[idx - 1];
               return set.reps !== prevSet.reps || set.load !== prevSet.load || set.tempo !== prevSet.tempo;
@@ -928,7 +910,7 @@ function PlanPageContent() {
 
             let exerciseData: Exercise;
             if (hasVariedSets) {
-              exerciseData = createVariedExercise(baseExercise, exercise.sets.map((set: any) => ({
+              exerciseData = createVariedExercise(baseExercise, exercise.sets.map(set => ({
                 setNumber: set.setNumber,
                 reps: set.reps,
                 load: set.load,
@@ -1010,11 +992,55 @@ function PlanPageContent() {
     />
   );
 
-  // Fix ProgramBrowser props and types
-  interface SavedProgramWithOptional extends Omit<SavedProgram, 'phase_focus' | 'progression_rules'> {
-    phase_focus?: SavedProgram['phase_focus'];
-    progression_rules?: SavedProgram['progression_rules'];
-  }
+  // Update the remaining sections with proper null checks
+  const handleWeekChange = (weekNumber: number) => {
+    const settings = program?.progressionRules?.settings;
+    if (!settings) return;
+    
+    const programLength = settings.programLength || 4;
+    if (weekNumber < 1 || weekNumber > programLength) return;
+    
+    setActiveWeek(weekNumber);
+  };
+
+  // Update applyProgressionToWeek to handle undefined settings
+  const applyProgressionToWeek = (weekNumber: number) => {
+    const settings = program?.progressionRules?.settings;
+    if (!settings) return;
+
+    const volumeIncrement = settings.volumeIncrementPercentage || 0;
+    const loadIncrement = settings.loadIncrementPercentage || 0;
+
+    setWeekExercises(prev => {
+      const currentWeekExercises = prev[weekNumber] || [];
+      return {
+        ...prev,
+        [weekNumber]: currentWeekExercises.map(exercise => ({
+          ...exercise,
+          reps: Math.round(exercise.reps * (1 + volumeIncrement / 100)),
+          load: typeof exercise.load === 'number'
+            ? Math.round(exercise.load * (1 + loadIncrement / 100) * 100) / 100
+            : exercise.load
+        }))
+      };
+    });
+  };
+
+  const handleProgramUpdate = (program: SavedProgram) => {
+    if (!program.userId) return; // Early return if no userId
+
+    setProgram({
+      id: program.id,
+      name: program.program_name,
+      userId: program.userId,
+      phaseFocus: program.phase_focus,
+      periodizationType: program.periodization_type,
+      progressionRules: program.progression_rules,
+      exercises: program.exercises ?? [],
+      createdAt: typeof program.created_at === 'string' ? new Date(program.created_at) : program.created_at,
+      updatedAt: typeof program.updated_at === 'string' ? new Date(program.updated_at) : program.updated_at
+    });
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -1034,7 +1060,7 @@ function PlanPageContent() {
       {/* Program Browser */}
       <div className="mb-6">
         <ProgramBrowser
-          onProgramSelect={(program: SavedProgramWithOptional) => handleProgramSelect(program as SavedProgram)}
+          onProgramSelect={handleProgramSelect}
           currentUserId={selectedUserId || currentUserId}
           isAdmin={isAdmin}
         />
@@ -1054,13 +1080,21 @@ function PlanPageContent() {
             </button>
           </div>
           {isProgramSettingsExpanded && (
-            <ProgramSettings
-              name={program.name}
-              phaseFocus={program.phaseFocus}
-              periodizationType={program.periodizationType}
-              progressionRules={program.progressionRules}
-              onSettingsChange={handleSettingsChange}
-            />
+          <ProgramSettings
+            name={program.name}
+            phaseFocus={program.phaseFocus}
+            periodizationType={program.periodizationType}
+            progressionRules={{
+              type: program.progressionRules.type,
+              settings: program.progressionRules.settings ?? {
+                volumeIncrementPercentage: 0,
+                loadIncrementPercentage: 0,
+                programLength: 4,
+                weeklyVolumePercentages: [100, 100, 100, 100]
+              }
+            }}
+            onSettingsChange={handleSettingsChange}
+          />
           )}
         </div>
       </div>
@@ -1082,7 +1116,7 @@ function PlanPageContent() {
           ).map((week) => (
             <button
               key={week}
-              onClick={() => setActiveWeek(week)}
+              onClick={() => handleWeekChange(week)}
               className={`
                 whitespace-nowrap pb-4 px-4 border-b-2 font-medium text-sm
                 ${activeWeek === week
@@ -1123,82 +1157,26 @@ function PlanPageContent() {
             <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
             <div className="grid grid-cols-3 gap-4">
               {Object.entries(calculateSessionVolume(
-                weekExercises[activeWeek],
-                userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg'
+                weekExercises[activeWeek] || [],
+                userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs'
               )).map(([key, value]) => (
                 <div key={key}>
                   <p className="text-sm text-gray-600">
                     {key === 'totalLoad' 
-                      ? `Total Load: ${value} ${userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg'}`
+                      ? `Total Load: ${value} ${userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs'}`
                       : key === 'totalSets'
                       ? `Total Sets: ${value}`
                       : key === 'totalReps'
                       ? `Total Reps: ${value}`
-                      : `${key}: ${value}`}
+                      : `${key}: ${value}`
+                    }
                   </p>
                 </div>
               ))}
-              <div>
-                <p className="text-sm text-gray-600">
-                  Duration: {calculateSessionDuration(weekExercises[activeWeek])} min
-                </p>
-              </div>
             </div>
           </div>
         )}
       </div>
-
-      <div className="mt-6">
-        <button
-          className="px-6 py-3 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:bg-purple-300 font-medium"
-          onClick={handleSave}
-          disabled={isSaving}
-        >
-          {isSaving ? 'Saving...' : 'Save Program'}
-        </button>
-      </div>
-
-      {showSuccessToast && (
-        <div className="mt-6 p-4 bg-green-100 text-green-800 rounded-lg">
-          <p>Program saved successfully!</p>
-        </div>
-      )}
-
-      {showErrorToast && (
-        <div className="mt-6 p-4 bg-red-100 text-red-800 rounded-lg">
-          <p>{errorMessage || 'Failed to save program. Please try again later.'}</p>
-        </div>
-      )}
-
-      {/* Exercise Modals */}
-      <ExerciseModal
-        isOpen={isExerciseModalOpen}
-        onClose={() => setIsExerciseModalOpen(false)}
-        onSave={handleSaveExercise}
-        exercise={editingExercise}
-        exercises={weekExercises[activeWeek] || []}
-        onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
-        selectedExerciseName={selectedExerciseName}
-        userSettings={{ fitness: userSettings?.pillar_settings?.fitness }}
-      />
-
-      <ExerciseSearch
-        isOpen={isExerciseSearchOpen || isAdvancedSearchOpen}
-        onClose={() => {
-          setIsExerciseSearchOpen(false);
-          setIsAdvancedSearchOpen(false);
-        }}
-        onSelect={handleAdvancedSearchSelect}
-      />
-
-      {mounted && activeExercise && createPortal(
-        <DragOverlay>
-          <div className="bg-white p-4 rounded shadow-lg border border-gray-200">
-            {activeExercise.name}
-          </div>
-        </DragOverlay>,
-        document.body
-      )}
     </div>
   );
 }

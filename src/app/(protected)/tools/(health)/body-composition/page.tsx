@@ -9,7 +9,7 @@ import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings } from '@/app/lib/types/user_settings';
 
 // Default settings object that matches the UserSettings type
 const defaultSettings: UserSettings = {

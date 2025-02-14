@@ -82,7 +82,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Server error:', error);
     return NextResponse.json(
-      { error: 'Server error', details: error.message },
+      { error: 'Server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

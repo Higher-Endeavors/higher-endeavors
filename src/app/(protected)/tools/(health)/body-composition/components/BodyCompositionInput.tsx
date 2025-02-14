@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { calculateAllMetrics } from '../utils/calculations';
+import { calculateAllMetrics } from '@/app/lib/utils/health/body-composition/calculations';
 import { validateMeasurements, type ValidationError } from '../utils/validation';
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
 import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import type { CircumferenceMeasurement } from '@/app/lib/types/user_settings';
 
 interface UserBioData {
   dateOfBirth: string;
@@ -66,8 +67,33 @@ type FormInputs = {
   bodyFatMethod: 'manual' | 'skinfold';
   manualBodyFat: number;
   isMale: boolean;
-  skinfold: SkinfoldMeasurements;
-  circumference: CircumferenceMeasurements;
+  skinfold: {
+    chest?: number;
+    abdominal?: number;
+    thigh?: number;
+    triceps?: number;
+    suprailiac?: number;
+    subscapula?: number;
+    axilla?: number;
+    abdomen?: number;
+  };
+  circumference: {
+    neck?: number;
+    shoulders?: number;
+    chest?: number;
+    waist?: number;
+    hips?: number;
+    leftBicepRelaxed?: number;
+    leftBicepFlexed?: number;
+    rightBicepRelaxed?: number;
+    rightBicepFlexed?: number;
+    leftForearm?: number;
+    rightForearm?: number;
+    leftThigh?: number;
+    rightThigh?: number;
+    leftCalf?: number;
+    rightCalf?: number;
+  };
 };
 
 interface BodyCompositionInputProps {
@@ -198,7 +224,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         .replace(/^(left|right)/, '')  // Remove left/right only from the start
         .replace(/(relaxed|flexed)$/, ''); // Remove relaxed/flexed only from the end
       
-      if (enabledCircumferenceMeasurements.includes(settingKey)) {
+      if (enabledCircumferenceMeasurements.includes(settingKey as CircumferenceMeasurement)) {
         measurements[key as keyof CircumferenceMeasurements] = defaultCircumferenceMeasurements[key as keyof CircumferenceMeasurements];
       }
     });
@@ -500,7 +526,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
                         <input
                           type="number"
                           step="0.1"
-                          {...register(`skinfold.${key as keyof SkinfoldMeasurements}`, { valueAsNumber: true })}
+                          {...register(`skinfold.${key}` as "skinfold.chest" | "skinfold.abdominal" | "skinfold.thigh" | "skinfold.triceps" | "skinfold.suprailiac" | "skinfold.subscapula" | "skinfold.axilla" | "skinfold.abdomen", { valueAsNumber: true })}
                           className={`w-full rounded-md border ${
                             getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
                           } bg-white py-2 px-3 text-sm dark:text-slate-900`}
@@ -550,7 +576,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
                   <input
                     type="number"
                     step="0.1"
-                    {...register(`circumference.${key as keyof CircumferenceMeasurements}`, { valueAsNumber: true })}
+                    {...register(`circumference.${key}` as "circumference.neck" | "circumference.shoulders" | "circumference.chest" | "circumference.waist" | "circumference.hips" | "circumference.leftBicepRelaxed" | "circumference.leftBicepFlexed" | "circumference.rightBicepRelaxed" | "circumference.rightBicepFlexed" | "circumference.leftForearm" | "circumference.rightForearm" | "circumference.leftThigh" | "circumference.rightThigh" | "circumference.leftCalf" | "circumference.rightCalf", { valueAsNumber: true })}
                     className={`w-full rounded-md border ${
                       getErrorForField(['circumference', key]) ? 'border-red-500' : 'border-gray-300'
                     } bg-white py-2 px-3 text-sm dark:text-slate-900`}

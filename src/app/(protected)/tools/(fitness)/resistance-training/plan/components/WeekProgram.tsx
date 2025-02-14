@@ -3,7 +3,7 @@ import React from 'react';
 // import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 // import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 // import { createPortal } from 'react-dom';
-import { Exercise } from '../../shared/types';
+import { Exercise } from '@/app/lib/types/pillars/fitness';
 import ExerciseListNoSSR from './ExerciseList';
 
 interface WeekProgramProps {

@@ -161,12 +161,15 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
 
             {/* Circumference Measurements */}
             {selectedEntry.circumferenceMeasurements && 
-             Object.values(selectedEntry.circumferenceMeasurements).some(value => value > 0) && (
+             Object.values(selectedEntry.circumferenceMeasurements).some((value): value is number => typeof value === 'number' && value > 0) && (
               <div>
                 <h4 className="text-lg font-medium mb-3 text-gray-700">Circumference Measurements</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {Object.entries(selectedEntry.circumferenceMeasurements)
-                    .filter(([_, value]) => value > 0)
+                    .filter((entry): entry is [string, number] => {
+                      const [_, value] = entry;
+                      return typeof value === 'number' && value > 0;
+                    })
                     .map(([key, value]) => (
                       renderMeasurementWithComparison(
                         key.replace(/([A-Z])/g, ' $1').trim(),
@@ -181,12 +184,15 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
 
             {/* Skinfold Measurements */}
             {selectedEntry.skinfoldMeasurements && 
-             Object.values(selectedEntry.skinfoldMeasurements).some(value => value > 0) && (
+             Object.values(selectedEntry.skinfoldMeasurements).some((value): value is number => typeof value === 'number' && value > 0) && (
               <div>
                 <h4 className="text-lg font-medium mb-3 text-gray-700">Skinfold Measurements</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {Object.entries(selectedEntry.skinfoldMeasurements)
-                    .filter(([_, value]) => value > 0)
+                    .filter((entry): entry is [string, number] => {
+                      const [_, value] = entry;
+                      return typeof value === 'number' && value > 0;
+                    })
                     .map(([key, value]) => (
                       renderMeasurementWithComparison(
                         key.replace(/([A-Z])/g, ' $1').trim(),

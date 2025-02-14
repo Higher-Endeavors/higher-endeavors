@@ -1,19 +1,18 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
 
-export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, context: unknown) {
   try {
+    const { params } = context as { params: { id: string } };
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the program ID from the URL params
-    const { id: programId } = params;
+    const programId = params.id;
+    const searchParams = request.nextUrl.searchParams;
 
     // First, verify the user has access to this program
     const programAccess = await SingleQuery(
@@ -174,11 +173,10 @@ export async function GET(
   }
 }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(request: NextRequest, context: unknown) {
   const client = await getClient();
+  const { params } = context as { params: { id: string } };
+  const searchParams = request.nextUrl.searchParams;
 
   try {
     console.log('Starting program update...');
@@ -189,6 +187,8 @@ export async function PUT(
       console.log('Unauthorized: No user ID in session');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const programId = params.id;
 
     let data;
     try {
@@ -205,7 +205,7 @@ export async function PUT(
     }
 
     const { 
-      program_name, 
+      program_name,
       periodization_type,
       phase_focus,
       progression_rules,
@@ -216,7 +216,7 @@ export async function PUT(
       userId: targetUserId
     } = data;
 
-    // Check if the current user has permission to update the program
+    // Check if the current user has permission to update programs for the target user
     const currentUserId = parseInt(session.user.id);
     const isAdmin = session.user.role === 'admin';
     const effectiveUserId = isAdmin && targetUserId ? parseInt(targetUserId) : currentUserId;
@@ -231,8 +231,8 @@ export async function PUT(
       return NextResponse.json({ 
         error: 'Missing required fields',
         details: {
-          program_name: !program_name ? 'Program name is required' : undefined,
-          periodization_type: !periodization_type ? 'Periodization type is required' : undefined,
+          name: !program_name ? 'Program name is required' : undefined,
+          periodizationType: !periodization_type ? 'Periodization type is required' : undefined,
           weeks: !weeks ? 'Weeks are required' : !Array.isArray(weeks) ? 'Weeks must be an array' : undefined
         }
       }, { status: 400 });
@@ -246,8 +246,9 @@ export async function PUT(
       // 1. Update the program
       await client.query(
         `UPDATE resistance_programs 
-        SET program_name = $1, 
-            periodization_type = $2, 
+        SET 
+            program_name = $1,
+            periodization_type = $2,
             phase_focus = $3,
             progression_rules = $4,
             start_date = $5, 
@@ -256,13 +257,13 @@ export async function PUT(
             updated_at = NOW()
         WHERE id = $8 AND user_id = $9`,
         [program_name, periodization_type, phase_focus, JSON.stringify(progression_rules), 
-         start_date, end_date, notes, params.id, effectiveUserId]
+         start_date, end_date, notes, programId, effectiveUserId]
       );
 
       // 2. Delete existing weeks, days, exercises, and sets
       const weekIds = await client.query(
         'DELETE FROM program_weeks WHERE resistance_program_id = $1 RETURNING id',
-        [params.id]
+        [programId]
       );
 
       // 3. Create new weeks
@@ -277,7 +278,7 @@ export async function PUT(
           VALUES 
           ($1, $2, $3)
           RETURNING id`,
-          [params.id, week.weekNumber, week.notes]
+          [programId, week.weekNumber, week.notes]
         );
         const weekId = weekResult.rows[0].id;
 
@@ -341,7 +342,7 @@ export async function PUT(
 
       return NextResponse.json({ 
         success: true,
-        programId: params.id
+        programId: programId
       });
 
     } catch (error) {
@@ -368,11 +369,10 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(request: NextRequest, context: unknown) {
   const client = await getClient();
+  const { params } = context as { params: { id: string } };
+  const searchParams = request.nextUrl.searchParams;
 
   try {
     const session = await auth();
@@ -380,10 +380,12 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const programId = params.id;
+
     // Check if the current user has permission to delete the program
     const programAccess = await SingleQuery(
       `SELECT user_id FROM resistance_programs WHERE id = $1`,
-      [params.id]
+      [programId]
     );
 
     if (!programAccess.rows.length) {
@@ -402,7 +404,7 @@ export async function DELETE(
       // Delete the program (cascading will handle related records)
       await client.query(
         'DELETE FROM resistance_programs WHERE id = $1',
-        [params.id]
+        [programId]
       );
 
       // Commit the transaction

@@ -4,10 +4,9 @@ import React, { useState } from 'react';
 // Commenting out DnD imports
 // import { useSortable } from '@dnd-kit/sortable';
 // import { CSS } from '@dnd-kit/utilities';
-import { BsThreeDotsVertical } from 'react-icons/bs'; // Removed BsGripVertical
-import { Exercise } from '../../shared/types';
-import { SetDetail, SubSet } from '../../shared/types/exercise.types';
-import { calculateExerciseTUT } from '../../shared/utils/calculations';
+import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
+import { Exercise, SetDetail, SubSet } from '@/app/lib/types/pillars/fitness';
+import { calculateExerciseTUT } from '@/app/lib/utils/fitness/resistance-training/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 interface ExerciseItemProps {
@@ -42,7 +41,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
 
   const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
     if (typeof load === 'number') {
-      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg';
       const displayUnit = unit === 'kg' ? 'kg' : 'lbs';
       return `${load}${displayUnit}`;
     }
@@ -103,7 +102,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
 
   const calculateTotalLoad = (): string => {
     let totalLoad = 0;
-    const unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+    const unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg';
 
     if (typeof exercise.load !== 'number' && exercise.load !== undefined) {
       return String(exercise.load); // Return the non-numeric load (e.g., 'BW' or band color)
@@ -175,7 +174,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
             }}
             className="p-1 hover:bg-gray-100 rounded-full"
           >
-            <BsThreeDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" />
+            <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" />
           </button>
           
           {menuOpen[exercise.id] && (

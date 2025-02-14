@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { UserSettings, UpdateUserSettingsInput, UseUserSettingsReturn } from '../types/userSettings';
+import type { UserSettings, UpdateUserSettingsInput, UseUserSettingsReturn } from '../types/user_settings';
 
 export function useUserSettings(): UseUserSettingsReturn {
   const [settings, setSettings] = useState<UserSettings | null>(null);

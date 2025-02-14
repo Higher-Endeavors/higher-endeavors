@@ -2,29 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Select from 'react-select';
+import { ExerciseOption } from '@/app/lib/types/pillars/fitness';
 import { Modal } from 'flowbite-react';
-
-interface ExerciseOption {
-  id: string;
-  value: string;
-  label: string;
-  libraryId?: number;
-  source?: 'user' | 'library';
-  data: {
-    id: string;
-    name: string;
-    source: 'user' | 'library';
-    difficulty?: string;
-    targetMuscleGroup: string;
-    primaryEquipment: string;
-    secondaryEquipment?: string;
-    exerciseFamily: string;
-    bodyRegion: string;
-    movementPattern: string;
-    movementPlane: string;
-    laterality: string;
-  };
-}
 
 interface FilterOption {
   value: string;

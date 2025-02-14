@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { TrainingSession } from '@/app/(protected)/tools/(fitness)/resistance-training/shared/types';
+import { auth } from '@/app/auth';
+import { Exercise } from '@/app/lib/types/pillars/fitness';
+import { TrainingSession } from '@/app/lib/types/pillars/fitness/exercise.types';
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
   const client = await getClient();
   
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -208,7 +208,7 @@ export async function PUT(request: Request) {
   const client = await getClient();
   
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -397,7 +397,7 @@ export async function DELETE(request: Request) {
   const client = await getClient();
   
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

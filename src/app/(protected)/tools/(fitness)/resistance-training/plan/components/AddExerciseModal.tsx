@@ -7,8 +7,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
-import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings';
-import { 
+import { FitnessSettings } from '@/app/lib/types/user_settings';
+import {
   Exercise,
   ExerciseSource,
   exerciseSchema,
@@ -17,9 +17,9 @@ import {
   createRegularExercise,
   createVariedExercise,
   ExerciseOption,
-  ExerciseSelectHandler
-} from '../../shared/types/exercise.types';
-import { LoadUnit } from '../../shared/types';
+  ExerciseSelectHandler,
+  WeightUnit as LoadUnit
+} from '@/app/lib/types/pillars/fitness';
 import { FilterOptionOption } from 'react-select';
 
 /**
@@ -151,10 +151,10 @@ export default function ExerciseModal({
   const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-
+  
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kg' : 'lbs';
+  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.loadUnit || 'kg') === 'kg' ? 'kg' : 'lbs';
   const alternateUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
 
   // Add state for creating new exercise
@@ -205,7 +205,7 @@ export default function ExerciseModal({
       reset(exercise); // The exercise type is already correct from our consolidated types
     } else {
       // Use our utility function to get the next pairing
-      const nextPairing = getNextPairing(exercises.map(ex => ex.pairing));
+      const nextPairing = getNextPairing(exercises.filter(ex => ex.pairing));
 
       reset(createRegularExercise({
         id: Math.random().toString(36).substr(2, 9),
@@ -280,6 +280,7 @@ export default function ExerciseModal({
           exercise_name: string;
           source: ExerciseSource;
         }) => ({
+          id: exercise.id.toString(),
           value: `${exercise.source}-${exercise.id}`,
           label: exercise.exercise_name,
           data: {
@@ -457,12 +458,22 @@ export default function ExerciseModal({
       
       // Create a new exercise option
       const newOption: ExerciseOption = {
+        id: newExercise.id.toString(),
         value: `user-${newExercise.id}`,
         label: newExercise.exercise_name,
         data: {
           id: newExercise.id.toString(),
           name: newExercise.exercise_name,
-          source: 'user' as ExerciseSource
+          source: 'user' as ExerciseSource,
+          difficulty: 'User Exercise',
+          targetMuscleGroup: 'N/A',
+          primaryEquipment: 'N/A',
+          secondaryEquipment: undefined,
+          exerciseFamily: 'N/A',
+          bodyRegion: 'N/A',
+          movementPattern: 'N/A',
+          movementPlane: 'N/A',
+          laterality: 'N/A'
         }
       };
 

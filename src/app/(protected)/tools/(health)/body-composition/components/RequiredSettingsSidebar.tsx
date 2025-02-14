@@ -1,6 +1,7 @@
 'use client';
 
-import { UserSettings } from '@/app/lib/types/userSettings';
+import { useRouter } from 'next/navigation';
+import { UserSettings } from '@/app/lib/types/user_settings';
 
 interface RequiredSettingsSidebarProps {
   userSettings: UserSettings;

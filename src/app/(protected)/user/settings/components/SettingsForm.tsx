@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
-import type { NotificationType, CircumferenceMeasurement, BodyFatMethod } from '../types/settings';
+import type { NotificationType, CircumferenceMeasurement, BodyFatMethod, PillarSettings, UserSettings } from '@/app/lib/types/user_settings';
 import { useRouter } from 'next/navigation';
 
 // Add equipment type
@@ -82,20 +82,20 @@ const SettingsForm = () => {
     });
   };
 
-  const handlePillarSettingChange = (pillar: string, key: string, value: any) => {
-    if (!settings) return;
-    
-    const updatedPillarSettings = {
-      ...settings.pillar_settings,
-      [pillar]: {
-        ...(settings.pillar_settings[pillar] || {}),
-        [key]: value,
-      },
-    };
-    
-    setSettings({
-      ...settings,
-      pillar_settings: updatedPillarSettings,
+  const handlePillarSettingChange = (pillar: keyof PillarSettings, key: string, value: any) => {
+    setSettings((settings: UserSettings | null) => {
+      if (!settings) return null;
+      const pillarSettings = settings.pillar_settings || {};
+      return {
+        ...settings,
+        pillar_settings: {
+          ...pillarSettings,
+          [pillar]: {
+            ...(pillarSettings as any)[pillar] || {},
+            [key]: value,
+          },
+        },
+      };
     });
   };
 
@@ -127,7 +127,13 @@ const SettingsForm = () => {
   }
 
   // Initialize pillar settings if they don't exist
-  const pillarSettings = settings.pillar_settings || {};
+  const pillarSettings = (settings.pillar_settings || {}) as {
+    general?: any;
+    lifestyle?: any;
+    health?: any;
+    nutrition?: any;
+    fitness?: any;
+  };
   const lifestyle = pillarSettings.lifestyle || {};
   const health = pillarSettings.health || {};
   const nutrition = pillarSettings.nutrition || {};
@@ -561,7 +567,7 @@ const SettingsForm = () => {
                               const currentEquipment = fitness.resistanceTraining?.availableEquipment || [];
                               const updatedEquipment = e.target.checked
                                 ? [...currentEquipment, item.id]
-                                : currentEquipment.filter(id => id !== item.id);
+                                : currentEquipment.filter((id: number) => id !== item.id);
                               
                               handlePillarSettingChange('fitness', 'resistanceTraining', {
                                 ...fitness.resistanceTraining,

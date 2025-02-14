@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { programSettingsSchema } from '../../shared/schemas/program';
+import { programSettingsSchema, PhaseFocus, PeriodizationType } from '@/app/lib/types/pillars/fitness';
 import type { z } from 'zod';
 
-type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
+export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
 interface ProgramSettingsProps {
   name: string;
