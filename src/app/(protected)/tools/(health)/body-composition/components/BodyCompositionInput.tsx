@@ -16,31 +16,31 @@ interface UserBioData {
 }
 
 const defaultCircumferenceMeasurements: CircumferenceMeasurements = {
-  neck: 0,
-  shoulders: 0,
-  chest: 0,
-  waist: 0,
-  hips: 0,
-  leftBicepRelaxed: 0,
-  leftBicepFlexed: 0,
-  rightBicepRelaxed: 0,
-  rightBicepFlexed: 0,
-  leftForearm: 0,
-  rightForearm: 0,
-  leftThigh: 0,
-  rightThigh: 0,
-  leftCalf: 0,
-  rightCalf: 0,
+  neck: undefined,
+  shoulders: undefined,
+  chest: undefined,
+  waist: undefined,
+  hips: undefined,
+  leftBicepRelaxed: undefined,
+  leftBicepFlexed: undefined,
+  rightBicepRelaxed: undefined,
+  rightBicepFlexed: undefined,
+  leftForearm: undefined,
+  rightForearm: undefined,
+  leftThigh: undefined,
+  rightThigh: undefined,
+  leftCalf: undefined,
+  rightCalf: undefined,
 };
 
 const defaultSkinfoldMeasurements: SkinfoldMeasurements = {
-  chest: 0,
-  abdomen: 0,
-  thigh: 0,
-  triceps: 0,
-  axilla: 0,
-  subscapula: 0,
-  suprailiac: 0,
+  chest: undefined,
+  abdomen: undefined,
+  thigh: undefined,
+  triceps: undefined,
+  axilla: undefined,
+  subscapula: undefined,
+  suprailiac: undefined,
 };
 
 const formatMeasurementTitle = (key: string): string => {
@@ -112,6 +112,8 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [bioData, setBioData] = useState<UserBioData | null>(null);
   const [bioError, setBioError] = useState<string | null>(null);
+  const [isBodyFatSectionOpen, setIsBodyFatSectionOpen] = useState(false);
+  const [isCircumferenceSectionOpen, setIsCircumferenceSectionOpen] = useState(false);
 
   // Fetch user's bio data
   useEffect(() => {
@@ -162,9 +164,9 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     formState: { errors: formErrors } 
   } = useForm<FormInputs>({
     defaultValues: {
-      weight: 0,
+      weight: undefined,
       bodyFatMethod: 'manual',
-      manualBodyFat: 0,
+      manualBodyFat: undefined,
       isMale: bioData?.gender === 'male',
       skinfold: defaultSkinfoldMeasurements,
       circumference: defaultCircumferenceMeasurements,
@@ -213,18 +215,15 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const getFilteredCircumferenceMeasurements = () => {
     const measurements: Partial<CircumferenceMeasurements> = {};
     Object.entries(defaultCircumferenceMeasurements).forEach(([key]) => {
-      // Handle special case for biceps - show all bicep measurements if biceps is enabled
-      if (key.toLowerCase().includes('bicep') && enabledCircumferenceMeasurements.includes('biceps')) {
-        measurements[key as keyof CircumferenceMeasurements] = defaultCircumferenceMeasurements[key as keyof CircumferenceMeasurements];
-        return;
-      }
+      // Get the base measurement type by removing modifiers
+      const baseKey = key.toLowerCase()
+        .replace(/^(left|right)/, '')  // Remove left/right prefix
+        .replace(/(relaxed|flexed)$/, '') // Remove relaxed/flexed suffix
+        .replace(/^(left|right)/, '')  // Remove any remaining left/right
+        .replace(/bicep/, 'biceps');   // Normalize bicep to biceps
 
-      // For other measurements, simplify the key and check if it's enabled
-      const settingKey = key.toLowerCase()
-        .replace(/^(left|right)/, '')  // Remove left/right only from the start
-        .replace(/(relaxed|flexed)$/, ''); // Remove relaxed/flexed only from the end
-      
-      if (enabledCircumferenceMeasurements.includes(settingKey as CircumferenceMeasurement)) {
+      // If the base measurement type is enabled, include the full measurement
+      if (enabledCircumferenceMeasurements.includes(baseKey as CircumferenceMeasurement)) {
         measurements[key as keyof CircumferenceMeasurements] = defaultCircumferenceMeasurements[key as keyof CircumferenceMeasurements];
       }
     });
@@ -285,42 +284,58 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   };
 
   const onSubmit = async (data: FormInputs) => {
-    console.log('Form submission started');
+    console.log('Form submission started with data:', data);
+    console.log('Submitting for user ID:', userId);
     
-    const errors = validateMeasurements(
-      data.weight,
-      bioData ? calculateAge(bioData.dateOfBirth) : 0,
-      data.manualBodyFat,
-      data.skinfold,
-      data.circumference,
-      data.bodyFatMethod
-    );
-
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      return;
-    }
-
     setIsSaving(true);
     setShowSuccess(false);
-    
+
     try {
+      // Filter out null/undefined/0 values from circumference measurements
+      const filteredCircumferenceMeasurements = Object.entries(data.circumference || {}).reduce((acc: Record<string, number | null>, [key, value]) => {
+        // Get the base measurement type by removing modifiers
+        const baseKey = key.toLowerCase()
+          .replace(/^(left|right)/, '')  // Remove left/right prefix
+          .replace(/(relaxed|flexed)$/, '') // Remove relaxed/flexed suffix
+          .replace(/^(left|right)/, '')  // Remove any remaining left/right
+          .replace(/bicep/, 'biceps');   // Normalize bicep to biceps
+
+        // If the base measurement type is enabled, include the measurement
+        if (enabledCircumferenceMeasurements.includes(baseKey as CircumferenceMeasurement)) {
+          // Only include the measurement if it has a valid value
+          if (typeof value === 'number' && !isNaN(value)) {
+            acc[key] = value;
+          }
+        }
+
+        return acc;
+      }, {});
+
+      console.log('Enabled circumference measurements:', enabledCircumferenceMeasurements);
+      console.log('Raw circumference data:', data.circumference);
+      console.log('Filtered circumference measurements:', filteredCircumferenceMeasurements);
+
+      // Prepare the entry data to match database structure
       const entryData = {
         age: bioData ? calculateAge(bioData.dateOfBirth) : 0,
         isMale: data.isMale,
         bodyFatMethod: data.bodyFatMethod,
-        manualBodyFat: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
-        skinfoldMeasurements: data.bodyFatMethod === 'skinfold' ? data.skinfold : undefined,
-        circumferenceMeasurements: data.circumference,
+        manualBodyFat: data.bodyFatMethod === 'manual' ? data.manualBodyFat || null : null,
+        skinfoldMeasurements: data.bodyFatMethod === 'skinfold' ? data.skinfold : null,
+        circumferenceMeasurements: filteredCircumferenceMeasurements,
         calculatedMetrics: calculatedMetrics
       };
 
+      console.log('Entry data prepared:', entryData);
+
       const payload = {
         weight: data.weight,
-        bodyFatPercentage: calculatedMetrics?.bodyFatPercentage || data.manualBodyFat,
-        entryData: entryData,
-        targetUserId: userId
+        bodyFatPercentage: data.bodyFatMethod === 'manual' ? data.manualBodyFat || null : calculatedMetrics?.bodyFatPercentage || null,
+        entryData: JSON.stringify(entryData),
+        targetUserId: userId // Changed to targetUserId to match API expectation
       };
+
+      console.log('Sending payload:', payload);
 
       const response = await fetch('/api/body-composition', {
         method: 'POST',
@@ -331,7 +346,9 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         credentials: 'include'
       });
 
+      console.log('Response status:', response.status);
       const responseData = await response.json();
+      console.log('Response data:', responseData);
 
       if (!response.ok) {
         throw new Error(`Failed to save measurements: ${responseData.error || 'Unknown error'}`);
@@ -340,11 +357,11 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       setValidationErrors([]);
       setShowSuccess(true);
       
-      // Reset form to initial state
+      // Reset form to initial state with empty values for optional fields
       reset({
-        weight: 0,
+        weight: undefined,
         bodyFatMethod: 'manual',
-        manualBodyFat: 0,
+        manualBodyFat: undefined,
         isMale: bioData?.gender === 'male',
         skinfold: defaultSkinfoldMeasurements,
         circumference: defaultCircumferenceMeasurements,
@@ -396,14 +413,13 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           const formData = watch();
           console.log('Form data:', formData);
           
-          // Ensure we have required values
+          // Only validate weight is present
           if (!formData.weight || formData.weight <= 0) {
             console.log('Invalid weight value');
-            return;
-          }
-
-          if (formData.bodyFatMethod === 'manual' && (!formData.manualBodyFat || formData.manualBodyFat <= 0)) {
-            console.log('Invalid manual body fat value');
+            setValidationErrors([{
+              path: ['weight'],
+              message: 'Weight is required and must be greater than 0'
+            }]);
             return;
           }
 
@@ -421,11 +437,12 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           <h2 className="text-xl font-semibold mb-4 text-gray-700">Basic Measurements</h2>
           <div className="space-y-2">
             <label htmlFor="weight" className="block text-sm font-medium text-gray-700">
-              Body Weight ({weightUnit})
+              Body Weight ({weightUnit}) <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
               step="0.1"
+              placeholder="Enter weight"
               {...register('weight', { 
                 valueAsNumber: true,
                 required: 'Weight is required',
@@ -441,116 +458,134 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           </div>
         </div>
 
-        <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">Body Fat Measurement</h2>
-          {enabledBodyFatMethods.length === 0 ? (
-            <p className="text-gray-600 italic">No body fat measurement methods selected. Please configure your preferences in the settings.</p>
-          ) : (
-            <div className="space-y-6">
-              {(showManualEntry || enabledBodyFatMethods.includes('skinfold')) && (
-                <div className="space-y-2">
-                  <label htmlFor="bodyFatMethod" className="block text-sm font-medium text-gray-700">
-                    Measurement Method
-                  </label>
-                  <div className="relative">
-                    <select
-                      {...register('bodyFatMethod')}
-                      className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
-                    >
-                      {showManualEntry && (
-                        <option value="manual">Manual Body Fat %</option>
-                      )}
-                      {enabledBodyFatMethods.includes('skinfold') && (
-                        <option value="skinfold">Skinfold Measurements</option>
-                      )}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
-                      <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                        <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {bodyFatMethod === 'manual' && showManualEntry && (
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <label htmlFor="manualBodyFat" className="block text-sm font-medium text-gray-700">
-                      Manual Body Fat %
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      {...register('manualBodyFat', { 
-                        valueAsNumber: true,
-                        validate: (value) => {
-                          if (watch('bodyFatMethod') === 'manual') {
-                            if (!value) return 'Body fat percentage is required';
-                            if (value < 0 || value > 100) return 'Body fat percentage must be between 0 and 100';
-                          }
-                          return true;
-                        }
-                      })}
-                      className={`w-full rounded-md border ${
-                        getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat ? 'border-red-500' : 'border-gray-300'
-                      } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-                    />
-                    {(getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat) && (
-                      <p className="text-sm text-red-500">
-                        {getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat?.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {calculatedMetrics && (
-                    <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
-                      <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
-                      <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+        <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md">
+          <button
+            type="button"
+            onClick={() => setIsBodyFatSectionOpen(!isBodyFatSectionOpen)}
+            className="w-full px-6 py-4 text-left flex justify-between items-center"
+          >
+            <h2 className="text-xl font-semibold text-gray-700">Body Fat Measurement</h2>
+            <svg
+              className={`w-5 h-5 transform transition-transform ${isBodyFatSectionOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isBodyFatSectionOpen && (
+            <div className="p-6 border-t">
+              {enabledBodyFatMethods.length === 0 ? (
+                <p className="text-gray-600 italic">No body fat measurement methods selected. Please configure your preferences in the settings.</p>
+              ) : (
+                <div className="space-y-6">
+                  {(showManualEntry || enabledBodyFatMethods.includes('skinfold')) && (
+                    <div className="space-y-2">
+                      <label htmlFor="bodyFatMethod" className="block text-sm font-medium text-gray-700">
+                        Measurement Method
+                      </label>
+                      <div className="relative">
+                        <select
+                          {...register('bodyFatMethod')}
+                          className="appearance-none w-full rounded-md border border-gray-300 bg-white py-2 pl-3 pr-10 text-sm dark:text-slate-900 cursor-pointer"
+                        >
+                          {showManualEntry && (
+                            <option value="manual">Manual Body Fat %</option>
+                          )}
+                          {enabledBodyFatMethods.includes('skinfold') && (
+                            <option value="skinfold">Skinfold Measurements</option>
+                          )}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                          <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                            <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
                   )}
-                </div>
-              )}
 
-              {bodyFatMethod === 'skinfold' && enabledBodyFatMethods.includes('skinfold') && (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    {Object.entries(defaultSkinfoldMeasurements).map(([key]) => (
-                      <div key={key} className="space-y-2">
-                        <label
-                          htmlFor={`skinfold.${key}`}
-                          className="block text-sm font-medium text-gray-700"
-                        >
-                          {formatMeasurementTitle(key)} (mm)
+                  {bodyFatMethod === 'manual' && showManualEntry && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label htmlFor="manualBodyFat" className="block text-sm font-medium text-gray-700">
+                          Manual Body Fat %
                         </label>
                         <input
                           type="number"
                           step="0.1"
-                          {...register(`skinfold.${key}` as "skinfold.chest" | "skinfold.abdominal" | "skinfold.thigh" | "skinfold.triceps" | "skinfold.suprailiac" | "skinfold.subscapula" | "skinfold.axilla" | "skinfold.abdomen", { valueAsNumber: true })}
+                          {...register('manualBodyFat', { 
+                            valueAsNumber: true,
+                            validate: (value) => {
+                              if (watch('bodyFatMethod') === 'manual' && value !== null && value !== undefined) {
+                                if (value < 0 || value > 100) return 'Body fat percentage must be between 0 and 100';
+                              }
+                              return true;
+                            }
+                          })}
                           className={`w-full rounded-md border ${
-                            getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
+                            getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat ? 'border-red-500' : 'border-gray-300'
                           } bg-white py-2 px-3 text-sm dark:text-slate-900`}
                         />
-                        {getErrorForField(['skinfold', key]) && (
-                          <p className="text-sm text-red-500">{getErrorForField(['skinfold', key])}</p>
+                        {(getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat) && (
+                          <p className="text-sm text-red-500">
+                            {getErrorForField(['manualBodyFatPercentage']) || formErrors.manualBodyFat?.message}
+                          </p>
                         )}
                       </div>
-                    ))}
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={calculateMetrics}
-                    className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-2 px-4 text-white"
-                  >
-                    Calculate Body Fat
-                  </button>
+                      {calculatedMetrics && (
+                        <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
+                          <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
+                          <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                  {calculatedMetrics && (
-                    <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
-                      <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(2)}%</p>
-                      <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
-                      <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+                  {bodyFatMethod === 'skinfold' && enabledBodyFatMethods.includes('skinfold') && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-2 gap-4">
+                        {Object.entries(defaultSkinfoldMeasurements).map(([key]) => (
+                          <div key={key} className="space-y-2">
+                            <label
+                              htmlFor={`skinfold.${key}`}
+                              className="block text-sm font-medium text-gray-700"
+                            >
+                              {formatMeasurementTitle(key)} (mm)
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              {...register(`skinfold.${key}` as "skinfold.chest" | "skinfold.abdominal" | "skinfold.thigh" | "skinfold.triceps" | "skinfold.suprailiac" | "skinfold.subscapula" | "skinfold.axilla" | "skinfold.abdomen", { valueAsNumber: true })}
+                              className={`w-full rounded-md border ${
+                                getErrorForField(['skinfold', key]) ? 'border-red-500' : 'border-gray-300'
+                              } bg-white py-2 px-3 text-sm dark:text-slate-900`}
+                            />
+                            {getErrorForField(['skinfold', key]) && (
+                              <p className="text-sm text-red-500">{getErrorForField(['skinfold', key])}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={calculateMetrics}
+                        className="w-full rounded-md bg-purple-500 hover:bg-purple-600 py-2 px-4 text-white"
+                      >
+                        Calculate Body Fat
+                      </button>
+
+                      {calculatedMetrics && (
+                        <div className="mt-4 space-y-2 p-4 bg-gray-50 rounded-md">
+                          <p className="text-gray-700">Calculated Body Fat: {calculatedMetrics.bodyFatPercentage.toFixed(2)}%</p>
+                          <p className="text-gray-700">Fat Mass: {calculatedMetrics.fatMass.toFixed(2)} lbs.</p>
+                          <p className="text-gray-700">Fat Free Mass: {calculatedMetrics.fatFreeMass.toFixed(2)} lbs.</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -559,33 +594,52 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           )}
         </div>
 
-        <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4 text-gray-700">Circumference Measurements</h2>
-          {enabledCircumferenceMeasurements.length === 0 ? (
-            <p className="text-gray-600 italic">No circumference measurements selected. Please configure your preferences in the settings.</p>
-          ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {Object.entries(getFilteredCircumferenceMeasurements()).map(([key]) => (
-                <div key={key} className="space-y-2">
-                  <label
-                    htmlFor={`circumference.${key}`}
-                    className="block text-sm font-medium text-gray-700"
-                  >
-                    {formatMeasurementTitle(key)} ({circumferenceUnit})
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    {...register(`circumference.${key}` as "circumference.neck" | "circumference.shoulders" | "circumference.chest" | "circumference.waist" | "circumference.hips" | "circumference.leftBicepRelaxed" | "circumference.leftBicepFlexed" | "circumference.rightBicepRelaxed" | "circumference.rightBicepFlexed" | "circumference.leftForearm" | "circumference.rightForearm" | "circumference.leftThigh" | "circumference.rightThigh" | "circumference.leftCalf" | "circumference.rightCalf", { valueAsNumber: true })}
-                    className={`w-full rounded-md border ${
-                      getErrorForField(['circumference', key]) ? 'border-red-500' : 'border-gray-300'
-                    } bg-white py-2 px-3 text-sm dark:text-slate-900`}
-                  />
-                  {getErrorForField(['circumference', key]) && (
-                    <p className="text-sm text-red-500">{getErrorForField(['circumference', key])}</p>
-                  )}
+        <div className="bg-white dark:bg-[#e0e0e0] rounded-lg shadow-md">
+          <button
+            type="button"
+            onClick={() => setIsCircumferenceSectionOpen(!isCircumferenceSectionOpen)}
+            className="w-full px-6 py-4 text-left flex justify-between items-center"
+          >
+            <h2 className="text-xl font-semibold text-gray-700">Circumference Measurements</h2>
+            <svg
+              className={`w-5 h-5 transform transition-transform ${isCircumferenceSectionOpen ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isCircumferenceSectionOpen && (
+            <div className="p-6 border-t">
+              {enabledCircumferenceMeasurements.length === 0 ? (
+                <p className="text-gray-600 italic">No circumference measurements selected. Please configure your preferences in the settings.</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.entries(getFilteredCircumferenceMeasurements()).map(([key]) => (
+                    <div key={key} className="space-y-2">
+                      <label
+                        htmlFor={`circumference.${key}`}
+                        className="block text-sm font-medium text-gray-700"
+                      >
+                        {formatMeasurementTitle(key)} ({circumferenceUnit})
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        {...register(`circumference.${key}` as any, { valueAsNumber: true })}
+                        className={`w-full rounded-md border ${
+                          getErrorForField(['circumference', key]) ? 'border-red-500' : 'border-gray-300'
+                        } bg-white py-2 px-3 text-sm dark:text-slate-900`}
+                      />
+                      {getErrorForField(['circumference', key]) && (
+                        <p className="text-sm text-red-500">{getErrorForField(['circumference', key])}</p>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
           )}
         </div>
