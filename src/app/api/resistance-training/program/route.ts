@@ -36,7 +36,8 @@ export async function POST(request: Request) {
       endDate,
       notes,
       weeks,
-      userId: targetUserId // The user we're creating the program for
+      userId: targetUserId, // The user we're creating the program for
+      phaseFocus
     } = data;
 
     // Check if the current user has permission to create programs for the target user
@@ -69,11 +70,11 @@ export async function POST(request: Request) {
       // 1. Create the program
       const programResult = await client.query(
         `INSERT INTO resistance_programs 
-        (user_id, program_name, periodization_type, start_date, end_date, notes)
+        (user_id, program_name, periodization_type, phase_focus, start_date, end_date, notes)
         VALUES 
-        ($1, $2, $3, $4, $5, $6)
+        ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id`,
-        [effectiveUserId, name, periodizationType, startDate, endDate, notes]
+        [effectiveUserId, name, periodizationType, phaseFocus, startDate, endDate, notes]
       );
       const programId = programResult.rows[0].id;
       console.log('Program created with ID:', programId);

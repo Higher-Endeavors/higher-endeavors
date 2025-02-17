@@ -451,10 +451,10 @@ const SettingsForm = () => {
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">Load Units</label>
               <select
-                value={fitness.resistanceTraining?.weightUnit || 'kg'}
+                value={fitness.resistanceTraining?.loadUnit || 'kg'}
                 onChange={(e) => handlePillarSettingChange('fitness', 'resistanceTraining', {
                   ...fitness.resistanceTraining,
-                  weightUnit: e.target.value
+                  loadUnit: e.target.value
                 })}
                 className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600"
               >
@@ -543,7 +543,7 @@ const SettingsForm = () => {
                   </button>
                 </div>
                 <svg
-                  className={`w-5 h-5 transform transition-transform ${isEquipmentSectionOpen ? 'rotate-180' : ''}`}
+                  className={`w-5 h-5 transform transition-transform text-gray-700 dark:text-slate-900 ${isEquipmentSectionOpen ? 'rotate-180' : ''}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

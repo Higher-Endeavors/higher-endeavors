@@ -4,7 +4,7 @@ import { Exercise, LoadUnit } from './exercise.types';
 /**
  * Regular expression patterns for validation
  */
-const PAIRING_REGEX = /^([A-Z][1-2]|WU|CD)$/;
+const PAIRING_REGEX = /^([A-Z]\d{1,2}|WU|CD)$/;
 const TEMPO_REGEX = /^[0-9X][0-9][0-9X][0-9]$/;
 const COLOR_REGEX = /^(red|blue|green|yellow|black|purple|orange|white|grey|gray|pink)$/i;
 
@@ -12,6 +12,7 @@ const COLOR_REGEX = /^(red|blue|green|yellow|black|purple|orange|white|grey|gray
  * Enums for program settings
  */
 export const PhaseFocus = {
+  GPP: 'GPP',
   Hypertrophy: 'Hypertrophy',
   Strength: 'Strength',
   Power: 'Power',
@@ -20,10 +21,12 @@ export const PhaseFocus = {
 } as const;
 
 export const PeriodizationType = {
+  None: 'None',
   Linear: 'Linear',
   Undulating: 'Undulating',
   Block: 'Block',
-  Conjugate: 'Conjugate'
+  Conjugate: 'Conjugate',
+  Custom: 'Custom'
 } as const;
 
 export const ProgressionFrequency = {
@@ -121,6 +124,7 @@ export const programSettingsSchema = z.object({
   name: z.string().min(1, "Program name is required"),
   phaseFocus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
   periodizationType: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
+  notes: z.string().optional(),
   progressionRules: z.object({
     type: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
     loadIncrement: z.number().optional(),
@@ -149,6 +153,7 @@ export const programSchema = z.object({
   name: z.string().min(1, "Program name is required"),
   phaseFocus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
   periodizationType: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
+  notes: z.string().optional(),
   progressionRules: programSettingsSchema.shape.progressionRules,
   volumeTargets: programSettingsSchema.shape.volumeTargets,
   exercises: z.array(exerciseSchema),
@@ -186,6 +191,7 @@ export type Program = {
   name: string;
   phaseFocus: keyof typeof PhaseFocus;
   periodizationType: keyof typeof PeriodizationType;
+  notes?: string;
   progressionRules: ProgressionRules;
   volumeTargets?: VolumeTarget[];
   exercises: Exercise[];
@@ -202,6 +208,7 @@ export interface SavedProgram {
   program_name: string;
   phase_focus: keyof typeof PhaseFocus;
   periodization_type: keyof typeof PeriodizationType;
+  notes?: string;
   progression_rules: ProgressionRules;
   volumeTargets?: VolumeTarget[];
   exercises?: Exercise[];

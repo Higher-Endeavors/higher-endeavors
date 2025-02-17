@@ -4,9 +4,9 @@ import React, { useState } from 'react';
 // Commenting out DnD imports
 // import { useSortable } from '@dnd-kit/sortable';
 // import { CSS } from '@dnd-kit/utilities';
-import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
-import { Exercise, SetDetail, SubSet } from '@/app/lib/types/pillars/fitness';
-import { calculateExerciseTUT, calculateSetTUT } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { BsThreeDotsVertical } from 'react-icons/bs'; // Removed BsGripVertical
+import { Exercise, SetDetail, SubSet } from '../../shared/types';
+import { calculateExerciseTUT } from '../../shared/utils/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 interface ExerciseItemProps {
@@ -41,8 +41,9 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
 
   const formatLoad = (load: string | number, loadUnit?: 'kg' | 'lbs'): string => {
     if (typeof load === 'number') {
-      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs';
-      return `${load}${unit}`;
+      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
+      const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
+      return `${load}${displayUnit}`;
     }
     return String(load || 'BW');
   };
@@ -63,7 +64,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
         return `${reps} reps @ ${loadStr}`;
       }
       
-      const subSetDetails = set.subSets?.map((subSet: SubSet) => {
+      const subSetDetails = set.subSets.map((subSet) => {
         if (!subSet || typeof subSet !== 'object') {
           console.error('Invalid subset data:', subSet);
           return '';
@@ -101,7 +102,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
 
   const calculateTotalLoad = (): string => {
     let totalLoad = 0;
-    const unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg';
+    const unit = exercise.loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.weightUnit || 'kg';
 
     if (typeof exercise.load !== 'number' && exercise.load !== undefined) {
       return String(exercise.load); // Return the non-numeric load (e.g., 'BW' or band color)
@@ -129,7 +130,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
       totalLoad = load * sets * reps;
     }
 
-    const displayUnit = unit === 'kg' ? 'kg' : 'lbs';
+    const displayUnit = unit === 'kg' ? 'kgs' : 'lbs';
     return `${totalLoad}${displayUnit}`;
   };
 
@@ -173,7 +174,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
             }}
             className="p-1 hover:bg-gray-100 rounded-full"
           >
-            <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" />
+            <BsThreeDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" />
           </button>
           
           {menuOpen[exercise.id] && (
@@ -223,11 +224,11 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
                 const load = formatLoad(set.load || 0, set.loadUnit);
                 
                 if (Array.isArray(set.subSets) && set.subSets.length > 0) {
-                  const subSetsString = set.subSets?.map((subSet: SubSet, subIdx) => {
+                  const subSetsString = set.subSets.map((subSet, subIdx) => {
                     if (!subSet || typeof subSet !== 'object') return '';
                     const subReps = String(subSet.reps || 0);
                     const subLoad = formatLoad(subSet.load || 0, subSet.loadUnit);
-                    return `${subReps} reps @ ${subLoad}${subIdx < (set.subSets?.length || 0) - 1 ? ', ' : ''}`;
+                    return `${subReps} reps @ ${subLoad}${subIdx < set.subSets.length - 1 ? ', ' : ''}`;
                   }).join('');
                   
                   return (
@@ -246,7 +247,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
             </div>
           ) : (
             <p className="font-medium dark:text-slate-900">
-              {Array.isArray(exercise.sets) ? exercise.sets.length : String(exercise.sets || 0)} × {String(exercise.reps || 0)}
+              {Array.isArray(exercise.sets) ? exercise.sets.length : String(exercise.sets || 0)} × {String(exercise.reps || 0)} reps @ {formatLoad(exercise.load || 0, exercise.loadUnit)}
             </p>
           )}
         </div>
@@ -314,7 +315,14 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
               {exercise.setDetails.map((set, idx) => {
                 if (!set || typeof set !== 'object') return null;
                 const setNumber = String(set.setNumber || idx + 1);
-                const tutDisplay = calculateSetTUT(set.reps || 0, set.tempo || '2010');
+                const tempo = String(set.tempo || '2010');
+                const tempoTotal = tempo.split('').reduce((sum, char) => {
+                  if (char.toLowerCase() === 'x') return sum + 1;
+                  const num = parseInt(char);
+                  return sum + (isNaN(num) ? 0 : num);
+                }, 0);
+                const reps = set.reps || 0;
+                const tutDisplay = String(tempoTotal * reps);
                 return (
                   <div key={idx}>
                     <p>Set {setNumber}: {tutDisplay}s</p>
@@ -323,9 +331,7 @@ const ExerciseItem: React.FC<ExerciseItemProps> = ({ exercise, onEdit, onDelete 
               })}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">
-              {`${calculateExerciseTUT(exercise)}s`}
-            </p>
+            <p className="font-medium dark:text-slate-900">{String(calculateExerciseTUT(exercise))}s</p>
           )}
         </div>
       </div>

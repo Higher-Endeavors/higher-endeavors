@@ -7,35 +7,9 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
-import { FitnessSettings, UserSettings, PillarSettings } from '@/app/lib/types/user_settings';
-import {
-  Exercise,
-  ExerciseSource,
-  exerciseSchema,
-  getNextPairing,
-  isValidPairing,
-  createRegularExercise,
-  createVariedExercise,
-  ExerciseOption,
-  ExerciseSelectHandler,
-  WeightUnit as LoadUnit
-} from '@/app/lib/types/pillars/fitness';
-import { FilterOptionOption } from 'react-select';
-
-/**
- * Filter function for the exercise select dropdown
- */
-const filterExerciseOptions = (
-  option: FilterOptionOption<ExerciseOption>,
-  inputValue: string
-): boolean => {
-  if (!inputValue) return true;
-  
-  const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
-  const exerciseName = option.label.toLowerCase();
-  
-  return searchTerms.every(term => exerciseName.includes(term));
-};
+import { exerciseSchema, type Exercise } from '../../shared/schemas/exercise';
+import { FitnessSettings } from '@/app/(protected)/user/settings/types/settings';
+import { Exercise as ExerciseType } from '../../shared/types';
 
 /**
  * Props for the Exercise Modal component
@@ -43,13 +17,34 @@ const filterExerciseOptions = (
 interface ExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (exercise: Exercise) => void;
-  exercise?: Exercise;          // Provided when editing an existing exercise
-  exercises: Exercise[];        // Used for generating next pairing
+  onSave: (exercise: ExerciseType) => void;
+  exercise?: ExerciseType;          // Provided when editing an existing exercise
+  exercises: ExerciseType[];        // Used for generating next pairing
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
-  userSettings?: UserSettings;  // Changed back to UserSettings since we need access to pillar_settings
+  userSettings?: { fitness?: FitnessSettings };
 }
+
+/**
+ * Option type for exercise name select dropdown
+ */
+interface ExerciseOption {
+  value: string;
+  label: string;
+  data: {
+    id: string;
+    name: string;
+  };
+}
+
+/**
+ * Filter function for exercise name search
+ * Matches if all search terms are found in the exercise name
+ */
+const filterExerciseOptions = (option: { label: string }, inputValue: string) => {
+  if (!inputValue) return true;
+  return option.label.toLowerCase().includes(inputValue.toLowerCase());
+};
 
 /**
  * Custom styles for the exercise name select dropdown
@@ -123,7 +118,7 @@ const customSelectStyles = {
  * Handles both creating new exercises and editing existing ones
  * Supports both standard and varied set configurations
  */
-export default function AddExerciseModal({
+export default function ExerciseModal({
   isOpen,
   onClose,
   onSave,
@@ -144,31 +139,18 @@ export default function AddExerciseModal({
   // Debug logs for user settings
   useEffect(() => {
     console.log('Modal User Settings:', userSettings);
-    console.log('Track RIR:', userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRIR);
+    console.log('Track RIR:', userSettings?.fitness?.resistanceTraining?.trackRIR);
   }, [userSettings]);
 
   // State for exercise name options in dropdown
   const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const defaultUnit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
-  const alternateUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
-
-  // Initialize useAlternateUnit based on user settings when modal opens
-  useEffect(() => {
-    if (isOpen) {
-      // If editing an exercise, use its load unit
-      if (exercise?.loadUnit) {
-        setUseAlternateUnit(exercise.loadUnit !== 'kg');
-      } else {
-        // For new exercises, use user's preferred unit
-        setUseAlternateUnit(defaultUnit !== 'kg');
-      }
-    }
-  }, [isOpen, exercise, defaultUnit]);
+  const defaultUnit = (userSettings?.fitness?.resistanceTraining?.weightUnit || 'kg') === 'kg' ? 'kgs' : 'lbs';
+  const alternateUnit = defaultUnit === 'kgs' ? 'lbs' : 'kgs';
 
   // Add state for creating new exercise
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
@@ -186,14 +168,14 @@ export default function AddExerciseModal({
     setValue,
     formState: { errors },
     reset
-  } = useForm<Exercise>({
+  } = useForm<ExerciseType>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
       id: '',
       name: '',
       pairing: 'A1',
-      sets: 3,
-      reps: 8,
+      sets: 1,
+      reps: 1,
       load: 0,
       tempo: '2010',
       rest: 60,
@@ -215,84 +197,76 @@ export default function AddExerciseModal({
    */
   useEffect(() => {
     if (exercise) {
-      reset(exercise); // The exercise type is already correct from our consolidated types
+      // Ensure correct literal types for discriminated union
+      const resetData = exercise.isVariedSets ? {
+        ...exercise,
+        isVariedSets: true as const,
+        isAdvancedSets: Boolean(exercise.isAdvancedSets)
+      } : {
+        ...exercise,
+        isVariedSets: false as const,
+        isAdvancedSets: Boolean(exercise.isAdvancedSets),
+        setDetails: undefined
+      };
+      reset(resetData);
     } else {
-      // Use our utility function to get the next pairing
-      const nextPairing = getNextPairing(exercises.filter(ex => ex.pairing));
+      // Generate next pairing for new exercise
+      const existingPairings = exercises
+        .map(ex => ex.pairing)
+        .filter((p): p is string => !!p) // Type guard to ensure p is a string
+        .filter(p => !p.includes('WU') && !p.includes('CD'));
+      
+      let nextPairing = 'A1';
+      if (existingPairings.length > 0) {
+        const lastPairing = existingPairings[existingPairings.length - 1];
+        const letter = lastPairing.charAt(0);
+        const number = parseInt(lastPairing.charAt(1));
+        
+        if (number === 2) {
+          nextPairing = String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
+        } else {
+          nextPairing = letter + '2';
+        }
+      }
 
-      reset(createRegularExercise({
+      reset({
         id: Math.random().toString(36).substr(2, 9),
-        name: '',
         pairing: nextPairing,
         sets: 1,
         reps: 1,
         load: 0,
         tempo: '2010',
         rest: 60,
-        notes: ''
-      }));
+        notes: '',
+        isVariedSets: false as const,
+        isAdvancedSets: false,
+        setDetails: undefined
+      });
     }
   }, [exercise, exercises, reset]);
 
-  // Add form value monitoring effect
-  useEffect(() => {
-    console.log('Setting up form value monitoring');
-    const subscription = watch((value, { name, type }) => {
-      console.log('Form value changed:', { name, type, value });
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
-
-  // Update handleExerciseSelect with logging
-  const handleExerciseSelect: ExerciseSelectHandler = (selectedOption, actionMeta) => {
-    console.log('Exercise Select - Start', { selectedOption, actionMeta });
-    
+  const handleExerciseChange = useCallback((selectedOption: ExerciseOption | null) => {
     if (selectedOption) {
-      console.log('Exercise Select - Setting values', {
-        label: selectedOption.label,
-        source: selectedOption.data.source,
-        id: selectedOption.data.id
-      });
-      
       setSelectedExercise(selectedOption);
       setValue('name', selectedOption.label);
       setValue('source', selectedOption.data.source);
       if (selectedOption.data.source === 'library') {
         setValue('libraryId', parseInt(selectedOption.data.id));
       }
-      
-      console.log('Exercise Select - After setting values', {
-        formValues: watch(),
-        selectedExercise: selectedOption
-      });
-    } else {
-      console.log('Exercise Select - Clearing values');
-      setSelectedExercise(null);
-      setValue('name', '');
-      setValue('source', 'library');
-      setValue('libraryId', undefined);
     }
-  };
+  }, [setValue]);
 
-  // Add logging to the selectedExerciseName effect
+  // Effect for handling selectedExerciseName
   useEffect(() => {
-    console.log('selectedExerciseName effect triggered', {
-      selectedExerciseName,
-      exerciseOptionsCount: exerciseOptions.length
-    });
-    
     if (selectedExerciseName && exerciseOptions.length > 0) {
       const matchingExercise = exerciseOptions.find(
         option => option.label === selectedExerciseName
       );
-      console.log('Found matching exercise:', matchingExercise);
-      
       if (matchingExercise) {
-        console.log('Handling matching exercise');
-        handleExerciseSelect(matchingExercise, { action: 'select-option' });
+        handleExerciseChange(matchingExercise);
       }
     }
-  }, [selectedExerciseName, exerciseOptions, handleExerciseSelect]);
+  }, [selectedExerciseName, exerciseOptions, handleExerciseChange]);
 
   // Fetch exercises effect
   useEffect(() => {
@@ -307,26 +281,20 @@ export default function AddExerciseModal({
           return;
         }
 
-        const options: ExerciseOption[] = data.map((exercise: {
-          id: string | number;
-          exercise_name: string;
-          source: ExerciseSource;
-        }) => ({
-          id: exercise.id.toString(),
+        const options = data.map((exercise: any) => ({
           value: `${exercise.source}-${exercise.id}`,
           label: exercise.exercise_name,
+          libraryId: exercise.source === 'library' ? exercise.id : undefined,
           data: {
-            id: exercise.id.toString(),
-            name: exercise.exercise_name,
             source: exercise.source,
-            libraryId: exercise.source === 'library' ? Number(exercise.id) : undefined
+            id: exercise.id
           }
         }));
 
         setExerciseOptions(options);
 
-        // Only set selected exercise if we have a name and we're not adding a new exercise
-        if (selectedExerciseName && exercise) {
+        // If we have a selectedExerciseName, find and select it
+        if (selectedExerciseName) {
           const matchingExercise = options.find(opt => opt.label === selectedExerciseName);
           if (matchingExercise) {
             setSelectedExercise(matchingExercise);
@@ -343,7 +311,7 @@ export default function AddExerciseModal({
     if (isOpen) {
       fetchExercises();
     }
-  }, [isOpen, selectedExerciseName, exercise, setValue]);
+  }, [isOpen, selectedExerciseName]);
 
   /**
    * Effect: Manage setDetails array when varied sets is enabled
@@ -375,52 +343,74 @@ export default function AddExerciseModal({
           name: selectedExerciseName || exercise.name
         });
       } else {
-        reset(); // Reset to default values
-        setSelectedExercise(null); // Clear the selected exercise
-        setValue('name', ''); // Explicitly clear the name field
+        reset();
       }
       // Reset the toggle to false (use default unit) when modal opens
       setUseAlternateUnit(false);
     }
-  }, [isOpen, exercise, selectedExerciseName, reset, setValue]);
-
-  // Clear selected exercise when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedExercise(null);
-      setValue('name', '');
-    }
-  }, [isOpen, setValue]);
+  }, [isOpen, exercise, selectedExerciseName, reset]);
 
   /**
-   * Handles form submission with proper type conversion
+   * Form submission handler
+   * Ensures correct typing for discriminated union before saving
    */
-  const onSubmit = async (data: Exercise) => {
+  const onSubmit = async (data: ExerciseType) => {
     console.log('Form Data:', data);
     console.log('Form Errors:', errors);
 
-    const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as LoadUnit;
+    // Add loadUnit if the load is numeric
+    const loadData = typeof data.load === 'number' ? {
+      load: data.load,
+      loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
+    } : {
+      load: data.load
+    };
 
-    if (data.isVariedSets) {
-      const setDetails = data.setDetails?.map(set => ({
-        ...set,
-        loadUnit,
+    // Format sets data
+    const setsArray = Array.from({ length: data.sets }, (_, i) => ({
+      setNumber: i + 1,
+      reps: data.reps,
+      load: loadData.load,
+      loadUnit: loadData.loadUnit,
+      tempo: data.tempo,
+      rest: data.rest,
+      notes: ''
+    }));
+
+    // Create the correct type based on isVariedSets and isAdvancedSets
+    const submissionData = data.isVariedSets ? {
+      ...data,
+      ...loadData,
+      isVariedSets: true as const,
+      isAdvancedSets: Boolean(data.isAdvancedSets),
+      // If using advanced sets, don't include the main section's load and rest
+      load: data.isAdvancedSets ? 0 : loadData.load,
+      rest: data.isAdvancedSets ? 0 : data.rest,
+      sets: data.setDetails?.map(set => ({
+        setNumber: set.setNumber,
+        reps: set.reps,
+        load: set.load,
+        loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs',
+        tempo: data.tempo,
+        rest: set.rest,
+        notes: '',
         subSets: set.subSets?.map(subSet => ({
           ...subSet,
-          loadUnit
+          loadUnit: (useAlternateUnit ? alternateUnit : defaultUnit).replace('kgs', 'kg') as 'kg' | 'lbs'
         }))
-      })) || [];
+      }))
+    } : {
+      ...data,
+      ...loadData,
+      isVariedSets: false as const,
+      isAdvancedSets: Boolean(data.isAdvancedSets),
+      sets: setsArray,
+      setDetails: undefined,
+      customName: data.source === 'custom' ? data.name : undefined
+    };
 
-      onSave(createVariedExercise({
-        ...data,
-        loadUnit
-      }, setDetails));
-    } else {
-      onSave(createRegularExercise({
-        ...data,
-        loadUnit
-      }));
-    }
+    console.log('Submission Data:', submissionData);
+    onSave(submissionData);
     onClose();
     // Reset the toggle after saving
     setUseAlternateUnit(false);
@@ -470,6 +460,23 @@ export default function AddExerciseModal({
     setValue('setDetails', updatedSetDetails);
   };
 
+  const getNextPairing = (existingExercises: ExerciseType[]): string => {
+    if (existingExercises.length === 0) return 'A1';
+    
+    const lastExercise = existingExercises[existingExercises.length - 1];
+    const currentPairing = lastExercise.pairing;
+    
+    if (currentPairing.startsWith('WU') || currentPairing.startsWith('CD')) {
+      return currentPairing;
+    }
+
+    const letter = currentPairing.charAt(0);
+    const number = parseInt(currentPairing.charAt(1));
+    
+    if (number === 1) return `${letter}2`;
+    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
+  };
+
   // Function to handle exercise creation
   const handleCreateExercise = async (exerciseName: string) => {
     try {
@@ -488,48 +495,24 @@ export default function AddExerciseModal({
 
       const newExercise = await response.json();
       
-      // Create a new exercise option
-      const newOption: ExerciseOption = {
+      // Create a properly typed exercise object
+      const exerciseData: ExerciseType = {
         id: newExercise.id.toString(),
-        value: `user-${newExercise.id}`,
-        label: newExercise.exercise_name,
-        data: {
-          id: newExercise.id.toString(),
-          name: newExercise.exercise_name,
-          source: 'user' as ExerciseSource,
-          difficulty: 'User Exercise',
-          targetMuscleGroup: 'N/A',
-          primaryEquipment: 'N/A',
-          secondaryEquipment: undefined,
-          exerciseFamily: 'N/A',
-          bodyRegion: 'N/A',
-          movementPattern: 'N/A',
-          movementPlane: 'N/A',
-          laterality: 'N/A'
-        }
+        name: newExercise.exercise_name,
+        pairing: getNextPairing(exercises),
+        sets: 3,
+        reps: 10,
+        load: 0,
+        tempo: '2010',
+        rest: 60,
+        isVariedSets: false,
+        isAdvancedSets: false
       };
 
-      // Update exercise options
-      setExerciseOptions(prev => [...prev, newOption]);
-      
-      // Select the new exercise
-      setSelectedExercise(newOption);
-      
-      // Update form values
-      setValue('name', newExercise.exercise_name);
-      setValue('source', 'user' as ExerciseSource);
-      setValue('id', newExercise.id.toString());
-      
-      // Reset modal state
+      // Set the form values
+      reset(exerciseData);
       setIsCreatingExercise(false);
       setNewExerciseName('');
-
-      // Don't close the modal - let the user configure the exercise details
-      handleExerciseSelect(newOption, {
-        action: 'select-option',
-        option: newOption,
-        name: 'exercise-select'
-      });
     } catch (error) {
       console.error('Error creating exercise:', error);
     }
@@ -585,24 +568,6 @@ export default function AddExerciseModal({
     );
   };
 
-  // Format load values with units for numeric inputs only
-  // Non-numeric values (e.g., band colors) are preserved as-is
-  // Note: BW (bodyweight) handling will be implemented in the future
-  const formatLoad = (load: string | number | undefined, loadUnit?: 'kg' | 'lbs'): string => {
-    // If no load provided, return empty string
-    if (load === undefined) return '';
-    
-    // Handle numeric loads (both number type and numeric strings)
-    const numericLoad = typeof load === 'string' ? parseFloat(load) : load;
-    if (typeof numericLoad === 'number' && !isNaN(numericLoad)) {
-      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs';
-      return `${numericLoad}${unit}`;
-    }
-    
-    // For any non-numeric value, return as is
-    return String(load);
-  };
-
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -625,10 +590,9 @@ export default function AddExerciseModal({
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Select<ExerciseOption>
-                    key={isOpen ? 'open' : 'closed'} // Force re-render when modal opens/closes
+                  <Select
                     value={selectedExercise}
-                    onChange={handleExerciseSelect}
+                    onChange={handleExerciseChange}
                     options={exerciseOptions}
                     isLoading={isLoading}
                     className="basic-single"
@@ -636,7 +600,6 @@ export default function AddExerciseModal({
                     placeholder="Select or search for an exercise..."
                     isClearable
                     styles={customSelectStyles}
-                    filterOption={filterExerciseOptions}
                     components={{
                       NoOptionsMessage: ({ children, ...props }: any) => (
                         <NoOptionsMessage inputValue={props.selectProps.inputValue} />
@@ -798,7 +761,7 @@ export default function AddExerciseModal({
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* RPE */}
-              {userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRPE && (
+              {userSettings?.fitness?.resistanceTraining?.trackRPE && (
                 <div>
                   <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
                     RPE (Rate of Perceived Exertion)
@@ -819,7 +782,7 @@ export default function AddExerciseModal({
               )}
 
               {/* RIR */}
-              {userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRIR && (
+              {userSettings?.fitness?.resistanceTraining?.trackRIR && (
                 <div>
                   <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
                     RIR (Reps in Reserve)

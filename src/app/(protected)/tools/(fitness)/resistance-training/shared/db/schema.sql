@@ -179,7 +179,7 @@ CREATE TABLE public.program_day_exercises (
     user_exercise_id        integer,
     custom_exercise_name    character varying(100),
     pairing                 character varying(10)
-      CHECK (pairing IS NULL OR pairing ~ '^([A-Z][1-2]|WU|CD)$'),  -- Validates A1, B2, WU, CD format
+      CHECK (pairing IS NULL OR pairing ~ '^([A-Z]\d{1,2}|WU|CD)$'),  -- Validates A1, A2, A3, etc., or WU, CD format
     notes                   text,
     order_index            integer,
     created_at             timestamp with time zone DEFAULT now(),

@@ -62,17 +62,21 @@ export const calculateSessionDuration = (exercises: Exercise[]): number => {
   }, 0);
 };
 
-export const calculateExerciseTUT = (exercise: Exercise): number => {
-  const tempo = exercise.tempo || '2010';
+export const calculateSetTUT = (reps: number, tempo: string = '2010'): number => {
   const tempoTotal = calculateTempoTotal(tempo);
-  
+  return reps * tempoTotal;
+};
+
+export const calculateExerciseTUT = (exercise: Exercise): number => {
   if (exercise.isVariedSets && exercise.setDetails) {
+    // For varied sets, return an array of TUT values for each set
     return exercise.setDetails.reduce((total, set) => {
-      return total + (set.reps * tempoTotal);
+      return total + calculateSetTUT(set.reps || 0, set.tempo || '2010');
     }, 0);
   }
   
-  return (Number(exercise.sets) || 0) * (Number(exercise.reps) || 0) * tempoTotal;
+  // For regular sets, calculate TUT for a single set
+  return calculateSetTUT(Number(exercise.reps) || 0, exercise.tempo || '2010');
 };
 
 export const calculateLinearProgression = (
