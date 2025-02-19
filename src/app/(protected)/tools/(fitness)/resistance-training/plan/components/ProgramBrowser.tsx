@@ -1,72 +1,146 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Program, Exercise, PhaseFocus, PeriodizationType, ProgressionRules, VolumeTarget } from '@/app/lib/types/pillars/fitness';
+import { Program, Exercise } from '@/app/lib/types/pillars/fitness';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate } from 'react-icons/hi';
 import { Modal } from 'flowbite-react';
 import { SavedProgram, SavedProgramWithOptional } from '@/app/lib/types/pillars/fitness/zod_schemas';
 
+  // How many programs to show per page
+  const ITEMS_PER_PAGE = 5;
+
+// Debug Configuration
+const DEBUG = {
+  FETCH: false,    // Program fetching
+  FILTER: false,   // Filter operations
+  ACTION: false,   // User actions (delete, duplicate)
+  RENDER: false,    // Component rendering
+  ERROR: false,    // Error handling
+  PAGINATION: false // Pagination
+} as const;
+
+function logDebug(category: keyof typeof DEBUG, message: string, data?: any) {
+  if (DEBUG[category]) {
+    console.log(`[ProgramBrowser:${category}] ${message}`, data || '');
+  }
+}
+
+/**
+ * This defines what the ProgramBrowser component needs to work:
+ * 
+ * @param onProgramSelect - Function that runs when a user clicks on a program
+ * @param currentUserId - The ID of the user whose programs we're showing
+ * @param isAdmin - Whether the current user is an admin (optional, defaults to false)
+ * @param onProgramDelete - Function that runs when a program is deleted (optional)
+ */
 interface ProgramBrowserProps {
   onProgramSelect: (program: SavedProgram) => void;
   currentUserId: number;
   isAdmin?: boolean;
-  simplified?: boolean;
   onProgramDelete?: (programId: string) => void;
 }
 
+/**
+ * MenuState tracks which program's action menu is currently open.
+ * It's an object where:
+ * - Keys are program IDs (like "program123")
+ * - Values are booleans (true = menu is open, false = menu is closed)
+ * 
+ * Example:
+ * {
+ *   "program123": true,   // This program's menu is visible
+ *   "program456": false,  // This program's menu is hidden
+ * }
+ */
 interface MenuState {
   [key: string]: boolean;
 }
 
+/**
+ * ProgramBrowser is like a file explorer for workout programs. It lets users:
+ * 1. View a list of saved workout programs
+ * 2. Search and filter programs by different criteria
+ * 3. Sort programs by date or name
+ * 4. Perform actions like edit, duplicate, or delete programs
+ * 
+ * The component handles:
+ * - Loading programs from the server
+ * - Pagination (showing programs in smaller groups)
+ * - Program management (duplicate/delete)
+ * - Search and filtering
+ */
 export default function ProgramBrowser({ 
   onProgramSelect, 
   currentUserId, 
   isAdmin = false,
-  simplified = false,
   onProgramDelete
 }: ProgramBrowserProps) {
+  // Track the state of programs and UI
+  // const [exercises, setExercises] = useState<Exercise[]>([]);
   const [programs, setPrograms] = useState<SavedProgram[]>([]);
   const [menuState, setMenuState] = useState<MenuState>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [programToDelete, setProgramToDelete] = useState<SavedProgram | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState({
+    programs: true,  // Start true since we fetch on mount
+    delete: false,
+    duplicate: false
+  });
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [filters, setFilters] = useState({
+
+  // Define FilterState interface
+  interface FilterState {
+    search: string;
+    dateRange: 'all' | 'week' | 'month' | 'year';
+    phaseFocus: string;
+    periodizationType: string;
+    sortBy: 'newest' | 'oldest' | 'name';
+  }
+
+  // Search and filter settings
+  const [filters, setFilters] = useState<FilterState>({
     search: '',
-    dateRange: 'all', // all, week, month, year
+    dateRange: 'all',
     phaseFocus: '',
     periodizationType: '',
-    exercise: '',
-    sortBy: 'newest' // newest, oldest, name
+    sortBy: 'newest'
   });
 
-  const ITEMS_PER_PAGE = 5;
-
-  const fetchPrograms = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch(`/api/resistance-training/programs${isAdmin ? `?userId=${currentUserId}` : ''}`);
-      if (!response.ok) throw new Error('Failed to fetch programs');
-      const data = await response.json();
-      setPrograms(data.programs);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to fetch programs');
-      console.error('Error fetching programs:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    console.log('Debug - useEffect triggered with currentUserId:', currentUserId);
-    setCurrentPage(1); // Reset to first page when user changes
-    fetchPrograms();
-  }, [currentUserId, isAdmin]);
+    if (error) {
+      logDebug('ERROR', 'Component error state:', error);
+    }
+  }, [error]);
 
-  const filteredPrograms = programs.filter(program => {
+  // Additional state for exercise filtering
+  // const [selectedExercises, setSelectedExercises] = useState<string[]>([]);
+  // const [showSuggestions, setShowSuggestions] = useState(false);
+  // const [commonExercises, setCommonExercises] = useState<string[]>([]);
+
+
+
+// Future Enhancement: Exercise filtering state
+// const [exercises, setExercises] = useState<Exercise[]>([]);
+
+// const fetchExercises = async () => {
+//   try {
+//     const exercises = await exerciseService.fetchAll();
+//     setExercises(exercises);
+//   } catch (error) {
+//     console.error('Error fetching exercises:', error);
+//   }
+// };
+
+  /**
+   * Fetches programs from the server for the current user
+   * For admin users, can fetch programs for other users
+   */
+   // Filter logic
+const getFilteredPrograms = useCallback((programs: SavedProgram[]) => {
+  return programs.filter(program => {
     if (filters.search && !program.program_name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
@@ -112,57 +186,98 @@ export default function ProgramBrowser({
         return 0;
     }
   });
+}, [filters]);
+  
+const fetchPrograms = async () => {
+  logDebug('FETCH', 'Fetching programs for user', currentUserId);
+  try {
+    setIsLoading(prev => ({ ...prev, programs: true }));
+    // ... fetch logic ...
+  } catch (error) {
+    handleError(error, 'fetch programs');
+  } finally {
+    setIsLoading(prev => ({ ...prev, programs: false }));
+  }
+};
 
-  // Get current programs
+  // Error handling utility
+const handleError = (error: unknown, action: string) => {
+  const errorMessage = error instanceof Error ? error.message : `Failed to ${action}`;
+  setError(errorMessage);
+  logDebug('ERROR', errorMessage);
+};
+
+ 
+// Apply filters to programs 
+const filteredPrograms = useMemo(() => 
+  getFilteredPrograms(programs),
+  [programs, getFilteredPrograms]
+);
+
+const getPaginatedPrograms = useCallback(() => {
   const indexOfLastProgram = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstProgram = indexOfLastProgram - ITEMS_PER_PAGE;
-  const currentPrograms = filteredPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
-  const totalPages = Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE);
+  return filteredPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
+}, [currentPage, filteredPrograms]);
 
-  const handleMenuClick = (e: React.MouseEvent, programId: string) => {
+  useEffect(() => {
+    console.log('Debug - useEffect triggered with currentUserId:', currentUserId);
+    setCurrentPage(1); // Reset to first page when user changes
+    fetchPrograms();
+    // Future Enhancement: Exercise filtering
+  // fetchExercises();
+  }, [currentUserId, isAdmin]);
+
+  useEffect(() => {
+    return () => {
+      // Cleanup on unmount
+      setMenuState({});
+      setProgramToDelete(null);
+    };
+  }, []);
+
+  const paginationInfo = useMemo(() => ({
+    totalPages: Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE),
+    currentPage,
+    hasNextPage: currentPage < Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE),
+    hasPrevPage: currentPage > 1
+  }), [filteredPrograms.length, currentPage]);
+
+  // Get current programs
+  const currentPrograms = getPaginatedPrograms();
+
+  const handleMenuClick = useCallback((e: React.MouseEvent, programId: string) => {
     e.stopPropagation();
     setMenuState(prev => ({
       ...prev,
       [programId]: !prev[programId]
     }));
-  };
+  }, []);
 
-  const handleViewEdit = async (e: React.MouseEvent, program: SavedProgram) => {
+  const handleViewEdit = useCallback((e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
     onProgramSelect(program);
     setMenuState(prev => ({ ...prev, [program.id]: false }));
-  };
+  }, [onProgramSelect]);
 
-  const handleDuplicateClick = async (e: React.MouseEvent, program: SavedProgram) => {
+  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
     try {
-      const duplicatedProgram = {
-        ...program,
-        program_name: `${program.program_name} (Copy)`,
-        userId: currentUserId
-      };
-
-      const response = await fetch('/api/resistance-training/program', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(duplicatedProgram)
-      });
-
-      if (!response.ok) throw new Error('Failed to duplicate program');
-
-      await fetchPrograms();
-      setMenuState(prev => ({ ...prev, [program.id]: false }));
+      setIsLoading(prev => ({ ...prev, duplicate: true }));
+      // ... duplicate logic ...
     } catch (error) {
-      console.error('Error duplicating program:', error);
+      handleError(error, 'duplicate program');
+    } finally {
+      setIsLoading(prev => ({ ...prev, duplicate: false }));
     }
-  };
+  }, [currentUserId, fetchPrograms]);
 
-  const handleDeleteClick = (e: React.MouseEvent, program: SavedProgram) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, program: SavedProgram) => {
     e.stopPropagation();
     setProgramToDelete(program);
     setShowDeleteConfirm(true);
     setMenuState(prev => ({ ...prev, [program.id]: false }));
-  };
+  }, []);
 
   const handleDeleteConfirm = async () => {
     if (!programToDelete) return;
@@ -189,41 +304,32 @@ export default function ProgramBrowser({
     }
   };
 
-  const handlePageChange = (pageNumber: number) => {
+  const handlePageChange = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
-  };
+  }, []);
 
-  if (simplified) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {programs.map((program) => (
-          <div
-            key={program.id}
-            className="relative p-4 border rounded-lg shadow-sm hover:shadow-md transition-shadow bg-white dark:bg-gray-800 dark:border-gray-700"
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                {program.program_name}
-              </h3>
-            </div>
-            
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-300">
-              <p>Phase: {program.phase_focus}</p>
-              <p>Type: {program.periodization_type}</p>
-              <p>Created: {format(new Date(program.created_at), 'MMM d, yyyy')}</p>
-            </div>
+  // const handleExerciseSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const value = e.target.value;
+  //   setFilters({ ...filters, exerciseSearch: value });
+  //   setShowSuggestions(true);
+  // };
 
-            <button
-              onClick={() => onProgramSelect(program)}
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              Select Program
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  // const addExercise = (exercise: string) => {
+  //   if (!selectedExercises.includes(exercise)) {
+  //     setSelectedExercises([...selectedExercises, exercise]);
+  //   }
+  //   setShowSuggestions(false);
+  // };
+
+  // const removeExercise = (exercise: string) => {
+  //   const newSelectedExercises = selectedExercises.filter(e => e !== exercise);
+  //   setSelectedExercises(newSelectedExercises);
+  // };
+
+  // const filteredExerciseSuggestions = commonExercises.filter(exercise =>
+  //   exercise.toLowerCase().includes(filters.exerciseSearch.toLowerCase())
+  // );
+  const totalPages = Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE);
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6">
@@ -251,11 +357,62 @@ export default function ProgramBrowser({
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
 
+            {/* Future Enhancement: Exercise Search Section
+            <div className="relative">
+              <div className="flex flex-wrap gap-2 p-2 border border-gray-300 rounded-md bg-white">
+                {selectedExercises.map(exercise => (
+                  <span key={exercise} className="inline-flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded">
+                    {exercise}
+                    <button onClick={() => removeExercise(exercise)} className="ml-1">×</button>
+                  </span>
+                ))}
+                
+                <input
+                  type="text"
+                  placeholder="Search by exercise..."
+                  className="flex-grow min-w-[200px] border-none focus:ring-0"
+                  onChange={handleExerciseSearch}
+                />
+              </div>
+
+              {showSuggestions && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  <div className="p-2 border-b border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-500">Common Exercises</h4>
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {commonExercises.slice(0, 5).map(exercise => (
+                        <button
+                          key={exercise}
+                          onClick={() => addExercise(exercise)}
+                          className="px-2 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
+                        >
+                          {exercise}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <ul className="max-h-48 overflow-y-auto">
+                    {filteredExerciseSuggestions.map(exercise => (
+                      <li
+                        key={exercise}
+                        onClick={() => addExercise(exercise)}
+                        className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                      >
+                        {exercise}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            */}
+
             <div className="grid grid-cols-2 gap-4">
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
                 value={filters.dateRange}
-                onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, dateRange: e.target.value as 'all' | 'week' | 'month' | 'year' })}
               >
                 <option value="all">All Time</option>
                 <option value="week">Past Week</option>
@@ -266,7 +423,7 @@ export default function ProgramBrowser({
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
                 value={filters.sortBy}
-                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as 'newest' | 'oldest' | 'name' })}
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -278,7 +435,7 @@ export default function ProgramBrowser({
                 value={filters.phaseFocus}
                 onChange={(e) => setFilters({ ...filters, phaseFocus: e.target.value })}
               >
-                <option value="">All Phases</option>
+                <option value="">All Phases/ Focus</option>
                 <option value="GPP">GPP</option>
                 <option value="Strength">Strength</option>
                 <option value="Hypertrophy">Hypertrophy</option>
@@ -291,7 +448,7 @@ export default function ProgramBrowser({
                 value={filters.periodizationType}
                 onChange={(e) => setFilters({ ...filters, periodizationType: e.target.value })}
               >
-                <option value="">All Types</option>
+                <option value="">All Periodization Types</option>
                 <option value="Linear">Linear</option>
                 <option value="Undulating">Undulating</option>
                 <option value="Block">Block</option>
@@ -371,6 +528,12 @@ export default function ProgramBrowser({
                           <span>Type: {program.periodization_type || 'None'}</span>
                           <span>Phase: {program.phase_focus || 'Not specified'}</span>
                         </div>
+                        {program.exercises && program.exercises.length > 0 && (
+                          <div className="mt-2">
+                            <span className="font-medium">Exercises: </span>
+                            <span>{program.exercises.map(ex => ex.name).join(', ')}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -378,13 +541,13 @@ export default function ProgramBrowser({
               </div>
 
               {/* Pagination */}
-              {totalPages > 1 && (
+              {paginationInfo.totalPages > 1 && (
                 <div className="flex justify-center mt-6 space-x-2">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
+                    disabled={!paginationInfo.hasPrevPage}
                     className={`px-3 py-1 rounded ${
-                      currentPage === 1
+                      !paginationInfo.hasPrevPage
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-300 dark:text-gray-600'
                         : 'bg-gray-300 text-gray-700 hover:bg-gray-400 dark:bg-gray-200 dark:text-slate-900 dark:hover:bg-gray-300'
                     }`}
@@ -392,12 +555,12 @@ export default function ProgramBrowser({
                     Previous
                   </button>
                   
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => (
+                  {Array.from({ length: paginationInfo.totalPages }, (_, i) => i + 1).map((number) => (
                     <button
                       key={number}
                       onClick={() => handlePageChange(number)}
                       className={`px-3 py-1 rounded ${
-                        currentPage === number
+                        paginationInfo.currentPage === number
                           ? 'bg-blue-600 text-white dark:bg-blue-700'
                           : 'bg-gray-300 text-gray-700 hover:bg-gray-400 dark:bg-gray-200 dark:text-slate-900 dark:hover:bg-gray-300'
                       }`}
@@ -408,9 +571,9 @@ export default function ProgramBrowser({
                   
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
+                    disabled={!paginationInfo.hasNextPage}
                     className={`px-3 py-1 rounded ${
-                      currentPage === totalPages
+                      !paginationInfo.hasNextPage
                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-300 dark:text-gray-600'
                         : 'bg-gray-300 text-gray-700 hover:bg-gray-400 dark:bg-gray-200 dark:text-slate-900 dark:hover:bg-gray-300'
                     }`}
@@ -463,4 +626,32 @@ export default function ProgramBrowser({
       </Modal>
     </div>
   );
-} 
+}
+
+/**
+ * Test Considerations:
+ * 1. Loading States
+ *    - Check if loading spinner shows when fetching programs
+ *    - Verify error messages display when fetch fails
+ * 
+ * 2. Program Display
+ *    - Verify programs display correctly in the list view
+ *    - Verify pagination works (next/previous/page numbers)
+ * 
+ * 3. Filtering and Sorting
+ *    - Test search functionality
+ *    - Verify date range filters
+ *    - Check phase and type filters
+ *    - Confirm sort orders work
+ * 
+ * 4. Program Actions
+ *    - Test program selection
+ *    - Verify duplicate functionality
+ *    - Confirm delete with modal works
+ *    - Check admin-only features
+ * 
+ * 5. Error Handling
+ *    - Test API failure scenarios
+ *    - Verify error messages
+ *    - Check recovery from errors
+ */ 

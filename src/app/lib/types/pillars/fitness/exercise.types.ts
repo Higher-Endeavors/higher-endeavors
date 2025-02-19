@@ -4,10 +4,8 @@ import { exerciseSchema, setDetailsSchema, subSetSchema, PhaseFocus, Periodizati
 /**
  * Unit types for fitness measurements
  */
-export type WeightUnit = 'lbs' | 'kg';  // For body weight measurements
+
 export type LoadUnit = 'lbs' | 'kg';    // Specifically for resistance training loads
-export type HeightUnit = 'in' | 'cm';
-export type TemperatureUnit = 'F' | 'C';
 
 /**
  * Program types
@@ -36,90 +34,93 @@ export function isProgressionFrequency(value: unknown): value is ProgressionFreq
 /**
  * Defines the possible sources of an exercise
  */
-export type ExerciseSource = 'library' | 'user' | 'custom';
-
-/**
- * Type for sub-sets within a set
- */
-export type SubSet = z.infer<typeof subSetSchema> & {
-  reps: number;
-  load: number | string;
-  loadUnit?: LoadUnit;  // Changed from WeightUnit to LoadUnit
-  notes?: string;
-  rest?: number;
-};
-
-/**
- * Type for individual set details in varied exercises
- */
-export type SetDetail = z.infer<typeof setDetailsSchema>;
+export type ExerciseSource = 'library' | 'user';  // Remove 'custom'
 
 /**
  * Base interface for exercise properties
  */
 export interface BaseExercise {
-  id: string;
-  name: string;
-  pairing: string;
-  sets: number;
-  reps: number;
-  load: number | string;
-  tempo: string;
-  rest: number;
-  notes?: string;
-  rpe?: number;
-  rir?: number;
-  loadUnit?: LoadUnit;  // Changed from WeightUnit to LoadUnit
-  source?: ExerciseSource;
-  libraryId?: number;
-  userExerciseId?: number;
+  id: number;              // ID from respective table
+  exerciseId: number;
+  name: string;           
+  source: 'library' | 'user';
 }
 
-/**
- * Interface for exercises with uniform sets
- */
-export interface RegularExercise extends BaseExercise {
-  isVariedSets: false;
-  isAdvancedSets: false;
-  setDetails?: undefined;
+interface PlannedExercise extends BaseExercise {
+  pairing: string;
+  sets: number;
+  isVariedSets: boolean;
+  isAdvancedSets: boolean;
+  plannedSets?: PlannedExerciseSet[];
 }
 
 /**
  * Interface for exercises with varied sets
  */
 export interface VariedExercise extends BaseExercise {
+  pairing: string;
   isVariedSets: true;
   isAdvancedSets: boolean;
-  setDetails: SetDetail[];
+  setDetails: PlannedExerciseSet[];
 }
 
 /**
  * Union type for all exercise types
  */
-export type Exercise = RegularExercise | VariedExercise;
+export type Exercise = PlannedExercise | VariedExercise;
+
+export interface PlannedExerciseSet {
+  id: number;
+  setNumber: number;
+  plannedReps: number;
+  plannedLoad: number | string;
+  plannedTempo: string;
+  plannedRest: number;
+  loadUnit?: LoadUnit;
+  notes?: string;
+  subSets?: PlannedExerciseSubSet[];
+}
+
+/**
+ * Type for individual set details in varied exercises
+ */
+
+export interface PlannedExerciseSubSet {
+  id: number;
+  subSetNumber: number;
+  plannedReps: number;
+  plannedLoad: number | string;
+  plannedRest: number;
+  plannedTempo: string;
+  loadUnit?: LoadUnit;
+}
+
+
+
 
 /**
  * Type for exercise options in react-select
  */
 export interface ExerciseOption {
-  id: string;
+  id: number;
   value: string;
   label: string;
   libraryId?: number;
-  source?: ExerciseSource;
+  source: ExerciseSource;
   data: {
-    id: string;
+    id: number;
     name: string;
     source: ExerciseSource;
+    // Optional fields for library exercises
     difficulty?: string;
-    targetMuscleGroup: string;
-    primaryEquipment: string;
+    targetMuscleGroup?: string;
+    primaryEquipment?: string;
     secondaryEquipment?: string;
-    exerciseFamily: string;
-    bodyRegion: string;
-    movementPattern: string;
-    movementPlane: string;
-    laterality: string;
+    exerciseFamily?: string;
+    bodyRegion?: string;
+    movementPattern?: string;
+    movementPlane?: string;
+    laterality?: string;
     libraryId?: number;
   };
 }
@@ -137,11 +138,13 @@ export type ExerciseSelectHandler = (
 ) => void;
 
 /**
- * Helper function to create a regular exercise
+ * Helper function to create a planned exercise
  */
-export function createRegularExercise(baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'>): RegularExercise {
+export function createPlannedExercise(baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'>): PlannedExercise {
   return {
     ...baseExercise,
+    pairing: '',
+    sets: 0,
     isVariedSets: false,
     isAdvancedSets: false
   };
@@ -152,10 +155,11 @@ export function createRegularExercise(baseExercise: Omit<BaseExercise, 'isVaried
  */
 export function createVariedExercise(
   baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'>,
-  setDetails: SetDetail[]
+  setDetails: PlannedExerciseSet[]
 ): VariedExercise {
   return {
     ...baseExercise,
+    pairing: '',
     isVariedSets: true,
     isAdvancedSets: setDetails.length > 0,
     setDetails
@@ -192,26 +196,32 @@ export function applyLinearProgression(
   volumeIncrementPercentage: number,
   loadIncrementPercentage: number
 ): Exercise {
-  const baseReps = Number(exercise.reps) || 0;
-  const baseLoad = typeof exercise.load === 'number' ? exercise.load : 0;
-  
-  // Calculate increments
-  const volumeMultiplier = 1 + ((weekNumber - 1) * (volumeIncrementPercentage / 100));
-  const loadMultiplier = 1 + ((weekNumber - 1) * (loadIncrementPercentage / 100));
+  if ('isVariedSets' in exercise && exercise.isVariedSets) {
+    const variedExercise = exercise as VariedExercise;
+    const updatedSets = variedExercise.setDetails.map(set => {
+      const baseReps = set.plannedReps;
+      const baseLoad = typeof set.plannedLoad === 'number' ? set.plannedLoad : 0;
 
-  // Apply progression
-  const newReps = Math.max(1, Math.round(baseReps * volumeMultiplier));
-  const newLoad = typeof exercise.load === 'number' 
-    ? Math.round(baseLoad * loadMultiplier * 100) / 100 
-    : exercise.load;
+      // Calculate increments
+      const volumeMultiplier = 1 + ((weekNumber - 1) * (volumeIncrementPercentage / 100));
+      const loadMultiplier = 1 + ((weekNumber - 1) * (loadIncrementPercentage / 100));
 
-  return {
-    ...exercise,
-    reps: isNaN(newReps) ? baseReps : newReps,
-    load: typeof newLoad === 'number' && isNaN(newLoad) ? baseLoad : newLoad
-  };
+      return {
+        ...set,
+        plannedReps: Math.max(1, Math.round(baseReps * volumeMultiplier)),
+        plannedLoad: typeof set.plannedLoad === 'number' 
+          ? Math.round(baseLoad * loadMultiplier * 100) / 100 
+          : set.plannedLoad
+      };
+    });
+
+    return {
+      ...exercise,
+      setDetails: updatedSets
+    };
+  }
+  return exercise;
 }
-
 /**
  * Training session related types
  */
@@ -261,4 +271,27 @@ export interface TrainingSession {
 
 export function isValidPairing(pairing: string): boolean {
   return /^([A-Z][1-2]|WU|CD)$/.test(pairing);
-} 
+}
+
+
+
+/**
+ * Type for form handling in AddExerciseModal
+ */
+export interface ExerciseFormData {
+  id: string;
+  name: string;
+  pairing: string;
+  sets: number;
+  reps: number;
+  load: number | string;
+  loadUnit?: LoadUnit;
+  tempo: string;
+  rest: number;
+  notes?: string;
+  rpe?: number;
+  rir?: number;
+  isVariedSets: boolean;
+  isAdvancedSets: boolean;
+  setDetails?: PlannedExerciseSet[];  // This already includes subSets?: PlannedExerciseSubSet[]
+}

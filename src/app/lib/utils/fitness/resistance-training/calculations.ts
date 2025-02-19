@@ -1,4 +1,4 @@
-import { Exercise, SetDetail, WeightUnit } from '@/app/lib/types/pillars/fitness';
+import { Exercise, PlannedExerciseSet, LoadUnit } from '@/app/lib/types/pillars/fitness';
 import { calculateTempoTotal, getNumericLoad, convertWeight } from '../unit-conversions';
 
 export interface VolumeMetrics {
@@ -9,7 +9,7 @@ export interface VolumeMetrics {
 
 export const calculateSessionVolume = (
   exercises: Exercise[],
-  preferredUnit: WeightUnit = 'lbs'
+  preferredUnit: LoadUnit = 'lbs'
 ): VolumeMetrics => {
   let totalSets = 0;
   let totalReps = 0;
@@ -90,3 +90,21 @@ export const calculateLinearProgression = (
 
 // Alias export for backward compatibility
 export const calculateSessionExerciseVolume = calculateSessionVolume; 
+
+export const formatLoad = (
+  load: string | number | undefined, 
+  loadUnit?: LoadUnit
+): string => {
+  if (load === undefined || load === '') {
+    return '';
+  }
+
+  const numericLoad = typeof load === 'string' ? parseFloat(load) : load;
+  
+  if (typeof numericLoad === 'number' && !isNaN(numericLoad)) {
+    const unit = loadUnit || 'lbs';
+    return `${numericLoad}${unit}`;
+  }
+
+  return String(load);
+};

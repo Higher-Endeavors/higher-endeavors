@@ -5,8 +5,9 @@ import React, { useState } from 'react';
 // import { useSortable } from '@dnd-kit/sortable';
 // import { CSS } from '@dnd-kit/utilities';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash } from 'react-icons/hi';
-import { Exercise, SetDetail, SubSet } from '@/app/lib/types/pillars/fitness';
-import { calculateExerciseTUT, calculateSetTUT } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { Exercise, PlannedExerciseSet, PlannedExerciseSubSet } from '@/app/lib/types/pillars/fitness';
+import { formatLoad } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { calculateExerciseTUT, calculateSetTUT, formatLoad } from '@/app/lib/utils/fitness/resistance-training/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 interface ExerciseItemProps {

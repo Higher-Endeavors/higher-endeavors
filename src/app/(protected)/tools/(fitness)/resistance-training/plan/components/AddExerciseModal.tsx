@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { GroupBase } from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
@@ -11,22 +12,68 @@ import { FitnessSettings, UserSettings, PillarSettings } from '@/app/lib/types/u
 import {
   Exercise,
   ExerciseSource,
-  exerciseSchema,
-  getNextPairing,
-  isValidPairing,
-  createRegularExercise,
-  createVariedExercise,
   ExerciseOption,
   ExerciseSelectHandler,
-  WeightUnit as LoadUnit
+  LoadUnit,
+  ExerciseFormData,
+  PlannedExerciseSet,
+  PlannedExerciseSubSet,
+  getNextPairing,
+  isValidPairing,
+  createPlannedExercise,
+  createVariedExercise
 } from '@/app/lib/types/pillars/fitness';
 import { FilterOptionOption } from 'react-select';
+import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
+
+
+/**
+ * Debug Configuration
+ * Controls what types of logging are active
+ * All logs are prefixed with [AddExerciseModal] for easy filtering
+ */
+const DEBUG = {
+  FORM: false,         // Form changes and submissions
+  VALIDATION: false,   // Validation errors and states
+  STATE: false,        // State changes (exercise selection, units, etc.)
+  EFFECTS: false,      // Effect triggers and updates
+  EXERCISE_MGMT: false,// Exercise creation and selection
+  SET_MGMT: false,     // Set and subset management
+  API: false          // API calls and responses
+};
+
+/**
+ * Debugging utilities for different component aspects
+ */
+const Debug = {
+  form: (message: string, data?: any) => {
+    if (DEBUG.FORM) console.log(`[AddExerciseModal:Form] ${message}`, data || '');
+  },
+  validation: (message: string, data?: any) => {
+    if (DEBUG.VALIDATION) console.log(`[AddExerciseModal:Validation] ${message}`, data || '');
+  },
+  state: (message: string, data?: any) => {
+    if (DEBUG.STATE) console.log(`[AddExerciseModal:State] ${message}`, data || '');
+  },
+  effect: (message: string, data?: any) => {
+    if (DEBUG.EFFECTS) console.log(`[AddExerciseModal:Effect] ${message}`, data || '');
+  },
+  exerciseMgmt: (message: string, data?: any) => {
+    if (DEBUG.EXERCISE_MGMT) console.log(`[AddExerciseModal:ExerciseMgmt] ${message}`, data || '');
+  },
+  setMgmt: (message: string, data?: any) => {
+    if (DEBUG.SET_MGMT) console.log(`[AddExerciseModal:SetMgmt] ${message}`, data || '');
+  },
+  api: (message: string, data?: any) => {
+    if (DEBUG.API) console.log(`[AddExerciseModal:API] ${message}`, data || '');
+  }
+};
 
 /**
  * Filter function for the exercise select dropdown
  */
 const filterExerciseOptions = (
-  option: FilterOptionOption<ExerciseOption>,
+  option: { label: string; value: string; data: ExerciseOption },
   inputValue: string
 ): boolean => {
   if (!inputValue) return true;
@@ -38,22 +85,9 @@ const filterExerciseOptions = (
 };
 
 /**
- * Props for the Exercise Modal component
- */
-interface ExerciseModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (exercise: Exercise) => void;
-  exercise?: Exercise;          // Provided when editing an existing exercise
-  exercises: Exercise[];        // Used for generating next pairing
-  onAdvancedSearch: () => void;
-  selectedExerciseName?: string;
-  userSettings?: UserSettings;  // Changed back to UserSettings since we need access to pillar_settings
-}
-
-/**
  * Custom styles for the exercise name select dropdown
  * Ensures proper color contrast in both light and dark modes
+ * Used by the react-select component for consistent theming
  */
 const customSelectStyles = {
   option: (provided: any, state: any) => ({
@@ -119,6 +153,34 @@ const customSelectStyles = {
 };
 
 /**
+ * Props required by the AddExerciseModal:
+ * 
+ * Core Props:
+ * @param isOpen - Controls modal visibility
+ * @param onClose - Function to call when modal closes
+ * @param onSave - Function to call with new/edited exercise data
+ * @param exercise - Existing exercise data (for editing mode)
+ * 
+ * Exercise Management:
+ * @param exercises - List of available exercises
+ * @param onAdvancedSearch - Handler for advanced exercise search
+ * @param selectedExerciseName - Pre-selected exercise name
+ * 
+ * Configuration:
+ * @param userSettings - User preferences (units, tracking options)
+ */
+interface ExerciseModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (exercise: Exercise) => Promise<void>;
+  exercise?: Exercise;
+  exercises: Exercise[];
+  onAdvancedSearch: () => void;
+  selectedExerciseName?: string;
+  userSettings?: UserSettings;
+}
+
+/**
  * Exercise Modal Component
  * Handles both creating new exercises and editing existing ones
  * Supports both standard and varied set configurations
@@ -133,44 +195,55 @@ export default function AddExerciseModal({
   selectedExerciseName,
   userSettings
 }: ExerciseModalProps) {
+  // Debug props on component mount and updates
   useEffect(() => {
-    console.log('AddExerciseModal - Received props:', {
+    Debug.state('Component props received', {
       selectedExerciseName,
       exercise,
-      exercises
+      exercisesCount: exercises.length
     });
   }, [selectedExerciseName, exercise, exercises]);
 
-  // Debug logs for user settings
+  // Debug user settings separately for clarity
   useEffect(() => {
-    console.log('Modal User Settings:', userSettings);
-    console.log('Track RIR:', userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRIR);
+    Debug.state('User settings received', {
+      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit,
+      trackRIR: userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRIR,
+      trackRPE: userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRPE
+    });
   }, [userSettings]);
 
   // State for exercise name options in dropdown
   const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [exerciseOptions, setExerciseOptions] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Debug initial state setup
+  useEffect(() => {
+    Debug.state('Initial state setup', {
+      selectedExercise: selectedExercise?.label || null,
+      optionsCount: exerciseOptions.length,
+      isLoading
+    });
+  }, []);
   
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const defaultUnit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
-  const alternateUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
+  const defaultUnit: LoadUnit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
+  const alternateUnit: LoadUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
 
   // Initialize useAlternateUnit based on user settings when modal opens
   useEffect(() => {
     if (isOpen) {
-      // If editing an exercise, use its load unit
-      if (exercise?.loadUnit) {
-        setUseAlternateUnit(exercise.loadUnit !== 'kg');
-      } else {
-        // For new exercises, use user's preferred unit
-        setUseAlternateUnit(defaultUnit !== 'kg');
-      }
+      const exerciseUnit = exercise && 
+        ('setDetails' in exercise ? exercise.setDetails[0]?.loadUnit : exercise.plannedSets?.[0]?.loadUnit);
+      
+      // Use exercise unit if available, otherwise use user's preferred unit
+      setUseAlternateUnit(exerciseUnit ? exerciseUnit !== 'kg' : defaultUnit !== 'kg');
     }
   }, [isOpen, exercise, defaultUnit]);
 
-  // Add state for creating new exercise
+   // State for handling new exercise creation flow
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
 
@@ -186,21 +259,21 @@ export default function AddExerciseModal({
     setValue,
     formState: { errors },
     reset
-  } = useForm<Exercise>({
+  } = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
-      id: '',
-      name: '',
-      pairing: 'A1',
-      sets: 3,
-      reps: 8,
-      load: 0,
-      tempo: '2010',
-      rest: 60,
-      notes: '',
-      isVariedSets: false,
-      isAdvancedSets: false,
-      setDetails: undefined
+      id: '',                    // String ID for form
+      name: '',                  // Exercise name
+      pairing: 'A1',            // Default pairing
+      sets: 3,                  // Default number of sets
+      reps: 8,                  // Default reps per set
+      load: 0,                  // Default load (can be number or string)
+      tempo: '2010',            // Default tempo
+      rest: 60,                 // Default rest in seconds
+      notes: '',                // Optional notes
+      isVariedSets: false,      // Whether sets vary in reps/load
+      isAdvancedSets: false,    // Whether sets include subsets
+      setDetails: undefined     // Details for varied sets
     }
   });
 
@@ -209,74 +282,89 @@ export default function AddExerciseModal({
   const isAdvancedSets = watch('isAdvancedSets');
   const currentSets = watch('sets');
 
+  // Update the watch effect
+  useEffect(() => {
+    const subscription = watch((value) => {
+      Debug.form('Form value changed:', value);
+    });
+    return () => subscription?.unsubscribe?.();
+  }, [watch]);
   /**
    * Effect: Initialize form when editing existing exercise
    * Handles type conversion for discriminated union
    */
   useEffect(() => {
+    Debug.form('Initializing form', {
+      isEditing: !!exercise,
+      exerciseId: exercise?.id,
+      nextPairing: exercise ? exercise.pairing : getNextPairing(exercises.filter(ex => ex.pairing))
+    });
+
     if (exercise) {
-      reset(exercise); // The exercise type is already correct from our consolidated types
+      reset({
+        ...exercise,
+        id: exercise.id.toString(),
+        isVariedSets: 'setDetails' in exercise,
+        isAdvancedSets: 'setDetails' in exercise && exercise.setDetails.some(set => set.subSets && set.subSets.length > 0)
+      });
     } else {
       // Use our utility function to get the next pairing
       const nextPairing = getNextPairing(exercises.filter(ex => ex.pairing));
 
-      reset(createRegularExercise({
+      // Default values for new exercises
+      reset({
         id: Math.random().toString(36).substr(2, 9),
         name: '',
         pairing: nextPairing,
-        sets: 1,
-        reps: 1,
+        sets: 3,
+        reps: 10,
         load: 0,
         tempo: '2010',
         rest: 60,
-        notes: ''
-      }));
+        notes: '',
+        isVariedSets: false,
+        isAdvancedSets: false,
+        setDetails: undefined
+      } satisfies ExerciseFormData);
     }
   }, [exercise, exercises, reset]);
 
-  // Add form value monitoring effect
+  // Update the watch effect
   useEffect(() => {
-    console.log('Setting up form value monitoring');
-    const subscription = watch((value, { name, type }) => {
-      console.log('Form value changed:', { name, type, value });
+    const subscription = watch((value) => {
+      Debug.form('Form value changed:', value);
     });
-    return () => subscription.unsubscribe();
+    return () => subscription?.unsubscribe?.();
   }, [watch]);
 
-  // Update handleExerciseSelect with logging
+  /**
+   * Handles the selection of an exercise from the dropdown
+   * - Updates form state with selected exercise details
+   * - Triggers form updates
+   */
   const handleExerciseSelect: ExerciseSelectHandler = (selectedOption, actionMeta) => {
-    console.log('Exercise Select - Start', { selectedOption, actionMeta });
+    Debug.exerciseMgmt('Exercise Selection Started', { selectedOption, actionMeta });
     
     if (selectedOption) {
-      console.log('Exercise Select - Setting values', {
-        label: selectedOption.label,
-        source: selectedOption.data.source,
+      Debug.exerciseMgmt('Setting exercise values', {
+        name: selectedOption.label,
         id: selectedOption.data.id
       });
       
       setSelectedExercise(selectedOption);
       setValue('name', selectedOption.label);
-      setValue('source', selectedOption.data.source);
-      if (selectedOption.data.source === 'library') {
-        setValue('libraryId', parseInt(selectedOption.data.id));
-      }
       
-      console.log('Exercise Select - After setting values', {
-        formValues: watch(),
-        selectedExercise: selectedOption
-      });
+      Debug.form('Form values after exercise selection', watch());
     } else {
-      console.log('Exercise Select - Clearing values');
+      Debug.exerciseMgmt('Clearing exercise selection');
       setSelectedExercise(null);
       setValue('name', '');
-      setValue('source', 'library');
-      setValue('libraryId', undefined);
     }
   };
 
-  // Add logging to the selectedExerciseName effect
-  useEffect(() => {
-    console.log('selectedExerciseName effect triggered', {
+   // Handle pre-selected exercise name
+   useEffect(() => {
+    Debug.exerciseMgmt('Pre-selected exercise effect triggered', {
       selectedExerciseName,
       exerciseOptionsCount: exerciseOptions.length
     });
@@ -285,10 +373,10 @@ export default function AddExerciseModal({
       const matchingExercise = exerciseOptions.find(
         option => option.label === selectedExerciseName
       );
-      console.log('Found matching exercise:', matchingExercise);
+      Debug.exerciseMgmt('Found matching exercise:', matchingExercise);
       
       if (matchingExercise) {
-        console.log('Handling matching exercise');
+        Debug.exerciseMgmt('Selecting pre-selected exercise');
         handleExerciseSelect(matchingExercise, { action: 'select-option' });
       }
     }
@@ -297,107 +385,126 @@ export default function AddExerciseModal({
   // Fetch exercises effect
   useEffect(() => {
     const fetchExercises = async () => {
+      Debug.api('Fetching exercises started');
       try {
         setIsLoading(true);
         const response = await fetch('/api/exercises');
         const data = await response.json();
         
         if (data.error) {
-          console.error('Error fetching exercises:', data.error);
+          Debug.api('Error in exercise fetch response', data.error);
           return;
         }
 
+        Debug.api('Exercises fetched successfully', { count: data.length });
+
         const options: ExerciseOption[] = data.map((exercise: {
-          id: string | number;
+          id: number;
           exercise_name: string;
           source: ExerciseSource;
         }) => ({
-          id: exercise.id.toString(),
           value: `${exercise.source}-${exercise.id}`,
           label: exercise.exercise_name,
           data: {
             id: exercise.id.toString(),
             name: exercise.exercise_name,
-            source: exercise.source,
-            libraryId: exercise.source === 'library' ? Number(exercise.id) : undefined
+            source: exercise.source
           }
         }));
 
+        Debug.state('Setting exercise options', { count: options.length });
         setExerciseOptions(options);
 
-        // Only set selected exercise if we have a name and we're not adding a new exercise
-        if (selectedExerciseName && exercise) {
+        if (selectedExerciseName) {
           const matchingExercise = options.find(opt => opt.label === selectedExerciseName);
           if (matchingExercise) {
+            Debug.state('Setting pre-selected exercise', matchingExercise);
             setSelectedExercise(matchingExercise);
             setValue('name', matchingExercise.label);
           }
         }
       } catch (error) {
-        console.error('Error fetching exercises:', error);
+        Debug.api('Error fetching exercises', error);
+        Debug.api('Error details:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
     if (isOpen) {
+      Debug.effect('Modal opened - fetching exercises');
       fetchExercises();
     }
-  }, [isOpen, selectedExerciseName, exercise, setValue]);
+  }, [isOpen, selectedExerciseName, setValue]);
 
   /**
    * Effect: Manage setDetails array when varied sets is enabled
    * Creates or updates set details when number of sets changes
    */
   useEffect(() => {
+    Debug.setMgmt('Managing set details', { isVariedSets, currentSets });
+
     if (isVariedSets && currentSets > 0) {
-      const newSetDetails = Array.from({ length: currentSets }, (_, i) => ({
+      const newSetDetails: PlannedExerciseSet[] = Array.from({ length: currentSets }, (_, i) => ({
+        id: i + 1,
         setNumber: i + 1,
-        reps: watch('reps'),
-        load: watch('load'),
-        tempo: watch('tempo'),
-        rest: watch('rest'),
+        plannedReps: watch('reps'),
+        plannedLoad: watch('load'),
+        plannedTempo: watch('tempo'),
+        plannedRest: watch('rest'),
+        loadUnit: watch('loadUnit'),
+        notes: '',
         subSets: []
       }));
+      
+      Debug.setMgmt('Creating new set details', { setCount: newSetDetails.length });
       setValue('setDetails', newSetDetails);
     } else {
-      // Clear setDetails when varied sets is disabled
+      Debug.setMgmt('Clearing set details');
       setValue('setDetails', undefined);
     }
   }, [isVariedSets, currentSets, setValue, watch]);
 
-  // Reset form and toggle when modal opens/closes
-  useEffect(() => {
+   // Reset form and state when modal opens/closes
+   useEffect(() => {
+    Debug.effect('Modal state change', { isOpen, hasExercise: !!exercise });
+
     if (isOpen) {
       if (exercise) {
+        Debug.form('Resetting form with existing exercise');
         reset({
           ...exercise,
-          name: selectedExerciseName || exercise.name
+          id: exercise.id.toString(),
+          name: selectedExerciseName || exercise.name,
+          isVariedSets: 'setDetails' in exercise,
+          isAdvancedSets: 'setDetails' in exercise && exercise.setDetails.some(set => set.subSets && set.subSets.length > 0)
         });
       } else {
-        reset(); // Reset to default values
-        setSelectedExercise(null); // Clear the selected exercise
-        setValue('name', ''); // Explicitly clear the name field
+        Debug.form('Resetting form to defaults');
+        reset();
+        setSelectedExercise(null);
+        setValue('name', '');
       }
-      // Reset the toggle to false (use default unit) when modal opens
+      
+      Debug.state('Resetting unit toggle');
       setUseAlternateUnit(false);
     }
   }, [isOpen, exercise, selectedExerciseName, reset, setValue]);
 
-  // Clear selected exercise when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedExercise(null);
-      setValue('name', '');
-    }
-  }, [isOpen, setValue]);
+    // Clear selected exercise when modal closes
+    useEffect(() => {
+      if (!isOpen) {
+        Debug.state('Modal closed - clearing exercise selection');
+        setSelectedExercise(null);
+        setValue('name', '');
+      }
+    }, [isOpen, setValue]);
 
   /**
    * Handles form submission with proper type conversion
    */
-  const onSubmit = async (data: Exercise) => {
-    console.log('Form Data:', data);
-    console.log('Form Errors:', errors);
+  const onSubmit = async (data: ExerciseFormData) => {
+    Debug.form('Form submission started', { data, errors });
 
     const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as LoadUnit;
 
@@ -411,141 +518,143 @@ export default function AddExerciseModal({
         }))
       })) || [];
 
+      Debug.form('Creating varied exercise', { setDetails });
       onSave(createVariedExercise({
-        ...data,
-        loadUnit
+        id: parseInt(data.id),
+        name: data.name,
+        source: selectedExercise?.data.source || 'library',
+        exerciseId: selectedExercise?.data.id || 0
       }, setDetails));
     } else {
-      onSave(createRegularExercise({
-        ...data,
-        loadUnit
+      Debug.form('Creating planned exercise');
+      onSave(createPlannedExercise({
+        id: parseInt(data.id),
+        name: data.name,
+        source: selectedExercise?.data.source || 'library',
+        exerciseId: selectedExercise?.data.id || 0
       }));
     }
+
     onClose();
-    // Reset the toggle after saving
     setUseAlternateUnit(false);
   };
 
   /**
-   * Handlers for advanced set management
+   * Adds a subset to a specific set in varied exercises
    */
   const handleAddSubSet = (setIndex: number) => {
+    Debug.setMgmt('Adding subset', { setIndex });
+    
     const currentSetDetails = watch('setDetails') || [];
-    const updatedSetDetails = [...currentSetDetails];
-    const currentSet = updatedSetDetails[setIndex];
-
-    if (!currentSet.subSets?.length) {
-      currentSet.subSets = [
-        {
-          reps: currentSet.reps,
-          load: currentSet.load,
-          rest: currentSet.rest
-        },
-        {
-          reps: currentSet.reps,
-          load: currentSet.load,
-          rest: currentSet.rest
-        }
-      ];
-    } else {
-      currentSet.subSets.push({
-        reps: currentSet.reps,
-        load: currentSet.load,
-        rest: currentSet.rest
-      });
+    if (setIndex >= currentSetDetails.length) {
+      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentSetDetails.length });
+      return;
     }
 
+    const updatedSetDetails = [...currentSetDetails];
+    const currentSet = updatedSetDetails[setIndex];
+    
+    const newSubSet: PlannedExerciseSubSet = {
+      id: (currentSet.subSets?.length || 0) + 1,
+      subSetNumber: (currentSet.subSets?.length || 0) + 1,
+      plannedReps: currentSet.plannedReps,
+      plannedLoad: currentSet.plannedLoad,
+      plannedTempo: currentSet.plannedTempo,
+      plannedRest: currentSet.plannedRest,
+      loadUnit: currentSet.loadUnit
+    };
+
+    currentSet.subSets = currentSet.subSets ?? [];
+    currentSet.subSets.push(newSubSet);
+
+    Debug.setMgmt('Updated set details', { setIndex, subSetsCount: currentSet.subSets.length });
     setValue('setDetails', updatedSetDetails);
   };
 
   const handleRemoveSubSet = (setIndex: number, subSetIndex: number) => {
+    Debug.setMgmt('Removing subset', { setIndex, subSetIndex });
+
     const currentSetDetails = watch('setDetails') || [];
+    if (setIndex >= currentSetDetails.length) {
+      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentSetDetails.length });
+      return;
+    }
+
     const updatedSetDetails = [...currentSetDetails];
     const currentSet = updatedSetDetails[setIndex];
 
     if (currentSet.subSets) {
-      currentSet.subSets = currentSet.subSets.filter((_, idx) => idx !== subSetIndex);
+      currentSet.subSets = currentSet.subSets.filter((_: PlannedExerciseSubSet, idx: number) => idx !== subSetIndex);
+      Debug.setMgmt('Updated set details', { setIndex, remainingSubSets: currentSet.subSets.length });
     }
 
     setValue('setDetails', updatedSetDetails);
   };
 
-  // Function to handle exercise creation
+  /**
+   * Handles the creation of a new custom exercise
+   * - Validates exercise name
+   * - Makes API call to create exercise
+   * - Updates exercise options
+   * - Selects newly created exercise
+   */
   const handleCreateExercise = async (exerciseName: string) => {
+    Debug.exerciseMgmt('Creating new user exercise', { name: exerciseName });
+    
     try {
       const response = await fetch('/api/user-exercises', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ exercise_name: exerciseName }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exercise_name: exerciseName })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to create exercise');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const newExercise = await response.json();
+      Debug.exerciseMgmt('User exercise created successfully', newExercise);
       
-      // Create a new exercise option
       const newOption: ExerciseOption = {
-        id: newExercise.id.toString(),
+        id: newExercise.id,
         value: `user-${newExercise.id}`,
         label: newExercise.exercise_name,
+        source: 'user',
         data: {
-          id: newExercise.id.toString(),
+          id: newExercise.id,
           name: newExercise.exercise_name,
-          source: 'user' as ExerciseSource,
-          difficulty: 'User Exercise',
-          targetMuscleGroup: 'N/A',
-          primaryEquipment: 'N/A',
-          secondaryEquipment: undefined,
-          exerciseFamily: 'N/A',
-          bodyRegion: 'N/A',
-          movementPattern: 'N/A',
-          movementPlane: 'N/A',
-          laterality: 'N/A'
+          source: 'user'
         }
       };
 
-      // Update exercise options
       setExerciseOptions(prev => [...prev, newOption]);
-      
-      // Select the new exercise
-      setSelectedExercise(newOption);
-      
-      // Update form values
-      setValue('name', newExercise.exercise_name);
-      setValue('source', 'user' as ExerciseSource);
-      setValue('id', newExercise.id.toString());
-      
-      // Reset modal state
+      handleExerciseSelect(newOption, { action: 'select-option' });
       setIsCreatingExercise(false);
-      setNewExerciseName('');
-
-      // Don't close the modal - let the user configure the exercise details
-      handleExerciseSelect(newOption, {
-        action: 'select-option',
-        option: newOption,
-        name: 'exercise-select'
-      });
+      
     } catch (error) {
-      console.error('Error creating exercise:', error);
+      Debug.api('Error creating user exercise', error);
+      console.error('Error creating user exercise:', error);
     }
   };
 
-  // Modify the existing exercise search component
-  const NoOptionsMessage = ({ inputValue }: { inputValue: string }) => {
+  interface NoOptionsMessageProps {
+    inputValue: string;
+  }
+  
+  const NoOptionsMessage: React.FC<NoOptionsMessageProps> = ({ inputValue }) => {
+    const handleCreateExercise = () => {
+      setIsCreatingExercise(true);
+      setNewExerciseName(inputValue);
+    };
+  
     return (
       <div className="text-center">
-        <p className="text-gray-900 dark:text-white font-medium">No matches found</p>
+        <p className="text-gray-900 dark:text-white font-medium">
+          No matches found
+        </p>
         <button
           type="button"
-          onClick={() => {
-            setIsCreatingExercise(true);
-            setNewExerciseName(inputValue);
-          }}
+          onClick={handleCreateExercise}
           className="mt-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
         >
           Create new exercise: {inputValue}
@@ -555,27 +664,40 @@ export default function AddExerciseModal({
   };
 
   // Add confirmation dialog
-  const ConfirmationDialog = () => {
-    if (!isCreatingExercise) return null;
-
+  interface ConfirmationDialogProps {
+    isOpen: boolean;
+    exerciseName: string;
+    onConfirm: (name: string) => void;
+    onCancel: () => void;
+  }
+  
+  const ConfirmationDialog: React.FC<ConfirmationDialogProps> = ({
+    isOpen,
+    exerciseName,
+    onConfirm,
+    onCancel
+  }) => {
+    if (!isOpen) return null;
+  
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
-          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Exercise</h3>
-          <p className="mb-6 text-gray-700 dark:text-gray-300">Are you sure you want to create "{newExerciseName}"?</p>
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+            Create New Exercise
+          </h3>
+          <p className="mb-6 text-gray-700 dark:text-gray-300">
+            Are you sure you want to create "{exerciseName}"?
+          </p>
           <div className="flex justify-end space-x-4">
             <button
               className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
-              onClick={() => {
-                setIsCreatingExercise(false);
-                setNewExerciseName('');
-              }}
+              onClick={onCancel}
             >
               Cancel
             </button>
             <button
               className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-              onClick={() => handleCreateExercise(newExerciseName)}
+              onClick={() => onConfirm(exerciseName)}
             >
               Create Exercise
             </button>
@@ -585,23 +707,7 @@ export default function AddExerciseModal({
     );
   };
 
-  // Format load values with units for numeric inputs only
-  // Non-numeric values (e.g., band colors) are preserved as-is
-  // Note: BW (bodyweight) handling will be implemented in the future
-  const formatLoad = (load: string | number | undefined, loadUnit?: 'kg' | 'lbs'): string => {
-    // If no load provided, return empty string
-    if (load === undefined) return '';
-    
-    // Handle numeric loads (both number type and numeric strings)
-    const numericLoad = typeof load === 'string' ? parseFloat(load) : load;
-    if (typeof numericLoad === 'number' && !isNaN(numericLoad)) {
-      const unit = loadUnit || userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs';
-      return `${numericLoad}${unit}`;
-    }
-    
-    // For any non-numeric value, return as is
-    return String(load);
-  };
+  
 
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
@@ -611,10 +717,12 @@ export default function AddExerciseModal({
       <Modal.Body>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Exercise Name */}
+            {/* Exercise Selection Section */}
             <div className="col-span-2">
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium dark:text-white">Exercise Name</label>
+                <label htmlFor="exercise-select" className="block text-sm font-medium dark:text-white">
+                  Exercise Name
+                </label>
                 <button
                   type="button"
                   onClick={onAdvancedSearch}
@@ -626,7 +734,8 @@ export default function AddExerciseModal({
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select<ExerciseOption>
-                    key={isOpen ? 'open' : 'closed'} // Force re-render when modal opens/closes
+                    id="exercise-select"
+                    key={isOpen ? 'open' : 'closed'}
                     value={selectedExercise}
                     onChange={handleExerciseSelect}
                     options={exerciseOptions}
@@ -638,7 +747,7 @@ export default function AddExerciseModal({
                     styles={customSelectStyles}
                     filterOption={filterExerciseOptions}
                     components={{
-                      NoOptionsMessage: ({ children, ...props }: any) => (
+                      NoOptionsMessage: (props) => (
                         <NoOptionsMessage inputValue={props.selectProps.inputValue} />
                       )
                     }}
@@ -646,26 +755,45 @@ export default function AddExerciseModal({
                 </div>
               </div>
               {errors.name && (
-                <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+                <p className="mt-1 text-sm text-red-600" role="alert">
+                  {errors.name.message}
+                </p>
               )}
             </div>
 
-            {/* Pairing */}
+            {/* Pairing Input */}
             <div>
-              <label className="block text-sm font-medium dark:text-white">Pairing</label>
+              <label 
+                htmlFor="exercise-pairing" 
+                className="block text-sm font-medium dark:text-white"
+              >
+                Pairing
+              </label>
               <input
+                id="exercise-pairing"
+                type="text"
                 {...register('pairing')}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                placeholder="e.g., A1, B2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                         focus:border-blue-500 focus:ring-blue-500 
+                         dark:text-black p-2"
               />
               {errors.pairing && (
-                <p className="mt-1 text-sm text-red-600">{errors.pairing.message}</p>
+                <p 
+                  className="mt-1 text-sm text-red-600" 
+                  role="alert"
+                >
+                  {errors.pairing.message}
+                </p>
               )}
             </div>
 
-            {/* Sets */}
-            <div>
+             {/* Sets Input Section */}
+             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium dark:text-white">Sets</label>
+                <label htmlFor="exercise-sets" className="block text-sm font-medium dark:text-white">
+                  Sets
+                </label>
                 <div className="flex items-center space-x-2">
                   <Controller
                     name="isVariedSets"
@@ -683,6 +811,7 @@ export default function AddExerciseModal({
                           }
                         }}
                         {...field}
+                        aria-label="Enable varied sets"
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                     )}
@@ -693,38 +822,59 @@ export default function AddExerciseModal({
                 </div>
               </div>
               <input
+                id="exercise-sets"
                 type="number"
+                min="1"
+                placeholder="Enter number of sets"
                 {...register('sets', { valueAsNumber: true })}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                         focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
               />
               {errors.sets && (
-                <p className="mt-1 text-sm text-red-600">{errors.sets.message}</p>
+                <p className="mt-1 text-sm text-red-600" role="alert">
+                  {errors.sets.message}
+                </p>
               )}
             </div>
 
-            {/* Reps */}
+            {/* Reps Input */}
             {(!isVariedSets || !isAdvancedSets) && (
               <div>
-                <label className="block text-sm font-medium dark:text-white">Reps</label>
+                <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
+                  Reps
+                </label>
                 <input
+                  id="exercise-reps"
                   type="number"
+                  placeholder="Enter number of reps"
                   {...register('reps', { valueAsNumber: true })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                           focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 />
                 {errors.reps && (
-                  <p className="mt-1 text-sm text-red-600">{errors.reps.message}</p>
+                  <p className="mt-1 text-sm text-red-600" role="alert">
+                    {errors.reps.message}
+                  </p>
                 )}
               </div>
             )}
 
-            {/* Load */}
+            {/* Load Input with Unit Toggle */}
             {(!isVariedSets || !isAdvancedSets) && (
               <div>
                 <div className="flex items-center space-x-1">
-                  <label className="block text-sm font-medium dark:text-white">Load</label>
+                  <label htmlFor="exercise-load" className="block text-sm font-medium dark:text-white">
+                    Load
+                  </label>
                   <div className="group relative">
-                    <HiInformationCircle className="h-4 w-4 text-gray-400 hover:text-gray-500" />
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50">
+                    <HiInformationCircle 
+                      className="h-4 w-4 text-gray-400 hover:text-gray-500" 
+                      aria-hidden="true"
+                    />
+                    <div 
+                      role="tooltip" 
+                      className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-50"
+                    >
                       <p>Acceptable inputs:</p>
                       <ul className="list-disc list-inside mt-1">
                         <li>Numeric weight in {useAlternateUnit ? alternateUnit : defaultUnit}</li>
@@ -736,57 +886,88 @@ export default function AddExerciseModal({
                 </div>
                 <div className="flex items-center space-x-2">
                   <input
+                    id="exercise-load"
+                    type="text"
                     {...register('load', {
                       setValueAs: v => {
                         const num = Number(v);
                         return isNaN(num) ? v : num;
                       }
                     })}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                             focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                     placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
                   />
                   <button
                     type="button"
                     onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md 
+                             flex items-center space-x-1 text-gray-700"
                     title={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
+                    aria-label={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
                   >
-                    <HiSwitchHorizontal className="h-4 w-4" />
+                    <HiSwitchHorizontal className="h-4 w-4" aria-hidden="true" />
                     <span>{useAlternateUnit ? alternateUnit : defaultUnit}</span>
                   </button>
                 </div>
                 {errors.load && (
-                  <p className="mt-1 text-sm text-red-600">{errors.load.message}</p>
+                  <p className="mt-1 text-sm text-red-600" role="alert">
+                    {errors.load.message}
+                  </p>
                 )}
               </div>
             )}
 
-            {/* Tempo */}
+            {/* Tempo Input */}
             <div>
-              <label className="block text-sm font-medium dark:text-white">
+              <label 
+                htmlFor="exercise-tempo" 
+                className="block text-sm font-medium dark:text-white"
+              >
                 Tempo (4 digits, X for explosive)
               </label>
               <input
+                id="exercise-tempo"
+                type="text"
                 {...register('tempo')}
-                maxLength={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                placeholder="e.g., 2010"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                         focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
               />
               {errors.tempo && (
-                <p className="mt-1 text-sm text-red-600">{errors.tempo.message}</p>
+                <p 
+                  className="mt-1 text-sm text-red-600" 
+                  role="alert"
+                >
+                  {errors.tempo.message}
+                </p>
               )}
             </div>
 
-            {/* Rest */}
+            {/* Rest Input */}
             {(!isVariedSets || !isAdvancedSets) && (
               <div>
-                <label className="block text-sm font-medium dark:text-white">Rest (seconds)</label>
+                <label 
+                  htmlFor="exercise-rest" 
+                  className="block text-sm font-medium dark:text-white"
+                >
+                  Rest (seconds)
+                </label>
                 <input
+                  id="exercise-rest"
                   type="number"
+                  placeholder="Enter rest period"
                   {...register('rest', { valueAsNumber: true })}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm 
+                           focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 />
                 {errors.rest && (
-                  <p className="mt-1 text-sm text-red-600">{errors.rest.message}</p>
+                  <p 
+                    className="mt-1 text-sm text-red-600" 
+                    role="alert"
+                  >
+                    {errors.rest.message}
+                  </p>
                 )}
               </div>
             )}
@@ -800,10 +981,11 @@ export default function AddExerciseModal({
               {/* RPE */}
               {userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRPE && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <label htmlFor="exercise-rpe" className="block text-sm font-medium text-gray-500 dark:text-gray-400">
                     RPE (Rate of Perceived Exertion)
                   </label>
                   <input
+                    id="exercise-rpe"
                     type="number"
                     step="0.5"
                     {...register('rpe', { 
@@ -813,7 +995,7 @@ export default function AddExerciseModal({
                     placeholder="Enter RPE (0-20)"
                   />
                   {errors.rpe && (
-                    <p className="mt-1 text-sm text-red-600">{errors.rpe.message}</p>
+                    <p className="mt-1 text-sm text-red-600" role="alert">{errors.rpe.message}</p>
                   )}
                 </div>
               )}
@@ -821,10 +1003,11 @@ export default function AddExerciseModal({
               {/* RIR */}
               {userSettings?.pillar_settings?.fitness?.resistanceTraining?.trackRIR && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+                  <label htmlFor="exercise-rir" className="block text-sm font-medium text-gray-500 dark:text-gray-400">
                     RIR (Reps in Reserve)
                   </label>
                   <input
+                    id="exercise-rir"
                     type="number"
                     step="0.5"
                     {...register('rir', { 
@@ -834,22 +1017,25 @@ export default function AddExerciseModal({
                     placeholder="Enter RIR (0-10)"
                   />
                   {errors.rir && (
-                    <p className="mt-1 text-sm text-red-600">{errors.rir.message}</p>
+                    <p className="mt-1 text-sm text-red-600" role="alert">{errors.rir.message}</p>
                   )}
                 </div>
               )}
 
               {/* Notes */}
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-500 dark:text-gray-400">Notes</label>
+                <label htmlFor="exercise-notes" className="block text-sm font-medium text-gray-500 dark:text-gray-400">
+                  Notes
+                </label>
                 <textarea
+                  id="exercise-notes"
                   {...register('notes')}
                   rows={3}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                   placeholder="Add any additional notes about the exercise"
                 />
                 {errors.notes && (
-                  <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+                  <p className="mt-1 text-sm text-red-600" role="alert">{errors.notes.message}</p>
                 )}
               </div>
             </div>
@@ -871,6 +1057,7 @@ export default function AddExerciseModal({
                           id="advancedSets"
                           checked={field.value}
                           onChange={(e) => field.onChange(e.target.checked)}
+                          aria-label="Enable advanced sets"
                           className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                         />
                       )}
@@ -883,7 +1070,7 @@ export default function AddExerciseModal({
               </div>
               
               <div className="grid gap-4">
-                {watch('setDetails')?.map((set, setIndex) => (
+                {watch('setDetails')?.map((set: PlannedExerciseSet, setIndex: number) => (
                   <div key={set.setNumber} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
@@ -891,9 +1078,10 @@ export default function AddExerciseModal({
                         <button
                           type="button"
                           onClick={() => handleAddSubSet(setIndex)}
+                          aria-label={`Add subset to set ${set.setNumber}`}
                           className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
                         >
-                          <BsPlus className="w-5 h-5" />
+                          <BsPlus className="w-5 h-5" aria-hidden="true" />
                         </button>
                       )}
                     </div>
@@ -902,17 +1090,25 @@ export default function AddExerciseModal({
                     {(!set.subSets?.length) && (
                       <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <label className="block text-sm dark:text-white">Reps</label>
+                          <label htmlFor={`set-${setIndex}-reps`} className="block text-sm dark:text-white">
+                            Reps
+                          </label>
                           <input
+                            id={`set-${setIndex}-reps`}
                             type="number"
-                            {...register(`setDetails.${setIndex}.reps` as const, { valueAsNumber: true })}
+                            placeholder="Enter reps"
+                            {...register(`setDetails.${setIndex}.plannedReps` as const, { valueAsNumber: true })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm dark:text-white">Load</label>
+                          <label htmlFor={`set-${setIndex}-load`} className="block text-sm dark:text-white">
+                            Load
+                          </label>
                           <input
-                            {...register(`setDetails.${setIndex}.load` as const, {
+                            id={`set-${setIndex}-load`}
+                            type="text"
+                            {...register(`setDetails.${setIndex}.plannedLoad` as const, {
                               setValueAs: v => {
                                 const num = Number(v);
                                 return isNaN(num) ? v : num;
@@ -923,18 +1119,22 @@ export default function AddExerciseModal({
                           />
                         </div>
                         <div>
-                          <label className="block text-sm dark:text-white">Rest</label>
+                          <label htmlFor={`set-${setIndex}-rest`} className="block text-sm dark:text-white">
+                            Rest
+                          </label>
                           <input
+                            id={`set-${setIndex}-rest`}
                             type="number"
-                            {...register(`setDetails.${setIndex}.rest` as const, { valueAsNumber: true })}
+                            placeholder="Enter rest"
+                            {...register(`setDetails.${setIndex}.plannedRest` as const, { valueAsNumber: true })}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
                       </div>
                     )}
 
-                    {/* Sub-sets */}
-                    {isAdvancedSets && set.subSets?.map((subSet, subSetIndex) => (
+                     {/* Sub-sets */}
+                     {isAdvancedSets && set.subSets?.map((subSet: PlannedExerciseSubSet, subSetIndex: number) => (
                       <div key={subSetIndex} className="space-y-4 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium dark:text-white">
@@ -943,38 +1143,51 @@ export default function AddExerciseModal({
                           <button
                             type="button"
                             onClick={() => handleRemoveSubSet(setIndex, subSetIndex)}
+                            aria-label={`Remove subset ${subSetIndex + 1} from set ${set.setNumber}`}
                             className="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-200"
                           >
-                            <BsDash className="w-5 h-5" />
+                            <BsDash className="w-5 h-5" aria-hidden="true" />
                           </button>
                         </div>
                         <div className="grid grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm dark:text-white">Reps</label>
+                            <label htmlFor={`subset-${setIndex}-${subSetIndex}-reps`} className="block text-sm dark:text-white">
+                              Reps
+                            </label>
                             <input
+                              id={`subset-${setIndex}-${subSetIndex}-reps`}
                               type="number"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.reps` as const, { valueAsNumber: true })}
+                              placeholder="Enter reps"
+                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedReps` as const, { valueAsNumber: true })}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm dark:text-white">Load</label>
+                            <label htmlFor={`subset-${setIndex}-${subSetIndex}-load`} className="block text-sm dark:text-white">
+                              Load
+                            </label>
                             <input
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.load` as const, {
+                              id={`subset-${setIndex}-${subSetIndex}-load`}
+                              type="text"
+                              placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
+                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedLoad` as const, {
                                 setValueAs: v => {
                                   const num = Number(v);
                                   return isNaN(num) ? v : num;
                                 }
                               })}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                              placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
                             />
                           </div>
                           <div>
-                            <label className="block text-sm dark:text-white">Rest</label>
+                            <label htmlFor={`subset-${setIndex}-${subSetIndex}-rest`} className="block text-sm dark:text-white">
+                              Rest
+                            </label>
                             <input
+                              id={`subset-${setIndex}-${subSetIndex}-rest`}
                               type="number"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.rest` as const, { valueAsNumber: true })}
+                              placeholder="Enter rest"
+                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedRest` as const, { valueAsNumber: true })}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>
@@ -1004,7 +1217,12 @@ export default function AddExerciseModal({
           </div>
         </form>
       </Modal.Body>
-      {isCreatingExercise && <ConfirmationDialog />}
+      {isCreatingExercise && <ConfirmationDialog 
+        isOpen={isCreatingExercise}
+        exerciseName={newExerciseName}
+        onConfirm={handleCreateExercise}
+        onCancel={() => setIsCreatingExercise(false)}
+      />}
     </Modal>
   );
-} 
+}

@@ -31,7 +31,7 @@ export async function GET(request: Request) {
         -- User exercises
         SELECT 
           'user' as source,
-          ue.id::text as id,
+          ue.id as id,
           ue.exercise_name,
           NULL as difficulty_id,
           NULL as target_muscle_group_id,
@@ -43,7 +43,7 @@ export async function GET(request: Request) {
           NULL as move_pattern_1_id,
           NULL as move_plane_1_id,
           NULL as laterality_id,
-          0 as sort_order -- User exercises always come first
+          0 as sort_order
         FROM user_exercises ue
         WHERE ue.user_id = $1
         
@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         -- Library exercises
         SELECT 
           'library' as source,
-          el.id::text as id,
+          el.id as id,
           el.exercise_name,
           el.difficulty_id,
           el.target_muscle_group_id,
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
       SELECT 
         ce.source,
         ce.id,
-        ce.exercise_name,
+        ce.exercise_name as name,
         ce.difficulty_id,
         d.name as difficulty_name,
         ce.target_muscle_group_id,

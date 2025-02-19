@@ -7,8 +7,80 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { programSettingsSchema, PhaseFocus, PeriodizationType } from '@/app/lib/types/pillars/fitness';
 import type { z } from 'zod';
 
+/**
+ * Debug Configuration
+ * Toggle these constants to enable/disable different types of debugging
+ */
+const DEBUG = {
+  FORM: false,      // Log form changes
+  VALIDATION: false, // Log validation errors
+  STATE: false,     // Log state changes
+  EFFECTS: false    // Log effect triggers
+};
+
+/**
+ * Debugging utilities for different aspects of the component
+ */
+const Debug = {
+  form: (message: string, data?: any) => {
+    if (DEBUG.FORM) console.log(`[ProgramSettings:Form] ${message}`, data || '');
+  },
+  validation: (message: string, data?: any) => {
+    if (DEBUG.VALIDATION) console.log(`[ProgramSettings:Validation] ${message}`, data || '');
+  },
+  state: (message: string, data?: any) => {
+    if (DEBUG.STATE) console.log(`[ProgramSettings:State] ${message}`, data || '');
+  },
+  effect: (message: string, data?: any) => {
+    if (DEBUG.EFFECTS) console.log(`[ProgramSettings:Effect] ${message}`, data || '');
+  }
+};
+
+/**
+ * Think of ProgramSettings like a control panel for your workout program.
+ * Just like a video game has settings for difficulty, sound, and graphics,
+ * a workout program has settings for:
+ * - What the program is called
+ * - What it's meant to do (get stronger, build muscle, etc.)
+ * - How it changes over time
+ * - How long it lasts
+ * - Special rules for progression
+ * 
+ * Technical Details:
+ * - Uses react-hook-form for form management
+ * - Implements Zod schema validation
+ * - Provides real-time updates via onSettingsChange callback
+ * - Handles both basic and advanced program configuration
+ */
+
+// This creates a type based on our validation rules (programSettingsSchema)
 export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
 
+/**
+ * What information the ProgramSettings needs to work:
+ * 
+ * Basic Settings:
+ * @param name - What you want to call your program
+ * @param phaseFocus - What the program is trying to achieve (like "Get Stronger" or "Build Muscle")
+ * @param periodizationType - How the program changes over time (Linear = steady changes, Undulating = varies up and down)
+ * @param notes - Any extra information you want to remember about the program
+ * 
+ * Advanced Settings:
+ * @param progressionRules - Special rules for how the program gets harder over time
+ *    - type: What kind of progression (Linear, Undulating)
+ *    - settings: The specific numbers and rules:
+ *        - volumeIncrementPercentage: How much to increase the work by (Linear)
+ *        - loadIncrementPercentage: How much to increase the weight by (Linear)
+ *        - programLength: How many weeks the program lasts
+ *        - weeklyVolumePercentages: How hard each week is (Undulating)
+ * 
+ * Functions:
+ * @param onSettingsChange - What to do when settings are changed
+ * 
+ * Technical Note:
+ * The component uses Partial<ProgramSettingsFormData> to allow updating individual
+ * settings without requiring all settings to be provided at once.
+ */
 interface ProgramSettingsProps {
   name: string;
   phaseFocus: ProgramSettingsFormData['phaseFocus'];
@@ -17,15 +89,28 @@ interface ProgramSettingsProps {
   progressionRules?: {
     type: string;
     settings: {
-      volumeIncrementPercentage?: number;
-      loadIncrementPercentage?: number;
-      programLength?: number;
-      weeklyVolumePercentages?: number[];
+      volumeIncrementPercentage?: number;  // For Linear progression
+      loadIncrementPercentage?: number;    // For Linear progression
+      programLength?: number;              // Length in weeks
+      weeklyVolumePercentages?: number[];  // For Undulating progression
     };
   };
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
 }
 
+/**
+ * These are all the different types of training focus you can choose from.
+ * Think of it like choosing what kind of superhero you want to be:
+ * - GPP: Good at everything (like Batman)
+ * - Strength: Super strong (like Hulk)
+ * - Hypertrophy: Build muscle (like Captain America)
+ * - Power: Explosive strength (like Thor)
+ * - Endurance: Keep going longer (like Flash)
+ * 
+ * Technical Note:
+ * Using 'as const' makes this a readonly tuple type, ensuring type safety
+ * when used with react-select
+ */
 const phaseFocusOptions = [
   { value: 'GPP', label: 'General Physical Preparedness' },
   { value: 'Strength', label: 'Strength' },
@@ -38,13 +123,30 @@ const phaseFocusOptions = [
   { value: 'Other', label: 'Other (Custom)' }
 ] as const;
 
+/**
+ * These are the different ways your program can progress over time:
+ * - None: Stays the same (like doing the same workout every time)
+ * - Linear: Gradually gets harder (like climbing stairs)
+ * - Undulating: Goes up and down (like riding a roller coaster)
+ * - Custom: Your own special way
+ * 
+ * Technical Note:
+ * Defined as a const array to ensure type safety with react-select
+ */
 const periodizationOptions = [
-  { value: 'None' as const, label: 'None' },
-  { value: 'Linear' as const, label: 'Linear Periodization' },
-  { value: 'Undulating' as const, label: 'Undulating Periodization' },
-  { value: 'Custom' as const, label: 'Custom Periodization' }
+  { value: 'None', label: 'None' },
+  { value: 'Linear', label: 'Linear Periodization' },
+  { value: 'Undulating', label: 'Undulating Periodization' },
+  { value: 'Custom', label: 'Custom Periodization' }
 ] as const;
 
+/**
+ * These styles make the dropdown menus look good and match our color scheme.
+ * 
+ * Technical Note:
+ * Customizes react-select components to match the application's theme
+ * while maintaining accessibility in both light and dark modes
+ */
 const customSelectStyles = {
   control: (base: any) => ({
     ...base,
@@ -68,11 +170,26 @@ export default function ProgramSettings({
   progressionRules,
   onSettingsChange
 }: ProgramSettingsProps) {
+  /**
+   * State Management:
+   * - customPhaseFocus: Handles custom training focus input
+   * - showCustomPhaseFocus: Controls visibility of custom focus input field
+   */
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(
     !phaseFocusOptions.find(option => option.value === phaseFocus)
   );
 
+  /**
+   * Form Setup and Validation
+   * - control: Manages form inputs
+   * - handleSubmit: Processes form submission
+   * - watch: Monitors specific form field changes
+   * - setValue: Updates form fields programmatically
+   * - errors: Tracks validation errors
+   * 
+   * Default values are set for all fields, with fallbacks if not provided
+   */
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<ProgramSettingsFormData>({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
@@ -92,28 +209,66 @@ export default function ProgramSettings({
     }
   });
 
+  /**
+   * Watch specific form fields for changes
+   * - currentPeriodizationType: Used to show/hide progression settings
+   * - programLength: Used to adjust weekly volume percentages
+   */
   const currentPeriodizationType = watch('periodizationType');
   const programLength = watch('progressionRules.settings.programLength');
 
-  // Only update weeklyVolumePercentages when explicitly switching to Undulating
+  /**
+   * Automatically update weekly volume percentages when switching to Undulating periodization
+   * Only triggers when explicitly changing to Undulating from a different type
+   * Default pattern: Week 1 (100%), Week 2 (80%), Week 3 (90%), Week 4 (60%)
+   */
   useEffect(() => {
+    Debug.effect('Periodization type changed:', {
+      current: currentPeriodizationType,
+      previous: periodizationType
+    });
+    
     if (currentPeriodizationType === 'Undulating' && periodizationType !== 'Undulating') {
+      Debug.effect('Updating weekly volume percentages to default pattern');
       setValue('progressionRules.settings.weeklyVolumePercentages', [100, 80, 90, 60]);
     }
   }, [currentPeriodizationType, periodizationType, setValue]);
 
-  // Log form values on change
+  /**
+   * Development Helper:
+   * Logs form value changes during development
+   * Helps track what's changing and when
+   */
   useEffect(() => {
     const subscription = watch((value, { name, type }) => {
-      console.log('Form value changed:', { name, type, value });
+      Debug.form('Form value changed:', { name, type, value });
     });
     return () => subscription.unsubscribe();
   }, [watch]);
 
+  /**
+   * Form Submission Handler
+   * Processes the form data and calls the parent component's update function
+   * All validation is handled by Zod schema before this point
+   */
   const onSubmit = (data: ProgramSettingsFormData) => {
     console.log('Form submitted:', data);
     onSettingsChange(data);
   };
+
+  // Add state change logging
+  useEffect(() => {
+    Debug.state('Custom Phase Focus changed:', customPhaseFocus);
+  }, [customPhaseFocus]);
+
+  useEffect(() => {
+    Debug.state('Show Custom Phase Focus changed:', showCustomPhaseFocus);
+  }, [showCustomPhaseFocus]);
+
+  // Add validation logging
+  useEffect(() => {
+    Debug.validation('Current form errors:', errors);
+  }, [errors]);
 
   return (
     <form className="space-y-6">

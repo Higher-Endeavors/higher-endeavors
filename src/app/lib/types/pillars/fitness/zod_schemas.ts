@@ -115,7 +115,17 @@ export const exerciseSchema = z.discriminatedUnion('isVariedSets', [
     isAdvancedSets: z.boolean(),
     setDetails: z.array(setDetailsSchema).min(1)
   })
-]);
+]).refine(
+  // Optional: Add validation to ensure proper ID based on source
+  (data) => {
+    if (data.source === 'library') return data.libraryId !== undefined;
+    if (data.source === 'user') return data.userExerciseId !== undefined;
+    return true;
+  },
+  {
+    message: "Library exercises must have libraryId and user exercises must have userExerciseId"
+  }
+);
 
 /**
  * Schema for validating program settings

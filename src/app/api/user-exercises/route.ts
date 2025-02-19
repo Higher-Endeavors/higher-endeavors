@@ -34,6 +34,15 @@ export async function POST(request: Request) {
       [session.user.id, exercise_name]
     );
 
+    // Add debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Query result:', {
+        rowCount: result.rowCount,
+        firstRow: result.rows[0],
+        isArray: Array.isArray(result.rows)
+      });
+    }
+
     return NextResponse.json(result.rows[0]);
   } catch (error) {
     console.error('Error creating user exercise:', error);
