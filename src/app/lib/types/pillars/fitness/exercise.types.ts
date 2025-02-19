@@ -46,7 +46,7 @@ export interface BaseExercise {
   source: 'library' | 'user';
 }
 
-interface PlannedExercise extends BaseExercise {
+export interface PlannedExercise extends BaseExercise {
   pairing: string;
   sets: number;
   isVariedSets: boolean;
