@@ -233,6 +233,8 @@ CREATE TABLE public.program_day_exercise_sets (
     load_unit                character varying(20),
     planned_rest             integer,    -- in seconds
     planned_tempo            character varying(20),
+    rpe                      numeric(3,1),  -- Rating of Perceived Exertion (1-10 scale, with .5 increments)
+    rir                      integer,       -- Reps in Reserve (0-5 typically)
     notes                    text,
     created_at               timestamp with time zone DEFAULT now(),
     updated_at               timestamp with time zone
@@ -270,11 +272,10 @@ CREATE TABLE public.program_day_exercise_sub_sets (
     load_unit                    character varying(20),
     planned_rest                 integer,
     planned_tempo                character varying(20),
+    rpe                         numeric(3,1),  -- Rating of Perceived Exertion
+    rir                         integer,       -- Reps in Reserve
     created_at                   timestamp with time zone DEFAULT now(),
-    updated_at                   timestamp with time zone,
-    FOREIGN KEY (program_day_exercise_set_id) 
-        REFERENCES public.program_day_exercise_sets(id)
-        ON DELETE CASCADE
+    updated_at                   timestamp with time zone
 );
 
 ALTER TABLE public.program_day_exercise_sub_sets OWNER TO postgres;

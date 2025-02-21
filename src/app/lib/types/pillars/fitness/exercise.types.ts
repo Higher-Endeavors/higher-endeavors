@@ -52,6 +52,7 @@ export interface PlannedExercise extends BaseExercise {
   isVariedSets: boolean;
   isAdvancedSets: boolean;
   plannedSets?: PlannedExerciseSet[];
+  notes?: string;  // Added notes field
 }
 
 /**
@@ -62,6 +63,7 @@ export interface VariedExercise extends BaseExercise {
   isVariedSets: true;
   isAdvancedSets: boolean;
   setDetails: PlannedExerciseSet[];
+  notes?: string;  // Added notes field
 }
 
 /**
@@ -70,13 +72,14 @@ export interface VariedExercise extends BaseExercise {
 export type Exercise = PlannedExercise | VariedExercise;
 
 export interface PlannedExerciseSet {
-  id: number;
   setNumber: number;
   plannedReps: number;
-  plannedLoad: number | string;
-  plannedTempo: string;
-  plannedRest: number;
-  loadUnit?: LoadUnit;
+  plannedLoad?: number;
+  loadUnit?: string;
+  plannedRest?: number;
+  plannedTempo?: string;
+  rpe?: number;       // Added: Rating of Perceived Exertion (1-10, with .5 increments)
+  rir?: number;       // Added: Reps in Reserve (0-5 typically)
   notes?: string;
   subSets?: PlannedExerciseSubSet[];
 }
@@ -86,13 +89,14 @@ export interface PlannedExerciseSet {
  */
 
 export interface PlannedExerciseSubSet {
-  id: number;
   subSetNumber: number;
   plannedReps: number;
-  plannedLoad: number | string;
-  plannedRest: number;
-  plannedTempo: string;
-  loadUnit?: LoadUnit;
+  plannedLoad?: number;
+  loadUnit?: string;
+  plannedRest?: number;
+  plannedTempo?: string;
+  rpe?: number;       // Added: Rating of Perceived Exertion
+  rir?: number;       // Added: Reps in Reserve
 }
 
 
@@ -294,4 +298,27 @@ export interface ExerciseFormData {
   isVariedSets: boolean;
   isAdvancedSets: boolean;
   setDetails?: PlannedExerciseSet[];  // This already includes subSets?: PlannedExerciseSubSet[]
+}
+
+/**
+ * Component Props Types
+ */
+export interface ExerciseItemProps {
+  exercise: Exercise;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+export interface MenuState {
+  [key: number]: boolean;
+}
+
+export interface ExerciseListProps {
+  exercises: Exercise[];
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
+}
+
+export interface GroupedExercises {
+  [key: string]: Exercise[];
 }
