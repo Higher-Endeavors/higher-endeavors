@@ -5,9 +5,9 @@ import { createPortal } from 'react-dom';
 import dynamic from 'next/dynamic';
 import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import AddExerciseModal from './components/AddExerciseModal';
-import ExerciseSearch from './components/ExerciseSearch';
-import ProgramSettings, { ProgramSettingsFormData } from './components/ProgramSettings';
+import AddExerciseModal from './ExerciseModals/AddExerciseModal';
+import ExerciseSearch from './ExerciseModals/ExerciseSearch';
+import ProgramSettings, { ProgramSettingsFormData } from './components/ProgramContainer/ProgramSettings';
 import WeekProgram from './components/WeekProgram';
 import { z } from 'zod';
 import { KG_TO_LBS, LBS_TO_KG } from '@/app/lib/utils/fitness/unit-conversions';
@@ -15,7 +15,7 @@ import { calculateSessionVolume } from '@/app/lib/utils/fitness/resistance-train
 import { 
   Exercise, 
   BaseExercise, 
-  RegularExercise, 
+  createPlannedExercise, 
   VariedExercise, 
   SetDetail,
   ExerciseOption,
@@ -40,337 +40,60 @@ import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import UserSelector from '@/app/components/UserSelector';
 import { useSession } from 'next-auth/react';
-import ProgramBrowser from './components/ProgramBrowser';
+import ProgramBrowser from './components/ProgramBrowser/ProgramBrowser';
 import type { FitnessSettings } from '@/app/lib/types/user_settings';
 import { SavedProgram, VolumeTarget, ProgressionRules, Program } from '@/app/lib/types/pillars/fitness';
-import { APIProgramResponse, APIWeek, APIDay, APIExercise } from '@/app/lib/types/pillars/fitness/api.types';
 import ProgramHeader from './components/ProgramHeader';
-
-const ExerciseListNoSSR = dynamic(
-    () => import('./components/ExerciseList'),
-    { ssr: false }
-  )
-
-// Add type guards for exercise details
-const isVariedExercise = (exercise: Exercise): exercise is VariedExercise => {
-  return 'setDetails' in exercise && exercise.setDetails !== undefined;
-};
-
-const calculateSessionDuration = (exercises: Exercise[]): number => {
-  const REST_TIME_BETWEEN_SETS = 90; // seconds
-  const TIME_PER_REP = 4; // seconds
-  
-  return exercises.reduce((total, exercise) => {
-    if (isVariedExercise(exercise)) {
-      const sets = exercise.setDetails.length;
-      const avgReps = exercise.setDetails.reduce((sum, set) => sum + Number(set.reps), 0) / sets;
-      const timePerSet = (avgReps * TIME_PER_REP) + REST_TIME_BETWEEN_SETS;
-      return total + (sets * timePerSet);
-    }
-    const timePerSet = (Number(exercise.reps) * TIME_PER_REP) + REST_TIME_BETWEEN_SETS;
-    return total + (Number(exercise.sets) * timePerSet);
-  }, 0);
-};
-
-// Initialize default program state
-const defaultProgram: Program = {
-    id: '',
-    name: '',
-    userId: '',
-    phaseFocus: 'GPP',
-    periodizationType: 'None',
-    progressionRules: {
-      type: 'None',
-      settings: {
-        volumeIncrementPercentage: 0,
-        loadIncrementPercentage: 0,
-        programLength: 4,
-        weeklyVolumePercentages: [100, 80, 90, 60]
-      }
-    },
-    exercises: [],
-    createdAt: new Date(),
-    updatedAt: new Date()
-};
-
-// Helper functions for weight calculations
-const getNumericLoad = (load: number | string | undefined): number => {
-  // If it's a number, return it directly
-  if (typeof load === 'number') return load;
-  
-  // If it's undefined, return 0
-  if (load === undefined) return 0;
-  
-  // If it's a string, try to parse it as a number
-  const parsed = parseFloat(load);
-  
-  // If it's a valid number, return it
-  if (!isNaN(parsed)) return parsed;
-  
-  // If it's a color or "BW" or any other non-numeric string, return 0
-  return 0;
-};
-
-const convertWeight = (weight: number, fromUnit: string, toUnit: string): number => {
-  if (fromUnit === toUnit) return weight;
-  if (fromUnit === 'kg' && toUnit === 'lbs') return weight * KG_TO_LBS;
-  if (fromUnit === 'lbs' && toUnit === 'kg') return weight * LBS_TO_KG;
-  return weight;
-};
+import { createWeekExercise } from '@/app/lib/utils/fitness/resistance-training/ExerciseTransformations';
+import { getNumericLoad, convertWeight } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { DEFAULT_PROGRAM } from './components/program-defaults';
+import { useUserManagement } from './hooks/useUserManagement';
+import { useProgramState } from './hooks/useProgramState';
+import { useExerciseLibrary } from './hooks/useExerciseLibrary';
+import { useExerciseModal } from './hooks/useExerciseModal';
+import { useToastMessages } from './hooks/useToastMessage';
+import { updatePairings } from './utils/ExercisePairings';
+import { useExerciseManagement } from './hooks/useExerciseManagement';
 
 function PlanPageContent() {
-  const { data: session } = useSession();
-  const { settings: userSettings, isLoading: settingsLoading } = useUserSettings();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-
-  // Check admin status
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (session?.user?.id) {
-        try {
-          const response = await fetch('/api/users');
-          setIsAdmin(response.ok);
-        } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        }
-      }
-    };
-
-    checkAdminStatus();
-  }, [session?.user?.id]);
-
-  // Debug logs
-  useEffect(() => {
-    console.log('Component State:', {
-      isAdmin,
-      sessionUserId: session?.user?.id,
-      selectedUserId,
-      settingsLoading
-    });
-  }, [isAdmin, session?.user?.id, selectedUserId, settingsLoading]);
-
-  // Program state
-  const [program, setProgram] = useState<Program>({
-    ...defaultProgram,
-    progressionRules: {
-      type: PeriodizationType.Linear,
-      settings: {
-        volumeIncrementPercentage: 0,
-        loadIncrementPercentage: 0,
-        programLength: 4,
-        weeklyVolumePercentages: [100, 80, 90, 60]
-      }
-    }
+  const { exerciseLibrary, setExerciseLibrary } = useExerciseLibrary({
+    onError: useToastMessages().handleError
   });
+  const { program, setProgram, weekExercises, setWeekExercises, activeWeek } = useProgramState();
+  const { 
+    isExerciseModalOpen, setIsExerciseModalOpen,
+    isExerciseSearchOpen, setIsExerciseSearchOpen,
+    isAdvancedSearchOpen, setIsAdvancedSearchOpen,
+    editingExercise, setEditingExercise,
+    selectedExerciseName, setSelectedExerciseName,
+    selectedExercise, setSelectedExercise
+  } = useExerciseModal();
+  const { 
+    showSuccessToast, setShowSuccessToast,
+    showErrorToast, setShowErrorToast,
+    errorMessage, setErrorMessage,
+    showSaveToast, setShowSaveToast,
+    saveError, setSaveError,
+    isSaving, setIsSaving
+  } = useToastMessages();
+  const { 
+    session, 
+    userSettings, 
+    settingsLoading, 
+    isAdmin, 
+    selectedUserId, 
+    setSelectedUserId 
+  } = useUserManagement();
+  const { 
+    handleAddExercise, 
+    handleExerciseSelect,
+    // ... other exercise management functions and state
+  } = useExerciseManagement(userSettings);
+  const modalControls = useExerciseModal();
+  const exerciseManagement = useExerciseManagement(userSettings, program, modalControls);
 
-  // UI state
-  const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
-  const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
-  const [exerciseLibrary, setExerciseLibrary] = useState<ExerciseOption[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
-  const [isProgramSettingsExpanded, setIsProgramSettingsExpanded] = useState(true);
-  const [currentExercise, setCurrentExercise] = useState<Exercise | undefined>();
-  const [selectedExerciseName, setSelectedExerciseName] = useState('');
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | undefined>();
-  const [activeExercise, setActiveExercise] = useState<Exercise | undefined>();
-  const [mounted, setMounted] = useState(false);
-  const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
-  const [activeWeek, setActiveWeek] = useState(1);
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string>('');
-  const [showSaveToast, setShowSaveToast] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Load exercise library on mount
-  useEffect(() => {
-    const loadExerciseLibrary = async () => {
-      try {
-        const response = await fetch('/api/exercises');
-        if (!response.ok) {
-          throw new Error('Failed to fetch exercise library');
-        }
-        const data = await response.json();
-        console.log('Loaded exercise library:', data);
-        
-        if (!Array.isArray(data)) {
-          throw new Error('Invalid exercise library data format');
-        }
-        
-        // Transform the data to match ExerciseOption type
-        const formattedData: ExerciseOption[] = data.map((exercise: any) => ({
-          id: exercise.id.toString(),
-          value: `${exercise.source}-${exercise.id}`,
-          label: exercise.exercise_name,
-          libraryId: exercise.source === 'library' ? parseInt(exercise.id) : undefined,
-          source: exercise.source,
-          data: {
-            id: exercise.id.toString(),
-            name: exercise.exercise_name,
-            source: exercise.source || 'library',
-            difficulty: exercise.difficulty_name,
-            targetMuscleGroup: exercise.target_muscle_group || 'N/A',
-            primaryEquipment: exercise.primary_equipment || 'N/A',
-            secondaryEquipment: exercise.secondary_equipment,
-            exerciseFamily: exercise.exercise_family || 'N/A',
-            bodyRegion: exercise.body_region || 'N/A',
-            movementPattern: exercise.movement_pattern || 'N/A',
-            movementPlane: exercise.movement_plane || 'N/A',
-            laterality: exercise.laterality || 'N/A'
-          }
-        }));
-        
-        setExerciseLibrary(formattedData);
-      } catch (error) {
-        console.error('Error loading exercise library:', error);
-        setErrorMessage(error instanceof Error ? error.message : 'Failed to load exercise library');
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-      }
-    };
-
-    loadExerciseLibrary();
-  }, []);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // First, uncomment the DND-Kit setup
-  const sensors = useSensors(
-    useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  );
-
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const draggedExercise = program.exercises.find(ex => ex.id === active.id);
-    setActiveExercise(draggedExercise);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveExercise(undefined);
-    const { active, over } = event;
-
-    if (active.id !== over?.id) {
-      setProgram((prev) => {
-        const oldIndex = prev.exercises.findIndex((ex) => ex.id === active.id);
-        const newIndex = prev.exercises.findIndex((ex) => ex.id === over?.id);
-
-        // Create new array with the moved exercise
-        const newExercises = arrayMove(prev.exercises, oldIndex, newIndex);
-
-        // Update pairings for all exercises
-        const updatedExercises = updatePairings(newExercises);
-
-        return {
-          ...prev,
-          exercises: updatedExercises
-        };
-      });
-    }
-  };
-
-  // Modified updatePairings function to handle group changes
-  const updatePairings = (exercises: Exercise[]): Exercise[] => {
-    let currentGroup = 'A';
-    let currentNumber = 1;
-
-    return exercises.map((exercise, index): Exercise => {
-      if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
-        return exercise;
-      }
-
-      if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
-        if (index > 0) {
-          // Only increment group if not first exercise
-          currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
-        }
-        currentNumber = 1;
-      }
-
-      const newPairing = `${currentGroup}${currentNumber}`;
-      currentNumber = currentNumber === 1 ? 2 : 1;
-
-      // Extract only the BaseExercise properties
-      const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
-        id: exercise.id,
-        name: exercise.name || '',
-        pairing: newPairing,
-        sets: exercise.sets,
-        reps: exercise.reps,
-        load: exercise.load,
-        tempo: exercise.tempo,
-        rest: exercise.rest,
-        notes: exercise.notes || '',
-        rpe: exercise.rpe,
-        rir: exercise.rir,
-        loadUnit: exercise.loadUnit,
-        source: exercise.source || 'custom',
-        libraryId: exercise.libraryId
-      };
-
-      if (!exercise.isVariedSets) {
-        return createRegularExercise(baseExercise);
-      } else {
-        return createVariedExercise(baseExercise, exercise.setDetails);
-      }
-    });
-  };
-
-  // Exercise management
-  const handleAddExercise = () => {
-    setEditingExercise(undefined);
-    setSelectedExerciseName('');
-    setIsExerciseModalOpen(true);
-  };
-
-  const handleExerciseSelect = (exercise: ExerciseOption) => {
-    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
-      id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
-      name: exercise.label || '',
-      pairing: getNextPairing(),
-      sets: 3,
-      reps: 10,
-      load: 0,
-      tempo: '2010',
-      rest: 60,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg',
-      notes: '',
-      source: 'library' as const,
-      libraryId: exercise.libraryId
-    };
-    
-    setSelectedExercise(createRegularExercise(baseExercise));
-    setIsAdvancedSearchOpen(false);
-  };
-
-  const getNextPairing = (): string => {
-    // Filter out warm-up and cool-down exercises
-    const exercises = program.exercises.filter(
-      ex => !ex.pairing?.startsWith('WU') && !ex.pairing?.startsWith('CD')
-    );
-
-    if (exercises.length === 0) return 'A1';
-
-    const lastExercise = exercises[exercises.length - 1];
-    const letter = lastExercise.pairing.charAt(0);
-    const number = parseInt(lastExercise.pairing.charAt(1));
-
-    // If we're at number 1, return same letter with number 2
-    if (number === 1) {
-      return `${letter}2`;
-    }
-    
-    // If we're at number 2, move to next letter and start at 1
-    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
-  };
+  // DND functionality to be implemented later
+  // const { sensors, handleDragStart, handleDragEnd } = useDragAndDrop();
 
   const handleEditExercise = (id: string) => {
     // Find the exercise in the current week's exercises

@@ -66,6 +66,10 @@ export interface VariedExercise extends BaseExercise {
   notes?: string;  // Added notes field
 }
 
+export function isVariedExercise(exercise: Exercise): exercise is VariedExercise {
+  return 'setDetails' in exercise && exercise.setDetails !== undefined;
+}
+
 /**
  * Union type for all exercise types
  */
@@ -99,7 +103,11 @@ export interface PlannedExerciseSubSet {
   rir?: number;       // Added: Reps in Reserve
 }
 
-
+export interface WeekExercise extends BaseExercise {
+  weekNumber: number;
+  baseExerciseId: number;  // Original exercise ID
+  weekSpecificId: number;  // Database ID for this specific week's version
+}
 
 
 /**

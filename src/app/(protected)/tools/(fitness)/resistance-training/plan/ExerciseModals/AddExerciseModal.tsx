@@ -449,7 +449,7 @@ export default function AddExerciseModal({
         id: i + 1,
         setNumber: i + 1,
         plannedReps: watch('reps'),
-        plannedLoad: watch('load'),
+        plannedLoad: Number(watch('load')) || 0,  // Convert to number
         plannedTempo: watch('tempo'),
         plannedRest: watch('rest'),
         loadUnit: watch('loadUnit'),
@@ -555,7 +555,6 @@ export default function AddExerciseModal({
     const currentSet = updatedSetDetails[setIndex];
     
     const newSubSet: PlannedExerciseSubSet = {
-      id: (currentSet.subSets?.length || 0) + 1,
       subSetNumber: (currentSet.subSets?.length || 0) + 1,
       plannedReps: currentSet.plannedReps,
       plannedLoad: currentSet.plannedLoad,

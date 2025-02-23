@@ -4,14 +4,14 @@ import React from 'react';
 // import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 // import { createPortal } from 'react-dom';
 import { Exercise } from '@/app/lib/types/pillars/fitness';
-import ExerciseListNoSSR from './ExerciseList';
+import ExerciseList from '../ExerciseManagement/ExerciseList';
 
 interface WeekProgramProps {
   weekNumber: number;
   exercises: Exercise[];
   onExercisesChange: (exercises: Exercise[]) => void;
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onEdit: (id: number) => void;    // Changed from string to number
+  onDelete: (id: number) => void;  // Changed from string to number
 }
 
 export default function WeekProgram({
@@ -59,6 +59,11 @@ export default function WeekProgram({
   //   }
   // };
 
+    /**
+   * TODO: This function will be used when drag-and-drop functionality is re-implemented.
+   * It updates exercise pairings (A1, A2, B1, etc.) when exercises are reordered.
+   * Currently preserved for future DnD implementation.
+   */
   // Modified updatePairings function to handle group changes
   const updatePairings = (exercises: Exercise[]): Exercise[] => {
     let currentGroup = 'A';
@@ -89,7 +94,7 @@ export default function WeekProgram({
   return (
     <div>
       {/* Remove DnD Context wrapper */}
-      <ExerciseListNoSSR
+      <ExerciseList
         exercises={exercises}
         onEdit={onEdit}
         onDelete={onDelete}
