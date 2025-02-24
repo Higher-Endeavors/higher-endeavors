@@ -6,6 +6,7 @@ import { exerciseSchema, setDetailsSchema, subSetSchema, PhaseFocus, Periodizati
  */
 
 export type LoadUnit = 'lbs' | 'kg';    // Specifically for resistance training loads
+export const DefaultLoadUnit: LoadUnit = 'lbs';
 
 /**
  * Program types
@@ -40,10 +41,10 @@ export type ExerciseSource = 'library' | 'user';  // Remove 'custom'
  * Base interface for exercise properties
  */
 export interface BaseExercise {
-  id: number;              // ID from respective table
+  id: string | number;              // ID from respective table
   exerciseId: number;
   name: string;           
-  source: 'library' | 'user';
+  source: 'exercise_library' | 'user_exercises';
 }
 
 export interface PlannedExercise extends BaseExercise {

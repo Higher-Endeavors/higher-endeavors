@@ -54,6 +54,8 @@ import { useExerciseModal } from './hooks/useExerciseModal';
 import { useToastMessages } from './hooks/useToastMessage';
 import { updatePairings } from './utils/ExercisePairings';
 import { useExerciseManagement } from './hooks/useExerciseManagement';
+import { useProgramSettings } from './hooks/useProgramSettings';
+import { useProgramSave } from './hooks/useProgramSave';
 
 function PlanPageContent() {
   const { exerciseLibrary, setExerciseLibrary } = useExerciseLibrary({
@@ -90,122 +92,36 @@ function PlanPageContent() {
     // ... other exercise management functions and state
   } = useExerciseManagement(userSettings);
   const modalControls = useExerciseModal();
-  const exerciseManagement = useExerciseManagement(userSettings, program, modalControls);
+  const exerciseManagement = useExerciseManagement(
+    userSettings, 
+    program, 
+    modalControls,
+    { weekExercises, activeWeek, setWeekExercises }
+  );
+  const { program, setProgram } = useProgramState();
+  const { handleSettingsChange } = useProgramSettings(program, setProgram);
+  const { handleSave, isSaving } = useProgramSave({
+    program,
+    weekExercises,
+    selectedUserId,
+    sessionUserId: session?.user?.id,
+    setProgram,
+    onSuccess: () => {
+      setShowSaveToast(true);
+      setTimeout(() => setShowSaveToast(false), 3000);
+    },
+    onError: (error) => {
+      setErrorMessage(error);
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
+    }
+  });
 
   // DND functionality to be implemented later
   // const { sensors, handleDragStart, handleDragEnd } = useDragAndDrop();
 
-  const handleEditExercise = (id: string) => {
-    // Find the exercise in the current week's exercises
-    const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
-    if (exercise && !exercise.isVariedSets) {
-      console.log('Editing exercise:', exercise);
-      setEditingExercise(createRegularExercise({
-        ...exercise,
-        id: id
-      }));
-      setSelectedExerciseName(exercise.name);
-      setIsExerciseModalOpen(true);
-    }
-  };
 
-  const handleSaveExercise = (formattedExercise: Exercise) => {
-    console.log('Received exercise data in handleSaveExercise:', formattedExercise);
-    
-    const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
-      id: formattedExercise.id,
-      name: formattedExercise.name,
-      pairing: formattedExercise.pairing || 'A1',
-      sets: formattedExercise.sets,
-      reps: formattedExercise.reps,
-      load: formattedExercise.load,
-      tempo: formattedExercise.tempo || '2010',
-      rest: formattedExercise.rest,
-      notes: formattedExercise.notes || '',
-      source: formattedExercise.source || 'library',
-      libraryId: formattedExercise.libraryId,
-      loadUnit: formattedExercise.loadUnit || 'kg'
-    };
 
-    const exerciseData = formattedExercise.isVariedSets 
-      ? createVariedExercise(baseExercise, formattedExercise.setDetails || [])
-      : createRegularExercise(baseExercise);
-
-    // Update program exercises
-    setProgram(prev => ({
-      ...prev,
-      exercises: editingExercise 
-        ? prev.exercises.map(ex => ex.id === exerciseData.id ? exerciseData : ex)
-        : [...prev.exercises, exerciseData]
-    }));
-
-    // Update week exercises
-      setWeekExercises(prev => {
-        const newWeekExercises = { ...prev };
-      
-      // If editing an existing exercise
-      if (editingExercise) {
-        Object.keys(newWeekExercises).forEach(weekNum => {
-          newWeekExercises[Number(weekNum)] = newWeekExercises[Number(weekNum)]?.map(ex =>
-            ex.id === exerciseData.id ? exerciseData : ex
-          ) || [];
-        });
-        } else {
-        // If adding a new exercise
-        if (!newWeekExercises[activeWeek]) {
-          newWeekExercises[activeWeek] = [];
-        }
-        newWeekExercises[activeWeek] = [...newWeekExercises[activeWeek], exerciseData];
-        }
-        
-        return newWeekExercises;
-      });
-
-    setIsExerciseModalOpen(false);
-  };
-
-  const handleDeleteExercise = (id: string) => {
-    // Get the base ID (remove week suffix if present)
-    const baseId = id.split('-week')[0];
-
-    // Remove from program exercises
-    setProgram((prev) => ({
-      ...prev,
-      exercises: prev.exercises.filter(ex => !ex.id.startsWith(baseId))
-    }));
-
-    // Remove from all weeks
-    setWeekExercises(prev => {
-      const newWeekExercises = { ...prev };
-      Object.keys(newWeekExercises).forEach(week => {
-        newWeekExercises[Number(week)] = newWeekExercises[Number(week)]?.filter(
-          ex => !ex.id.startsWith(baseId)
-        ) || [];
-      });
-      return newWeekExercises;
-    });
-  };
-
-  // Program settings management
-  const handleSettingsChange = (settings: Partial<ProgramSettingsFormData>) => {
-    setProgram(prevProgram => {
-      if (!prevProgram) return prevProgram;
-
-      return {
-        ...prevProgram,
-        name: settings.name || prevProgram.name,
-        periodizationType: (settings.periodizationType || prevProgram.periodizationType) as PeriodizationTypeEnum,
-        phaseFocus: (settings.phaseFocus || prevProgram.phaseFocus) as PhaseFocusType,
-        progressionRules: {
-          type: (settings.periodizationType || prevProgram.progressionRules.type) as PeriodizationTypeEnum,
-          settings: {
-            ...prevProgram.progressionRules.settings,
-            ...settings.progressionRules?.settings
-          }
-        }
-      };
-    });
-  };
 
   // Volume targets management - commented out for now
   /*const handleVolumeTargetsChange = (targets: VolumeTarget[]) => {
@@ -214,129 +130,6 @@ function PlanPageContent() {
       volumeTargets: targets
     }));
   };*/
-
-  // Save program
-  const handleSave = async () => {
-    console.log('Starting save with program state:', program);
-    
-    if (!program.name) {
-      setSaveError('Program name is required');
-      return;
-    }
-
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      // Client-side validation
-      if (!program.name?.trim()) {
-        const error = 'Please enter a program name';
-        setErrorMessage(error);
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-        return;
-      }
-
-      // Check if there are any exercises in week 1
-      if (!weekExercises[1] || weekExercises[1].length === 0) {
-        const error = 'Please add at least one exercise to the program';
-        setErrorMessage(error);
-        setShowErrorToast(true);
-        setTimeout(() => setShowErrorToast(false), 3000);
-        return;
-      }
-
-      // Transform the program data into the format expected by the API
-      const weeks = Array.from(
-        { length: program.progressionRules?.settings?.programLength ?? 4 },
-        (_, weekIndex) => ({
-          weekNumber: weekIndex + 1,
-          notes: '',
-          days: [{
-            dayNumber: 1,
-            notes: '',
-            exercises: weekExercises[weekIndex + 1]?.map((exercise, exerciseIndex) => ({
-              id: exercise.id,
-              name: exercise.name,
-              pairing: exercise.pairing,
-              orderIndex: exerciseIndex,
-              notes: exercise.notes || '',
-              source: exercise.source,
-              libraryId: exercise.libraryId,
-              sets: exercise.isVariedSets 
-                ? exercise.setDetails.map(set => ({
-                    setNumber: set.setNumber,
-                    reps: set.reps,
-                    load: set.load,
-                    loadUnit: set.loadUnit || 'kg',
-                    tempo: set.tempo,
-                    rest: set.rest,
-                    notes: set.notes || ''
-                  }))
-                : Array(exercise.sets).fill(null).map((_, i) => ({
-                    setNumber: i + 1,
-                    reps: exercise.reps,
-                    load: exercise.load,
-                    loadUnit: exercise.loadUnit || 'kg',
-                    tempo: exercise.tempo,
-                    rest: exercise.rest,
-                    notes: ''
-                  }))
-            })) || []
-          }]
-        })
-      );
-
-      const programData = {
-        id: program.id,
-        name: program.name.trim(),
-        periodizationType: program.periodizationType,
-        phaseFocus: program.phaseFocus,
-        progressionRules: program.progressionRules,
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-        notes: program.notes || '',
-        weeks: weeks,
-        userId: selectedUserId?.toString() || session?.user?.id || '0'
-      };
-
-      console.log('Formatted program data:', programData);
-      console.log('Program data stringified:', JSON.stringify(programData, null, 2));
-
-      // Determine if this is a new program or an update
-      const isUpdate = Boolean(program.id);
-      const url = isUpdate 
-        ? `/api/resistance-training/program/${program.id}`
-        : '/api/resistance-training/program';
-
-      console.log('Making request to:', url);
-      const response = await fetch(url, {
-        method: isUpdate ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(programData),
-      });
-
-      console.log('Response status:', response.status);
-      const responseText = await response.text();
-      console.log('Response text:', responseText);
-
-      if (!response.ok) {
-        throw new Error(responseText);
-      }
-
-      const result = JSON.parse(responseText);
-      setProgram(prev => ({ ...prev, id: result.programId }));
-      setShowSaveToast(true);
-      setTimeout(() => setShowSaveToast(false), 3000);
-    } catch (error) {
-      console.error('Error saving program:', error);
-      setSaveError(error instanceof Error ? error.message : 'Failed to save program');
-    } finally {
-      setIsSaving(false);
-    }
-  };
 
   // Add handler for advanced search selection
   const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {

@@ -24,3 +24,12 @@ export interface Program {
     createdAt: Date;
     updatedAt: Date;
   }
+
+  export interface Week {
+    id: number;
+    resistance_program_id: number;
+    week_number: number;
+    notes: string;
+    created_at: Date;
+    updated_at: Date;
+  }

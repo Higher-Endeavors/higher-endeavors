@@ -82,7 +82,7 @@ export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
  * settings without requiring all settings to be provided at once.
  */
 interface ProgramSettingsProps {
-  name: string;
+  programName: string;
   phaseFocus: ProgramSettingsFormData['phaseFocus'];
   periodizationType: ProgramSettingsFormData['periodizationType'];
   notes?: string;
@@ -163,7 +163,7 @@ const customSelectStyles = {
 };
 
 export default function ProgramSettings({
-  name,
+  programName,
   phaseFocus,
   periodizationType,
   notes,
@@ -193,7 +193,7 @@ export default function ProgramSettings({
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<ProgramSettingsFormData>({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
-      name,
+      name: programName,
       phaseFocus: phaseFocus || 'GPP',
       periodizationType: periodizationType || 'None',
       notes: notes || '',
