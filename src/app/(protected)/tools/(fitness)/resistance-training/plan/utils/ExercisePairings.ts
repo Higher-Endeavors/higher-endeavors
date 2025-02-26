@@ -9,8 +9,8 @@ export const createExerciseWithPairing = (
     id: exercise.id,
     exerciseId: exercise.exerciseId,
     name: exercise.name || '',
-    source: exercise.source as ExerciseSource
-  };
+    source: exercise.source
+  } as const;
 
   return !exercise.isVariedSets 
     ? createPlannedExercise({ ...baseExercise })

@@ -28,7 +28,7 @@ export function transformWeekExercises(weekExercises: { [key: number]: Exercise[
     };
   }
   
-  async function saveProgramToAPI(programData: any, programId: number | null, setProgram: Function) {
+  export async function saveProgramToAPI(programData: any, programId: number | null, setProgram: Function) {
     const isUpdate = Boolean(programId);
     const url = isUpdate ? `/api/resistance-training/program/${programId}` : '/api/resistance-training/program';
     

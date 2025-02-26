@@ -3,6 +3,7 @@ import type { ExerciseOption, BaseExercise, Exercise, Program, ExerciseSource, L
 import { DefaultLoadUnit } from '@/app/lib/types/pillars/fitness';
 import { createPlannedExercise, createVariedExercise } from '@/app/lib/types/pillars/fitness';
 import { getNextPairing } from '../utils/ExercisePairings';
+import { transformToRegularExercise } from '../utils/ExerciseTransformations';
 
 export function useExerciseManagement(
     userSettings: any, 
@@ -28,9 +29,11 @@ export function useExerciseManagement(
         setIsExerciseModalOpen(true);
     };
 
+    let tempIdCounter = 1;
+    
     const handleExerciseSelect = (exercise: ExerciseOption) => {
       const baseExercise = {
-        id: `exercise-${Math.random().toString(36).substr(2, 9)}-day1`,
+        id: -(tempIdCounter++),  // Negative to avoid conflicts with real DB IDs
         exerciseId: exercise.libraryId || exercise.id,  // Use libraryId for library exercises, id for user exercises
         name: exercise.label || '',
         pairing: getNextPairing(weekExercises[activeWeek] || []),
@@ -48,19 +51,26 @@ export function useExerciseManagement(
       setIsAdvancedSearchOpen(false);
     };
 
-    const handleEditExercise = (id: string) => {
+    const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {
+      const transformedExercise = transformToRegularExercise(exercise, userSettings, () => getNextPairing(weekExercises[activeWeek] || []));
+      setSelectedExerciseName(exercise.data.name);
+      setEditingExercise(transformedExercise);
+      setIsExerciseModalOpen(true);
+    };
+
+    const handleEditExercise = (id: number) => {
       const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
       if (exercise && !exercise.isVariedSets) {
         setEditingExercise(createPlannedExercise({
           ...exercise,
-          id: id
+          id
         }));
         setSelectedExerciseName(exercise.name);
         setIsExerciseModalOpen(true);
       }
     };
 
-    const handleSaveExercise = (formattedExercise: Exercise) => {
+    const handleSaveExercise = async (formattedExercise: Exercise): Promise<void> => {
       const exerciseData = formattedExercise.isVariedSets 
         ? createVariedExercise({
             id: formattedExercise.id,
@@ -72,8 +82,7 @@ export function useExerciseManagement(
             ...formattedExercise,
             source: formattedExercise.source as 'exercise_library' | 'user_exercises'
           });
-
-      // Update week exercises
+    
       setWeekExercises((prev: { [key: number]: Exercise[] }) => {
         const newWeekExercises = { ...prev };
         if (editingExercise) {
@@ -90,19 +99,16 @@ export function useExerciseManagement(
         }
         return newWeekExercises;
       });
-
+    
       modalControls.setIsExerciseModalOpen(false);
-      return exerciseData;
     };
 
-    const handleDeleteExercise = (id: string) => {
-      const baseId = id.split('-week')[0];
-      
+    const handleDeleteExercise = (id: number) => {
       setWeekExercises(prev => {
         const newWeekExercises = { ...prev };
         Object.keys(newWeekExercises).forEach(week => {
           newWeekExercises[Number(week)] = newWeekExercises[Number(week)]?.filter(
-            ex => !String(ex.id).startsWith(baseId)
+            ex => ex.id !== id
           ) || [];
         });
         return newWeekExercises;
@@ -118,6 +124,7 @@ export function useExerciseManagement(
       setSelectedExercise,
       handleAddExercise,
       handleExerciseSelect,
+      handleAdvancedSearchSelect,
       handleEditExercise,
       handleSaveExercise,
       handleDeleteExercise

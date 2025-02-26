@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Program, Exercise } from '@/app/lib/types/pillars/fitness';
+import { Program, Exercise, SavedProgram, ProgramListItem } from '@/app/lib/types/pillars/fitness';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate } from 'react-icons/hi';
 import { Modal } from 'flowbite-react';
-import { SavedProgram, SavedProgramWithOptional } from '@/app/lib/types/pillars/fitness/zod_schemas';
+
 
   // How many programs to show per page
   const ITEMS_PER_PAGE = 5;
@@ -35,10 +35,10 @@ function logDebug(category: keyof typeof DEBUG, message: string, data?: any) {
  * @param onProgramDelete - Function that runs when a program is deleted (optional)
  */
 interface ProgramBrowserProps {
-  onProgramSelect: (program: SavedProgram) => void;
+  onProgramSelect: (program: ProgramListItem) => void;
   currentUserId: number;
   isAdmin?: boolean;
-  onProgramDelete?: (programId: string) => void;
+  onProgramDelete?: (programId: number) => void;
 }
 
 /**
@@ -78,10 +78,10 @@ export default function ProgramBrowser({
 }: ProgramBrowserProps) {
   // Track the state of programs and UI
   // const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [programs, setPrograms] = useState<SavedProgram[]>([]);
+  const [programs, setPrograms] = useState<ProgramListItem[]>([]);
   const [menuState, setMenuState] = useState<MenuState>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [programToDelete, setProgramToDelete] = useState<SavedProgram | null>(null);
+  const [programToDelete, setProgramToDelete] = useState<ProgramListItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState({
     programs: true,  // Start true since we fetch on mount
@@ -139,23 +139,23 @@ export default function ProgramBrowser({
    * For admin users, can fetch programs for other users
    */
    // Filter logic
-const getFilteredPrograms = useCallback((programs: SavedProgram[]) => {
+const getFilteredPrograms = useCallback((programs: ProgramListItem[]) => {
   return programs.filter(program => {
-    if (filters.search && !program.program_name.toLowerCase().includes(filters.search.toLowerCase())) {
+    if (filters.search && !program.programName.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
 
-    if (filters.phaseFocus && program.phase_focus !== filters.phaseFocus) {
+    if (filters.phaseFocus && program.phaseFocus !== filters.phaseFocus) {
       return false;
     }
 
-    if (filters.periodizationType && program.periodization_type !== filters.periodizationType) {
+    if (filters.periodizationType && program.periodizationType !== filters.periodizationType) {
       return false;
     }
 
     // Date range filtering
     if (filters.dateRange !== 'all') {
-      const date = new Date(program.created_at);
+      const date = new Date(program.createdAt);
       const now = new Date();
       const diff = now.getTime() - date.getTime();
       const days = diff / (1000 * 60 * 60 * 24);
@@ -177,11 +177,11 @@ const getFilteredPrograms = useCallback((programs: SavedProgram[]) => {
   }).sort((a, b) => {
     switch (filters.sortBy) {
       case 'newest':
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'oldest':
-        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       case 'name':
-        return a.program_name.localeCompare(b.program_name);
+        return a.programName.localeCompare(b.programName);
       default:
         return 0;
     }
@@ -246,21 +246,21 @@ const getPaginatedPrograms = useCallback(() => {
   // Get current programs
   const currentPrograms = getPaginatedPrograms();
 
-  const handleMenuClick = useCallback((e: React.MouseEvent, programId: string) => {
+  const handleMenuClick = useCallback((e: React.MouseEvent, programId: number) => {
     e.stopPropagation();
     setMenuState(prev => ({
       ...prev,
-      [programId]: !prev[programId]
+      [programId.toString()]: !prev[programId.toString()]
     }));
   }, []);
 
-  const handleViewEdit = useCallback((e: React.MouseEvent, program: SavedProgram) => {
+  const handleViewEdit = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
     e.stopPropagation();
     onProgramSelect(program);
     setMenuState(prev => ({ ...prev, [program.id]: false }));
   }, [onProgramSelect]);
 
-  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: SavedProgram) => {
+  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: ProgramListItem) => {
     e.stopPropagation();
     try {
       setIsLoading(prev => ({ ...prev, duplicate: true }));
@@ -272,7 +272,7 @@ const getPaginatedPrograms = useCallback(() => {
     }
   }, [currentUserId, fetchPrograms]);
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent, program: SavedProgram) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
     e.stopPropagation();
     setProgramToDelete(program);
     setShowDeleteConfirm(true);
@@ -481,9 +481,9 @@ const getPaginatedPrograms = useCallback(() => {
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <h3 className="font-medium text-gray-900 dark:text-slate-900">{program.program_name}</h3>
+                        <h3 className="font-medium text-gray-900 dark:text-slate-900">{program.programName}</h3>
                         <span className="text-sm text-gray-500 dark:text-slate-600">
-                          {format(new Date(program.created_at), 'MMM d, yyyy')}
+                          {format(new Date(program.createdAt), 'MMM d, yyyy')}
                         </span>
                       </div>
                       <div className="relative">
@@ -525,13 +525,13 @@ const getPaginatedPrograms = useCallback(() => {
                     <div className="mt-2 text-sm text-gray-500 dark:text-slate-600">
                       <div className="flex flex-col space-y-1">
                         <div className="flex space-x-4">
-                          <span>Type: {program.periodization_type || 'None'}</span>
-                          <span>Phase: {program.phase_focus || 'Not specified'}</span>
+                          <span>Type: {program.periodizationType || 'None'}</span>
+                          <span>Phase: {program.phaseFocus || 'Not specified'}</span>
                         </div>
-                        {program.exercises && program.exercises.length > 0 && (
+                        {program.exerciseSummary && program.exerciseSummary.exercises && program.exerciseSummary.exercises.length > 0 && (
                           <div className="mt-2">
-                            <span className="font-medium">Exercises: </span>
-                            <span>{program.exercises.map(ex => ex.name).join(', ')}</span>
+                            <span className="font-medium">Exercises ({program.exerciseSummary.totalExercises}): </span>
+                            <span>{program.exerciseSummary.exercises.map(ex => ex.name).join(', ')}</span>
                           </div>
                         )}
                       </div>
@@ -602,7 +602,7 @@ const getPaginatedPrograms = useCallback(() => {
         <Modal.Body>
           <div className="space-y-4">
             <p className="text-gray-700 dark:text-gray-100">
-              Are you sure you want to delete "{programToDelete?.program_name}"? This action cannot be undone.
+              Are you sure you want to delete "{programToDelete?.programName}"? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button

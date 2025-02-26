@@ -1,9 +1,9 @@
 import type { Program } from '@/app/lib/types/pillars/fitness';
 
-export const DEFAULT_PROGRAM: Program = {
-    id: null,
+export const DefaultProgram: Program = {
+    id: 0,
     programName: '',
-    userId: null,
+    userId: 0,
     phaseFocus: 'GPP',
     periodizationType: 'None',
     progressionRules: {

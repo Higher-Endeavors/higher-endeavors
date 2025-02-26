@@ -1,67 +1,40 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
-import dynamic from 'next/dynamic';
-import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import React from 'react';
 import AddExerciseModal from './ExerciseModals/AddExerciseModal';
 import ExerciseSearch from './ExerciseModals/ExerciseSearch';
-import ProgramSettings, { ProgramSettingsFormData } from './components/ProgramContainer/ProgramSettings';
-import WeekProgram from './components/WeekProgram';
-import { z } from 'zod';
-import { KG_TO_LBS, LBS_TO_KG } from '@/app/lib/utils/fitness/unit-conversions';
+import WeekProgram from './components/ProgramContainer/WeekProgram';
 import { calculateSessionVolume } from '@/app/lib/utils/fitness/resistance-training/calculations';
-import { 
-  Exercise, 
-  BaseExercise, 
-  createPlannedExercise, 
-  VariedExercise, 
-  SetDetail,
-  ExerciseOption,
-  programSettingsSchema, 
-  programSchema,
-  createRegularExercise,
-  createVariedExercise,
-  getNextPairing,
-  PhaseFocusType,
-  PeriodizationTypeEnum,
-  ProgressionFrequencyType,
-  PhaseFocus,
-  PeriodizationType,
-  ProgressionFrequency,
-  isPhaseFocus,
-  isPeriodizationType,
-  isProgressionFrequency,
-  applyLinearProgression
-} from '@/app/lib/types/pillars/fitness';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
-import { Toast } from 'flowbite-react';
-import { HiCheck, HiX } from 'react-icons/hi';
-import UserSelector from '@/app/components/UserSelector';
-import { useSession } from 'next-auth/react';
-import ProgramBrowser from './components/ProgramBrowser/ProgramBrowser';
-import type { FitnessSettings } from '@/app/lib/types/user_settings';
-import { SavedProgram, VolumeTarget, ProgressionRules, Program } from '@/app/lib/types/pillars/fitness';
-import ProgramHeader from './components/ProgramHeader';
-import { createWeekExercise } from '@/app/lib/utils/fitness/resistance-training/ExerciseTransformations';
-import { getNumericLoad, convertWeight } from '@/app/lib/utils/fitness/resistance-training/calculations';
-import { DEFAULT_PROGRAM } from './components/program-defaults';
+import { Exercise } from '@/app/lib/types/pillars/fitness';
+import { useToast } from '@/app/lib/hooks/useToast';
+import ProgramHeader from './components/ProgramContainer/ProgramHeader';
+import ProgramSettingsSection from './components/ProgramContainer/ProgramSettingsSection';
+import WeekTabs from './components/ExerciseManagement/WeekTabs';
 import { useUserManagement } from './hooks/useUserManagement';
 import { useProgramState } from './hooks/useProgramState';
 import { useExerciseLibrary } from './hooks/useExerciseLibrary';
 import { useExerciseModal } from './hooks/useExerciseModal';
-import { useToastMessages } from './hooks/useToastMessage';
-import { updatePairings } from './utils/ExercisePairings';
 import { useExerciseManagement } from './hooks/useExerciseManagement';
 import { useProgramSettings } from './hooks/useProgramSettings';
 import { useProgramSave } from './hooks/useProgramSave';
+import { useProgramManagement } from './hooks/useProgramManagement';
+import { useWeekManagement } from './hooks/useWeekManagement';
+import { useWeekExerciseManagement } from './hooks/useWeekExerciseManagement';
 
 function PlanPageContent() {
   const { exerciseLibrary, setExerciseLibrary } = useExerciseLibrary({
-    onError: useToastMessages().handleError
+    onError: (error) => toast.error(error.message)
   });
-  const { program, setProgram, weekExercises, setWeekExercises, activeWeek } = useProgramState();
+  
+  const { 
+    program, 
+    setProgram, 
+    weekExercises, 
+    setWeekExercises, 
+    activeWeek,
+    setActiveWeek 
+  } = useProgramState(); // This now includes the program length effect
+
   const { 
     isExerciseModalOpen, setIsExerciseModalOpen,
     isExerciseSearchOpen, setIsExerciseSearchOpen,
@@ -70,57 +43,80 @@ function PlanPageContent() {
     selectedExerciseName, setSelectedExerciseName,
     selectedExercise, setSelectedExercise
   } = useExerciseModal();
-  const { 
-    showSuccessToast, setShowSuccessToast,
-    showErrorToast, setShowErrorToast,
-    errorMessage, setErrorMessage,
-    showSaveToast, setShowSaveToast,
-    saveError, setSaveError,
-    isSaving, setIsSaving
-  } = useToastMessages();
+
+  const toast = useToast();
+
   const { 
     session, 
     userSettings, 
     settingsLoading, 
     isAdmin, 
     selectedUserId, 
-    setSelectedUserId 
+    setSelectedUserId,
+    handleUserSelect // Now comes from useUserManagement
   } = useUserManagement();
+
   const { 
     handleAddExercise, 
     handleExerciseSelect,
-    // ... other exercise management functions and state
-  } = useExerciseManagement(userSettings);
-  const modalControls = useExerciseModal();
-  const exerciseManagement = useExerciseManagement(
-    userSettings, 
-    program, 
-    modalControls,
+    handleAdvancedSearchSelect,
+    handleEditExercise,
+    handleSaveExercise,
+    handleDeleteExercise
+  } = useExerciseManagement(
+    userSettings,
+    program,
+    { setIsExerciseModalOpen, setIsAdvancedSearchOpen },
     { weekExercises, activeWeek, setWeekExercises }
   );
-  const { program, setProgram } = useProgramState();
+
   const { handleSettingsChange } = useProgramSettings(program, setProgram);
+
   const { handleSave, isSaving } = useProgramSave({
     program,
     weekExercises,
     selectedUserId,
-    sessionUserId: session?.user?.id,
+    sessionUserId: session?.user?.id ?? null,
     setProgram,
     onSuccess: () => {
-      setShowSaveToast(true);
-      setTimeout(() => setShowSaveToast(false), 3000);
+      toast.success('Program saved successfully');
     },
     onError: (error) => {
-      setErrorMessage(error);
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
+      toast.error(error);
     }
+  });
+
+  const currentUserId = session?.user?.id ? parseInt(session.user.id) : 0;
+
+  const { 
+    handleProgramSelect, 
+    loadProgramExercises, 
+    handleProgramDelete,
+    handleProgramUpdate
+  } = useProgramManagement({ 
+    setProgram, 
+    setWeekExercises, 
+    currentUserId,
+    onError: (error) => {
+      toast.error(error);
+    }
+  });
+
+  const { handleWeekChange, applyProgressionToWeek } = useWeekManagement({
+    program,
+    activeWeek,
+    setActiveWeek,
+    setWeekExercises
+  });
+
+  const { handleWeekExercisesChange } = useWeekExerciseManagement({
+    program,
+    activeWeek,
+    setWeekExercises
   });
 
   // DND functionality to be implemented later
   // const { sensors, handleDragStart, handleDragEnd } = useDragAndDrop();
-
-
 
 
   // Volume targets management - commented out for now
@@ -130,382 +126,6 @@ function PlanPageContent() {
       volumeTargets: targets
     }));
   };*/
-
-  // Add handler for advanced search selection
-  const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {
-    const transformedExercise: RegularExercise = {
-      id: exercise.data.id,
-      name: exercise.data.name,
-      pairing: getNextPairing(),
-      sets: 3,
-      reps: 10,
-      load: 0,
-      loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'kg',
-      tempo: '2010',
-      rest: 60,
-      source: exercise.data.source,
-      libraryId: exercise.libraryId,
-      notes: '',
-      isVariedSets: false,
-      isAdvancedSets: false
-    };
-    
-    setSelectedExerciseName(exercise.data.name);
-    setEditingExercise(transformedExercise);
-    setIsExerciseModalOpen(true);
-  };
-
-  // Watch for program length changes
-  useEffect(() => {
-    if (!program) return;
-
-    setWeekExercises((prevWeekExercises) => {
-      // If no exercises for this week yet, initialize with program exercises
-      if (!prevWeekExercises[activeWeek]) {
-        return {
-          ...prevWeekExercises,
-          [activeWeek]: program.exercises ?? []
-        };
-      }
-
-      // Apply progression based on program type and settings
-      const baseExercises = program.exercises ?? [];
-      const newWeekExercises = baseExercises.map(exercise => {
-        if (program.periodizationType === 'Linear' && program.progressionRules?.settings) {
-          return applyLinearProgression(
-                  exercise,
-            activeWeek,
-            program.progressionRules.settings.volumeIncrementPercentage || 0,
-            program.progressionRules.settings.loadIncrementPercentage || 0
-          );
-        }
-        return exercise;
-      });
-
-                return {
-        ...prevWeekExercises,
-        [activeWeek]: newWeekExercises
-                };
-              });
-  }, [
-    program?.exercises,
-    program?.periodizationType,
-    program?.progressionRules?.settings?.programLength,
-    program?.progressionRules?.settings?.volumeIncrementPercentage,
-    program?.progressionRules?.settings?.loadIncrementPercentage,
-    program?.progressionRules?.settings?.weeklyVolumePercentages,
-    activeWeek
-  ]);
-
-  // Update exercises for the active week
-  const handleWeekExercisesChange = (exercises: Exercise[]) => {
-    setWeekExercises(prev => {
-      const newWeekExercises = { ...prev };
-      
-      // If this is Week 1, update all subsequent weeks
-      if (activeWeek === 1) {
-        newWeekExercises[1] = exercises;
-        
-        const programLength = program.progressionRules?.settings?.programLength ?? 4;
-        const weeklyVolumePercentages = program.progressionRules?.settings?.weeklyVolumePercentages ?? [100, 100, 100, 100];
-
-        for (let week = 2; week <= programLength; week++) {
-          if (program.periodizationType === 'Linear') {
-            newWeekExercises[week] = exercises.map(exercise => ({
-              ...applyLinearProgression(
-                exercise,
-                week,
-                program.progressionRules?.settings?.volumeIncrementPercentage ?? 0,
-                program.progressionRules?.settings?.loadIncrementPercentage ?? 0
-              ),
-              id: `${exercise.id.split('-week')[0]}-week${week}`
-            }));
-          } else if (program.periodizationType === 'Undulating') {
-            const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
-            newWeekExercises[week] = exercises.map(exercise => {
-              const volumePercentage = weekPercentage / 100;
-              const newReps = Math.max(1, Math.round(exercise.reps * volumePercentage));
-              return {
-                ...exercise,
-                id: `${exercise.id.split('-week')[0]}-week${week}`,
-                reps: newReps
-              };
-            });
-          } else {
-            // For other periodization types, just copy Week 1
-            newWeekExercises[week] = exercises.map(exercise => ({
-              ...exercise,
-              id: `${exercise.id.split('-week')[0]}-week${week}`
-            }));
-          }
-        }
-      } else {
-        // For other weeks, just update the current week
-        newWeekExercises[activeWeek] = exercises;
-      }
-      
-      return newWeekExercises;
-    });
-  };
-
-  // Handle user selection
-  const handleUserSelect = (userId: number | null) => {
-    setSelectedUserId(userId);
-    // Reset program state when switching users
-    setProgram({
-      id: '',
-      userId: userId?.toString() || '',
-      name: '',
-      phaseFocus: PhaseFocus.GPP,
-      periodizationType: PeriodizationType.None,
-      exercises: [],
-      progressionRules: {
-        type: PeriodizationType.None,
-        loadIncrement: 2.5,
-        frequency: ProgressionFrequency.PerSession,
-        settings: {
-          programLength: 4,
-          volumeIncrementPercentage: 5,
-          loadIncrementPercentage: 2.5,
-          weeklyVolumePercentages: [100, 80, 90, 60]
-        }
-      },
-      volumeTargets: [],
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
-    setWeekExercises({});
-  };
-
-  const handleProgramSelect = (selectedProgram: SavedProgram) => {
-    if (!selectedProgram.program_name) return;
-
-    setProgram({
-      id: selectedProgram.id,
-      userId: selectedProgram.userId || '',
-      name: selectedProgram.program_name,
-      phaseFocus: selectedProgram.phase_focus,
-      periodizationType: selectedProgram.periodization_type,
-      ...(selectedProgram.progression_rules && {
-        progressionRules: selectedProgram.progression_rules
-      }),
-      volumeTargets: selectedProgram.volumeTargets || [],
-      exercises: selectedProgram.exercises ?? [],
-      createdAt: typeof selectedProgram.created_at === 'string' ? new Date(selectedProgram.created_at) : selectedProgram.created_at,
-      updatedAt: typeof selectedProgram.updated_at === 'string' ? new Date(selectedProgram.updated_at) : selectedProgram.updated_at
-    });
-  };
-
-  const loadProgramExercises = async (programId: string) => {
-    try {
-      const response = await fetch(`/api/resistance-training/program/${programId}`);
-      if (!response.ok) throw new Error('Failed to load program exercises');
-      
-      const data: APIProgramResponse = await response.json();
-      console.log('Loaded program data:', data);
-      
-      if (!data.weeks || !Array.isArray(data.weeks)) {
-        throw new Error('Invalid program data: missing weeks array');
-      }
-      
-      const newWeekExercises: { [key: number]: Exercise[] } = {};
-      
-      data.weeks.forEach((week: APIWeek) => {
-        if (!week.days || !Array.isArray(week.days)) {
-          console.warn(`Week ${week.weekNumber} has no days array`);
-          return;
-        }
-
-        const weekExercises: Exercise[] = [];
-        week.days.forEach((day: APIDay) => {
-          if (!day.exercises || !Array.isArray(day.exercises)) {
-            console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
-            return;
-          }
-
-          day.exercises.forEach((exercise: APIExercise) => {
-            console.log('Processing exercise from API:', exercise);
-            
-            // Create base exercise properties
-            const baseExercise: Omit<BaseExercise, 'isVariedSets' | 'isAdvancedSets'> = {
-              id: exercise.id || `exercise-${Math.random().toString(36).substr(2, 9)}-day${day.dayNumber}-week${week.weekNumber}`,
-              name: exercise.name || exercise.customName || 'Unknown Exercise',
-              pairing: exercise.pairing || 'A1',
-              sets: exercise.sets.length,
-              reps: exercise.sets[0]?.reps || 10,
-              load: exercise.sets[0]?.load || 0,
-              loadUnit: exercise.sets[0]?.loadUnit || 'lbs',
-              tempo: exercise.sets[0]?.tempo || '2010',
-              rest: exercise.sets[0]?.rest || 60,
-              notes: exercise.notes || '',
-              source: exercise.source,
-              libraryId: exercise.libraryId,
-              userExerciseId: exercise.userExerciseId
-            };
-
-            // Check if exercise has varied sets
-            const hasVariedSets = exercise.sets.length > 1 && exercise.sets.some((set, idx, arr) => {
-              if (idx === 0) return false;
-              const prevSet = arr[idx - 1];
-              return set.reps !== prevSet.reps || set.load !== prevSet.load || set.tempo !== prevSet.tempo;
-            });
-
-            let exerciseData: Exercise;
-            if (hasVariedSets) {
-              exerciseData = createVariedExercise(baseExercise, exercise.sets.map(set => ({
-                setNumber: set.setNumber,
-                reps: set.reps,
-                load: set.load,
-                loadUnit: set.loadUnit,
-                tempo: set.tempo,
-                rest: set.rest,
-                notes: set.notes || ''
-              })));
-            } else {
-              exerciseData = createRegularExercise(baseExercise);
-            }
-
-            console.log('Created exercise data:', exerciseData);
-            weekExercises.push(exerciseData);
-          });
-        });
-
-        if (weekExercises.length > 0) {
-          newWeekExercises[week.weekNumber] = weekExercises;
-        }
-      });
-
-      console.log('Transformed week exercises:', newWeekExercises);
-      setWeekExercises(newWeekExercises);
-      
-      // Update program exercises with Week 1 exercises
-      if (newWeekExercises[1]) {
-        setProgram(prev => ({
-          ...prev,
-          exercises: newWeekExercises[1]
-        }));
-      }
-    } catch (error) {
-      console.error('Error loading program exercises:', error);
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to load program exercises');
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
-    }
-  };
-
-  const currentUserId = session?.user?.id ? parseInt(session.user.id) : 0;
-
-  // Fix set parameter typing
-  const transformExerciseForSave = (exercise: Exercise, index: number) => {
-    if (exercise.isVariedSets) {
-      return {
-        ...exercise,
-        orderIndex: index,
-        sets: exercise.setDetails.map((set: SetDetail) => ({
-          setNumber: set.setNumber,
-          reps: set.reps,
-          load: set.load,
-          loadUnit: set.loadUnit,
-          tempo: set.tempo,
-          rest: set.rest,
-          notes: set.notes
-        }))
-      };
-    }
-    
-    // For regular exercises, omit the varied set properties
-    const { isVariedSets, isAdvancedSets, setDetails, ...baseExercise } = exercise;
-    return {
-      ...baseExercise,
-      orderIndex: index
-    };
-  };
-
-  // Fix UserSelector props
-  const UserSelectorWrapper = ({ currentUserId, onUserSelect, className }: {
-    currentUserId: number;
-    onUserSelect: (userId: number | null) => void;
-    className?: string;
-  }) => (
-    <UserSelector
-      currentUserId={currentUserId}
-      onUserSelect={onUserSelect}
-      className={className}
-    />
-  );
-
-  // Update the remaining sections with proper null checks
-  const handleWeekChange = (weekNumber: number) => {
-    const settings = program?.progressionRules?.settings;
-    if (!settings) return;
-    
-    const programLength = settings.programLength || 4;
-    if (weekNumber < 1 || weekNumber > programLength) return;
-    
-    setActiveWeek(weekNumber);
-  };
-
-  // Update applyProgressionToWeek to handle undefined settings
-  const applyProgressionToWeek = (weekNumber: number) => {
-    const settings = program?.progressionRules?.settings;
-    if (!settings) return;
-
-    const volumeIncrement = settings.volumeIncrementPercentage || 0;
-    const loadIncrement = settings.loadIncrementPercentage || 0;
-
-    setWeekExercises(prev => {
-      const currentWeekExercises = prev[weekNumber] || [];
-      return {
-        ...prev,
-        [weekNumber]: currentWeekExercises.map(exercise => ({
-          ...exercise,
-          reps: Math.round(exercise.reps * (1 + volumeIncrement / 100)),
-          load: typeof exercise.load === 'number'
-            ? Math.round(exercise.load * (1 + loadIncrement / 100) * 100) / 100
-            : exercise.load
-        }))
-      };
-    });
-  };
-
-  const handleProgramUpdate = (program: SavedProgram) => {
-    if (!program.userId) return; // Early return if no userId
-
-    setProgram({
-      id: program.id,
-      name: program.program_name,
-      userId: program.userId,
-      phaseFocus: program.phase_focus,
-      periodizationType: program.periodization_type,
-      progressionRules: program.progression_rules,
-      exercises: program.exercises ?? [],
-      createdAt: typeof program.created_at === 'string' ? new Date(program.created_at) : program.created_at,
-      updatedAt: typeof program.updated_at === 'string' ? new Date(program.updated_at) : program.updated_at
-    });
-  };
-
-  const handleProgramDelete = (programId: string) => {
-    // If the deleted program was the current program, reset to initial state
-    if (program.id === programId) {
-      setProgram({
-        id: '',
-        userId: currentUserId.toString(),
-        name: '',
-        phaseFocus: 'GPP',
-        periodizationType: 'Linear',
-        notes: '',
-        progressionRules: {
-          type: 'Linear',
-          settings: {
-            programLength: 4
-          }
-        },
-        exercises: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-    }
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -520,39 +140,13 @@ function PlanPageContent() {
         onProgramDelete={handleProgramDelete}
       />
 
-      <div className="mb-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setIsProgramSettingsExpanded(!isProgramSettingsExpanded)}>
-            <h2 className="text-xl font-semibold dark:text-slate-900">Program Settings</h2>
-            <button
-              className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200"
-              style={{ transform: isProgramSettingsExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-              </svg>
-            </button>
-          </div>
-          {isProgramSettingsExpanded && (
-          <ProgramSettings
-            name={program.name}
-            phaseFocus={program.phaseFocus}
-            periodizationType={program.periodizationType}
-            progressionRules={program.progressionRules ? {
-              type: program.progressionRules.type,
-              settings: program.progressionRules.settings ?? {
-                volumeIncrementPercentage: 0,
-                loadIncrementPercentage: 0,
-                programLength: 4,
-                weeklyVolumePercentages: []
-              }
-            } : undefined}
-            onSettingsChange={handleSettingsChange}
-          />
-          )}
-        </div>
-      </div>
-
+      <ProgramSettingsSection
+        name={program.programName}
+        phaseFocus={program.phaseFocus}
+        periodizationType={program.periodizationType}
+        progressionRules={program.progressionRules}
+        onSettingsChange={handleSettingsChange}
+      />
       {/* Volume Targets - commented out for now */}
       {/*<div className="mb-6">
         <VolumeTargets
@@ -562,28 +156,11 @@ function PlanPageContent() {
       </div>*/}
 
       {/* Week Tabs */}
-      <div className="mt-8 border-b border-gray-200 dark:border-gray-700">
-        <nav className="-mb-px flex space-x-4" aria-label="Week selection">
-          {Array.from(
-            { length: program?.progressionRules?.settings?.programLength || 4 },
-            (_, i) => i + 1
-          ).map((week) => (
-            <button
-              key={week}
-              onClick={() => handleWeekChange(week)}
-              className={`
-                whitespace-nowrap pb-4 px-4 border-b-2 font-medium text-sm
-                ${activeWeek === week
-                  ? 'border-purple-500 text-purple-600 dark:text-purple-400 dark:border-purple-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-500'
-                }
-              `}
-            >
-              Week {week}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <WeekTabs
+        activeWeek={activeWeek}
+        programLength={program?.progressionRules?.settings?.programLength || 4}
+        onWeekChange={handleWeekChange}
+      />
 
       {/* Exercises Section */}
       <div className="mt-6 bg-white rounded-lg shadow p-6">
@@ -678,29 +255,6 @@ function PlanPageContent() {
         }}
         onSelect={handleAdvancedSearchSelect}
       />
-
-      {/* Toast Notifications */}
-      {showSaveToast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
-              <HiCheck className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">Program saved successfully</div>
-          </Toast>
-        </div>
-      )}
-      
-      {saveError && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
-              <HiX className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">{saveError}</div>
-          </Toast>
-        </div>
-      )}
     </div>
   );
 }

@@ -28,7 +28,7 @@ const Debug = {
 
 export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) {
     const { settings: userSettings } = useUserSettings();
-    const [menuOpen, setMenuOpen] = useState<MenuState>({});
+    const [menuOpen, setMenuOpen] = useState<Record<number, boolean>>({});
   
     const toggleMenu = (id: number) => {
       setMenuOpen(prev => ({
@@ -138,13 +138,13 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
                   toggleMenu(exercise.id as number);
                 }}
                 aria-label="Exercise options"
-                aria-expanded={!!menuOpen[exercise.id]}
+                aria-expanded={!!menuOpen[Number(exercise.id)]}
                 className="p-1 hover:bg-gray-100 rounded-full"
                 >
                 <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" aria-hidden="true" />
             </button>
             
-            {menuOpen[exercise.id] && (
+            {menuOpen[Number(exercise.id)] && (
               <>
                 <div 
                   className="fixed inset-0 z-10" 
@@ -155,7 +155,7 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        onEdit(exercise.id);
+                        onEdit(Number(exercise.id));
                         closeMenu();
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -165,7 +165,7 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
                     <button
                       onClick={(e) => {
                         e.preventDefault();
-                        onDelete(exercise.id);
+                        onDelete(Number(exercise.id));
                         closeMenu();
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"

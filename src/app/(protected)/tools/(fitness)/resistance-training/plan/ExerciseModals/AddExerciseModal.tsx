@@ -522,7 +522,7 @@ export default function AddExerciseModal({
       onSave(createVariedExercise({
         id: parseInt(data.id),
         name: data.name,
-        source: selectedExercise?.data.source || 'library',
+        source: selectedExercise?.data.source === 'user' ? 'user_exercises' : 'exercise_library',
         exerciseId: selectedExercise?.data.id || 0
       }, setDetails));
     } else {
@@ -530,7 +530,7 @@ export default function AddExerciseModal({
       onSave(createPlannedExercise({
         id: parseInt(data.id),
         name: data.name,
-        source: selectedExercise?.data.source || 'library',
+        source: selectedExercise?.data.source === 'user' ? 'user_exercises' : 'exercise_library',
         exerciseId: selectedExercise?.data.id || 0
       }));
     }

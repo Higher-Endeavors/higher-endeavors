@@ -2,8 +2,8 @@
 
 import React from 'react';
 import UserSelector from '@/app/components/UserSelector';
-import ProgramBrowser from './ProgramBrowser';
-import { SavedProgram } from '@/app/lib/types/pillars/fitness/zod_schemas';
+import ProgramBrowser from '../ProgramBrowser/ProgramBrowser';
+import { ProgramListItem } from '@/app/lib/types/pillars/fitness';
 
 // For debugging - can be commented out when not needed
 const DEBUG_MODE = false;
@@ -27,10 +27,10 @@ function logDebug(message: string, data?: any) {
 interface ProgramHeaderProps {
   isAdmin: boolean;
   currentUserId: number;
-  selectedUserId: number | null;
-  onUserSelect: (userId: number | null) => void;
-  onProgramSelect: (program: SavedProgram) => void;
-  onProgramDelete?: (programId: string) => void;
+  selectedUserId: number;
+  onUserSelect: (userId: number) => void;
+  onProgramSelect: (program: ProgramListItem) => void;
+  onProgramDelete?: (programId: number) => void;
 }
 
 /**

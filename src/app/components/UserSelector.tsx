@@ -11,7 +11,7 @@ interface User {
 }
 
 interface UserSelectorProps {
-  onUserSelect: (userId: number | null) => void;
+  onUserSelect: (userId: number) => void;
   currentUserId: number;
   className?: string;
 }

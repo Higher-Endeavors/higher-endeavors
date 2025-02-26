@@ -1,4 +1,10 @@
+'use client';
+
+import { useState } from 'react';
 import { Program, Exercise } from '@/app/lib/types/pillars/fitness';
+import { transformWeekExercises, formatProgramData } from '../utils/ExerciseTransformations';
+import { saveProgramToAPI } from '../utils/programTransformations';
+
 
 interface UseProgramSaveProps {
   program: Program;

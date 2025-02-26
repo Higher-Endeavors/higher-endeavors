@@ -280,7 +280,6 @@ export default function ProgramSettings({
         <Controller
           name="name"
           control={control}
-          defaultValue={name}
           render={({ field }) => (
             <div>
               <input

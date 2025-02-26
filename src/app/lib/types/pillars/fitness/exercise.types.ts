@@ -41,7 +41,7 @@ export type ExerciseSource = 'library' | 'user';  // Remove 'custom'
  * Base interface for exercise properties
  */
 export interface BaseExercise {
-  id: string | number;              // ID from respective table
+  id: number;              // ID from respective table
   exerciseId: number;
   name: string;           
   source: 'exercise_library' | 'user_exercises';

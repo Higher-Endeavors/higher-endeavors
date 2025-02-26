@@ -10,8 +10,8 @@ interface WeekProgramProps {
   weekNumber: number;
   exercises: Exercise[];
   onExercisesChange: (exercises: Exercise[]) => void;
-  onEdit: (id: number) => void;    // Changed from string to number
-  onDelete: (id: number) => void;  // Changed from string to number
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
 export default function WeekProgram({

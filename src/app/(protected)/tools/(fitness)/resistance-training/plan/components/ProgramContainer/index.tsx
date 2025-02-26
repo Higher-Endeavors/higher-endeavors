@@ -4,7 +4,7 @@ import React from 'react';
 import ProgramHeader from './ProgramHeader';
 import ProgramSettings from './ProgramSettings';
 import WeekProgram from './WeekProgram';
-import { Program, Exercise, SavedProgram } from '@/app/lib/types/pillars/fitness';
+import { Program, Exercise, ProgramListItem } from '@/app/lib/types/pillars/fitness';
 import { ProgramSettingsFormData } from './ProgramSettings';
 
 // Debug configuration
@@ -25,13 +25,13 @@ interface ProgramContainerProps {
   weekExercises: { [key: number]: Exercise[] };
   activeWeek: number;
   handlers: {
-    handleProgramSelect: (program: SavedProgram) => void;
-    handleProgramDelete: (programId: string) => void;
+    handleProgramSelect: (program: ProgramListItem) => void;
+    handleProgramDelete: (programId: number) => void;
     handleSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
     handleWeekChange: (weekNumber: number) => void;
     handleWeekExercisesChange: (exercises: Exercise[]) => void;
-    handleEditExercise: (id: string) => void;
-    handleDeleteExercise: (id: string) => void;
+    handleEditExercise: (id: number) => void;
+    handleDeleteExercise: (id: number) => void;
   };
   isAdmin?: boolean;
   selectedUserId?: number | null;
@@ -63,7 +63,7 @@ export default function ProgramContainer({
       {/* Program Header Section */}
       <ProgramHeader
         isAdmin={isAdmin}
-        currentUserId={parseInt(program.userId) || 0}
+        currentUserId={program.userId}
         selectedUserId={selectedUserId}
         onUserSelect={onUserSelect || (() => {})}
         onProgramSelect={handlers.handleProgramSelect}
@@ -73,7 +73,7 @@ export default function ProgramContainer({
       {/* Program Settings Section */}
       <div className="bg-white rounded-lg shadow p-6">
         <ProgramSettings
-          name={program.programName}
+          programName={program.programName}
           phaseFocus={program.phaseFocus}
           periodizationType={program.periodizationType}
           notes={program.notes}
