@@ -84,10 +84,11 @@ export default function ProgramBrowser({
   const [programToDelete, setProgramToDelete] = useState<ProgramListItem | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState({
-    programs: true,  // Start true since we fetch on mount
+    programs: true,
     delete: false,
     duplicate: false
   });
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -192,11 +193,28 @@ const fetchPrograms = async () => {
   logDebug('FETCH', 'Fetching programs for user', currentUserId);
   try {
     setIsLoading(prev => ({ ...prev, programs: true }));
-    // ... fetch logic ...
+    setHasAttemptedLoad(false);
+    
+    const response = await fetch(`/api/resistance-training/programs?userId=${currentUserId}`, {
+      credentials: 'include'
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to fetch programs');
+    }
+    
+    const data = await response.json();
+    logDebug('FETCH', 'Programs API Response:', data);
+    setPrograms(data.programs);
+    
   } catch (error) {
     handleError(error, 'fetch programs');
   } finally {
-    setIsLoading(prev => ({ ...prev, programs: false }));
+    // Set a timeout to indicate we've attempted to load
+    setTimeout(() => {
+      setHasAttemptedLoad(true);
+      setIsLoading(prev => ({ ...prev, programs: false }));
+    }, 2000); // Show loading spinner for 2 seconds before showing no programs message
   }
 };
 
@@ -458,7 +476,7 @@ const getPaginatedPrograms = useCallback(() => {
           </div>
 
           {/* Programs List */}
-          {isLoading ? (
+          {isLoading.programs && !hasAttemptedLoad ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
@@ -467,8 +485,12 @@ const getPaginatedPrograms = useCallback(() => {
               {error}
             </div>
           ) : filteredPrograms.length === 0 ? (
-            <div className="text-center py-4 text-gray-500 dark:text-slate-600">
-              No programs found
+            <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-slate-600">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              <p className="text-lg font-medium mb-2">No Saved Programs</p>
+              <p className="text-sm text-center">Create your first Resistance Training Program to get started</p>
             </div>
           ) : (
             <>

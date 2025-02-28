@@ -33,13 +33,13 @@ import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
  * All logs are prefixed with [AddExerciseModal] for easy filtering
  */
 const DEBUG = {
-  FORM: false,         // Form changes and submissions
-  VALIDATION: false,   // Validation errors and states
-  STATE: false,        // State changes (exercise selection, units, etc.)
-  EFFECTS: false,      // Effect triggers and updates
-  EXERCISE_MGMT: false,// Exercise creation and selection
-  SET_MGMT: false,     // Set and subset management
-  API: false          // API calls and responses
+  FORM: true,         // Form changes and submissions
+  VALIDATION: true,   // Validation errors and states
+  STATE: true,        // State changes (exercise selection, units, etc.)
+  EFFECTS: true,      // Effect triggers and updates
+  EXERCISE_MGMT: true,// Exercise creation and selection
+  SET_MGMT: false,    // Set and subset management
+  API: true          // API calls and responses
 };
 
 /**
@@ -73,10 +73,10 @@ const Debug = {
  * Filter function for the exercise select dropdown
  */
 const filterExerciseOptions = (
-  option: { label: string; value: string; data: ExerciseOption },
+  option: FilterOptionOption<ExerciseOption>,
   inputValue: string
 ): boolean => {
-  if (!inputValue) return true;
+  if (!inputValue || !option?.label) return true;
   
   const searchTerms = inputValue.toLowerCase().trim().split(/\s+/);
   const exerciseName = option.label.toLowerCase();
@@ -343,22 +343,22 @@ export default function AddExerciseModal({
    * - Triggers form updates
    */
   const handleExerciseSelect: ExerciseSelectHandler = (selectedOption, actionMeta) => {
-    Debug.exerciseMgmt('Exercise Selection Started', { selectedOption, actionMeta });
+    Debug.exerciseMgmt('Exercise Selection:', {
+      selectedOption,
+      actionType: actionMeta.action
+    });
     
     if (selectedOption) {
-      Debug.exerciseMgmt('Setting exercise values', {
-        name: selectedOption.label,
-        id: selectedOption.data.id
-      });
-      
       setSelectedExercise(selectedOption);
       setValue('name', selectedOption.label);
-      
-      Debug.form('Form values after exercise selection', watch());
+      Debug.form('Updated form with selected exercise:', {
+        name: selectedOption.label,
+        formValues: watch()
+      });
     } else {
-      Debug.exerciseMgmt('Clearing exercise selection');
       setSelectedExercise(null);
       setValue('name', '');
+      Debug.form('Cleared exercise selection');
     }
   };
 
@@ -385,47 +385,40 @@ export default function AddExerciseModal({
   // Fetch exercises effect
   useEffect(() => {
     const fetchExercises = async () => {
-      Debug.api('Fetching exercises started');
+      Debug.api('Starting exercise fetch');
       try {
         setIsLoading(true);
         const response = await fetch('/api/exercises');
-        const data = await response.json();
+        Debug.api('Fetch response status:', response.status);
         
-        if (data.error) {
-          Debug.api('Error in exercise fetch response', data.error);
-          return;
+        const data = await response.json();
+        Debug.api('Raw API response data:', data);
+
+        if (!Array.isArray(data)) {
+          Debug.api('Invalid response format:', typeof data);
+          throw new Error('Invalid response format: expected an array');
         }
 
-        Debug.api('Exercises fetched successfully', { count: data.length });
-
-        const options: ExerciseOption[] = data.map((exercise: {
-          id: number;
-          exercise_name: string;
-          source: ExerciseSource;
-        }) => ({
-          value: `${exercise.source}-${exercise.id}`,
-          label: exercise.exercise_name,
+        const options = data.map((exercise: any) => ({
+          id: exercise.id,
+          value: exercise.id.toString(),
+          label: exercise.name,
+          source: exercise.source,
           data: {
-            id: exercise.id.toString(),
-            name: exercise.exercise_name,
+            id: exercise.id,
+            name: exercise.name,
             source: exercise.source
           }
         }));
 
-        Debug.state('Setting exercise options', { count: options.length });
-        setExerciseOptions(options);
+        Debug.api('Mapped exercise options:', {
+          count: options.length,
+          sample: options.slice(0, 2)
+        });
 
-        if (selectedExerciseName) {
-          const matchingExercise = options.find(opt => opt.label === selectedExerciseName);
-          if (matchingExercise) {
-            Debug.state('Setting pre-selected exercise', matchingExercise);
-            setSelectedExercise(matchingExercise);
-            setValue('name', matchingExercise.label);
-          }
-        }
+        setExerciseOptions(options);
       } catch (error) {
-        Debug.api('Error fetching exercises', error);
-        Debug.api('Error details:', error);
+        Debug.api('Error in fetchExercises:', error);
       } finally {
         setIsLoading(false);
       }
@@ -435,7 +428,15 @@ export default function AddExerciseModal({
       Debug.effect('Modal opened - fetching exercises');
       fetchExercises();
     }
-  }, [isOpen, selectedExerciseName, setValue]);
+  }, [isOpen, setValue]);
+
+  // Add effect to monitor exerciseOptions changes
+  useEffect(() => {
+    Debug.state('Exercise options updated:', {
+      count: exerciseOptions.length,
+      sample: exerciseOptions.slice(0, 2)
+    });
+  }, [exerciseOptions]);
 
   /**
    * Effect: Manage setDetails array when varied sets is enabled
@@ -733,11 +734,19 @@ export default function AddExerciseModal({
               <div className="flex gap-2">
                 <div className="flex-1">
                   <Select<ExerciseOption>
-                    id="exercise-select"
-                    key={isOpen ? 'open' : 'closed'}
                     value={selectedExercise}
-                    onChange={handleExerciseSelect}
+                    onChange={(newValue, action) => {
+                      Debug.exerciseMgmt('Select onChange:', { newValue, action });
+                      handleExerciseSelect(newValue, action);
+                    }}
                     options={exerciseOptions}
+                    onMenuOpen={() => {
+                      Debug.exerciseMgmt('Select menu opened:', {
+                        optionsAvailable: exerciseOptions.length > 0,
+                        firstOption: exerciseOptions[0],
+                        selectedValue: selectedExercise
+                      });
+                    }}
                     isLoading={isLoading}
                     className="basic-single"
                     classNamePrefix="select"
@@ -746,9 +755,7 @@ export default function AddExerciseModal({
                     styles={customSelectStyles}
                     filterOption={filterExerciseOptions}
                     components={{
-                      NoOptionsMessage: (props) => (
-                        <NoOptionsMessage inputValue={props.selectProps.inputValue} />
-                      )
+                      NoOptionsMessage: (props) => <NoOptionsMessage inputValue={props.selectProps.inputValue} />
                     }}
                   />
                 </div>
