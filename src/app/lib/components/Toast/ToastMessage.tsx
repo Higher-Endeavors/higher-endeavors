@@ -1,7 +1,7 @@
 import React from 'react';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX, HiExclamation, HiInformationCircle } from 'react-icons/hi';
-import { ToastMessage as ToastMessageType } from '@/app/types/toast';
+import { ToastMessage as ToastMessageType } from '@/app/lib/types/toast';
 
 interface ToastMessageProps {
   toast: ToastMessageType;

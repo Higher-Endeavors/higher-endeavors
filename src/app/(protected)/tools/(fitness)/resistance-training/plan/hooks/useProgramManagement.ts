@@ -13,7 +13,8 @@ import {
   VariedExercise,
   ExerciseSource,
   ProgramListItem,
-  ProgressionRules
+  ProgressionRules,
+  LoadUnit
 } from '@/app/lib/types/pillars/fitness';
 
 interface UseProgramManagementProps {
@@ -148,7 +149,7 @@ export function useProgramManagement({
                   setNumber: set.setNumber,
                   plannedReps: set.reps,
                   plannedLoad: set.load,
-                  loadUnit: set.loadUnit,
+                  loadUnit: set.loadUnit as LoadUnit,
                   plannedTempo: set.tempo,
                   plannedRest: set.rest,
                   notes: set.notes || ''

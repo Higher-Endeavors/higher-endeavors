@@ -21,7 +21,7 @@ export const calculateSessionVolume = (
       totalSets += variedExercise.setDetails.length;
       variedExercise.setDetails.forEach(set => {
         totalReps += set.plannedReps;
-        const load = getNumericLoad(set.plannedLoad);
+        const load = set.plannedLoad ? getNumericLoad(set.plannedLoad) : 0;
         if (set.loadUnit && set.loadUnit !== preferredUnit) {
           totalLoad += convertWeight(load * set.plannedReps, set.loadUnit, preferredUnit);
         } else {
@@ -34,7 +34,7 @@ export const calculateSessionVolume = (
       if (plannedExercise.plannedSets) {
         plannedExercise.plannedSets.forEach((set: PlannedExerciseSet) => {
           totalReps += set.plannedReps;
-          const load = getNumericLoad(set.plannedLoad);
+          const load = set.plannedLoad ? getNumericLoad(set.plannedLoad) : 0;
           if (set.loadUnit && set.loadUnit !== preferredUnit) {
             totalLoad += convertWeight(load * set.plannedReps, set.loadUnit, preferredUnit);
           } else {
@@ -54,14 +54,14 @@ export const calculateSessionDuration = (exercises: Exercise[]): number => {
       const variedExercise = exercise as VariedExercise;
       return total + variedExercise.setDetails.reduce((setTotal, set) => {
         const repTime = calculateTempoTotal(set.plannedTempo);
-        return setTotal + (set.plannedReps * repTime) + set.plannedRest;
+        return setTotal + (set.plannedReps * repTime) + (set.plannedRest ?? 0);
       }, 0);
     } else {
       const plannedExercise = exercise as PlannedExercise;
       if (plannedExercise.plannedSets) {
         return total + plannedExercise.plannedSets.reduce((setTotal: number, set: PlannedExerciseSet) => {
           const repTime = calculateTempoTotal(set.plannedTempo);
-          return setTotal + (set.plannedReps * repTime) + set.plannedRest;
+          return setTotal + (set.plannedReps * repTime) + (set.plannedRest ?? 0);
         }, 0);
       }
       return total;

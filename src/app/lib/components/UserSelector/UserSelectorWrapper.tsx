@@ -1,4 +1,4 @@
-import { UserSelector } from './UserSelector';
+import UserSelector from '@/app/components/UserSelector';
 
 interface UserSelectorWrapperProps {
   currentUserId: number;

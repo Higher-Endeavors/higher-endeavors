@@ -1,6 +1,6 @@
 import React from 'react';
 import ToastMessage from './ToastMessage';
-import { ToastMessage as ToastMessageType } from '@/app/types/toast';
+import { ToastMessage as ToastMessageType } from '@/app/lib/types/toast';
 
 interface ToastContainerProps {
   toasts: ToastMessageType[];

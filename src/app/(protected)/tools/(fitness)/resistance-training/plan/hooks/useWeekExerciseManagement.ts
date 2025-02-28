@@ -31,7 +31,7 @@ export function useWeekExerciseManagement({
                 program.progressionRules?.settings?.volumeIncrementPercentage ?? 0,
                 program.progressionRules?.settings?.loadIncrementPercentage ?? 0
               ),
-              id: `${exercise.id}-week${week}`
+              id: exercise.id * 100 + week // Generate unique numeric ID
             }));
           } else if (program.periodizationType === 'Undulating') {
             const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
@@ -41,7 +41,7 @@ export function useWeekExerciseManagement({
               const newReps = Math.max(1, Math.round((plannedExercise.plannedSets?.[0]?.plannedReps || 10) * volumePercentage));
               return {
                 ...exercise,
-                id: `${exercise.id}-week${week}`,
+                id: exercise.id * 100 + week, // Generate unique numeric ID
                 plannedSets: plannedExercise.plannedSets?.map((set: PlannedExerciseSet) => ({
                   ...set,
                   plannedReps: newReps
@@ -51,7 +51,7 @@ export function useWeekExerciseManagement({
           } else {
             newWeekExercises[week] = exercises.map(exercise => ({
               ...exercise,
-              id: `${exercise.id}-week${week}`
+              id: exercise.id * 100 + week // Generate unique numeric ID
             }));
           }
         }

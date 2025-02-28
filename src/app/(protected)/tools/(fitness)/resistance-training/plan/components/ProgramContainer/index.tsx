@@ -34,8 +34,8 @@ interface ProgramContainerProps {
     handleDeleteExercise: (id: number) => void;
   };
   isAdmin?: boolean;
-  selectedUserId?: number | null;
-  onUserSelect?: (userId: number | null) => void;
+  selectedUserId?: number;
+  onUserSelect?: (userId: number) => void;
 }
 
 /**
@@ -48,7 +48,7 @@ export default function ProgramContainer({
   activeWeek,
   handlers,
   isAdmin = false,
-  selectedUserId = null,
+  selectedUserId = program.userId,
   onUserSelect
 }: ProgramContainerProps) {
   debugLog('PROPS', 'Component rendered with props:', {

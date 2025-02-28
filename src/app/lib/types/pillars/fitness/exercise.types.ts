@@ -79,8 +79,8 @@ export type Exercise = PlannedExercise | VariedExercise;
 export interface PlannedExerciseSet {
   setNumber: number;
   plannedReps: number;
-  plannedLoad?: number;
-  loadUnit?: string;
+  plannedLoad?: string | number;
+  loadUnit?: LoadUnit;
   plannedRest?: number;
   plannedTempo?: string;
   rpe?: number;       // Added: Rating of Perceived Exertion (1-10, with .5 increments)
@@ -96,8 +96,8 @@ export interface PlannedExerciseSet {
 export interface PlannedExerciseSubSet {
   subSetNumber: number;
   plannedReps: number;
-  plannedLoad?: number;
-  loadUnit?: string;
+  plannedLoad?: string | number;
+  loadUnit?: LoadUnit;
   plannedRest?: number;
   plannedTempo?: string;
   rpe?: number;       // Added: Rating of Perceived Exertion
@@ -243,7 +243,7 @@ export interface SessionSet {
   setNumber: number;
   plannedReps: number;
   actualReps?: number;
-  plannedLoad: number | string;
+  plannedLoad: string | number | undefined;
   actualLoad?: number | string;
   tempo: string;
   restTime: number;
@@ -297,7 +297,7 @@ export interface ExerciseFormData {
   pairing: string;
   sets: number;
   reps: number;
-  load: number | string;
+  load: number | string | undefined;
   loadUnit?: LoadUnit;
   tempo: string;
   rest: number;

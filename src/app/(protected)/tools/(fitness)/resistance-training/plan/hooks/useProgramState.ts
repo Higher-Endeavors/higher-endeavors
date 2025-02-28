@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Program, PeriodizationType, Exercise } from '@/app/lib/types/pillars/fitness';
-import { DEFAULT_PROGRAM } from '../../../../../../lib/constants/ProgramDefaults';
+import { Program, PeriodizationType, Exercise, WeekExercise } from '@/app/lib/types/pillars/fitness';
+import { DefaultProgram } from '@/app/lib/constants/ProgramDefaults';
 import { applyLinearProgression } from '@/app/lib/types/pillars/fitness';
 
 export function useProgramState() {
   const [program, setProgram] = useState<Program>({
-    ...DEFAULT_PROGRAM,
+    ...DefaultProgram,
     progressionRules: {
       type: PeriodizationType.Linear,
       settings: {
