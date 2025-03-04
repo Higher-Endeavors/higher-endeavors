@@ -245,6 +245,7 @@ function PlanPageContent() {
         onAdvancedSearch={() => setIsAdvancedSearchOpen(true)}
         selectedExerciseName={selectedExerciseName}
         userSettings={userSettings ?? undefined}
+        exerciseLibrary={exerciseLibrary}
       />
 
       <ExerciseSearch

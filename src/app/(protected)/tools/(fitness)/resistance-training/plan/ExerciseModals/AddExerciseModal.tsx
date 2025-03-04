@@ -21,11 +21,13 @@ import {
   getNextPairing,
   isValidPairing,
   createPlannedExercise,
-  createVariedExercise
+  createVariedExercise,
+  PlannedExercise,
+  VariedExercise
 } from '@/app/lib/types/pillars/fitness';
 import { FilterOptionOption } from 'react-select';
 import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
-
+import { useToast } from '@/app/lib/hooks/useToast';
 
 /**
  * Debug Configuration
@@ -168,6 +170,7 @@ const customSelectStyles = {
  * 
  * Configuration:
  * @param userSettings - User preferences (units, tracking options)
+ * @param exerciseLibrary - Pre-fetched exercise library from page level
  */
 interface ExerciseModalProps {
   isOpen: boolean;
@@ -178,6 +181,7 @@ interface ExerciseModalProps {
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
   userSettings?: UserSettings;
+  exerciseLibrary?: ExerciseOption[]; // Optional to maintain backward compatibility
 }
 
 /**
@@ -193,8 +197,10 @@ export default function AddExerciseModal({
   exercises,
   onAdvancedSearch,
   selectedExerciseName,
-  userSettings
+  userSettings,
+  exerciseLibrary
 }: ExerciseModalProps) {
+  const toast = useToast();
   // Debug props on component mount and updates
   useEffect(() => {
     Debug.state('Component props received', {
@@ -382,6 +388,14 @@ export default function AddExerciseModal({
     }
   }, [selectedExerciseName, exerciseOptions, handleExerciseSelect]);
 
+  // Use exerciseLibrary if provided (minimal change)
+   useEffect(() => {
+       if (exerciseLibrary && exerciseLibrary.length > 0) {
+         console.log('Using provided exerciseLibrary:', exerciseLibrary.length);
+         setExerciseOptions(exerciseLibrary);
+       }
+     }, [exerciseLibrary]);
+
   // Fetch exercises effect
   useEffect(() => {
     const fetchExercises = async () => {
@@ -506,38 +520,89 @@ export default function AddExerciseModal({
    */
   const onSubmit = async (data: ExerciseFormData) => {
     Debug.form('Form submission started', { data, errors });
-
+  
+    if (!selectedExercise) {
+      Debug.validation('No exercise selected');
+      toast.error('Please select an exercise');
+      return;
+    }
+  
+    // 1. Basic exercise data (matches BaseExercise type and program_day_exercises table)
+    const baseExerciseData = {
+      id: parseInt(data.id),
+      name: data.name,
+      exerciseId: selectedExercise.data.id,
+      source: selectedExercise.data.source === 'user' ? 'user_exercises' : 'exercise_library' as 'user_exercises' | 'exercise_library',
+      pairing: data.pairing,
+      notes: data.notes
+    };
+  
+    // 2. Handle load unit standardization (matches LoadUnit type)
     const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as LoadUnit;
-
+  
     if (data.isVariedSets) {
-      const setDetails = data.setDetails?.map(set => ({
-        ...set,
-        loadUnit,
-        subSets: set.subSets?.map(subSet => ({
-          ...subSet,
-          loadUnit
-        }))
-      })) || [];
-
-      Debug.form('Creating varied exercise', { setDetails });
-      onSave(createVariedExercise({
-        id: parseInt(data.id),
-        name: data.name,
-        source: selectedExercise?.data.source === 'user' ? 'user_exercises' : 'exercise_library',
-        exerciseId: selectedExercise?.data.id || 0
-      }, setDetails));
+      Debug.form('Creating varied exercise', { setDetails: data.setDetails });
+      
+      // 3a. Format varied exercise (matches VariedExercise type and program_day_exercise_sets/sub_sets tables)
+      const exercise: VariedExercise = {
+        ...baseExerciseData,
+        isVariedSets: true,
+        isAdvancedSets: data.isAdvancedSets,
+        setDetails: data.setDetails?.map(set => ({
+          setNumber: set.setNumber,
+          plannedReps: set.plannedReps,
+          plannedLoad: set.plannedLoad || undefined,
+          loadUnit: set.plannedLoad ? loadUnit : undefined,
+          plannedRest: set.plannedRest,
+          plannedTempo: set.plannedTempo,
+          rpe: set.rpe,
+          rir: set.rir,
+          notes: set.notes,
+          subSets: data.isAdvancedSets ? set.subSets?.map(subSet => ({
+            subSetNumber: subSet.subSetNumber,
+            plannedReps: subSet.plannedReps,
+            plannedLoad: subSet.plannedLoad || undefined,
+            loadUnit: subSet.plannedLoad ? loadUnit : undefined,
+            plannedRest: subSet.plannedRest,
+            plannedTempo: subSet.plannedTempo,
+            rpe: subSet.rpe,
+            rir: subSet.rir
+          })) : undefined
+        })) || []
+      };
+  
+      Debug.form('Submitting varied exercise', exercise);
+      await onSave(exercise);
+  
     } else {
       Debug.form('Creating planned exercise');
-      onSave(createPlannedExercise({
-        id: parseInt(data.id),
-        name: data.name,
-        source: selectedExercise?.data.source === 'user' ? 'user_exercises' : 'exercise_library',
-        exerciseId: selectedExercise?.data.id || 0
-      }));
+  
+      // 3b. Format planned exercise (matches PlannedExercise type and program_day_exercise_sets table)
+      const exercise: PlannedExercise = {
+        ...baseExerciseData,
+        isVariedSets: false,
+        isAdvancedSets: false,
+        sets: data.sets,
+        plannedSets: Array.from({ length: data.sets }, (_, i) => ({
+          setNumber: i + 1,
+          plannedReps: data.reps,
+          plannedLoad: data.load || undefined,
+          loadUnit: data.load ? loadUnit : undefined,
+          plannedRest: data.rest,
+          plannedTempo: data.tempo,
+          rpe: data.rpe,
+          rir: data.rir,
+          notes: data.notes
+        }))
+      };
+  
+      Debug.form('Submitting planned exercise', exercise);
+      await onSave(exercise);
     }
-
-    onClose();
+  
+    Debug.form('Exercise saved successfully');
     setUseAlternateUnit(false);
+    onClose();
   };
 
   /**
