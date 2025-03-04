@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { 
-  SavedProgram, 
+import {
   Program,
   Exercise,
   PhaseFocus,
@@ -31,7 +30,7 @@ export function useProgramManagement({
   onError 
 }: UseProgramManagementProps) {
   
-  const fetchProgramDetails = async (programId: number): Promise<SavedProgram> => {
+  const fetchProgramDetails = async (programId: number): Promise<Program> => {
     const response = await fetch(`/api/resistance-training/program/${programId}`);
     if (!response.ok) throw new Error('Failed to fetch program details');
     return response.json();
@@ -41,22 +40,23 @@ export function useProgramManagement({
     const fullProgram = await fetchProgramDetails(programListItem.id);
   
     setProgram({
-      id: parseInt(fullProgram.id),
-      userId: parseInt(fullProgram.userId),
-      programName: fullProgram.program_name,
-      phaseFocus: fullProgram.phase_focus,
-      periodizationType: fullProgram.periodization_type,
-      progressionRules: {
+      id: fullProgram.id,
+      user_id: fullProgram.user_id,
+      program_name: fullProgram.program_name,
+      phase_focus: fullProgram.phase_focus,
+      periodization_type: fullProgram.periodization_type,
+      progression_rules: {
         type: fullProgram.progression_rules?.type || PeriodizationType.None,
         settings: {
-          volumeIncrementPercentage: fullProgram.progression_rules?.settings?.volumeIncrementPercentage ?? 0,
-          loadIncrementPercentage: fullProgram.progression_rules?.settings?.loadIncrementPercentage ?? 0,
-          programLength: fullProgram.progression_rules?.settings?.programLength ?? 4,
-          weeklyVolumePercentages: fullProgram.progression_rules?.settings?.weeklyVolumePercentages ?? [100, 100, 100, 100]
+          volume_increment_percentage: fullProgram.progression_rules?.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: fullProgram.progression_rules?.settings?.load_increment_percentage ?? 0,
+          program_length: fullProgram.progression_rules?.settings?.program_length ?? 4,
+          weekly_volume_percentages: fullProgram.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
         }
       },
-      createdAt: new Date(fullProgram.created_at),
-      updatedAt: new Date(fullProgram.updated_at)
+      created_at: new Date(fullProgram.created_at),
+      updated_at: new Date(fullProgram.updated_at),
+      notes: fullProgram.notes || ''
     });
 };
      // volumeTargets: selectedProgram.volumeTargets || [],
@@ -177,50 +177,51 @@ export function useProgramManagement({
   const handleProgramDelete = (programId: number) => {
     setProgram({
       id: programId,
-      userId: currentUserId,
-      programName: '',
-      phaseFocus: PhaseFocus.GPP,
-      periodizationType: PeriodizationType.Linear,
+      user_id: currentUserId,
+      program_name: '',
+      phase_focus: PhaseFocus.GPP,
+      periodization_type: PeriodizationType.Linear,
       notes: '',
-      progressionRules: {
+      progression_rules: {
         type: PeriodizationType.None,
         settings: {
-          volumeIncrementPercentage: 0,
-          loadIncrementPercentage: 0,
-          programLength: 4,
-          weeklyVolumePercentages: [100, 100, 100, 100]
+          volume_increment_percentage: 0,
+          load_increment_percentage: 0,
+          program_length: 4,
+          weekly_volume_percentages: [100, 100, 100, 100]
         }
       },
-      createdAt: new Date(),
-      updatedAt: new Date()
+      created_at: new Date(),
+      updated_at: new Date()
     });
     setWeekExercises({});
   };
 
-  const handleProgramUpdate = (program: SavedProgram) => {
-    if (!program.userId) return;
+  const handleProgramUpdate = (program: Program) => {
+    if (!program.user_id) return;
 
     setProgram({
-      id: parseInt(program.id),
-      userId: parseInt(program.userId),
-      programName: program.program_name,
-      phaseFocus: program.phase_focus,
-      periodizationType: program.periodization_type,
-      progressionRules: {
+      id: program.id,
+      user_id: program.user_id,
+      program_name: program.program_name,
+      phase_focus: program.phase_focus,
+      periodization_type: program.periodization_type,
+      progression_rules: {
         type: program.progression_rules?.type || PeriodizationType.None,
         settings: {
-          volumeIncrementPercentage: program.progression_rules?.settings?.volumeIncrementPercentage ?? 0,
-          loadIncrementPercentage: program.progression_rules?.settings?.loadIncrementPercentage ?? 0,
-          programLength: program.progression_rules?.settings?.programLength ?? 4,
-          weeklyVolumePercentages: program.progression_rules?.settings?.weeklyVolumePercentages ?? [100, 100, 100, 100]
+          volume_increment_percentage: program.progression_rules?.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: program.progression_rules?.settings?.load_increment_percentage ?? 0,
+          program_length: program.progression_rules?.settings?.program_length ?? 4,
+          weekly_volume_percentages: program.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
         }
       },
-      createdAt: typeof program.created_at === 'string' 
+      created_at: typeof program.created_at === 'string' 
         ? new Date(program.created_at) 
         : program.created_at,
-      updatedAt: typeof program.updated_at === 'string' 
+      updated_at: typeof program.updated_at === 'string' 
         ? new Date(program.updated_at) 
-        : program.updated_at
+        : program.updated_at,
+      notes: program.notes || ''
     });
   };
 

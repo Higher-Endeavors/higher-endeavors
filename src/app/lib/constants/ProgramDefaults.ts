@@ -2,21 +2,22 @@ import type { Program } from '@/app/lib/types/pillars/fitness';
 
 export const DefaultProgram: Program = {
     id: 0,
-    programName: '',
-    userId: 0,
-    phaseFocus: 'GPP',
-    periodizationType: 'None',
-    progressionRules: {
+    program_name: '',
+    user_id: 0,
+    phase_focus: 'GPP',
+    periodization_type: 'None',
+    progression_rules: {
         type: 'None',
         settings: {
-            volumeIncrementPercentage: 0,
-            loadIncrementPercentage: 0,
-            programLength: 4,
-            weeklyVolumePercentages: [100, 80, 90, 60]
+            volume_increment_percentage: 0,
+            load_increment_percentage: 0,
+            program_length: 4,
+            weekly_volume_percentages: [100, 80, 90, 60]
         }
     },
-    startDate: new Date(),
-    endDate: new Date(),
-    createdAt: new Date(),
-    updatedAt: new Date()
+    start_date: new Date(),
+    end_date: new Date(),
+    created_at: new Date(),
+    updated_at: new Date(),
+    notes: ''
 };

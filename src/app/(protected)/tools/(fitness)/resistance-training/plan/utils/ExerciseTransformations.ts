@@ -94,9 +94,18 @@ export const transformExerciseForSave = (exercise: Exercise, index: number) => {
     for (let i = 1; i <= programLength; i++) {
       if (weekExercises[i]) {
         weeks.push({
-          weekNumber: i,
+          id: 0,
+          resistanceProgramId: 0,  // Changed from resistance_program_id
+          weekNumber: i,           // Changed from week_number
+          notes: '',
+          createdAt: new Date(),   // Changed from created_at
+          updatedAt: new Date(),   // Changed from updated_at
           days: [{
-            dayNumber: 1,
+            id: 0,
+            programWeekId: 0,      // Changed from program_week_id
+            dayNumber: 1,          // Changed from day_number
+            dayName: `Day ${1}`,   // Changed from day_name
+            notes: '',
             exercises: weekExercises[i].map((exercise, index) => ({
               orderIndex: index,
               exerciseSource: exercise.source === 'exercise_library' ? 'library' : 'user',
@@ -128,21 +137,4 @@ export const transformExerciseForSave = (exercise: Exercise, index: number) => {
       }
     }
     return weeks;
-  };
-
-  export const formatProgramData = (
-    program: Program,
-    weeks: any[],
-    selectedUserId: number | null,
-    sessionUserId: string | null
-  ) => {
-    return {
-      userId: selectedUserId || sessionUserId,
-      programName: program.programName,
-      periodizationType: program.periodizationType,
-      phaseFocus: program.phaseFocus,
-      progressionRules: program.progressionRules,
-      notes: program.notes,
-      weeks
-    };
   };

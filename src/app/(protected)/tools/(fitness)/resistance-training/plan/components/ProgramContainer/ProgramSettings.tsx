@@ -82,11 +82,11 @@ export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
  * settings without requiring all settings to be provided at once.
  */
 interface ProgramSettingsProps {
-  programName: string;
-  phaseFocus: ProgramSettingsFormData['phaseFocus'];
-  periodizationType: ProgramSettingsFormData['periodizationType'];
+  program_name: string;
+  phase_focus: ProgramSettingsFormData['phase_focus'];
+  periodization_type: ProgramSettingsFormData['periodization_type'];
   notes?: string;
-  progressionRules?: {
+  progression_rules?: {
     type: string;
     settings: {
       volumeIncrementPercentage?: number;  // For Linear progression
@@ -163,11 +163,11 @@ const customSelectStyles = {
 };
 
 export default function ProgramSettings({
-  programName,
-  phaseFocus,
-  periodizationType,
+  program_name,
+  phase_focus,
+  periodization_type,
   notes,
-  progressionRules,
+  progression_rules,
   onSettingsChange
 }: ProgramSettingsProps) {
   /**
@@ -177,7 +177,7 @@ export default function ProgramSettings({
    */
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(
-    !phaseFocusOptions.find(option => option.value === phaseFocus)
+    !phaseFocusOptions.find(option => option.value === phase_focus)
   );
 
   /**
@@ -193,17 +193,17 @@ export default function ProgramSettings({
   const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<ProgramSettingsFormData>({
     resolver: zodResolver(programSettingsSchema),
     defaultValues: {
-      name: programName,
-      phaseFocus: phaseFocus || 'GPP',
-      periodizationType: periodizationType || 'None',
+      name: program_name,
+      phase_focus: phase_focus || 'GPP',
+      periodization_type: periodization_type || 'None',
       notes: notes || '',
-      progressionRules: {
-        type: progressionRules?.type || 'None',
+      progression_rules: {
+        type: progression_rules?.type || 'None',
         settings: {
-          volumeIncrementPercentage: progressionRules?.settings?.volumeIncrementPercentage ?? 5,
-          loadIncrementPercentage: progressionRules?.settings?.loadIncrementPercentage ?? 2.5,
-          programLength: progressionRules?.settings?.programLength ?? 4,
-          weeklyVolumePercentages: progressionRules?.settings?.weeklyVolumePercentages ?? [100, 80, 90, 60]
+          volume_increment_percentage: progression_rules?.settings?.volume_increment_percentage ?? 5,
+          load_increment_percentage: progression_rules?.settings?.load_increment_percentage ?? 2.5,
+          program_length: progression_rules?.settings?.program_length ?? 4,
+          weekly_volume_percentages: progression_rules?.settings?.weekly_volume_percentages ?? [100, 80, 90, 60]
         }
       }
     }

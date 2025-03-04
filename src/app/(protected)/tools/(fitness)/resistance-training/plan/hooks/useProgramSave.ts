@@ -2,15 +2,16 @@
 
 import { useState } from 'react';
 import { Program, Exercise } from '@/app/lib/types/pillars/fitness';
-import { transformWeekExercises, formatProgramData } from '../utils/ExerciseTransformations';
-import { saveProgramToAPI } from '../utils/programTransformations';
+import { transformWeekExercises } from '../utils/ExerciseTransformations';
+import { formatProgramData, saveProgramToAPI } from '../utils/programTransformations';
+
 
 
 interface UseProgramSaveProps {
   program: Program;
   weekExercises: { [key: number]: Exercise[] };
-  selectedUserId: number | null;
-  sessionUserId: string | null;
+  selectedUserId: number;
+  sessionUserId: number;
   setProgram: (value: Program | ((prev: Program) => Program)) => void;
   onSuccess: () => void;
   onError: (error: string) => void;
@@ -28,7 +29,7 @@ export function useProgramSave({
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
-    if (!program.programName?.trim()) {
+    if (!program.program_name?.trim()) {
       onError('Program name is required');
       return;
     }
@@ -41,7 +42,7 @@ export function useProgramSave({
     setIsSaving(true);
 
     try {
-      const weeks = transformWeekExercises(weekExercises, program.progressionRules?.settings?.programLength);
+      const weeks = transformWeekExercises(weekExercises, program.progression_rules?.settings?.program_length);
       const programData = formatProgramData(program, weeks, selectedUserId, sessionUserId);
       await saveProgramToAPI(programData, program.id, setProgram);
       onSuccess();

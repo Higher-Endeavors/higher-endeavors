@@ -48,6 +48,7 @@ export function useUserManagement() {
     isAdmin,
     selectedUserId,
     setSelectedUserId,
-    handleUserSelect
+    handleUserSelect,
+    currentUserId
   };
 }

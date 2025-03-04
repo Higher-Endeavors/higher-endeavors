@@ -6,9 +6,9 @@ import type { ProgramSettingsFormData } from './ProgramSettings';
 
 interface ProgramSettingsSectionProps {
   name: string;
-  phaseFocus: ProgramSettingsFormData['phaseFocus'];
-  periodizationType: ProgramSettingsFormData['periodizationType'];
-  progressionRules?: {
+  phase_focus: ProgramSettingsFormData['phase_focus'];
+  periodization_type: ProgramSettingsFormData['periodization_type'];
+  progression_rules?: {
     type: string;
     settings: {
       volumeIncrementPercentage?: number;
@@ -22,9 +22,9 @@ interface ProgramSettingsSectionProps {
 
 export default function ProgramSettingsSection({
   name,
-  phaseFocus,
-  periodizationType,
-  progressionRules,
+  phase_focus,
+  periodization_type,
+  progression_rules,
   onSettingsChange
 }: ProgramSettingsSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -48,10 +48,10 @@ export default function ProgramSettingsSection({
         </div>
         {isExpanded && (
           <ProgramSettings
-            programName={name}
-            phaseFocus={phaseFocus}
-            periodizationType={periodizationType}
-            progressionRules={progressionRules}
+            program_name={name}
+            phase_focus={phase_focus}
+            periodization_type={periodization_type}
+            progression_rules={progression_rules}
             onSettingsChange={onSettingsChange}
           />
         )}

@@ -142,21 +142,21 @@ export default function ProgramBrowser({
    // Filter logic
 const getFilteredPrograms = useCallback((programs: ProgramListItem[]) => {
   return programs.filter(program => {
-    if (filters.search && !program.programName.toLowerCase().includes(filters.search.toLowerCase())) {
+    if (filters.search && !program.program_name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
     }
 
-    if (filters.phaseFocus && program.phaseFocus !== filters.phaseFocus) {
+    if (filters.phaseFocus && program.phase_focus !== filters.phaseFocus) {
       return false;
     }
 
-    if (filters.periodizationType && program.periodizationType !== filters.periodizationType) {
+    if (filters.periodizationType && program.periodization_type !== filters.periodizationType) {
       return false;
     }
 
     // Date range filtering
     if (filters.dateRange !== 'all') {
-      const date = new Date(program.createdAt);
+      const date = new Date(program.created_at);
       const now = new Date();
       const diff = now.getTime() - date.getTime();
       const days = diff / (1000 * 60 * 60 * 24);
@@ -178,11 +178,11 @@ const getFilteredPrograms = useCallback((programs: ProgramListItem[]) => {
   }).sort((a, b) => {
     switch (filters.sortBy) {
       case 'newest':
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
       case 'oldest':
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       case 'name':
-        return a.programName.localeCompare(b.programName);
+        return a.program_name.localeCompare(b.program_name);
       default:
         return 0;
     }
@@ -503,9 +503,9 @@ const getPaginatedPrograms = useCallback(() => {
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
-                        <h3 className="font-medium text-gray-900 dark:text-slate-900">{program.programName}</h3>
+                        <h3 className="font-medium text-gray-900 dark:text-slate-900">{program.program_name}</h3>
                         <span className="text-sm text-gray-500 dark:text-slate-600">
-                          {format(new Date(program.createdAt), 'MMM d, yyyy')}
+                          {format(new Date(program.created_at), 'MMM d, yyyy')}
                         </span>
                       </div>
                       <div className="relative">
@@ -547,8 +547,8 @@ const getPaginatedPrograms = useCallback(() => {
                     <div className="mt-2 text-sm text-gray-500 dark:text-slate-600">
                       <div className="flex flex-col space-y-1">
                         <div className="flex space-x-4">
-                          <span>Type: {program.periodizationType || 'None'}</span>
-                          <span>Phase: {program.phaseFocus || 'Not specified'}</span>
+                          <span>Type: {program.periodization_type || 'None'}</span>
+                          <span>Phase: {program.phase_focus || 'Not specified'}</span>
                         </div>
                         {program.exerciseSummary && program.exerciseSummary.exercises && program.exerciseSummary.exercises.length > 0 && (
                           <div className="mt-2">
@@ -624,7 +624,7 @@ const getPaginatedPrograms = useCallback(() => {
         <Modal.Body>
           <div className="space-y-4">
             <p className="text-gray-700 dark:text-gray-100">
-              Are you sure you want to delete "{programToDelete?.programName}"? This action cannot be undone.
+              Are you sure you want to delete "{programToDelete?.program_name}"? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button

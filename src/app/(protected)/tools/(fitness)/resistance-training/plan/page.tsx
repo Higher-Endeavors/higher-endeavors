@@ -53,7 +53,8 @@ function PlanPageContent() {
     isAdmin, 
     selectedUserId, 
     setSelectedUserId,
-    handleUserSelect // Now comes from useUserManagement
+    handleUserSelect,
+    currentUserId
   } = useUserManagement();
 
   const { 
@@ -76,7 +77,7 @@ function PlanPageContent() {
     program,
     weekExercises,
     selectedUserId,
-    sessionUserId: session?.user?.id ?? null,
+    sessionUserId: currentUserId,
     setProgram,
     onSuccess: () => {
       toast.success('Program saved successfully');
@@ -85,8 +86,6 @@ function PlanPageContent() {
       toast.error(error);
     }
   });
-
-  const currentUserId = session?.user?.id ? parseInt(session.user.id) : 0;
 
   const { 
     handleProgramSelect, 
@@ -141,10 +140,10 @@ function PlanPageContent() {
       />
 
       <ProgramSettingsSection
-        name={program.programName}
-        phaseFocus={program.phaseFocus}
-        periodizationType={program.periodizationType}
-        progressionRules={program.progressionRules}
+        name={program.program_name}
+        phaseFocus={program.phase_focus}
+        periodizationType={program.periodization_type}
+        progression_rules={program.progression_rules}
         onSettingsChange={handleSettingsChange}
       />
       {/* Volume Targets - commented out for now */}
@@ -158,7 +157,7 @@ function PlanPageContent() {
       {/* Week Tabs */}
       <WeekTabs
         activeWeek={activeWeek}
-        programLength={program?.progressionRules?.settings?.programLength || 4}
+        programLength={program?.progression_rules?.settings?.program_length || 4}
         onWeekChange={handleWeekChange}
       />
 

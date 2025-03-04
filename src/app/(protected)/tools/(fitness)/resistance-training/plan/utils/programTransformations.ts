@@ -1,30 +1,17 @@
 import { Exercise, Program, Week } from '@/app/lib/types/pillars/fitness';
-
-
-export function transformWeekExercises(weekExercises: { [key: number]: Exercise[] }, programLength = 4) {
-    return Array.from({ length: programLength }, (_, weekIndex) => ({
-      weekNumber: weekIndex + 1,
-      notes: '',
-      days: [{
-        dayNumber: 1,
-        notes: '',
-        exercises: transformExercisesForWeek(weekExercises[weekIndex + 1], weekIndex + 1)
-      }]
-    }));
-  }
   
-  export function formatProgramData(program: Program, weeks: Week[], selectedUserId: number | null, sessionUserId: string | null) {
+  export function formatProgramData(program: Program, weeks: Week[], selectedUserId: number, sessionUserId: number) {
     return {
       id: program.id,
-      name: program.programName.trim(),
-      periodizationType: program.periodizationType,
-      phaseFocus: program.phaseFocus,
-      progressionRules: program.progressionRules,
+      name: program.program_name.trim(),
+      periodizationType: program.periodization_type,
+      phaseFocus: program.phase_focus,
+      progressionRules: program.progression_rules,
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + (weeks.length * 7 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
       notes: program.notes || '',
       weeks,
-      userId: selectedUserId?.toString() || sessionUserId || '0'
+      userId: selectedUserId || sessionUserId
     };
   }
   
@@ -44,18 +31,4 @@ export function transformWeekExercises(weekExercises: { [key: number]: Exercise[
   
     const result = await response.json();
     setProgram((prev: Program) => ({ ...prev, id: result.programId }));
-  }
-
-  function transformExercisesForWeek(exercises: Exercise[] = [], weekNumber: number) {
-    return exercises.map(exercise => ({
-      id: exercise.id,
-      name: exercise.name,
-      pairing: exercise.pairing,
-      notes: exercise.notes || '',
-      source: exercise.source,
-      exerciseId: exercise.exerciseId,
-      weekNumber: weekNumber,
-      baseExerciseId: exercise.id,
-      weekSpecificId: Math.floor(Math.random() * 1000000)
-    }));
   }

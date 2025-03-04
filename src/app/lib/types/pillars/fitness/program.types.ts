@@ -4,27 +4,26 @@ import { PeriodizationType } from "./exercise.types";
  * Interface for a program
  */
 export interface Program {
-  id: number;                // Changed from string to number
-  programName: string;
-  userId: number;            // Changed from string to number
-  phaseFocus: string;
-  periodizationType: string;
-  progressionRules: {
+  id: number;
+  program_name: string;
+  user_id: number;
+  phase_focus: string;
+  periodization_type: string;
+  progression_rules: {
     type: string;
     settings: {
-      volumeIncrementPercentage?: number;
-      loadIncrementPercentage?: number;
-      programLength?: number;
-      weeklyVolumePercentages?: number[];
+      volume_increment_percentage?: number;
+      load_increment_percentage?: number;
+      program_length?: number;
+      weekly_volume_percentages?: number[];
     };
   };
-    startDate?: Date;
-    endDate?: Date;
-    notes?: string;
-   // weeks: Week[];
-    createdAt: Date;
-    updatedAt: Date;
-  }
+  start_date?: Date;
+  end_date?: Date;
+  notes?: string;
+  created_at: Date;
+  updated_at: Date;
+}
 
   /**
  * Extended interface for program list view
@@ -43,9 +42,9 @@ export interface ProgramListItem extends Program {
 
 export interface Week {
   id: number;
-  resistance_program_id: number;
-  week_number: number;
+  resistanceProgramId: number;
+  weekNumber: number;
   notes: string;
-  created_at: Date;
-  updated_at: Date;
-}
+  createdAt: Date;
+  updatedAt: Date;
+} 

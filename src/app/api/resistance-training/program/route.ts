@@ -87,11 +87,11 @@ export async function POST(request: Request) {
 
         const weekResult = await client.query(
           `INSERT INTO program_weeks 
-          (resistance_program_id, week_number, notes)
+          (resistance_program_id, week_number, notes, created_at, updated_at)
           VALUES 
-          ($1, $2, $3)
+          ($1, $2, $3, $4, $5)
           RETURNING id`,
-          [programId, week.weekNumber, week.notes]
+          [programId, week.weekNumber, week.notes, week.createdAt, week.updatedAt]
         );
         const weekId = weekResult.rows[0].id;
         console.log(`Week ${week.weekNumber} created with ID:`, weekId);
@@ -126,8 +126,8 @@ export async function POST(request: Request) {
               VALUES 
               ($1, $2, $3, $4, $5, $6, $7, $8)
               RETURNING id`,
-              [dayId, exercise.source, exercise.libraryId, exercise.userExerciseId,
-               exercise.customName, exercise.pairing, exercise.notes, exercise.orderIndex]
+              [dayId, exercise.exerciseSource, exercise.exerciseLibraryId, exercise.userExerciseId,
+               exercise.customExerciseName, exercise.pairing, exercise.notes, exercise.orderIndex]
             );
             const exerciseId = exerciseResult.rows[0].id;
             console.log(`Exercise created with ID:`, exerciseId);
@@ -144,8 +144,8 @@ export async function POST(request: Request) {
                  load_unit, planned_rest, planned_tempo, notes)
                 VALUES 
                 ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [exerciseId, set.setNumber, set.reps, set.load,
-                 set.loadUnit, set.rest, set.tempo, set.notes]
+                [exerciseId, set.setNumber, set.plannedReps, set.plannedLoad,
+                 set.loadUnit, set.plannedRest, set.plannedTempo, set.notes]
               );
             }
             console.log(`Sets created for exercise ${exerciseId}`);
