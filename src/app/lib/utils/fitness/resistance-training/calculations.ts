@@ -1,67 +1,73 @@
-import { Exercise, PlannedExercise, VariedExercise, PlannedExerciseSet, LoadUnit } from '@/app/lib/types/pillars/fitness';
-import { calculateTempoTotal, getNumericLoad, convertWeight } from '../unit-conversions';
+import { 
+  exercise,
+  planned_exercise,
+  varied_exercise,
+  planned_exercise_set,
+  load_unit 
+} from '@/app/lib/types/pillars/fitness';
+import { calculate_tempo_total, get_numeric_load, convert_weight } from '../unit-conversions';
 
-export interface VolumeMetrics {
-  totalSets: number;
-  totalReps: number;
-  totalLoad: number;
+export interface volume_metrics {
+  total_sets: number;
+  total_reps: number;
+  total_load: number;
 }
 
-export const calculateSessionVolume = (
-  exercises: Exercise[],
-  preferredUnit: LoadUnit = 'lbs'
-): VolumeMetrics => {
-  let totalSets = 0;
-  let totalReps = 0;
-  let totalLoad = 0;
+export const calculate_session_volume = (
+  exercises: exercise[],
+  preferred_unit: load_unit = 'lbs'
+): volume_metrics => {
+  let total_sets = 0;
+  let total_reps = 0;
+  let total_load = 0;
 
   exercises.forEach(exercise => {
-    if (exercise.isVariedSets) {
-      const variedExercise = exercise as VariedExercise;
-      totalSets += variedExercise.setDetails.length;
-      variedExercise.setDetails.forEach(set => {
-        totalReps += set.plannedReps;
-        const load = set.plannedLoad ? getNumericLoad(set.plannedLoad) : 0;
-        if (set.loadUnit && set.loadUnit !== preferredUnit) {
-          totalLoad += convertWeight(load * set.plannedReps, set.loadUnit, preferredUnit);
+    if (exercise.is_varied_sets) {
+      const varied_exercise_instance = exercise as varied_exercise;
+      total_sets += varied_exercise_instance.set_details.length;
+      varied_exercise_instance.set_details.forEach((set: planned_exercise_set) => {
+        total_reps += set.planned_reps;
+        const load = set.planned_load ? get_numeric_load(set.planned_load) : 0;
+        if (set.load_unit && set.load_unit !== preferred_unit) {
+          total_load += convert_weight(load * set.planned_reps, set.load_unit, preferred_unit);
         } else {
-          totalLoad += load * set.plannedReps;
+          total_load += load * set.planned_reps;
         }
       });
     } else {
-      const plannedExercise = exercise as PlannedExercise;
-      totalSets += plannedExercise.sets;
-      if (plannedExercise.plannedSets) {
-        plannedExercise.plannedSets.forEach((set: PlannedExerciseSet) => {
-          totalReps += set.plannedReps;
-          const load = set.plannedLoad ? getNumericLoad(set.plannedLoad) : 0;
-          if (set.loadUnit && set.loadUnit !== preferredUnit) {
-            totalLoad += convertWeight(load * set.plannedReps, set.loadUnit, preferredUnit);
+      const planned_exercise_instance = exercise as planned_exercise;
+      total_sets += planned_exercise_instance.sets;
+      if (planned_exercise_instance.planned_sets) {
+        planned_exercise_instance.planned_sets.forEach((set: planned_exercise_set) => {
+          total_reps += set.planned_reps;
+          const load = set.planned_load ? get_numeric_load(set.planned_load) : 0;
+          if (set.load_unit && set.load_unit !== preferred_unit) {
+            total_load += convert_weight(load * set.planned_reps, set.load_unit, preferred_unit);
           } else {
-            totalLoad += load * set.plannedReps;
+            total_load += load * set.planned_reps;
           }
         });
       }
     }
   });
 
-  return { totalSets, totalReps, totalLoad };
+  return { total_sets, total_reps, total_load };
 };
 
-export const calculateSessionDuration = (exercises: Exercise[]): number => {
+export const calculate_session_duration = (exercises: exercise[]): number => {
   return exercises.reduce((total, exercise) => {
-    if (exercise.isVariedSets) {
-      const variedExercise = exercise as VariedExercise;
-      return total + variedExercise.setDetails.reduce((setTotal, set) => {
-        const repTime = calculateTempoTotal(set.plannedTempo);
-        return setTotal + (set.plannedReps * repTime) + (set.plannedRest ?? 0);
+    if (exercise.is_varied_sets) {
+      const varied_exercise_instance = exercise as varied_exercise;
+      return total + varied_exercise_instance.set_details.reduce((set_total: number, set: planned_exercise_set) => {
+        const rep_time = calculate_tempo_total(set.planned_tempo);
+        return set_total + (set.planned_reps * rep_time) + (set.planned_rest ?? 0);
       }, 0);
     } else {
-      const plannedExercise = exercise as PlannedExercise;
-      if (plannedExercise.plannedSets) {
-        return total + plannedExercise.plannedSets.reduce((setTotal: number, set: PlannedExerciseSet) => {
-          const repTime = calculateTempoTotal(set.plannedTempo);
-          return setTotal + (set.plannedReps * repTime) + (set.plannedRest ?? 0);
+      const planned_exercise_instance = exercise as planned_exercise;
+      if (planned_exercise_instance.planned_sets) {
+        return total + planned_exercise_instance.planned_sets.reduce((set_total: number, set: planned_exercise_set) => {
+          const rep_time = calculate_tempo_total(set.planned_tempo);
+          return set_total + (set.planned_reps * rep_time) + (set.planned_rest ?? 0);
         }, 0);
       }
       return total;
@@ -69,54 +75,54 @@ export const calculateSessionDuration = (exercises: Exercise[]): number => {
   }, 0);
 };
 
-export const calculateSetTUT = (reps: number, tempo: string = '2010'): number => {
-  const tempoTotal = calculateTempoTotal(tempo);
-  return reps * tempoTotal;
+export const calculate_set_tut = (reps: number, tempo: string = '2010'): number => {
+  const tempo_total = calculate_tempo_total(tempo);
+  return reps * tempo_total;
 };
 
-export const calculateExerciseTUT = (exercise: Exercise): number => {
-  if (exercise.isVariedSets) {
-    const variedExercise = exercise as VariedExercise;
-    return variedExercise.setDetails.reduce((total, set) => {
-      return total + calculateSetTUT(set.plannedReps, set.plannedTempo || '2010');
+export const calculate_exercise_tut = (exercise: exercise): number => {
+  if (exercise.is_varied_sets) {
+    const varied_exercise_instance = exercise as varied_exercise;
+    return varied_exercise_instance.set_details.reduce((total: number, set: planned_exercise_set) => {
+      return total + calculate_set_tut(set.planned_reps, set.planned_tempo || '2010');
     }, 0);
   }
   
-  const plannedExercise = exercise as PlannedExercise;
-  if (plannedExercise.plannedSets) {
-    return plannedExercise.plannedSets.reduce((total: number, set: PlannedExerciseSet) => {
-      return total + calculateSetTUT(set.plannedReps, set.plannedTempo || '2010');
+  const planned_exercise_instance = exercise as planned_exercise;
+  if (planned_exercise_instance.planned_sets) {
+    return planned_exercise_instance.planned_sets.reduce((total: number, set: planned_exercise_set) => {
+      return total + calculate_set_tut(set.planned_reps, set.planned_tempo || '2010');
     }, 0);
   }
   
   return 0;
 };
 
-export const calculateLinearProgression = (
-  baseValue: number,
-  weekNumber: number,
-  incrementPercentage: number
+export const calculate_linear_progression = (
+  base_value: number,
+  week_number: number,
+  increment_percentage: number
 ): number => {
-  const multiplier = 1 + ((weekNumber - 1) * (incrementPercentage / 100));
-  return Math.round(baseValue * multiplier * 100) / 100;
+  const multiplier = 1 + ((week_number - 1) * (increment_percentage / 100));
+  return Math.round(base_value * multiplier * 100) / 100;
 };
 
 // Alias export for backward compatibility
-export const calculateSessionExerciseVolume = calculateSessionVolume; 
+export const calculateSessionExerciseVolume = calculate_session_volume; 
 
-export const formatLoad = (
+export const format_load = (
   load: string | number | undefined, 
-  loadUnit?: LoadUnit
+  load_unit?: load_unit
 ): string => {
   if (load === undefined || load === '') {
     return '';
   }
 
-  const numericLoad = typeof load === 'string' ? parseFloat(load) : load;
+  const numeric_load = typeof load === 'string' ? parseFloat(load) : load;
   
-  if (typeof numericLoad === 'number' && !isNaN(numericLoad)) {
-    const unit = loadUnit || 'lbs';
-    return `${numericLoad}${unit}`;
+  if (typeof numeric_load === 'number' && !isNaN(numeric_load)) {
+    const unit = load_unit || 'lbs';
+    return `${numeric_load}${unit}`;
   }
 
   return String(load);

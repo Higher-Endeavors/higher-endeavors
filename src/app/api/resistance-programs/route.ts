@@ -9,24 +9,26 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const programId = searchParams.get('id');
+  const program_id = searchParams.get('id');
 
   try {
-    if (programId) {
+    if (program_id) {
       const query = `
         SELECT 
           p.*,
           json_agg(e.*) as exercises,
-          json_agg(pr.*) as progression_rules,
-          json_agg(vt.*) as volume_targets
+          json_agg(pr.*) as progression_rules
+          -- Volume targets functionality to be implemented later
+          -- json_agg(vt.*) as volume_targets
         FROM resistance_programs p
         LEFT JOIN session_exercises e ON p.id = e.program_id
         LEFT JOIN program_progression pr ON p.id = pr.program_id
-        LEFT JOIN volume_targets vt ON p.id = vt.program_id
+        -- Volume targets join to be implemented later
+        -- LEFT JOIN volume_targets vt ON p.id = vt.program_id
         WHERE p.id = $1 AND p.user_id = $2
         GROUP BY p.id
       `;
-      const values = [programId, session.user.id];
+      const values = [program_id, session.user.id];
       const result = await SingleQuery(query, values);
 
       if (!result.length) {
@@ -37,7 +39,7 @@ export async function GET(request: Request) {
       const query = `
         SELECT 
           p.id,
-          p.name,
+          p.program_name,
           p.phase_focus,
           p.periodization_type,
           p.start_date,
@@ -67,7 +69,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const program = await request.json();
+  const {
+    program_name,
+    phase_focus,
+    periodization_type,
+    start_date,
+    end_date,
+    exercises,
+    progression_rules,
+    // volume_targets  // To be implemented
+  } = await request.json();
 
   try {
     // Start transaction
@@ -79,7 +90,7 @@ export async function POST(request: Request) {
       const programQuery = `
         INSERT INTO resistance_programs (
           user_id,
-          name,
+          program_name,
           phase_focus,
           periodization_type,
           start_date,
@@ -89,46 +100,46 @@ export async function POST(request: Request) {
       `;
       const programValues = [
         session.user.id,
-        program.name,
-        program.phaseFocus,
-        program.periodizationType,
-        program.startDate,
-        program.endDate
+        program_name,
+        phase_focus,
+        periodization_type,
+        start_date,
+        end_date
       ];
       const programResult = await SingleQuery(programQuery, programValues);
-      const newProgramId = programResult[0].id;
+      const new_program_id = programResult[0].id;
 
       // Insert exercises
-      for (const exercise of program.exercises) {
+      for (const exercise of exercises) {
         const exerciseQuery = `
           INSERT INTO session_exercises (
             program_id,
             exercise_library_id,
             pairing,
-            sets,
-            reps,
-            load,
-            tempo,
-            rest,
+            set_number,
+            planned_reps,
+            planned_load,
+            planned_tempo,
+            planned_rest,
             notes,
             rpe,
             rir,
-            display_order
+            order_index
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         `;
         const exerciseValues = [
-          newProgramId,
-          exercise.exerciseLibraryId,
+          new_program_id,
+          exercise.exercise_library_id,
           exercise.pairing,
-          exercise.sets,
-          exercise.reps,
-          exercise.load,
-          exercise.tempo,
-          exercise.rest,
+          exercise.set_number,
+          exercise.planned_reps,
+          exercise.planned_load,
+          exercise.planned_tempo,
+          exercise.planned_rest,
           exercise.notes,
           exercise.rpe,
           exercise.rir,
-          program.exercises.indexOf(exercise)
+          exercises.indexOf(exercise)
         ];
         await SingleQuery(exerciseQuery, exerciseValues);
       }
@@ -137,23 +148,24 @@ export async function POST(request: Request) {
       const progressionQuery = `
         INSERT INTO program_progression (
           program_id,
-          type,
+          progression_type,
           settings
         ) VALUES ($1, $2, $3)
       `;
       const progressionValues = [
-        newProgramId,
-        program.progressionRules.type,
-        JSON.stringify(program.progressionRules.settings)
+        new_program_id,
+        progression_rules.progression_type,
+        JSON.stringify(progression_rules.settings)
       ];
       await SingleQuery(progressionQuery, progressionValues);
 
+      /* Volume targets functionality to be implemented
       // Insert volume targets
-      for (const target of program.volumeTargets) {
+      for (const target of volume_targets) {
         const targetQuery = `
           INSERT INTO volume_targets (
             program_id,
-            type,
+            target_type,
             muscle_group_id,
             exercise_id,
             rep_volume_target,
@@ -162,20 +174,21 @@ export async function POST(request: Request) {
           ) VALUES ($1, $2, $3, $4, $5, $6, $7)
         `;
         const targetValues = [
-          newProgramId,
-          target.type,
-          target.muscleGroupId,
-          target.exerciseId,
-          target.repVolumeTarget,
-          target.loadVolumeTarget,
-          target.timeUnderTensionTarget
+          new_program_id,
+          target.target_type,
+          target.muscle_group_id,
+          target.exercise_id,
+          target.rep_volume_target,
+          target.load_volume_target,
+          target.time_under_tension_target
         ];
         await SingleQuery(targetQuery, targetValues);
       }
+      */
 
       // Commit transaction
       await SingleQuery('COMMIT', []);
-      return NextResponse.json({ id: newProgramId });
+      return NextResponse.json({ id: new_program_id });
     } catch (error) {
       // Rollback on error
       await SingleQuery('ROLLBACK', []);

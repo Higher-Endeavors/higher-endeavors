@@ -1,5 +1,31 @@
+/**
+ * Week Tabs Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Utility functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React component names (WeekTabs)
+ *    - React props interfaces (WeekTabsProps)
+ *    - React state variables
+ *    - React event handlers (onWeekChange)
+ *    - Component-specific helper functions
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 import React from 'react';
 
+/**
+ * Props interface for the WeekTabs component
+ * Using camelCase as these are React-specific props
+ */
 interface WeekTabsProps {
   activeWeek: number;
   programLength: number;

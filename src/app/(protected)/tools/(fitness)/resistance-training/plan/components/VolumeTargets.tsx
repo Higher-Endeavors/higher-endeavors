@@ -3,20 +3,34 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
 
-interface VolumeTarget {
+/**
+ * Types that map to database structures use snake_case
+ */
+interface volume_target {
   id: string;
-  type: 'session' | 'weekly' | 'exercise';
-  muscleGroupId?: number;
-  exerciseId?: number;
-  repVolumeTarget?: number;
-  loadVolumeTarget?: number;
-  timeUnderTensionTarget?: number;
+  target_type: 'session' | 'weekly' | 'exercise';
+  muscle_group_id?: number;
+  exercise_id?: number;
+  rep_volume_target?: number;
+  load_volume_target?: number;
+  time_under_tension_target?: number;
 }
 
+/**
+ * React-specific props interface uses camelCase
+ */
 interface VolumeTargetsProps {
-  targets: VolumeTarget[];
-  onTargetChange: (targets: VolumeTarget[]) => void;
+  targets: volume_target[];
+  onTargetChange: (targets: volume_target[]) => void;
   muscleGroups: Array<{ id: number; name: string }>;
+}
+
+/**
+ * React-specific option types use camelCase
+ */
+interface SelectOption {
+  value: string;
+  label: string;
 }
 
 export default function VolumeTargets({
@@ -24,28 +38,28 @@ export default function VolumeTargets({
   onTargetChange,
   muscleGroups
 }: VolumeTargetsProps) {
-  const [selectedType, setSelectedType] = useState<'session' | 'weekly' | 'exercise'>('session');
+  const [selectedType, setSelectedType] = useState<volume_target['target_type']>('session');
 
-  const targetTypeOptions = [
+  const targetTypeOptions: SelectOption[] = [
     { value: 'session', label: 'Per Session' },
     { value: 'weekly', label: 'Weekly' },
     { value: 'exercise', label: 'Per Exercise' }
   ];
 
-  const muscleGroupOptions = muscleGroups.map(mg => ({
+  const muscleGroupOptions: SelectOption[] = muscleGroups.map(mg => ({
     value: mg.id.toString(),
     label: mg.name
   }));
 
   const handleAddTarget = () => {
-    const newTarget: VolumeTarget = {
+    const newTarget: volume_target = {
       id: Math.random().toString(36).substr(2, 9),
-      type: selectedType
+      target_type: selectedType
     };
     onTargetChange([...targets, newTarget]);
   };
 
-  const handleTargetChange = (id: string, field: string, value: any) => {
+  const handleTargetChange = (id: string, field: keyof volume_target, value: any) => {
     const updatedTargets = targets.map(target => {
       if (target.id === id) {
         return { ...target, [field]: value };
@@ -71,7 +85,7 @@ export default function VolumeTargets({
           <Select
             options={targetTypeOptions}
             value={targetTypeOptions.find(option => option.value === selectedType)}
-            onChange={(option) => option && setSelectedType(option.value as any)}
+            onChange={(option) => option && setSelectedType(option.value as volume_target['target_type'])}
             className="basic-single dark:text-slate-900"
             classNamePrefix="select"
           />
@@ -93,7 +107,7 @@ export default function VolumeTargets({
           >
             <div className="flex justify-between items-center">
               <h4 className="text-sm font-medium text-gray-700">
-                {target.type.charAt(0).toUpperCase() + target.type.slice(1)} Target
+                {target.target_type.charAt(0).toUpperCase() + target.target_type.slice(1)} Target
               </h4>
               <button
                 onClick={() => handleRemoveTarget(target.id)}
@@ -104,7 +118,7 @@ export default function VolumeTargets({
             </div>
 
             {/* Muscle Group Selection (if not session type) */}
-            {target.type !== 'session' && (
+            {target.target_type !== 'session' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Muscle Group
@@ -112,11 +126,11 @@ export default function VolumeTargets({
                 <Select
                   options={muscleGroupOptions}
                   value={muscleGroupOptions.find(
-                    option => option.value === target.muscleGroupId?.toString()
+                    option => option.value === target.muscle_group_id?.toString()
                   )}
                   onChange={(option) => handleTargetChange(
                     target.id,
-                    'muscleGroupId',
+                    'muscle_group_id',
                     option ? parseInt(option.value) : undefined
                   )}
                   className="basic-single"
@@ -133,10 +147,10 @@ export default function VolumeTargets({
                 </label>
                 <input
                   type="number"
-                  value={target.repVolumeTarget || ''}
+                  value={target.rep_volume_target || ''}
                   onChange={(e) => handleTargetChange(
                     target.id,
-                    'repVolumeTarget',
+                    'rep_volume_target',
                     e.target.value ? parseInt(e.target.value) : undefined
                   )}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -151,10 +165,10 @@ export default function VolumeTargets({
                 </label>
                 <input
                   type="number"
-                  value={target.loadVolumeTarget || ''}
+                  value={target.load_volume_target || ''}
                   onChange={(e) => handleTargetChange(
                     target.id,
-                    'loadVolumeTarget',
+                    'load_volume_target',
                     e.target.value ? parseFloat(e.target.value) : undefined
                   )}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
@@ -170,10 +184,10 @@ export default function VolumeTargets({
                 </label>
                 <input
                   type="number"
-                  value={target.timeUnderTensionTarget || ''}
+                  value={target.time_under_tension_target || ''}
                   onChange={(e) => handleTargetChange(
                     target.id,
-                    'timeUnderTensionTarget',
+                    'time_under_tension_target',
                     e.target.value ? parseInt(e.target.value) : undefined
                   )}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"

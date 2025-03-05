@@ -79,6 +79,7 @@ const customStyles = {
   }),
 };
 
+
 // Update the filter function to handle both search and dropdown filtering
 const filterExercises = (candidate: { label: string, value: string, data: any }, input: string) => {
   if (!input) return true;
@@ -108,6 +109,13 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
   const [exercises, setExercises] = useState<ExerciseOption[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
+
+  const handleExerciseSelect = (option: ExerciseOption | null) => {
+    if (option) {
+      onSelect(option);
+      onClose();
+    }
+  };
   
   // Filter states
   const [selectedExerciseFamily, setSelectedExerciseFamily] = useState<FilterOption | null>(null);
@@ -175,50 +183,50 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
 
   // Filter options derived from exercises
   const exerciseFamilyOptions: FilterOption[] = Array.from(new Set(
-    exercises.map(ex => ex.data.exerciseFamily)
-  )).filter((family): family is string => Boolean(family))
+    exercises.map(ex => ex.data.exercise_family)
+  )).filter((family): family is string => !!family)
     .map(family => ({ value: family, label: family }));
 
   const bodyRegionOptions: FilterOption[] = Array.from(new Set(
-    exercises.map(ex => ex.data.bodyRegion)
-  )).filter((region): region is string => Boolean(region))
+    exercises.map(ex => ex.data.body_region)
+  )).filter((region): region is string => !!region)
     .map(region => ({ value: region, label: region }));
 
   const muscleGroupOptions: FilterOption[] = Array.from(new Set(
-    exercises.map(ex => ex.data.targetMuscleGroup)
-  )).filter((group): group is string => Boolean(group))
+    exercises.map(ex => ex.data.target_muscle_group)
+  )).filter((group): group is string => !!group)
     .map(group => ({ value: group, label: group }));
 
   const movementPatternOptions: FilterOption[] = Array.from(new Set(
-    exercises.map(ex => ex.data.movementPattern)
-  )).filter((pattern): pattern is string => Boolean(pattern))
+    exercises.map(ex => ex.data.movement_pattern)
+  )).filter((pattern): pattern is string => !!pattern)
     .map(pattern => ({ value: pattern, label: pattern }));
 
   const movementPlaneOptions: FilterOption[] = Array.from(new Set(
-    exercises.map(ex => ex.data.movementPlane)
-  )).filter((plane): plane is string => Boolean(plane))
+    exercises.map(ex => ex.data.movement_plane)
+  )).filter((plane): plane is string => !!plane)
     .map(plane => ({ value: plane, label: plane }));
 
   const equipmentOptions: FilterOption[] = Array.from(new Set(
-    exercises.flatMap(ex => [ex.data.primaryEquipment, ex.data.secondaryEquipment])
-  )).filter((equipment): equipment is string => Boolean(equipment))
+    exercises.flatMap(ex => [ex.data.primary_equipment, ex.data.secondary_equipment])
+  )).filter((equipment): equipment is string => !!equipment)
     .map(equipment => ({ value: equipment, label: equipment }));
 
   const lateralityOptions: FilterOption[] = Array.from(new Set(
     exercises.map(ex => ex.data.laterality)
-  )).filter((laterality): laterality is string => Boolean(laterality))
+  )).filter((laterality): laterality is string => !!laterality)
     .map(laterality => ({ value: laterality, label: laterality }));
 
   // Filter exercises based on all filters
   const filteredExercises = exercises.filter(exercise => {
-    const matchesExerciseFamily = !selectedExerciseFamily || exercise.data.exerciseFamily === selectedExerciseFamily.value;
-    const matchesBodyRegion = !selectedBodyRegion || exercise.data.bodyRegion === selectedBodyRegion.value;
-    const matchesMuscleGroup = !selectedMuscleGroup || exercise.data.targetMuscleGroup === selectedMuscleGroup.value;
-    const matchesMovementPattern = !selectedMovementPattern || exercise.data.movementPattern === selectedMovementPattern.value;
-    const matchesMovementPlane = !selectedMovementPlane || exercise.data.movementPlane === selectedMovementPlane.value;
+    const matchesExerciseFamily = !selectedExerciseFamily || exercise.data.exercise_family === selectedExerciseFamily.value;
+    const matchesBodyRegion = !selectedBodyRegion || exercise.data.body_region === selectedBodyRegion.value;
+    const matchesMuscleGroup = !selectedMuscleGroup || exercise.data.target_muscle_group === selectedMuscleGroup.value;
+    const matchesMovementPattern = !selectedMovementPattern || exercise.data.movement_pattern === selectedMovementPattern.value;
+    const matchesMovementPlane = !selectedMovementPlane || exercise.data.movement_plane === selectedMovementPlane.value;
     const matchesEquipment = !selectedEquipment || 
-      exercise.data.primaryEquipment === selectedEquipment.value || 
-      exercise.data.secondaryEquipment === selectedEquipment.value;
+      exercise.data.primary_equipment === selectedEquipment.value || 
+      exercise.data.secondary_equipment === selectedEquipment.value;
     const matchesLaterality = !selectedLaterality || exercise.data.laterality === selectedLaterality.value;
     
     return matchesExerciseFamily && matchesBodyRegion && matchesMuscleGroup && 
@@ -252,7 +260,7 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
               classNamePrefix="select"
               placeholder="Type to search exercises..."
               styles={customStyles}
-              filterOption={filterExercises}
+              filterOption={(candidate: any, input: string) => filterExercises(candidate.data as ExerciseOption, input)}
               components={{
                 DropdownIndicator: () => null,
                 IndicatorSeparator: () => null
@@ -392,7 +400,7 @@ export default function ExerciseSearch({ onSelect, isOpen, onClose }: ExerciseSe
                     )}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {exercise.data.targetMuscleGroup} • {exercise.data.primaryEquipment}
+                    {exercise.data.target_muscle_group} • {exercise.data.primary_equipment}
                     {exercise.source === 'library' && exercise.data.difficulty && (
                       <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
                         {exercise.data.difficulty}

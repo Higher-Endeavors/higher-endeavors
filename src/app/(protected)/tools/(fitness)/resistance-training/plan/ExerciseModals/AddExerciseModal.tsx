@@ -10,20 +10,20 @@ import { BsSearch, BsPlus, BsDash } from 'react-icons/bs';
 import { HiInformationCircle, HiSwitchHorizontal } from 'react-icons/hi';
 import { FitnessSettings, UserSettings, PillarSettings } from '@/app/lib/types/user_settings';
 import {
-  Exercise,
-  ExerciseSource,
+  exercise,
+  exercise_source,
   ExerciseOption,
   ExerciseSelectHandler,
-  LoadUnit,
+  load_unit,
   ExerciseFormData,
-  PlannedExerciseSet,
-  PlannedExerciseSubSet,
-  getNextPairing,
-  isValidPairing,
-  createPlannedExercise,
-  createVariedExercise,
-  PlannedExercise,
-  VariedExercise
+  planned_exercise_set,
+  planned_exercise_sub_set,
+  get_next_pairing,
+  is_valid_pairing,
+  create_planned_exercise,
+  create_varied_exercise,
+  planned_exercise,
+  varied_exercise
 } from '@/app/lib/types/pillars/fitness';
 import { FilterOptionOption } from 'react-select';
 import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
@@ -175,9 +175,9 @@ const customSelectStyles = {
 interface ExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (exercise: Exercise) => Promise<void>;
-  exercise?: Exercise;
-  exercises: Exercise[];
+  onSave: (exercise: exercise) => Promise<void>;
+  exercise?: exercise;
+  exercises: exercise[];
   onAdvancedSearch: () => void;
   selectedExerciseName?: string;
   userSettings?: UserSettings;
@@ -235,14 +235,15 @@ export default function AddExerciseModal({
   
   // Add state for alternate unit
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const defaultUnit: LoadUnit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
-  const alternateUnit: LoadUnit = defaultUnit === 'kg' ? 'lbs' : 'kg';
+  const defaultUnit: load_unit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
+  const alternateUnit: load_unit = defaultUnit === 'kg' ? 'lbs' : 'kg';
 
   // Initialize useAlternateUnit based on user settings when modal opens
   useEffect(() => {
-    if (isOpen) {
-      const exerciseUnit = exercise && 
-        ('setDetails' in exercise ? exercise.setDetails[0]?.loadUnit : exercise.plannedSets?.[0]?.loadUnit);
+    if (isOpen && exercise) {
+      const exerciseUnit = 'set_details' in exercise 
+        ? exercise.set_details[0]?.load_unit 
+        : exercise.planned_sets?.[0]?.load_unit;
       
       // Use exercise unit if available, otherwise use user's preferred unit
       setUseAlternateUnit(exerciseUnit ? exerciseUnit !== 'kg' : defaultUnit !== 'kg');
@@ -303,19 +304,24 @@ export default function AddExerciseModal({
     Debug.form('Initializing form', {
       isEditing: !!exercise,
       exerciseId: exercise?.id,
-      nextPairing: exercise ? exercise.pairing : getNextPairing(exercises.filter(ex => ex.pairing))
+      nextPairing: exercise ? exercise.pairing : get_next_pairing(exercises.filter(ex => ex.pairing))
     });
 
     if (exercise) {
-      reset({
+      const isVaried = 'set_details' in exercise;
+      const formData = {
         ...exercise,
         id: exercise.id.toString(),
-        isVariedSets: 'setDetails' in exercise,
-        isAdvancedSets: 'setDetails' in exercise && exercise.setDetails.some(set => set.subSets && set.subSets.length > 0)
-      });
+        name: selectedExerciseName || exercise.name,
+        isVariedSets: isVaried,
+        isAdvancedSets: isVaried && exercise.set_details?.some(set => 
+          set.sub_sets && set.sub_sets.length > 0
+        )
+      };
+      reset(formData);
     } else {
       // Use our utility function to get the next pairing
-      const nextPairing = getNextPairing(exercises.filter(ex => ex.pairing));
+      const nextPairing = get_next_pairing(exercises.filter(ex => ex.pairing));
 
       // Default values for new exercises
       reset({
@@ -333,7 +339,7 @@ export default function AddExerciseModal({
         setDetails: undefined
       } satisfies ExerciseFormData);
     }
-  }, [exercise, exercises, reset]);
+  }, [exercise, exercises, reset, selectedExerciseName]);
 
   // Update the watch effect
   useEffect(() => {
@@ -460,16 +466,16 @@ export default function AddExerciseModal({
     Debug.setMgmt('Managing set details', { isVariedSets, currentSets });
 
     if (isVariedSets && currentSets > 0) {
-      const newSetDetails: PlannedExerciseSet[] = Array.from({ length: currentSets }, (_, i) => ({
+      const newSetDetails: planned_exercise_set[] = Array.from({ length: currentSets }, (_, i) => ({
         id: i + 1,
-        setNumber: i + 1,
-        plannedReps: watch('reps'),
-        plannedLoad: Number(watch('load')) || 0,  // Convert to number
-        plannedTempo: watch('tempo'),
-        plannedRest: watch('rest'),
-        loadUnit: watch('loadUnit'),
+        set_number: i + 1,
+        planned_reps: watch('reps'),
+        planned_load: Number(watch('load')) || 0,
+        planned_tempo: watch('tempo'),
+        planned_rest: watch('rest'),
+        load_unit: watch('loadUnit'),
         notes: '',
-        subSets: []
+        sub_sets: []
       }));
       
       Debug.setMgmt('Creating new set details', { setCount: newSetDetails.length });
@@ -491,8 +497,10 @@ export default function AddExerciseModal({
           ...exercise,
           id: exercise.id.toString(),
           name: selectedExerciseName || exercise.name,
-          isVariedSets: 'setDetails' in exercise,
-          isAdvancedSets: 'setDetails' in exercise && exercise.setDetails.some(set => set.subSets && set.subSets.length > 0)
+          isVariedSets: 'set_details' in exercise,
+          isAdvancedSets: 'set_details' in exercise && exercise.set_details?.some(set => 
+            set.sub_sets && set.sub_sets.length > 0
+          )
         });
       } else {
         Debug.form('Resetting form to defaults');
@@ -531,40 +539,40 @@ export default function AddExerciseModal({
     const baseExerciseData = {
       id: parseInt(data.id),
       name: data.name,
-      exerciseId: selectedExercise.data.id,
+      exercise_id: selectedExercise.data.id,
       source: selectedExercise.data.source === 'user' ? 'user_exercises' : 'exercise_library' as 'user_exercises' | 'exercise_library',
       pairing: data.pairing,
       notes: data.notes
     };
   
     // 2. Handle load unit standardization (matches LoadUnit type)
-    const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as LoadUnit;
+    const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as load_unit;
   
     if (data.isVariedSets) {
       Debug.form('Creating varied exercise', { setDetails: data.setDetails });
       
       // 3a. Format varied exercise (matches VariedExercise type and program_day_exercise_sets/sub_sets tables)
-      const exercise: VariedExercise = {
+      const exercise: varied_exercise = {
         ...baseExerciseData,
-        isVariedSets: true,
-        isAdvancedSets: data.isAdvancedSets,
-        setDetails: data.setDetails?.map(set => ({
-          setNumber: set.setNumber,
-          plannedReps: set.plannedReps,
-          plannedLoad: set.plannedLoad || undefined,
-          loadUnit: set.plannedLoad ? loadUnit : undefined,
-          plannedRest: set.plannedRest,
-          plannedTempo: set.plannedTempo,
+        is_varied_sets: true,
+        is_advanced_sets: data.isAdvancedSets,
+        set_details: data.setDetails?.map(set => ({
+          set_number: set.set_number,
+          planned_reps: set.planned_reps,
+          planned_load: set.planned_load || undefined,
+          load_unit: set.planned_load ? loadUnit : undefined,
+          planned_rest: set.planned_rest,
+          planned_tempo: set.planned_tempo,
           rpe: set.rpe,
           rir: set.rir,
           notes: set.notes,
-          subSets: data.isAdvancedSets ? set.subSets?.map(subSet => ({
-            subSetNumber: subSet.subSetNumber,
-            plannedReps: subSet.plannedReps,
-            plannedLoad: subSet.plannedLoad || undefined,
-            loadUnit: subSet.plannedLoad ? loadUnit : undefined,
-            plannedRest: subSet.plannedRest,
-            plannedTempo: subSet.plannedTempo,
+          sub_sets: data.isAdvancedSets ? set.sub_sets?.map(subSet => ({
+            sub_set_number: subSet.sub_set_number,
+            planned_reps: subSet.planned_reps,
+            planned_load: subSet.planned_load || undefined,
+            load_unit: subSet.load_unit,
+            planned_rest: subSet.planned_rest,
+            planned_tempo: subSet.planned_tempo,
             rpe: subSet.rpe,
             rir: subSet.rir
           })) : undefined
@@ -578,18 +586,18 @@ export default function AddExerciseModal({
       Debug.form('Creating planned exercise');
   
       // 3b. Format planned exercise (matches PlannedExercise type and program_day_exercise_sets table)
-      const exercise: PlannedExercise = {
+      const exercise: planned_exercise = {
         ...baseExerciseData,
-        isVariedSets: false,
-        isAdvancedSets: false,
+        is_varied_sets: false,
+        is_advanced_sets: false,
         sets: data.sets,
-        plannedSets: Array.from({ length: data.sets }, (_, i) => ({
-          setNumber: i + 1,
-          plannedReps: data.reps,
-          plannedLoad: data.load || undefined,
-          loadUnit: data.load ? loadUnit : undefined,
-          plannedRest: data.rest,
-          plannedTempo: data.tempo,
+        planned_sets: Array.from({ length: data.sets }, (_, i) => ({
+          set_number: i + 1,
+          planned_reps: data.reps,
+          planned_load: data.load || undefined,
+          load_unit: data.load ? loadUnit : undefined,
+          planned_rest: data.rest,
+          planned_tempo: data.tempo,
           rpe: data.rpe,
           rir: data.rir,
           notes: data.notes
@@ -620,19 +628,19 @@ export default function AddExerciseModal({
     const updatedSetDetails = [...currentSetDetails];
     const currentSet = updatedSetDetails[setIndex];
     
-    const newSubSet: PlannedExerciseSubSet = {
-      subSetNumber: (currentSet.subSets?.length || 0) + 1,
-      plannedReps: currentSet.plannedReps,
-      plannedLoad: currentSet.plannedLoad,
-      plannedTempo: currentSet.plannedTempo,
-      plannedRest: currentSet.plannedRest,
-      loadUnit: currentSet.loadUnit
+    const newSubSet: planned_exercise_sub_set = {
+      sub_set_number: (currentSet.sub_sets?.length || 0) + 1,
+      planned_reps: currentSet.planned_reps,
+      planned_load: currentSet.planned_load,
+      planned_tempo: currentSet.planned_tempo,
+      planned_rest: currentSet.planned_rest,
+      load_unit: currentSet.load_unit
     };
 
-    currentSet.subSets = currentSet.subSets ?? [];
-    currentSet.subSets.push(newSubSet);
+    currentSet.sub_sets = currentSet.sub_sets ?? [];
+    currentSet.sub_sets.push(newSubSet);
 
-    Debug.setMgmt('Updated set details', { setIndex, subSetsCount: currentSet.subSets.length });
+    Debug.setMgmt('Updated set details', { setIndex, subSetsCount: currentSet.sub_sets.length });
     setValue('setDetails', updatedSetDetails);
   };
 
@@ -648,9 +656,9 @@ export default function AddExerciseModal({
     const updatedSetDetails = [...currentSetDetails];
     const currentSet = updatedSetDetails[setIndex];
 
-    if (currentSet.subSets) {
-      currentSet.subSets = currentSet.subSets.filter((_: PlannedExerciseSubSet, idx: number) => idx !== subSetIndex);
-      Debug.setMgmt('Updated set details', { setIndex, remainingSubSets: currentSet.subSets.length });
+    if (currentSet.sub_sets) {
+      currentSet.sub_sets = currentSet.sub_sets.filter((_: planned_exercise_sub_set, idx: number) => idx !== subSetIndex);
+      Debug.setMgmt('Updated set details', { setIndex, remainingSubSets: currentSet.sub_sets.length });
     }
 
     setValue('setDetails', updatedSetDetails);
@@ -1141,15 +1149,15 @@ export default function AddExerciseModal({
               </div>
               
               <div className="grid gap-4">
-                {watch('setDetails')?.map((set: PlannedExerciseSet, setIndex: number) => (
-                  <div key={set.setNumber} className="space-y-4 p-4 border rounded-lg">
+                {watch('setDetails')?.map((set: planned_exercise_set, setIndex: number) => (
+                  <div key={set.set_number} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium dark:text-white">Set {set.setNumber}</span>
+                      <span className="text-sm font-medium dark:text-white">Set {set.set_number}</span>
                       {isAdvancedSets && (
                         <button
                           type="button"
                           onClick={() => handleAddSubSet(setIndex)}
-                          aria-label={`Add subset to set ${set.setNumber}`}
+                          aria-label={`Add subset to set ${set.set_number}`}
                           className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
                         >
                           <BsPlus className="w-5 h-5" aria-hidden="true" />
@@ -1158,7 +1166,7 @@ export default function AddExerciseModal({
                     </div>
 
                     {/* Main set inputs */}
-                    {(!set.subSets?.length) && (
+                    {(!set.sub_sets?.length) && (
                       <div className="grid grid-cols-3 gap-4">
                         <div>
                           <label htmlFor={`set-${setIndex}-reps`} className="block text-sm dark:text-white">
@@ -1168,7 +1176,7 @@ export default function AddExerciseModal({
                             id={`set-${setIndex}-reps`}
                             type="number"
                             placeholder="Enter reps"
-                            {...register(`setDetails.${setIndex}.plannedReps` as const, { valueAsNumber: true })}
+                            {...register(`setDetails.${setIndex}.planned_reps`)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
@@ -1179,7 +1187,7 @@ export default function AddExerciseModal({
                           <input
                             id={`set-${setIndex}-load`}
                             type="text"
-                            {...register(`setDetails.${setIndex}.plannedLoad` as const, {
+                            {...register(`setDetails.${setIndex}.planned_load`, {
                               setValueAs: v => {
                                 const num = Number(v);
                                 return isNaN(num) ? v : num;
@@ -1197,7 +1205,7 @@ export default function AddExerciseModal({
                             id={`set-${setIndex}-rest`}
                             type="number"
                             placeholder="Enter rest"
-                            {...register(`setDetails.${setIndex}.plannedRest` as const, { valueAsNumber: true })}
+                            {...register(`setDetails.${setIndex}.planned_rest`)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
@@ -1205,16 +1213,16 @@ export default function AddExerciseModal({
                     )}
 
                      {/* Sub-sets */}
-                     {isAdvancedSets && set.subSets?.map((subSet: PlannedExerciseSubSet, subSetIndex: number) => (
+                     {isAdvancedSets && set.sub_sets?.map((subSet: planned_exercise_sub_set, subSetIndex: number) => (
                       <div key={subSetIndex} className="space-y-4 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium dark:text-white">
-                            Set {set.setNumber}.{subSetIndex + 1}
+                            Set {set.set_number}.{subSetIndex + 1}
                           </span>
                           <button
                             type="button"
                             onClick={() => handleRemoveSubSet(setIndex, subSetIndex)}
-                            aria-label={`Remove subset ${subSetIndex + 1} from set ${set.setNumber}`}
+                            aria-label={`Remove subset ${subSetIndex + 1} from set ${set.set_number}`}
                             className="p-1 text-red-600 bg-red-50 hover:bg-red-100 rounded-full border border-red-200"
                           >
                             <BsDash className="w-5 h-5" aria-hidden="true" />
@@ -1229,7 +1237,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-reps`}
                               type="number"
                               placeholder="Enter reps"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedReps` as const, { valueAsNumber: true })}
+                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_reps`)}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>
@@ -1241,7 +1249,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-load`}
                               type="text"
                               placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedLoad` as const, {
+                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_load`, {
                                 setValueAs: v => {
                                   const num = Number(v);
                                   return isNaN(num) ? v : num;
@@ -1258,7 +1266,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-rest`}
                               type="number"
                               placeholder="Enter rest"
-                              {...register(`setDetails.${setIndex}.subSets.${subSetIndex}.plannedRest` as const, { valueAsNumber: true })}
+                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_rest`)}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>

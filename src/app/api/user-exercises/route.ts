@@ -17,12 +17,12 @@ export async function POST(request: Request) {
     }
 
     // Check if exercise name already exists for this user
-    const existingExercise = await SingleQuery(
+    const existing_exercise = await SingleQuery(
       `SELECT id FROM user_exercises WHERE user_id = $1 AND exercise_name = $2`,
       [session.user.id, exercise_name]
     );
 
-    if (existingExercise.rows.length > 0) {
+    if (existing_exercise.rows.length > 0) {
       return NextResponse.json({ error: 'Exercise already exists' }, { status: 400 });
     }
 
@@ -37,9 +37,9 @@ export async function POST(request: Request) {
     // Add debug logging
     if (process.env.NODE_ENV === 'development') {
       console.log('Query result:', {
-        rowCount: result.rowCount,
-        firstRow: result.rows[0],
-        isArray: Array.isArray(result.rows)
+        row_count: result.rowCount,
+        first_row: result.rows[0],
+        is_array: Array.isArray(result.rows)
       });
     }
 

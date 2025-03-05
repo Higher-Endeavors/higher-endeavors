@@ -1,17 +1,37 @@
+/**
+ * Exercise List Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Utility functions that work with database-mapped types
+ *    - Imported database-related types (e.g., exercise)
+ * 
+ * 2. camelCase:
+ *    - React component names (ExerciseList)
+ *    - React props interfaces (ExerciseListProps)
+ *    - React event handlers (onEdit, onDelete)
+ *    - Component-specific helper functions (getGroupKey, getGroupLabel)
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 // Commenting out DnD imports
 // import { useSortable } from '@dnd-kit/sortable';
 // import { CSS } from '@dnd-kit/utilities';
 import React from 'react';
-import { Exercise, ExerciseListProps } from '@/app/lib/types/pillars/fitness';
+import { exercise, ExerciseListProps } from '@/app/lib/types/pillars/fitness';
 import { ExerciseItem } from './ExerciseItem';
-
 
 /**
  * Debug Configuration
- * Controls what types of logging are active
- * All logs are prefixed with [ExerciseList] for easy filtering
+ * Using camelCase as these are component-specific constants
  */
 const DEBUG = {
   RENDER: false,      // Component renders and updates
@@ -22,7 +42,8 @@ const DEBUG = {
 };
 
 /**
- * Debugging utilities for different component aspects
+ * Debugging utilities
+ * Using camelCase as these are component-specific functions
  */
 const Debug = {
   render: (message: string, data?: any) => {
@@ -44,9 +65,9 @@ const Debug = {
 
 export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseListProps) {
   // Helper function to get group key
-  function getGroupKey(exercise: Exercise): string {
-    if (!exercise.pairing) return 'A1';
-    return exercise.pairing;  // Return full pairing (A1, WU, CD, etc.)
+  function getGroupKey(exercise_item: exercise): string {
+    if (!exercise_item.pairing) return 'A1';
+    return exercise_item.pairing;  // Return full pairing (A1, WU, CD, etc.)
   }
 
   // Helper function for display label
@@ -56,13 +77,13 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
 
   return (
     <div className="space-y-4">
-      {exercises.map((exercise, index) => {
-        const currentGroupKey = getGroupKey(exercise);
+      {exercises.map((exercise_item, index) => {
+        const currentGroupKey = getGroupKey(exercise_item);
         const previousGroupKey = index > 0 ? getGroupKey(exercises[index - 1]) : '';
         const isFirstInGroup = index === 0 || currentGroupKey !== previousGroupKey;
 
         return (
-          <React.Fragment key={exercise.id}>
+          <React.Fragment key={exercise_item.id}>
             {isFirstInGroup && (
               <div className="flex items-center gap-4 mb-2">
                 <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
@@ -73,7 +94,7 @@ export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseLi
               </div>
             )}
             <ExerciseItem
-              exercise={exercise}
+              exercise={exercise_item}
               onEdit={onEdit}
               onDelete={onDelete}
             />

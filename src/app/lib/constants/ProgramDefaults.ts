@@ -1,6 +1,6 @@
-import type { Program } from '@/app/lib/types/pillars/fitness';
+import type { program } from '@/app/lib/types/pillars/fitness';
 
-export const DefaultProgram: Program = {
+export const DefaultProgram: program = {
     id: 0,
     program_name: '',
     user_id: 0,

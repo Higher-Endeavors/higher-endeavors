@@ -3,19 +3,23 @@ import React from 'react';
 // import { DndContext, DragOverlay, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 // import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable';
 // import { createPortal } from 'react-dom';
-import { Exercise } from '@/app/lib/types/pillars/fitness';
+import { exercise } from '@/app/lib/types/pillars/fitness';
 import ExerciseList from '../ExerciseManagement/ExerciseList';
 
+/**
+ * Props interface for the WeekProgram component
+ * Using snake_case for database-mapped properties and camelCase for React handlers
+ */
 interface WeekProgramProps {
-  weekNumber: number;
-  exercises: Exercise[];
-  onExercisesChange: (exercises: Exercise[]) => void;
+  week_number: number;  // Changed to snake_case as it maps to database
+  exercises: exercise[];
+  onExercisesChange: (exercises: exercise[]) => void;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
 export default function WeekProgram({
-  weekNumber,
+  week_number,  // Changed to snake_case
   exercises,
   onExercisesChange,
   onEdit,
@@ -54,20 +58,21 @@ export default function WeekProgram({
   //     const newExercises = arrayMove(exercises, oldIndex, newIndex);
 
   //     // Update pairings for all exercises
-  //     const updatedExercises = updatePairings(newExercises);
+  //     const updatedExercises = update_pairings(newExercises);
   //     onExercisesChange(updatedExercises);
   //   }
   // };
 
-    /**
-   * TODO: This function will be used when drag-and-drop functionality is re-implemented.
-   * It updates exercise pairings (A1, A2, B1, etc.) when exercises are reordered.
-   * Currently preserved for future DnD implementation.
+  /**
+   * Updates exercise pairings (A1, A2, B1, etc.) when exercises are reordered.
+   * This helper function follows snake_case convention as it works with database-mapped types.
+   * 
+   * @param exercises - Array of exercises to update pairings for
+   * @returns Updated array of exercises with new pairings
    */
-  // Modified updatePairings function to handle group changes
-  const updatePairings = (exercises: Exercise[]): Exercise[] => {
-    let currentGroup = 'A';
-    let currentNumber = 1;
+  const update_pairings = (exercises: exercise[]): exercise[] => {
+    let current_group = 'A';
+    let current_number = 1;
 
     return exercises.map((exercise, index) => {
       // Keep warm-up and cool-down exercises as is
@@ -76,18 +81,18 @@ export default function WeekProgram({
       }
 
       // If this is the first exercise or if we need to start a new group
-      if (index === 0 || currentNumber > 2) {
-        currentNumber = 1;
+      if (index === 0 || current_number > 2) {
+        current_number = 1;
         if (index > 0) {
           // Increment the group letter (A -> B -> C, etc.)
-          currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
+          current_group = String.fromCharCode(current_group.charCodeAt(0) + 1);
         }
       }
 
-      const newPairing = `${currentGroup}${currentNumber}`;
-      currentNumber++;
+      const new_pairing = `${current_group}${current_number}`;
+      current_number++;
 
-      return { ...exercise, pairing: newPairing };
+      return { ...exercise, pairing: new_pairing };
     });
   };
 

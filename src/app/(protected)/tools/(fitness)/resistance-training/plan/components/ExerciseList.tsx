@@ -4,11 +4,17 @@ import React, { useState } from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { BsThreeDotsVertical, BsGripVertical } from 'react-icons/bs';
-import { Exercise, PlannedExercise, isVariedExercise } from '@/app/lib/types/pillars/fitness/exercise.types';
-import { calculateExerciseTUT } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { 
+  exercise,
+  planned_exercise,
+  is_varied_exercise,
+  planned_exercise_set,
+  planned_exercise_sub_set
+} from '@/app/lib/types/pillars/fitness';
+import { calculate_exercise_tut } from '@/app/lib/utils/fitness/resistance-training/calculations';
 
 interface ExerciseItemProps {
-  exercise: Exercise;
+  exercise: exercise;
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
 }
@@ -111,14 +117,14 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
-          {isVariedExercise(exercise) ? (
+          {is_varied_exercise(exercise) ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.set_details.map((set: planned_exercise_set, idx: number) => (
                 <div key={idx}>
-                  <p>Set {set.setNumber}{!set.subSets?.length && `: ${set.plannedReps} reps`}</p>
-                  {set.subSets && set.subSets.map((subSet, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">
-                      → {subSet.plannedReps} reps @ {subSet.plannedLoad}lbs ({subSet.plannedRest}s rest)
+                  <p>Set {set.set_number}{!set.sub_sets?.length && `: ${set.planned_reps} reps`}</p>
+                  {set.sub_sets && set.sub_sets.map((sub_set: planned_exercise_sub_set, sub_idx: number) => (
+                    <p key={sub_idx} className="ml-4 text-sm">
+                      → {sub_set.planned_reps} reps @ {sub_set.planned_load}lbs ({sub_set.planned_rest}s rest)
                     </p>
                   ))}
                 </div>
@@ -126,65 +132,65 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
             </div>
           ) : (
             <p className="font-medium dark:text-slate-900">
-              {exercise.plannedSets?.length} x {exercise.plannedSets?.[0]?.plannedReps}
+              {exercise.sets} x {exercise.planned_sets?.[0]?.planned_reps}
             </p>
           )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
-          {isVariedExercise(exercise) ? (
+          {is_varied_exercise(exercise) ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
+              {exercise.set_details.map((set: planned_exercise_set, idx: number) => (
                 <div key={idx}>
-                  <p>{set.plannedLoad}lbs.</p>
-                  {set.subSets && set.subSets.map((_, subIdx) => (
-                    <p key={subIdx} className="ml-4 text-sm">&nbsp;</p>
+                  <p>{set.planned_load}lbs.</p>
+                  {set.sub_sets && set.sub_sets.map((_: planned_exercise_sub_set, sub_idx: number) => (
+                    <p key={sub_idx} className="ml-4 text-sm">&nbsp;</p>
                   ))}
                 </div>
               ))}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.plannedSets?.[0]?.plannedLoad}lbs.</p>
+            <p className="font-medium dark:text-slate-900">{exercise.planned_sets?.[0]?.planned_load}lbs.</p>
           )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-          {isVariedExercise(exercise) ? (
+          {is_varied_exercise(exercise) ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
-                <p key={idx}>{set.plannedTempo}</p>
+              {exercise.set_details.map((set: planned_exercise_set, idx: number) => (
+                <p key={idx}>{set.planned_tempo}</p>
               ))}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.plannedSets?.[0]?.plannedTempo}</p>
+            <p className="font-medium dark:text-slate-900">{exercise.planned_sets?.[0]?.planned_tempo}</p>
           )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-          {isVariedExercise(exercise) ? (
+          {is_varied_exercise(exercise) ? (
             <div className="font-medium dark:text-slate-900">
-              {exercise.setDetails.map((set, idx) => (
-                <p key={idx}>{set.plannedRest}s</p>
+              {exercise.set_details.map((set: planned_exercise_set, idx: number) => (
+                <p key={idx}>{set.planned_rest}s</p>
               ))}
             </div>
           ) : (
-            <p className="font-medium dark:text-slate-900">{exercise.plannedSets?.[0]?.plannedRest}s</p>
+            <p className="font-medium dark:text-slate-900">{exercise.planned_sets?.[0]?.planned_rest}s</p>
           )}
         </div>
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-          <p className="font-medium dark:text-slate-900">{calculateExerciseTUT(exercise)}s</p>
+          <p className="font-medium dark:text-slate-900">{calculate_exercise_tut(exercise)}s</p>
         </div>
       </div>
 
-      {(!isVariedExercise(exercise) && exercise.plannedSets?.[0]) && (
+      {(!is_varied_exercise(exercise) && exercise.planned_sets?.[0]) && (
         <div className="mt-3 text-sm text-gray-600">
-          {exercise.plannedSets[0].rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.plannedSets[0].rpe}</span>}
-          {exercise.plannedSets[0].rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.plannedSets[0].rir}</span>}
-          {exercise.plannedSets[0].notes && (
+          {exercise.planned_sets[0].rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.planned_sets[0].rpe}</span>}
+          {exercise.planned_sets[0].rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.planned_sets[0].rir}</span>}
+          {exercise.planned_sets[0].notes && (
             <div className="mt-1">
               <span className="font-medium dark:text-slate-900">Notes: </span>
-              <span className="dark:text-slate-900">{exercise.plannedSets[0].notes}</span>
+              <span className="dark:text-slate-900">{exercise.planned_sets[0].notes}</span>
             </div>
           )}
         </div>
@@ -194,13 +200,13 @@ const ExerciseItem = ({ exercise, onEdit, onDelete }: ExerciseItemProps) => {
 };
 
 interface ExerciseListProps {
-  exercises: Exercise[];
+  exercises: exercise[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
 interface GroupedExercises {
-  [key: string]: Exercise[];
+  [key: string]: exercise[];
 }
 
 export default function ExerciseList({ exercises, onEdit, onDelete }: ExerciseListProps) {

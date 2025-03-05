@@ -30,22 +30,22 @@ export async function POST(request: Request) {
     }
 
     const { 
-      name, 
-      periodizationType,
-      startDate,
-      endDate,
+      program_name: name, 
+      periodization_type: periodizationType,
+      start_date: startDate,
+      end_date: endDate,
       notes,
       weeks,
-      userId: targetUserId, // The user we're creating the program for
-      phaseFocus
+      user_id: target_user_id,
+      phase_focus: phaseFocus
     } = data;
 
     // Check if the current user has permission to create programs for the target user
-    const currentUserId = parseInt(session.user.id);
+    const current_user_id = parseInt(session.user.id);
     const isAdmin = session.user.role === 'admin';
-    const effectiveUserId = isAdmin && targetUserId ? parseInt(targetUserId) : currentUserId;
+    const effective_user_id = isAdmin && target_user_id ? parseInt(target_user_id) : current_user_id;
 
-    if (targetUserId && !isAdmin) {
+    if (target_user_id && !isAdmin) {
       return NextResponse.json({ error: 'Unauthorized to create programs for other users' }, { status: 403 });
     }
 
@@ -55,8 +55,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ 
         error: 'Missing required fields',
         details: {
-          name: !name ? 'Program name is required' : undefined,
-          periodizationType: !periodizationType ? 'Periodization type is required' : undefined,
+          program_name: !name ? 'Program name is required' : undefined,
+          periodization_type: !periodizationType ? 'Periodization type is required' : undefined,
           weeks: !weeks ? 'Weeks are required' : !Array.isArray(weeks) ? 'Weeks must be an array' : undefined
         }
       }, { status: 400 });
@@ -74,14 +74,14 @@ export async function POST(request: Request) {
         VALUES 
         ($1, $2, $3, $4, $5, $6, $7)
         RETURNING id`,
-        [effectiveUserId, name, periodizationType, phaseFocus, startDate, endDate, notes]
+        [effective_user_id, name, periodizationType, phaseFocus, startDate, endDate, notes]
       );
-      const programId = programResult.rows[0].id;
-      console.log('Program created with ID:', programId);
+      const program_id = programResult.rows[0].id;
+      console.log('Program created with ID:', program_id);
 
       // 2. Create weeks
       for (const week of weeks) {
-        if (!week.weekNumber) {
+        if (!week.week_number) {
           throw new Error(`Week number is required for week: ${JSON.stringify(week)}`);
         }
 
@@ -91,14 +91,14 @@ export async function POST(request: Request) {
           VALUES 
           ($1, $2, $3, $4, $5)
           RETURNING id`,
-          [programId, week.weekNumber, week.notes, week.createdAt, week.updatedAt]
+          [program_id, week.week_number, week.notes, week.created_at, week.updated_at]
         );
-        const weekId = weekResult.rows[0].id;
-        console.log(`Week ${week.weekNumber} created with ID:`, weekId);
+        const week_id = weekResult.rows[0].id;
+        console.log(`Week ${week.week_number} created with ID:`, week_id);
 
         // 3. Create days for each week
         if (!Array.isArray(week.days)) {
-          throw new Error(`Days array is required for week ${week.weekNumber}`);
+          throw new Error(`Days array is required for week ${week.week_number}`);
         }
 
         for (const day of week.days) {
@@ -108,14 +108,14 @@ export async function POST(request: Request) {
             VALUES 
             ($1, $2, $3, $4)
             RETURNING id`,
-            [weekId, day.dayNumber, day.dayName, day.notes]
+            [week_id, day.day_number, day.day_name, day.notes]
           );
-          const dayId = dayResult.rows[0].id;
-          console.log(`Day ${day.dayNumber} created with ID:`, dayId);
+          const day_id = dayResult.rows[0].id;
+          console.log(`Day ${day.day_number} created with ID:`, day_id);
 
           // 4. Create exercises for each day
           if (!Array.isArray(day.exercises)) {
-            throw new Error(`Exercises array is required for day ${day.dayNumber} in week ${week.weekNumber}`);
+            throw new Error(`Exercises array is required for day ${day.day_number} in week ${week.week_number}`);
           }
 
           for (const exercise of day.exercises) {
@@ -126,15 +126,15 @@ export async function POST(request: Request) {
               VALUES 
               ($1, $2, $3, $4, $5, $6, $7, $8)
               RETURNING id`,
-              [dayId, exercise.exerciseSource, exercise.exerciseLibraryId, exercise.userExerciseId,
-               exercise.customExerciseName, exercise.pairing, exercise.notes, exercise.orderIndex]
+              [day_id, exercise.exercise_source, exercise.exercise_library_id, exercise.user_exercise_id,
+               exercise.custom_exercise_name, exercise.pairing, exercise.notes, exercise.order_index]
             );
-            const exerciseId = exerciseResult.rows[0].id;
-            console.log(`Exercise created with ID:`, exerciseId);
+            const exercise_id = exerciseResult.rows[0].id;
+            console.log(`Exercise created with ID:`, exercise_id);
 
             // 5. Create sets for each exercise
             if (!Array.isArray(exercise.sets)) {
-              throw new Error(`Sets array is required for exercise ${exercise.customName || exercise.libraryId} in day ${day.dayNumber}, week ${week.weekNumber}`);
+              throw new Error(`Sets array is required for exercise ${exercise.custom_name || exercise.library_id} in day ${day.day_number}, week ${week.week_number}`);
             }
 
             for (const set of exercise.sets) {
@@ -144,11 +144,11 @@ export async function POST(request: Request) {
                  load_unit, planned_rest, planned_tempo, notes)
                 VALUES 
                 ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [exerciseId, set.setNumber, set.plannedReps, set.plannedLoad,
-                 set.loadUnit, set.plannedRest, set.plannedTempo, set.notes]
+                [exercise_id, set.set_number, set.planned_reps, set.planned_load,
+                 set.load_unit, set.planned_rest, set.planned_tempo, set.notes]
               );
             }
-            console.log(`Sets created for exercise ${exerciseId}`);
+            console.log(`Sets created for exercise ${exercise_id}`);
           }
         }
       }
@@ -159,7 +159,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ 
         success: true, 
-        programId 
+        program_id 
       });
 
     } catch (error) {

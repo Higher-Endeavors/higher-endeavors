@@ -1,10 +1,32 @@
+/**
+ * Program Settings Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Helper functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React component names (ProgramSettings)
+ *    - React props interfaces (ProgramSettingsProps)
+ *    - React state variables and event handlers
+ *    - Component-specific helper functions
+ *    - Debug configuration objects
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import Select from 'react-select';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { programSettingsSchema, PhaseFocus, PeriodizationType } from '@/app/lib/types/pillars/fitness';
+import { programSettingsSchema, PhaseFocus, PeriodizationType, progression_rules, phase_focus_type } from '@/app/lib/types/pillars/fitness';
 import type { z } from 'zod';
 
 /**
@@ -60,19 +82,19 @@ export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
  * What information the ProgramSettings needs to work:
  * 
  * Basic Settings:
- * @param name - What you want to call your program
- * @param phaseFocus - What the program is trying to achieve (like "Get Stronger" or "Build Muscle")
- * @param periodizationType - How the program changes over time (Linear = steady changes, Undulating = varies up and down)
+ * @param program_name - What you want to call your program
+ * @param phase_focus - What the program is trying to achieve (like "Get Stronger" or "Build Muscle")
+ * @param periodization_type - How the program changes over time (Linear = steady changes, Undulating = varies up and down)
  * @param notes - Any extra information you want to remember about the program
  * 
  * Advanced Settings:
- * @param progressionRules - Special rules for how the program gets harder over time
+ * @param progression_rules - Special rules for how the program gets harder over time
  *    - type: What kind of progression (Linear, Undulating)
  *    - settings: The specific numbers and rules:
- *        - volumeIncrementPercentage: How much to increase the work by (Linear)
- *        - loadIncrementPercentage: How much to increase the weight by (Linear)
- *        - programLength: How many weeks the program lasts
- *        - weeklyVolumePercentages: How hard each week is (Undulating)
+ *        - volume_increment_percentage: How much to increase the work by (Linear)
+ *        - load_increment_percentage: How much to increase the weight by (Linear)
+ *        - program_length: How many weeks the program lasts
+ *        - weekly_volume_percentages: How hard each week is (Undulating)
  * 
  * Functions:
  * @param onSettingsChange - What to do when settings are changed
@@ -83,18 +105,10 @@ export type ProgramSettingsFormData = z.infer<typeof programSettingsSchema>;
  */
 interface ProgramSettingsProps {
   program_name: string;
-  phase_focus: ProgramSettingsFormData['phase_focus'];
-  periodization_type: ProgramSettingsFormData['periodization_type'];
+  phase_focus: phase_focus_type;
+  periodization_type: keyof typeof PeriodizationType;
   notes?: string;
-  progression_rules?: {
-    type: string;
-    settings: {
-      volumeIncrementPercentage?: number;  // For Linear progression
-      loadIncrementPercentage?: number;    // For Linear progression
-      programLength?: number;              // Length in weeks
-      weeklyVolumePercentages?: number[];  // For Undulating progression
-    };
-  };
+  progression_rules?: progression_rules;
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
 }
 
@@ -175,7 +189,7 @@ export default function ProgramSettings({
    * - customPhaseFocus: Handles custom training focus input
    * - showCustomPhaseFocus: Controls visibility of custom focus input field
    */
-  const [customPhaseFocus, setCustomPhaseFocus] = useState('');
+  const [customPhaseFocus, setCustomPhaseFocus] = useState<string>('');
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(
     !phaseFocusOptions.find(option => option.value === phase_focus)
   );
@@ -211,11 +225,11 @@ export default function ProgramSettings({
 
   /**
    * Watch specific form fields for changes
-   * - currentPeriodizationType: Used to show/hide progression settings
-   * - programLength: Used to adjust weekly volume percentages
+   * - current_periodization_type: Used to show/hide progression settings
+   * - program_length: Used to adjust weekly volume percentages
    */
-  const currentPeriodizationType = watch('periodizationType');
-  const programLength = watch('progressionRules.settings.programLength');
+  const current_periodization_type = watch('periodization_type') as keyof typeof PeriodizationType;
+  const program_length = watch('progression_rules.settings.program_length') as number;
 
   /**
    * Automatically update weekly volume percentages when switching to Undulating periodization
@@ -224,15 +238,15 @@ export default function ProgramSettings({
    */
   useEffect(() => {
     Debug.effect('Periodization type changed:', {
-      current: currentPeriodizationType,
-      previous: periodizationType
+      current: current_periodization_type,
+      previous: periodization_type
     });
     
-    if (currentPeriodizationType === 'Undulating' && periodizationType !== 'Undulating') {
+    if (current_periodization_type === 'Undulating' && periodization_type !== 'Undulating') {
       Debug.effect('Updating weekly volume percentages to default pattern');
-      setValue('progressionRules.settings.weeklyVolumePercentages', [100, 80, 90, 60]);
+      setValue('progression_rules.settings.weekly_volume_percentages', [100, 80, 90, 60]);
     }
-  }, [currentPeriodizationType, periodizationType, setValue]);
+  }, [current_periodization_type, periodization_type, setValue]);
 
   /**
    * Development Helper:
@@ -307,7 +321,7 @@ export default function ProgramSettings({
           Phase/Focus
         </label>
         <Controller
-          name="phaseFocus"
+          name="phase_focus"
           control={control}
           defaultValue="GPP"
           render={({ field }) => (
@@ -321,11 +335,11 @@ export default function ProgramSettings({
                 onChange={(option) => {
                   if (option?.value === 'Other') {
                     setShowCustomPhaseFocus(true);
-                    setCustomPhaseFocus(field.value);
+                    setCustomPhaseFocus(field.value as string);
                   } else {
                     setShowCustomPhaseFocus(false);
                     field.onChange(option?.value);
-                    onSettingsChange({ phaseFocus: option?.value });
+                    onSettingsChange({ phase_focus: option?.value as phase_focus_type });
                   }
                 }}
                 className="basic-single dark:text-slate-700"
@@ -337,16 +351,17 @@ export default function ProgramSettings({
                   type="text"
                   value={customPhaseFocus}
                   onChange={(e) => {
-                    setCustomPhaseFocus(e.target.value);
-                    field.onChange(e.target.value);
-                    onSettingsChange({ phaseFocus: e.target.value });
+                    const value = e.target.value;
+                    setCustomPhaseFocus(value);
+                    field.onChange(value);
+                    onSettingsChange({ phase_focus: value as phase_focus_type });
                   }}
                   placeholder="Enter custom phase/focus"
                   className="mt-2 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900"
                 />
               )}
-              {errors.phaseFocus && (
-                <p className="mt-1 text-sm text-red-600">{errors.phaseFocus.message}</p>
+              {errors.phase_focus && (
+                <p className="mt-1 text-sm text-red-600">{errors.phase_focus.message}</p>
               )}
             </div>
           )}
@@ -362,7 +377,7 @@ export default function ProgramSettings({
           Periodization Type
         </label>
         <Controller
-          name="periodizationType"
+          name="periodization_type"
           control={control}
           defaultValue="None"
           render={({ field }) => (
@@ -375,16 +390,16 @@ export default function ProgramSettings({
                   const newType = option?.value ?? 'None';
                   field.onChange(newType);
                   // When periodization type changes, update the program settings
-                  const currentSettings = watch('progressionRules.settings');
+                  const currentSettings = watch('progression_rules.settings');
                   onSettingsChange({
-                    periodizationType: newType,
-                    progressionRules: {
+                    periodization_type: newType,
+                    progression_rules: {
                       type: newType,
                       settings: {
                         ...currentSettings,
                         // Only override settings if explicitly switching to Undulating
                         ...(newType === 'Undulating' && field.value !== 'Undulating' ? {
-                          weeklyVolumePercentages: [100, 80, 90, 60]
+                          weekly_volume_percentages: [100, 80, 90, 60]
                         } : {})
                       }
                     }
@@ -394,8 +409,8 @@ export default function ProgramSettings({
                 classNamePrefix="select"
                 styles={customSelectStyles}
               />
-              {errors.periodizationType && (
-                <p className="mt-1 text-sm text-red-600">{errors.periodizationType.message}</p>
+              {errors.periodization_type && (
+                <p className="mt-1 text-sm text-red-600">{errors.periodization_type.message}</p>
               )}
             </div>
           )}
@@ -411,7 +426,7 @@ export default function ProgramSettings({
           Program Length (weeks)
         </label>
         <Controller
-          name="progressionRules.settings.programLength"
+          name="progression_rules.settings.program_length"
           control={control}
           render={({ field }) => (
             <div>
@@ -422,10 +437,10 @@ export default function ProgramSettings({
                   const value = e.target.value === '' ? '' : Number(e.target.value);
                   field.onChange(value);
                   onSettingsChange({
-                    progressionRules: {
-                      type: currentPeriodizationType,
+                    progression_rules: {
+                      type: current_periodization_type,
                       settings: {
-                        programLength: value === '' ? 4 : Number(value)
+                        program_length: value === '' ? 4 : Number(value)
                       }
                     }
                   });
@@ -436,10 +451,10 @@ export default function ProgramSettings({
                     const defaultValue = 4;
                     field.onChange(defaultValue);
                     onSettingsChange({
-                      progressionRules: {
-                        type: currentPeriodizationType,
+                      progression_rules: {
+                        type: current_periodization_type,
                         settings: {
-                          programLength: defaultValue
+                          program_length: defaultValue
                         }
                       }
                     });
@@ -451,9 +466,9 @@ export default function ProgramSettings({
                 max="52"
                 step="1"
               />
-              {errors.progressionRules?.settings?.programLength && (
+              {errors.progression_rules?.settings?.program_length && (
                 <p className="mt-1 text-sm text-red-600">
-                  {errors.progressionRules.settings.programLength.message}
+                  {errors.progression_rules.settings.program_length.message}
                 </p>
               )}
             </div>
@@ -465,7 +480,7 @@ export default function ProgramSettings({
       </div>
 
       {/* Progression Settings */}
-      {currentPeriodizationType === 'Linear' && (
+      {current_periodization_type === 'Linear' && (
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700">Linear Progression Settings</h3>
           <div className="grid grid-cols-2 gap-4">
@@ -474,7 +489,7 @@ export default function ProgramSettings({
                 Volume Increment (%)
               </label>
               <Controller
-                name="progressionRules.settings.volumeIncrementPercentage"
+                name="progression_rules.settings.volume_increment_percentage"
                 control={control}
                 render={({ field }) => (
                   <div>
@@ -488,10 +503,10 @@ export default function ProgramSettings({
                         // Only update settings if we have a valid number
                         if (value !== '') {
                           onSettingsChange({
-                            progressionRules: {
-                              type: currentPeriodizationType,
+                            progression_rules: {
+                              type: current_periodization_type,
                               settings: {
-                                volumeIncrementPercentage: Number(value)
+                                volume_increment_percentage: Number(value)
                               }
                             }
                           });
@@ -504,10 +519,10 @@ export default function ProgramSettings({
                           const defaultValue = 5;
                           field.onChange(defaultValue);
                           onSettingsChange({
-                            progressionRules: {
-                              type: currentPeriodizationType,
+                            progression_rules: {
+                              type: current_periodization_type,
                               settings: {
-                                volumeIncrementPercentage: defaultValue
+                                volume_increment_percentage: defaultValue
                               }
                             }
                           });
@@ -519,9 +534,9 @@ export default function ProgramSettings({
                       max="100"
                       step="1"
                     />
-                    {errors.progressionRules?.settings?.volumeIncrementPercentage && (
+                    {errors.progression_rules?.settings?.volume_increment_percentage && (
                       <p className="mt-1 text-sm text-red-600">
-                        {errors.progressionRules.settings.volumeIncrementPercentage.message}
+                        {errors.progression_rules.settings.volume_increment_percentage.message}
                       </p>
                     )}
                   </div>
@@ -533,7 +548,7 @@ export default function ProgramSettings({
                 Load Increment (%)
               </label>
               <Controller
-                name="progressionRules.settings.loadIncrementPercentage"
+                name="progression_rules.settings.load_increment_percentage"
                 control={control}
                 render={({ field }) => (
                   <div>
@@ -547,10 +562,10 @@ export default function ProgramSettings({
                         // Only update settings if we have a valid number
                         if (value !== '') {
                           onSettingsChange({
-                            progressionRules: {
-                              type: currentPeriodizationType,
+                            progression_rules: {
+                              type: current_periodization_type,
                               settings: {
-                                loadIncrementPercentage: Number(value)
+                                load_increment_percentage: Number(value)
                               }
                             }
                           });
@@ -563,10 +578,10 @@ export default function ProgramSettings({
                           const defaultValue = 2.5;
                           field.onChange(defaultValue);
                           onSettingsChange({
-                            progressionRules: {
-                              type: currentPeriodizationType,
+                            progression_rules: {
+                              type: current_periodization_type,
                               settings: {
-                                loadIncrementPercentage: defaultValue
+                                load_increment_percentage: defaultValue
                               }
                             }
                           });
@@ -578,9 +593,9 @@ export default function ProgramSettings({
                       max="100"
                       step="0.5"
                     />
-                    {errors.progressionRules?.settings?.loadIncrementPercentage && (
+                    {errors.progression_rules?.settings?.load_increment_percentage && (
                       <p className="mt-1 text-sm text-red-600">
-                        {errors.progressionRules.settings.loadIncrementPercentage.message}
+                        {errors.progression_rules.settings.load_increment_percentage.message}
                       </p>
                     )}
                   </div>
@@ -591,24 +606,24 @@ export default function ProgramSettings({
         </div>
       )}
 
-      {currentPeriodizationType === 'Undulating' && (
+      {current_periodization_type === 'Undulating' && (
         <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
           <h3 className="text-sm font-medium text-gray-700">Undulating Progression Settings</h3>
           <Controller
-            name="progressionRules.settings.weeklyVolumePercentages"
+            name="progression_rules.settings.weekly_volume_percentages"
             control={control}
             defaultValue={[100, 80, 90, 60]}
             render={({ field }) => {
-              const programLength = watch('progressionRules.settings.programLength') || 4;
+              const program_length = watch('progression_rules.settings.program_length') || 4;
               // Ensure we have enough values for all weeks
               const currentValues = [...(field.value || [])];
-              while (currentValues.length < programLength) {
+              while (currentValues.length < program_length) {
                 currentValues.push(100);
               }
               
               return (
                 <div className="grid grid-cols-2 gap-4">
-                  {Array.from({ length: programLength }, (_, index) => (
+                  {Array.from({ length: program_length }, (_, index) => (
                     <div key={index}>
                       <label className="block text-sm font-medium text-gray-700">
                         Week {index + 1} Volume (%)
@@ -622,10 +637,10 @@ export default function ProgramSettings({
                           newValue[index] = value === '' ? 100 : Number(value);
                           field.onChange(newValue);
                           onSettingsChange({
-                            progressionRules: {
-                              type: currentPeriodizationType,
+                            progression_rules: {
+                              type: current_periodization_type,
                               settings: {
-                                weeklyVolumePercentages: newValue
+                                weekly_volume_percentages: newValue
                               }
                             }
                           });

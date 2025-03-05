@@ -1,9 +1,27 @@
+/**
+ * Program Types - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All interfaces/types that map to database structures
+ *    - Properties within these interfaces that map to database columns
+ *    - Helper functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React-specific interfaces (props, state)
+ *    - React event handlers
+ *    - TypeScript type guards
+ * 
+ * This approach minimizes data transformations between frontend and backend
+ * while maintaining React/TypeScript conventional patterns where appropriate.
+ */
+
 import { PeriodizationType } from "./exercise.types";
 
 /**
- * Interface for a program
+ * Base program interface that maps to database structure
  */
-export interface Program {
+export interface program {
   id: number;
   program_name: string;
   user_id: number;
@@ -25,26 +43,28 @@ export interface Program {
   updated_at: Date;
 }
 
-  /**
- * Extended interface for program list view
- * Includes computed/derived properties for display purposes
+/**
+ * Extended interface for program list view (React-specific display type)
  */
-export interface ProgramListItem extends Program {
-  exerciseSummary?: {
+export interface program_list_item extends program {
+  exercise_summary?: {
     exercises: Array<{
       id: number;
       name: string;
       source: 'library' | 'user';
     }>;
-    totalExercises: number;
+    total_exercises: number;
   };
 }
 
-export interface Week {
+/**
+ * Week interface that maps to database structure
+ */
+export interface week {
   id: number;
-  resistanceProgramId: number;
-  weekNumber: number;
+  resistance_program_id: number;
+  week_number: number;
   notes: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: Date;
+  updated_at: Date;
 } 

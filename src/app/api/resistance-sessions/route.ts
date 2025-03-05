@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
-import { Exercise } from '@/app/lib/types/pillars/fitness';
-import { TrainingSession } from '@/app/lib/types/pillars/fitness/exercise.types';
+import { exercise } from '@/app/lib/types/pillars/fitness';
+import { training_session } from '@/app/lib/types/pillars/fitness/exercise.types';
 
 export async function GET(request: Request) {
   try {
@@ -12,10 +12,10 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('id');
-    const programId = searchParams.get('programId');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    const session_id = searchParams.get('id');
+    const program_id = searchParams.get('programId');
+    const start_date = searchParams.get('startDate');
+    const end_date = searchParams.get('endDate');
 
     let query = `
       SELECT 
@@ -43,27 +43,27 @@ export async function GET(request: Request) {
     const params: any[] = [session.user.id];
     let paramIndex = 2;
 
-    if (sessionId) {
+    if (session_id) {
       query += ` AND ts.id = $${paramIndex}`;
-      params.push(sessionId);
+      params.push(session_id);
       paramIndex++;
     }
 
-    if (programId) {
+    if (program_id) {
       query += ` AND ts.program_id = $${paramIndex}`;
-      params.push(programId);
+      params.push(program_id);
       paramIndex++;
     }
 
-    if (startDate) {
+    if (start_date) {
       query += ` AND ts.scheduled_date >= $${paramIndex}`;
-      params.push(startDate);
+      params.push(start_date);
       paramIndex++;
     }
 
-    if (endDate) {
+    if (end_date) {
       query += ` AND ts.scheduled_date <= $${paramIndex}`;
-      params.push(endDate);
+      params.push(end_date);
       paramIndex++;
     }
 
@@ -89,14 +89,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const trainingSession: TrainingSession = await request.json();
+    const training_session_data: training_session = await request.json();
 
     // Start a transaction
     await client.query('BEGIN');
 
     try {
       // Insert session
-      const { rows: [newSession] } = await client.query(`
+      const { rows: [new_session] } = await client.query(`
         INSERT INTO training_sessions (
           program_id,
           user_id,
@@ -106,16 +106,16 @@ export async function POST(request: Request) {
         ) VALUES ($1, $2, $3, $4, $5)
         RETURNING id
       `, [
-        trainingSession.programId,
+        training_session_data.program_id,
         session.user.id,
-        trainingSession.scheduledDate,
-        trainingSession.actualDate,
-        trainingSession.status
+        training_session_data.scheduled_date,
+        training_session_data.actual_date,
+        training_session_data.status
       ]);
 
       // Insert exercises and sets
-      for (const exercise of trainingSession.exercises) {
-        const { rows: [newExercise] } = await client.query(`
+      for (const exercise of training_session_data.exercises) {
+        const { rows: [new_exercise] } = await client.query(`
           INSERT INTO session_exercises (
             session_id,
             exercise_library_id,
@@ -124,14 +124,14 @@ export async function POST(request: Request) {
           ) VALUES ($1, $2, $3, $4)
           RETURNING id
         `, [
-          newSession.id,
-          exercise.exerciseLibraryId,
+          new_session.id,
+          exercise.exercise_library_id,
           exercise.pairing,
-          exercise.plannedSets
+          exercise.planned_sets
         ]);
 
         // Insert sets
-        for (const set of exercise.actualSets) {
+        for (const set of exercise.actual_sets) {
           await client.query(`
             INSERT INTO session_sets (
               session_exercise_id,
@@ -140,21 +140,21 @@ export async function POST(request: Request) {
               actual_reps,
               planned_load,
               actual_load,
-              tempo,
+              planned_tempo,
               rest_time,
               rpe,
               rir,
               notes
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `, [
-            newExercise.id,
-            set.setNumber,
-            set.plannedReps,
-            set.actualReps,
-            set.plannedLoad,
-            set.actualLoad,
-            set.tempo,
-            set.restTime,
+            new_exercise.id,
+            set.set_number,
+            set.planned_reps,
+            set.actual_reps,
+            set.planned_load,
+            set.actual_load,
+            set.planned_tempo,
+            set.rest_time,
             set.rpe,
             set.rir,
             set.notes
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
       }
 
       // Insert feedback if provided
-      if (trainingSession.feedback) {
+      if (training_session_data.feedback) {
         await client.query(`
           INSERT INTO session_feedback (
             session_id,
@@ -176,19 +176,19 @@ export async function POST(request: Request) {
             next_day_energy_level
           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         `, [
-          newSession.id,
-          trainingSession.feedback.feeling,
-          trainingSession.feedback.energyLevel,
-          trainingSession.feedback.musclePump,
-          trainingSession.feedback.notes,
-          trainingSession.feedback.nextDaySoreness,
-          trainingSession.feedback.nextDayFeeling,
-          trainingSession.feedback.nextDayEnergyLevel
+          new_session.id,
+          training_session_data.feedback.feeling,
+          training_session_data.feedback.energy_level,
+          training_session_data.feedback.muscle_pump,
+          training_session_data.feedback.notes,
+          training_session_data.feedback.next_day_soreness,
+          training_session_data.feedback.next_day_feeling,
+          training_session_data.feedback.next_day_energy_level
         ]);
       }
 
       await client.query('COMMIT');
-      return NextResponse.json(newSession);
+      return NextResponse.json(new_session);
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
@@ -213,12 +213,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const trainingSession: TrainingSession = await request.json();
+    const training_session_data: training_session = await request.json();
 
     // Verify ownership
     const { rows } = await client.query(
       'SELECT id FROM training_sessions WHERE id = $1 AND user_id = $2',
-      [trainingSession.id, session.user.id]
+      [training_session_data.id, session.user.id]
     );
 
     if (rows.length === 0) {
@@ -237,25 +237,25 @@ export async function PUT(request: Request) {
             updated_at = NOW()
         WHERE id = $3
       `, [
-        trainingSession.actualDate,
-        trainingSession.status,
-        trainingSession.id
+        training_session_data.actual_date,
+        training_session_data.status,
+        training_session_data.id
       ]);
 
       // Update exercises and sets
-      for (const exercise of trainingSession.exercises) {
+      for (const exercise of training_session_data.exercises) {
         // Update or insert exercise
-        const { rows: [existingExercise] } = await client.query(
+        const { rows: [existing_exercise] } = await client.query(
           'SELECT id FROM session_exercises WHERE id = $1',
           [exercise.id]
         );
 
-        if (existingExercise) {
+        if (existing_exercise) {
           await client.query(`
             UPDATE session_exercises
             SET planned_sets = $1
             WHERE id = $2
-          `, [exercise.plannedSets, exercise.id]);
+          `, [exercise.planned_sets, exercise.id]);
         } else {
           await client.query(`
             INSERT INTO session_exercises (
@@ -265,15 +265,15 @@ export async function PUT(request: Request) {
               planned_sets
             ) VALUES ($1, $2, $3, $4)
           `, [
-            trainingSession.id,
-            exercise.exerciseLibraryId,
+            training_session_data.id,
+            exercise.exercise_library_id,
             exercise.pairing,
-            exercise.plannedSets
+            exercise.planned_sets
           ]);
         }
 
         // Update sets
-        for (const set of exercise.actualSets) {
+        for (const set of exercise.actual_sets) {
           if (set.id) {
             await client.query(`
               UPDATE session_sets
@@ -284,8 +284,8 @@ export async function PUT(request: Request) {
                   notes = $5
               WHERE id = $6
             `, [
-              set.actualReps,
-              set.actualLoad,
+              set.actual_reps,
+              set.actual_load,
               set.rpe,
               set.rir,
               set.notes,
@@ -300,7 +300,7 @@ export async function PUT(request: Request) {
                 actual_reps,
                 planned_load,
                 actual_load,
-                tempo,
+                planned_tempo,
                 rest_time,
                 rpe,
                 rir,
@@ -308,13 +308,13 @@ export async function PUT(request: Request) {
               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             `, [
               exercise.id,
-              set.setNumber,
-              set.plannedReps,
-              set.actualReps,
-              set.plannedLoad,
-              set.actualLoad,
-              set.tempo,
-              set.restTime,
+              set.set_number,
+              set.planned_reps,
+              set.actual_reps,
+              set.planned_load,
+              set.actual_load,
+              set.planned_tempo,
+              set.rest_time,
               set.rpe,
               set.rir,
               set.notes
@@ -324,13 +324,13 @@ export async function PUT(request: Request) {
       }
 
       // Update feedback
-      if (trainingSession.feedback) {
-        const { rows: [existingFeedback] } = await client.query(
+      if (training_session_data.feedback) {
+        const { rows: [existing_feedback] } = await client.query(
           'SELECT id FROM session_feedback WHERE session_id = $1',
-          [trainingSession.id]
+          [training_session_data.id]
         );
 
-        if (existingFeedback) {
+        if (existing_feedback) {
           await client.query(`
             UPDATE session_feedback
             SET feeling = $1,
@@ -342,14 +342,14 @@ export async function PUT(request: Request) {
                 next_day_energy_level = $7
             WHERE session_id = $8
           `, [
-            trainingSession.feedback.feeling,
-            trainingSession.feedback.energyLevel,
-            trainingSession.feedback.musclePump,
-            trainingSession.feedback.notes,
-            trainingSession.feedback.nextDaySoreness,
-            trainingSession.feedback.nextDayFeeling,
-            trainingSession.feedback.nextDayEnergyLevel,
-            trainingSession.id
+            training_session_data.feedback.feeling,
+            training_session_data.feedback.energy_level,
+            training_session_data.feedback.muscle_pump,
+            training_session_data.feedback.notes,
+            training_session_data.feedback.next_day_soreness,
+            training_session_data.feedback.next_day_feeling,
+            training_session_data.feedback.next_day_energy_level,
+            training_session_data.id
           ]);
         } else {
           await client.query(`
@@ -364,14 +364,14 @@ export async function PUT(request: Request) {
               next_day_energy_level
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
           `, [
-            trainingSession.id,
-            trainingSession.feedback.feeling,
-            trainingSession.feedback.energyLevel,
-            trainingSession.feedback.musclePump,
-            trainingSession.feedback.notes,
-            trainingSession.feedback.nextDaySoreness,
-            trainingSession.feedback.nextDayFeeling,
-            trainingSession.feedback.nextDayEnergyLevel
+            training_session_data.id,
+            training_session_data.feedback.feeling,
+            training_session_data.feedback.energy_level,
+            training_session_data.feedback.muscle_pump,
+            training_session_data.feedback.notes,
+            training_session_data.feedback.next_day_soreness,
+            training_session_data.feedback.next_day_feeling,
+            training_session_data.feedback.next_day_energy_level
           ]);
         }
       }
@@ -403,16 +403,16 @@ export async function DELETE(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const sessionId = searchParams.get('id');
+    const session_id = searchParams.get('id');
 
-    if (!sessionId) {
+    if (!session_id) {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
     }
 
     // Verify ownership
     const { rows } = await client.query(
       'SELECT id FROM training_sessions WHERE id = $1 AND user_id = $2',
-      [sessionId, session.user.id]
+      [session_id, session.user.id]
     );
 
     if (rows.length === 0) {
@@ -424,7 +424,7 @@ export async function DELETE(request: Request) {
 
     try {
       // Delete feedback
-      await client.query('DELETE FROM session_feedback WHERE session_id = $1', [sessionId]);
+      await client.query('DELETE FROM session_feedback WHERE session_id = $1', [session_id]);
       
       // Delete sets and exercises
       await client.query(`
@@ -432,12 +432,12 @@ export async function DELETE(request: Request) {
         WHERE session_exercise_id IN (
           SELECT id FROM session_exercises WHERE session_id = $1
         )
-      `, [sessionId]);
+      `, [session_id]);
       
-      await client.query('DELETE FROM session_exercises WHERE session_id = $1', [sessionId]);
+      await client.query('DELETE FROM session_exercises WHERE session_id = $1', [session_id]);
       
       // Delete session
-      await client.query('DELETE FROM training_sessions WHERE id = $1', [sessionId]);
+      await client.query('DELETE FROM training_sessions WHERE id = $1', [session_id]);
 
       await client.query('COMMIT');
       return NextResponse.json({ success: true });

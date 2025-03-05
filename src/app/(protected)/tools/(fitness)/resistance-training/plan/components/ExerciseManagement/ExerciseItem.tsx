@@ -1,13 +1,49 @@
+/**
+ * Exercise Item Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Utility functions that work with database-mapped types
+ *    - Imported database-related types (e.g., exercise, planned_exercise_set)
+ * 
+ * 2. camelCase:
+ *    - React component names (ExerciseItem)
+ *    - React props interfaces (ExerciseItemProps)
+ *    - React state variables (menuOpen)
+ *    - React event handlers (onEdit, onDelete)
+ *    - Component-specific helper functions
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-import { Exercise, ExerciseItemProps, MenuState, LoadUnit } from '@/app/lib/types/pillars/fitness';
-import { calculateExerciseTUT, calculateSetTUT, formatLoad } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { 
+  exercise,
+  ExerciseItemProps, 
+  MenuState, 
+  load_unit,
+  planned_exercise,
+  varied_exercise,
+  is_varied_exercise
+} from '@/app/lib/types/pillars/fitness';
+import { 
+  calculate_exercise_tut, 
+  calculate_set_tut, 
+  format_load 
+} from '@/app/lib/utils/fitness/resistance-training/calculations';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 /**
- * Debug Configuration for ExerciseItem
+ * Debug Configuration
+ * Using camelCase as these are component-specific constants
  */
 const DEBUG = {
   EXERCISE: false,    // Exercise data processing
@@ -16,6 +52,7 @@ const DEBUG = {
 
 /**
  * Debugging utilities
+ * Using camelCase as these are component-specific functions
  */
 const Debug = {
   exercise: (message: string, data?: any) => {
@@ -45,69 +82,83 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
     Debug.exercise('Exercise data:', {
       id: exercise.id,
       name: exercise.name,
-      isVariedSets: 'setDetails' in exercise,
-      isAdvancedSets: 'setDetails' in exercise && exercise.setDetails.some(set => (set.subSets?.length ?? 0) > 0),
-      sets: 'setDetails' in exercise ? exercise.setDetails.length : exercise.sets,
-      reps: 'setDetails' in exercise ? exercise.setDetails[0]?.plannedReps : exercise.plannedSets?.[0]?.plannedReps,
-      load: 'setDetails' in exercise ? exercise.setDetails[0]?.plannedLoad : exercise.plannedSets?.[0]?.plannedLoad,
-      loadUnit: 'setDetails' in exercise ? exercise.setDetails[0]?.loadUnit : exercise.plannedSets?.[0]?.loadUnit,
-      tempo: 'setDetails' in exercise ? exercise.setDetails[0]?.plannedTempo : exercise.plannedSets?.[0]?.plannedTempo,
-      rest: 'setDetails' in exercise ? exercise.setDetails[0]?.plannedRest : exercise.plannedSets?.[0]?.plannedRest,
-      setDetails: 'setDetails' in exercise ? exercise.setDetails : undefined,
+      is_varied_sets: is_varied_exercise(exercise),
+      is_advanced_sets: is_varied_exercise(exercise) ? 
+        exercise.set_details.some(set => (set.sub_sets?.length ?? 0) > 0) :
+        false,
+      sets: is_varied_exercise(exercise) ? exercise.set_details.length : (exercise as planned_exercise).sets,
+      reps: is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.planned_reps : 
+        (exercise as planned_exercise).planned_sets?.[0]?.planned_reps,
+      load: is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.planned_load : 
+        (exercise as planned_exercise).planned_sets?.[0]?.planned_load,
+      load_unit: is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.load_unit : 
+        (exercise as planned_exercise).planned_sets?.[0]?.load_unit,
+      tempo: is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.planned_tempo : 
+        (exercise as planned_exercise).planned_sets?.[0]?.planned_tempo,
+      rest: is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.planned_rest : 
+        (exercise as planned_exercise).planned_sets?.[0]?.planned_rest,
+      set_details: is_varied_exercise(exercise) ? exercise.set_details : undefined,
       fullObject: exercise
     });
   
     const calculateTotalReps = (): number => {
-      if ('setDetails' in exercise && Array.isArray(exercise.setDetails)) {
-        return exercise.setDetails.reduce((total, set) => {
+      if (is_varied_exercise(exercise)) {
+        return exercise.set_details.reduce((total, set) => {
           if (!set || typeof set !== 'object') return total;
-          if (Array.isArray(set.subSets) && set.subSets.length > 0) {
-            return total + set.subSets.reduce((subTotal, subSet) => {
+          if (Array.isArray(set.sub_sets) && set.sub_sets.length > 0) {
+            return total + set.sub_sets.reduce((subTotal, subSet) => {
               if (!subSet || typeof subSet !== 'object') return subTotal;
-              return subTotal + (Number(subSet.plannedReps) || 0);
+              return subTotal + (Number(subSet.planned_reps) || 0);
             }, 0);
           }
-          return total + (Number(set.plannedReps) || 0);
+          return total + (Number(set.planned_reps) || 0);
         }, 0);
       }
-      if (!('setDetails' in exercise)) {  // This is a PlannedExercise
-        const sets = Number(exercise.sets) || 0;
-        return sets * (Number(exercise.plannedSets?.[0]?.plannedReps) || 0);
-      }
-      return 0;
+      
+      const planned = exercise as planned_exercise;
+      const sets = Number(planned.sets) || 0;
+      return sets * (Number(planned.planned_sets?.[0]?.planned_reps) || 0);
     };
   
     const calculateTotalLoad = (): string => {
-      let totalLoad = 0;
-      const unit = 'setDetails' in exercise ? exercise.setDetails[0]?.loadUnit : exercise.plannedSets?.[0]?.loadUnit || 'kg';
+      let total_load = 0;
+      const unit = is_varied_exercise(exercise) ? 
+        exercise.set_details[0]?.load_unit : 
+        (exercise as planned_exercise).planned_sets?.[0]?.load_unit || 'kg';
     
-      if ('setDetails' in exercise && Array.isArray(exercise.setDetails)) {
-        totalLoad = exercise.setDetails.reduce((total, set) => {
+      if (is_varied_exercise(exercise)) {
+        total_load = exercise.set_details.reduce((total, set) => {
           if (!set || typeof set !== 'object') return total;
-          if (Array.isArray(set.subSets) && set.subSets.length > 0) {
-            return total + set.subSets.reduce((subTotal, subSet) => {
+          if (Array.isArray(set.sub_sets) && set.sub_sets.length > 0) {
+            return total + set.sub_sets.reduce((subTotal, subSet) => {
               if (!subSet || typeof subSet !== 'object') return subTotal;
-              const load = Number(subSet.plannedLoad) || 0;
-              const reps = Number(subSet.plannedReps) || 0;
+              const load = Number(subSet.planned_load) || 0;
+              const reps = Number(subSet.planned_reps) || 0;
               return subTotal + (load * reps);
             }, 0);
           }
-          const load = Number(set.plannedLoad) || 0;
-          const reps = Number(set.plannedReps) || 0;
+          const load = Number(set.planned_load) || 0;
+          const reps = Number(set.planned_reps) || 0;
           return total + (load * reps);
         }, 0);
-      } else if (!('setDetails' in exercise)) {
-        const load = Number(exercise.plannedSets?.[0]?.plannedLoad) || 0;
-        const sets = Number(exercise.sets) || 0;
-        const reps = Number(exercise.plannedSets?.[0]?.plannedReps) || 0;
-        totalLoad = load * sets * reps;
+      } else {
+        const planned = exercise as planned_exercise;
+        const load = Number(planned.planned_sets?.[0]?.planned_load) || 0;
+        const sets = Number(planned.sets) || 0;
+        const reps = Number(planned.planned_sets?.[0]?.planned_reps) || 0;
+        total_load = load * sets * reps;
       }
     
-      if (typeof totalLoad !== 'number' || isNaN(totalLoad)) {
+      if (typeof total_load !== 'number' || isNaN(total_load)) {
         return 'BW'; // Return bodyweight if load is not a valid number
       }
     
-      return `${totalLoad}${unit}`;
+      return `${total_load}${unit}`;
     };
   
     return (
@@ -182,123 +233,123 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
           <div>
             <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
-            {'setDetails' in exercise ? (
+            {'set_details' in exercise ? (
               <div className="font-medium dark:text-slate-900">
-                {Array.isArray(exercise.setDetails) && exercise.setDetails.map((set, idx) => {
+                {Array.isArray(exercise.set_details) && exercise.set_details.map((set, idx) => {
                   if (!set || typeof set !== 'object') return null;
-                  const setNumber = String(set.setNumber || idx + 1);
-                  const reps = String(set.plannedReps || 0);
-                  const load = formatLoad(set.plannedLoad || 0, set.loadUnit as LoadUnit);
+                  const setNumber = String(set.set_number || idx + 1);
+                  const reps = String(set.planned_reps || 0);
+                  const load = format_load(set.planned_load || 0, set.load_unit as load_unit);
                   
-                  if (Array.isArray(set.subSets) && set.subSets.length > 0) {
-                    const subSetsString = set.subSets.map((subSet, subIdx) => {
+                  if (Array.isArray(set.sub_sets) && set.sub_sets.length > 0) {
+                    const subSetsString = set.sub_sets.map((subSet, subIdx) => {
                       if (!subSet || typeof subSet !== 'object') return '';
-                      const subReps = String(subSet.plannedReps || 0);
-                      const subLoad = formatLoad(subSet.plannedLoad || 0, subSet.loadUnit as LoadUnit);
-                      return `${subReps} reps @ ${subLoad}${subIdx < (set.subSets?.length ?? 0) - 1 ? ', ' : ''}`;
+                      const subReps = String(subSet.planned_reps || 0);
+                      const subLoad = format_load(subSet.planned_load || 0, subSet.load_unit as load_unit);
+                      return `${subReps} reps @ ${subLoad}${subIdx < (set.sub_sets?.length ?? 0) - 1 ? ', ' : ''}`;
                     }).join('');
                     
                     return (
                       <div key={idx}>
-                        <p>Set {setNumber}: {subSetsString}</p>
+                        <span className="font-medium dark:text-slate-900">Set {setNumber}: {subSetsString}</span>
                       </div>
                     );
                   }
                   
                   return (
                     <div key={idx}>
-                      <p>Set {setNumber}: {reps} reps @ {load}</p>
+                      <span className="font-medium dark:text-slate-900">Set {setNumber}: {reps} reps @ {load}</span>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <p className="font-medium dark:text-slate-900">
-                {String(exercise.sets || 0)} × {String(exercise.plannedSets?.[0]?.plannedReps || 0)}
+                {String(exercise.sets || 0)} × {String(exercise.planned_sets?.[0]?.planned_reps || 0)}
               </p>
             )}
           </div>
           <div>
             <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
-            {'setDetails' in exercise ? (
+            {'set_details' in exercise ? (
               <div className="font-medium dark:text-slate-900">
-                {exercise.setDetails.map((set, idx) => {
+                {exercise.set_details.map((set, idx) => {
                   if (!set || typeof set !== 'object') return null;
-                  const setNumber = String(set.setNumber || idx + 1);
-                  const loadDisplay = formatLoad(set.plannedLoad || 0, set.loadUnit as LoadUnit);
+                  const setNumber = String(set.set_number || idx + 1);
+                  const loadDisplay = format_load(set.planned_load || 0, set.load_unit as load_unit);
                   return (
                     <div key={idx}>
-                      <p>Set {setNumber}: {loadDisplay}</p>
+                      <span className="font-medium dark:text-slate-900">Set {setNumber}: {loadDisplay}</span>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <p className="font-medium dark:text-slate-900">
-                {formatLoad(exercise.plannedSets?.[0]?.plannedLoad || 0, exercise.plannedSets?.[0]?.loadUnit as LoadUnit)}
+                {format_load(exercise.planned_sets?.[0]?.planned_load || 0, exercise.planned_sets?.[0]?.load_unit as load_unit)}
               </p>
             )}
           </div>
           <div>
             <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-            {'setDetails' in exercise ? (
+            {'set_details' in exercise ? (
               <div className="font-medium dark:text-slate-900">
-                {exercise.setDetails.map((set, idx) => {
+                {exercise.set_details.map((set, idx) => {
                   if (!set || typeof set !== 'object') return null;
-                  const setNumber = String(set.setNumber || idx + 1);
-                  const tempoDisplay = String(set.plannedTempo || '2010');
+                  const setNumber = String(set.set_number || idx + 1);
+                  const tempoDisplay = String(set.planned_tempo || '2010');
                   return (
                     <div key={idx}>
-                      <p>Set {setNumber}: {tempoDisplay}</p>
+                      <span className="font-medium dark:text-slate-900">Set {setNumber}: {tempoDisplay}</span>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <p className="font-medium dark:text-slate-900">
-                {String(exercise.plannedSets?.[0]?.plannedTempo || '2010')}
+                {String(exercise.planned_sets?.[0]?.planned_tempo || '2010')}
               </p>
             )}
           </div>
           <div>
             <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-            {'setDetails' in exercise ? (
+            {'set_details' in exercise ? (
               <div className="font-medium dark:text-slate-900">
-                {exercise.setDetails.map((set, idx) => {
+                {exercise.set_details.map((set, idx) => {
                   if (!set || typeof set !== 'object') return null;
-                  const setNumber = String(set.setNumber || idx + 1);
-                  const restDisplay = String(set.plannedRest || 0);
+                  const setNumber = String(set.set_number || idx + 1);
+                  const restDisplay = String(set.planned_rest || 0);
                   return (
                     <div key={idx}>
-                      <p>Set {setNumber}: {restDisplay}s</p>
+                      <span className="font-medium dark:text-slate-900">Set {setNumber}: {restDisplay}s</span>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <p className="font-medium dark:text-slate-900">
-                {String(exercise.plannedSets?.[0]?.plannedRest || 0)}s
+                {String(exercise.planned_sets?.[0]?.planned_rest || 0)}s
               </p>
             )}
           </div>
           <div>
             <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-            {'setDetails' in exercise ? (
+            {'set_details' in exercise ? (
               <div className="font-medium dark:text-slate-900">
-                {exercise.setDetails.map((set, idx) => {
+                {exercise.set_details.map((set, idx) => {
                   if (!set || typeof set !== 'object') return null;
-                  const setNumber = String(set.setNumber || idx + 1);
-                  const tutDisplay = calculateSetTUT(set.plannedReps || 0, set.plannedTempo || '2010');
+                  const setNumber = String(set.set_number || idx + 1);
+                  const tutDisplay = calculate_set_tut(set.planned_reps || 0, set.planned_tempo || '2010');
                   return (
                     <div key={idx}>
-                      <p>Set {setNumber}: {tutDisplay}s</p>
+                      <span className="font-medium dark:text-slate-900">Set {setNumber}: {tutDisplay}s</span>
                     </div>
                   );
                 })}
               </div>
             ) : (
               <p className="font-medium dark:text-slate-900">
-                {`${calculateExerciseTUT(exercise)}s`}
+                {`${calculate_exercise_tut(exercise)}s`}
               </p>
             )}
           </div>
@@ -315,20 +366,20 @@ export function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) 
                   <span>{calculateTotalLoad()}</span>
                 </div>
               </div>
-              {('setDetails' in exercise ? 
-                (exercise.setDetails[0]?.rpe || exercise.setDetails[0]?.rir || exercise.notes) :
-                (exercise.plannedSets?.[0]?.rpe || exercise.plannedSets?.[0]?.rir || exercise.notes)
+              {('set_details' in exercise ? 
+                (exercise.set_details[0]?.rpe || exercise.set_details[0]?.rir || exercise.notes) :
+                (exercise.planned_sets?.[0]?.rpe || exercise.planned_sets?.[0]?.rir || exercise.notes)
               ) && (
                 <div className="text-sm text-gray-600">
-                  {'setDetails' in exercise ? (
+                  {'set_details' in exercise ? (
                     <>
-                      {exercise.setDetails[0]?.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.setDetails[0].rpe}</span>}
-                      {exercise.setDetails[0]?.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.setDetails[0].rir}</span>}
+                      {exercise.set_details[0]?.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.set_details[0].rpe}</span>}
+                      {exercise.set_details[0]?.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.set_details[0].rir}</span>}
                     </>
                   ) : (
                     <>
-                      {exercise.plannedSets?.[0]?.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.plannedSets[0].rpe}</span>}
-                      {exercise.plannedSets?.[0]?.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.plannedSets[0].rir}</span>}
+                      {exercise.planned_sets?.[0]?.rpe && <span className="mr-4 dark:text-slate-900">RPE: {exercise.planned_sets[0].rpe}</span>}
+                      {exercise.planned_sets?.[0]?.rir && <span className="mr-4 dark:text-slate-900">RIR: {exercise.planned_sets[0].rir}</span>}
                     </>
                   )}
                   {exercise.notes && (

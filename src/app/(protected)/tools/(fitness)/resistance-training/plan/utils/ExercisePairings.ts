@@ -1,20 +1,20 @@
-import type { Exercise, VariedExercise, ExerciseSource } from '@/app/lib/types/pillars/fitness';
-import { createPlannedExercise, createVariedExercise } from '@/app/lib/types/pillars/fitness';
+import type { exercise, varied_exercise, exercise_source } from '@/app/lib/types/pillars/fitness/exercise.types';
+import { create_planned_exercise, create_varied_exercise } from '@/app/lib/types/pillars/fitness/exercise.types';
 
-export const createExerciseWithPairing = (
-  exercise: Exercise, 
-  newPairing: string
-): Exercise => {
-  const baseExercise = {
+export const create_exercise_with_pairing = (
+  exercise: exercise, 
+  new_pairing: string
+): exercise => {
+  const base_exercise = {
     id: exercise.id,
-    exerciseId: exercise.exerciseId,
+    exercise_id: exercise.exercise_id,
     name: exercise.name || '',
     source: exercise.source
   } as const;
 
-  return !exercise.isVariedSets 
-    ? createPlannedExercise({ ...baseExercise })
-    : createVariedExercise(baseExercise, (exercise as VariedExercise).setDetails);
+  return !exercise.is_varied_sets 
+    ? create_planned_exercise({ ...base_exercise })
+    : create_varied_exercise(base_exercise, (exercise as varied_exercise).set_details);
 };
 
 /**
@@ -22,26 +22,26 @@ export const createExerciseWithPairing = (
  * @param exercises Array of exercises to update pairings for
  * @returns Updated array of exercises with correct pairings
  */
-export const updatePairings = (exercises: Exercise[]): Exercise[] => {
-  let currentGroup = 'A';
-  let currentNumber = 1;
+export const update_pairings = (exercises: exercise[]): exercise[] => {
+  let current_group = 'A';
+  let current_number = 1;
 
-  return exercises.map((exercise, index): Exercise => {
+  return exercises.map((exercise, index): exercise => {
     if (exercise.pairing.startsWith('WU') || exercise.pairing.startsWith('CD')) {
       return exercise;
     }
 
-    if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== currentGroup)) {
+    if (index === 0 || (exercises[index - 1].pairing.charAt(0) !== current_group)) {
       if (index > 0) {
-        currentGroup = String.fromCharCode(currentGroup.charCodeAt(0) + 1);
+        current_group = String.fromCharCode(current_group.charCodeAt(0) + 1);
       }
-      currentNumber = 1;
+      current_number = 1;
     }
 
-    const newPairing = `${currentGroup}${currentNumber}`;
-    currentNumber = currentNumber === 1 ? 2 : 1;
+    const new_pairing = `${current_group}${current_number}`;
+    current_number = current_number === 1 ? 2 : 1;
 
-    return { ...exercise, pairing: newPairing };
+    return { ...exercise, pairing: new_pairing };
   });
 };
 
@@ -50,17 +50,17 @@ export const updatePairings = (exercises: Exercise[]): Exercise[] => {
  * @param exercises Array of existing exercises
  * @returns Next pairing string
  */
-export const getNextPairing = (exercises: Exercise[]): string => {
+export const get_next_pairing = (exercises: exercise[]): string => {
   // Filter out warm-up and cool-down exercises
-  const filteredExercises = exercises.filter(
+  const filtered_exercises = exercises.filter(
     ex => !ex.pairing?.startsWith('WU') && !ex.pairing?.startsWith('CD')
   );
 
-  if (filteredExercises.length === 0) return 'A1';
+  if (filtered_exercises.length === 0) return 'A1';
 
-  const lastExercise = filteredExercises[filteredExercises.length - 1];
-  const letter = lastExercise.pairing.charAt(0);
-  const number = parseInt(lastExercise.pairing.charAt(1));
+  const last_exercise = filtered_exercises[filtered_exercises.length - 1];
+  const letter = last_exercise.pairing.charAt(0);
+  const number = parseInt(last_exercise.pairing.charAt(1));
 
   return number === 1 
     ? `${letter}2` 

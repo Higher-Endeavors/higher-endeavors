@@ -1,13 +1,36 @@
+/**
+ * Program Container Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Helper functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React component names (ProgramContainer)
+ *    - React props interfaces (ProgramContainerProps)
+ *    - React state variables and event handlers
+ *    - Component-specific helper functions
+ *    - Debug configuration objects
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 import React from 'react';
 import ProgramHeader from './ProgramHeader';
 import ProgramSettings from './ProgramSettings';
 import WeekProgram from './WeekProgram';
-import { Program, Exercise, ProgramListItem } from '@/app/lib/types/pillars/fitness';
+import { program, exercise, program_list_item, phase_focus_type, PeriodizationType, progression_rules } from '@/app/lib/types/pillars/fitness';
 import { ProgramSettingsFormData } from './ProgramSettings';
+import { validateProgressionRules } from '../../utils/programTransformations';
 
-// Debug configuration
+// Debug configuration (using camelCase as these are component-specific)
 const DEBUG = {
   PROPS: false,
   STATE: false,
@@ -20,16 +43,20 @@ const debugLog = (type: keyof typeof DEBUG, message: string, data?: any) => {
   }
 };
 
+/**
+ * Props interface for the ProgramContainer component
+ * Using camelCase as these are React-specific props
+ */
 interface ProgramContainerProps {
-  program: Program;
-  weekExercises: { [key: number]: Exercise[] };
+  program: program;
+  weekExercises: { [key: number]: exercise[] };
   activeWeek: number;
   handlers: {
-    handleProgramSelect: (program: ProgramListItem) => void;
+    handleProgramSelect: (program: program_list_item) => void;
     handleProgramDelete: (programId: number) => void;
     handleSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
     handleWeekChange: (weekNumber: number) => void;
-    handleWeekExercisesChange: (exercises: Exercise[]) => void;
+    handleWeekExercisesChange: (exercises: exercise[]) => void;
     handleEditExercise: (id: number) => void;
     handleDeleteExercise: (id: number) => void;
   };
@@ -48,7 +75,7 @@ export default function ProgramContainer({
   activeWeek,
   handlers,
   isAdmin = false,
-  selectedUserId = program.userId,
+  selectedUserId = program.user_id,
   onUserSelect
 }: ProgramContainerProps) {
   debugLog('PROPS', 'Component rendered with props:', {
@@ -63,7 +90,7 @@ export default function ProgramContainer({
       {/* Program Header Section */}
       <ProgramHeader
         isAdmin={isAdmin}
-        currentUserId={program.userId}
+        currentUserId={program.user_id}
         selectedUserId={selectedUserId}
         onUserSelect={onUserSelect || (() => {})}
         onProgramSelect={handlers.handleProgramSelect}
@@ -73,11 +100,11 @@ export default function ProgramContainer({
       {/* Program Settings Section */}
       <div className="bg-white rounded-lg shadow p-6">
         <ProgramSettings
-          programName={program.programName}
-          phaseFocus={program.phaseFocus}
-          periodizationType={program.periodizationType}
+          program_name={program.program_name}
+          phase_focus={program.phase_focus as phase_focus_type}
+          periodization_type={program.periodization_type as keyof typeof PeriodizationType}
           notes={program.notes}
-          progressionRules={program.progressionRules}
+          progression_rules={validateProgressionRules(program.progression_rules as progression_rules)}
           onSettingsChange={handlers.handleSettingsChange}
         />
       </div>
@@ -86,7 +113,7 @@ export default function ProgramContainer({
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-4" aria-label="Week selection">
           {Array.from(
-            { length: program.progressionRules?.settings?.programLength || 4 },
+            { length: program.progression_rules?.settings?.program_length || 4 },
             (_, i) => i + 1
           ).map((week) => (
             <button
@@ -109,7 +136,7 @@ export default function ProgramContainer({
       {/* Week Program Section */}
       <div className="bg-white rounded-lg shadow p-6">
         <WeekProgram
-          weekNumber={activeWeek}
+          week_number={activeWeek}
           exercises={weekExercises[activeWeek] || []}
           onExercisesChange={handlers.handleWeekExercisesChange}
           onEdit={handlers.handleEditExercise}

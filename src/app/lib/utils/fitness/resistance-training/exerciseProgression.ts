@@ -1,42 +1,49 @@
-import { Exercise, ProgressionRules, WeekExercise, PlannedExercise, VariedExercise } from '@/app/lib/types/pillars/fitness';
+import { 
+  exercise, 
+  progression_rules, 
+  week_exercise, 
+  planned_exercise, 
+  varied_exercise,
+  planned_exercise_set 
+} from '@/app/lib/types/pillars/fitness';
 
-export function calculateProgressedExercises(
-  weekNumber: number,
-  weekExercises: { [key: number]: (Exercise & WeekExercise)[] },
-  progressionRules?: ProgressionRules
-): { [key: number]: (Exercise & WeekExercise)[] } {
-  const settings = progressionRules?.settings;
-  if (!settings) return weekExercises;
+export function calculate_progressed_exercises(
+  week_number: number,
+  week_exercises: { [key: number]: (exercise & week_exercise)[] },
+  progression_rules?: progression_rules
+): { [key: number]: (exercise & week_exercise)[] } {
+  const settings = progression_rules?.settings;
+  if (!settings) return week_exercises;
 
-  const volumeIncrement = settings.volumeIncrementPercentage || 0;
-  const loadIncrement = settings.loadIncrementPercentage || 0;
+  const volume_increment = settings.volume_increment_percentage || 0;
+  const load_increment = settings.load_increment_percentage || 0;
 
-  const currentWeekExercises = weekExercises[weekNumber] || [];
+  const current_week_exercises = week_exercises[week_number] || [];
   return {
-    ...weekExercises,
-    [weekNumber]: currentWeekExercises.map(exercise => {
-      if (exercise.isVariedSets) {
-        const variedExercise = exercise as VariedExercise & WeekExercise;
+    ...week_exercises,
+    [week_number]: current_week_exercises.map(exercise => {
+      if (exercise.is_varied_sets) {
+        const varied_exercise_instance = exercise as varied_exercise & week_exercise;
         return {
           ...exercise,
-          setDetails: variedExercise.setDetails.map(set => ({
+          set_details: varied_exercise_instance.set_details.map((set: planned_exercise_set) => ({
             ...set,
-            plannedReps: Math.round(set.plannedReps * (1 + volumeIncrement / 100)),
-            plannedLoad: typeof set.plannedLoad === 'number'
-              ? Math.round(set.plannedLoad * (1 + loadIncrement / 100) * 100) / 100
-              : set.plannedLoad
+            planned_reps: Math.round(set.planned_reps * (1 + volume_increment / 100)),
+            planned_load: typeof set.planned_load === 'number'
+              ? Math.round(set.planned_load * (1 + load_increment / 100) * 100) / 100
+              : set.planned_load
           }))
         };
       } else {
-        const plannedExercise = exercise as PlannedExercise & WeekExercise;
+        const planned_exercise_instance = exercise as planned_exercise & week_exercise;
         return {
           ...exercise,
-          plannedSets: plannedExercise.plannedSets?.map(set => ({
+          planned_sets: planned_exercise_instance.planned_sets?.map((set: planned_exercise_set) => ({
             ...set,
-            plannedReps: Math.round(set.plannedReps * (1 + volumeIncrement / 100)),
-            plannedLoad: typeof set.plannedLoad === 'number'
-              ? Math.round(set.plannedLoad * (1 + loadIncrement / 100) * 100) / 100
-              : set.plannedLoad
+            planned_reps: Math.round(set.planned_reps * (1 + volume_increment / 100)),
+            planned_load: typeof set.planned_load === 'number'
+              ? Math.round(set.planned_load * (1 + load_increment / 100) * 100) / 100
+              : set.planned_load
           }))
         };
       }

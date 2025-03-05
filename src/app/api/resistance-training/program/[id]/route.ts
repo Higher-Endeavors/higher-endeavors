@@ -11,13 +11,13 @@ export async function GET(request: NextRequest, context: unknown) {
     }
 
     // Get the program ID from the URL params
-    const programId = params.id;
+    const program_id = params.id;
     const searchParams = request.nextUrl.searchParams;
 
     // First, verify the user has access to this program
     const programAccess = await SingleQuery(
       `SELECT user_id FROM resistance_programs WHERE id = $1`,
-      [programId]
+      [program_id]
     );
 
     if (!programAccess.rows.length) {
@@ -44,10 +44,10 @@ export async function GET(request: NextRequest, context: unknown) {
             pde.id as exercise_id,
             jsonb_agg(
               jsonb_build_object(
-                'setNumber', pdes.set_number,
+                'set_number', pdes.set_number,
                 'reps', pdes.planned_reps,
                 'load', pdes.planned_load,
-                'loadUnit', pdes.load_unit,
+                'load_unit', pdes.load_unit,
                 'rest', pdes.planned_rest,
                 'tempo', pdes.planned_tempo,
                 'notes', pdes.notes
@@ -77,42 +77,42 @@ export async function GET(request: NextRequest, context: unknown) {
                   ELSE COALESCE(pde.custom_exercise_name, 'Unnamed Exercise')
                 END,
                 'source', COALESCE(pde.exercise_source, 'library'),
-                'libraryId', pde.exercise_library_id,
-                'userExerciseId', pde.user_exercise_id,
+                'library_id', pde.exercise_library_id,
+                'user_exercise_id', pde.user_exercise_id,
                 'pairing', COALESCE(pde.pairing, 'A1'),
                 'notes', COALESCE(pde.notes, ''),
-                'orderIndex', COALESCE(pde.order_index, 0),
-                'isVariedSets', false,
-                'isAdvancedSets', false,
+                'order_index', COALESCE(pde.order_index, 0),
+                'is_varied_sets', false,
+                'is_advanced_sets', false,
                 'sets', COALESCE(
                   (SELECT COUNT(*)::int FROM program_day_exercise_sets WHERE program_day_exercise_id = pde.id),
                   3
                 ),
-                'reps', COALESCE(
+                'planned_reps', COALESCE(
                   (SELECT planned_reps FROM program_day_exercise_sets 
                    WHERE program_day_exercise_id = pde.id 
                    ORDER BY set_number LIMIT 1),
                   10
                 ),
-                'load', COALESCE(
+                'planned_load', COALESCE(
                   (SELECT planned_load FROM program_day_exercise_sets 
                    WHERE program_day_exercise_id = pde.id 
                    ORDER BY set_number LIMIT 1),
                   0
                 ),
-                'loadUnit', COALESCE(
+                'load_unit', COALESCE(
                   (SELECT load_unit FROM program_day_exercise_sets 
                    WHERE program_day_exercise_id = pde.id 
                    ORDER BY set_number LIMIT 1),
                   'lbs'
                 ),
-                'tempo', COALESCE(
+                'planned_tempo', COALESCE(
                   (SELECT planned_tempo FROM program_day_exercise_sets 
                    WHERE program_day_exercise_id = pde.id 
                    ORDER BY set_number LIMIT 1),
                   '2010'
                 ),
-                'rest', COALESCE(
+                'planned_rest', COALESCE(
                   (SELECT planned_rest FROM program_day_exercise_sets 
                    WHERE program_day_exercise_id = pde.id 
                    ORDER BY set_number LIMIT 1),
@@ -132,8 +132,8 @@ export async function GET(request: NextRequest, context: unknown) {
             pw.id as week_id,
             jsonb_agg(
               jsonb_build_object(
-                'dayNumber', pd.day_number,
-                'dayName', pd.day_name,
+                'day_number', pd.day_number,
+                'day_name', pd.day_name,
                 'notes', pd.notes,
                 'exercises', COALESCE((SELECT exercises FROM exercises_agg WHERE day_id = pd.id), '[]'::jsonb)
               ) ORDER BY pd.day_number
@@ -146,7 +146,7 @@ export async function GET(request: NextRequest, context: unknown) {
           'weeks', (
             SELECT jsonb_agg(
               jsonb_build_object(
-                'weekNumber', pw.week_number,
+                'week_number', pw.week_number,
                 'notes', pw.notes,
                 'days', COALESCE((SELECT days FROM days_agg WHERE week_id = pw.id), '[]'::jsonb)
               ) ORDER BY pw.week_number
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest, context: unknown) {
             WHERE pw.resistance_program_id = $1
           )
         ) as program_data`,
-      [programId]
+      [program_id]
     );
 
     if (!result.rows[0]?.program_data) {
@@ -188,7 +188,7 @@ export async function PUT(request: NextRequest, context: unknown) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const programId = params.id;
+    const program_id = params.id;
 
     let data;
     try {
@@ -213,15 +213,15 @@ export async function PUT(request: NextRequest, context: unknown) {
       end_date,
       notes,
       weeks,
-      userId: targetUserId
+      user_id: target_user_id
     } = data;
 
     // Check if the current user has permission to update programs for the target user
-    const currentUserId = parseInt(session.user.id);
+    const current_user_id = parseInt(session.user.id);
     const isAdmin = session.user.role === 'admin';
-    const effectiveUserId = isAdmin && targetUserId ? parseInt(targetUserId) : currentUserId;
+    const effective_user_id = isAdmin && target_user_id ? parseInt(target_user_id) : current_user_id;
 
-    if (targetUserId && !isAdmin) {
+    if (target_user_id && !isAdmin) {
       return NextResponse.json({ error: 'Unauthorized to update programs for other users' }, { status: 403 });
     }
 
@@ -231,8 +231,8 @@ export async function PUT(request: NextRequest, context: unknown) {
       return NextResponse.json({ 
         error: 'Missing required fields',
         details: {
-          name: !program_name ? 'Program name is required' : undefined,
-          periodizationType: !periodization_type ? 'Periodization type is required' : undefined,
+          program_name: !program_name ? 'Program name is required' : undefined,
+          periodization_type: !periodization_type ? 'Periodization type is required' : undefined,
           weeks: !weeks ? 'Weeks are required' : !Array.isArray(weeks) ? 'Weeks must be an array' : undefined
         }
       }, { status: 400 });
@@ -257,18 +257,18 @@ export async function PUT(request: NextRequest, context: unknown) {
             updated_at = NOW()
         WHERE id = $8 AND user_id = $9`,
         [program_name, periodization_type, phase_focus, JSON.stringify(progression_rules), 
-         start_date, end_date, notes, programId, effectiveUserId]
+         start_date, end_date, notes, program_id, effective_user_id]
       );
 
       // 2. Delete existing weeks, days, exercises, and sets
-      const weekIds = await client.query(
+      const week_ids = await client.query(
         'DELETE FROM program_weeks WHERE resistance_program_id = $1 RETURNING id',
-        [programId]
+        [program_id]
       );
 
       // 3. Create new weeks
       for (const week of weeks) {
-        if (!week.weekNumber) {
+        if (!week.week_number) {
           throw new Error(`Week number is required for week: ${JSON.stringify(week)}`);
         }
 
@@ -278,13 +278,13 @@ export async function PUT(request: NextRequest, context: unknown) {
           VALUES 
           ($1, $2, $3)
           RETURNING id`,
-          [programId, week.weekNumber, week.notes]
+          [program_id, week.week_number, week.notes]
         );
-        const weekId = weekResult.rows[0].id;
+        const week_id = weekResult.rows[0].id;
 
         // 4. Create days for each week
         if (!Array.isArray(week.days)) {
-          throw new Error(`Days array is required for week ${week.weekNumber}`);
+          throw new Error(`Days array is required for week ${week.week_number}`);
         }
 
         for (const day of week.days) {
@@ -294,13 +294,13 @@ export async function PUT(request: NextRequest, context: unknown) {
             VALUES 
             ($1, $2, $3, $4)
             RETURNING id`,
-            [weekId, day.dayNumber, day.dayName, day.notes]
+            [week_id, day.day_number, day.day_name, day.notes]
           );
-          const dayId = dayResult.rows[0].id;
+          const day_id = dayResult.rows[0].id;
 
           // 5. Create exercises for each day
           if (!Array.isArray(day.exercises)) {
-            throw new Error(`Exercises array is required for day ${day.dayNumber} in week ${week.weekNumber}`);
+            throw new Error(`Exercises array is required for day ${day.day_number} in week ${week.week_number}`);
           }
 
           for (const exercise of day.exercises) {
@@ -311,14 +311,14 @@ export async function PUT(request: NextRequest, context: unknown) {
               VALUES 
               ($1, $2, $3, $4, $5, $6, $7, $8)
               RETURNING id`,
-              [dayId, exercise.source, exercise.libraryId, exercise.userExerciseId,
-               exercise.customName, exercise.pairing, exercise.notes, exercise.orderIndex]
+              [day_id, exercise.source, exercise.library_id, exercise.user_exercise_id,
+               exercise.custom_name, exercise.pairing, exercise.notes, exercise.order_index]
             );
-            const exerciseId = exerciseResult.rows[0].id;
+            const exercise_id = exerciseResult.rows[0].id;
 
             // 6. Create sets for each exercise
             if (!Array.isArray(exercise.sets)) {
-              throw new Error(`Sets array is required for exercise ${exercise.customName || exercise.libraryId} in day ${day.dayNumber}, week ${week.weekNumber}`);
+              throw new Error(`Sets array is required for exercise ${exercise.custom_name || exercise.library_id} in day ${day.day_number}, week ${week.week_number}`);
             }
 
             for (const set of exercise.sets) {
@@ -328,8 +328,8 @@ export async function PUT(request: NextRequest, context: unknown) {
                  load_unit, planned_rest, planned_tempo, notes)
                 VALUES 
                 ($1, $2, $3, $4, $5, $6, $7, $8)`,
-                [exerciseId, set.setNumber, set.reps, set.load,
-                 set.loadUnit, set.rest, set.tempo, set.notes]
+                [exercise_id, set.set_number, set.reps, set.load,
+                 set.load_unit, set.rest, set.tempo, set.notes]
               );
             }
           }
@@ -342,7 +342,7 @@ export async function PUT(request: NextRequest, context: unknown) {
 
       return NextResponse.json({ 
         success: true,
-        programId: programId
+        program_id: program_id
       });
 
     } catch (error) {
@@ -380,12 +380,12 @@ export async function DELETE(request: NextRequest, context: unknown) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const programId = params.id;
+    const program_id = params.id;
 
     // Check if the current user has permission to delete the program
     const programAccess = await SingleQuery(
       `SELECT user_id FROM resistance_programs WHERE id = $1`,
-      [programId]
+      [program_id]
     );
 
     if (!programAccess.rows.length) {
@@ -404,7 +404,7 @@ export async function DELETE(request: NextRequest, context: unknown) {
       // Delete the program (cascading will handle related records)
       await client.query(
         'DELETE FROM resistance_programs WHERE id = $1',
-        [programId]
+        [program_id]
       );
 
       // Commit the transaction

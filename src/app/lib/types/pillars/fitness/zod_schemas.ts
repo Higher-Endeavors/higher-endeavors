@@ -1,5 +1,19 @@
+/**
+ * Zod Schemas - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - Types/interfaces that map to database structures
+ *    - Properties within these types that map to database columns
+ * 
+ * 2. camelCase:
+ *    - Zod schema definitions (as they're primarily for React form validation)
+ *    - React-specific types and validation rules
+ *    - TypeScript type guards and utility types
+ */
+
 import { z } from 'zod';
-import { Exercise, LoadUnit } from './exercise.types';
+import { exercise, load_unit } from './exercise.types';
 
 /**
  * Regular expression patterns for validation
@@ -50,7 +64,7 @@ export const loadSchema = z.union([
 export const subSetSchema = z.object({
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
-  loadUnit: z.enum(['kg', 'lbs'] as const).optional(),
+  load_unit: z.enum(['kg', 'lbs'] as const).optional(),
   notes: z.string().optional(),
   rest: z.number().int().min(0).max(600).optional()
 });
@@ -59,16 +73,16 @@ export const subSetSchema = z.object({
  * Schema for validating individual set details in varied exercises
  */
 export const setDetailsSchema = z.object({
-  setNumber: z.number().int().min(1),
+  set_number: z.number().int().min(1),
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
-  loadUnit: z.enum(['kg', 'lbs'] as const).optional(),
+  load_unit: z.enum(['kg', 'lbs'] as const).optional(),
   tempo: z.string().regex(TEMPO_REGEX, {
     message: "Tempo must be 4 digits with optional 'X' in position 3"
   }),
   rest: z.number().int().min(0).max(600),
   notes: z.string().optional(),
-  subSets: z.array(subSetSchema).optional()
+  sub_sets: z.array(subSetSchema).optional()
 });
 
 /**
@@ -83,7 +97,7 @@ const baseExerciseSchema = {
   sets: z.number().int().min(1).max(99),
   reps: z.number().int().min(1).max(99),
   load: loadSchema,
-  loadUnit: z.enum(['kg', 'lbs'] as const).optional(),
+  load_unit: z.enum(['kg', 'lbs'] as const).optional(),
   tempo: z.string().regex(TEMPO_REGEX, {
     message: "Tempo must be 4 digits with optional 'X' in position 3"
   }),
@@ -92,38 +106,37 @@ const baseExerciseSchema = {
   rpe: z.number().optional(),
   rir: z.number().optional(),
   source: z.enum(['library', 'user', 'custom']).optional(),
-  libraryId: z.number().optional(),
-  userExerciseId: z.number().optional(),
+  library_id: z.number().optional(),
+  user_exercise_id: z.number().optional(),
 };
 
 /**
  * Main schema for validating exercises
  * Uses discriminated union to handle both regular and varied exercises
  */
-export const exerciseSchema = z.discriminatedUnion('isVariedSets', [
+export const exerciseSchema = z.discriminatedUnion('is_varied_sets', [
   // Regular exercise schema
   z.object({
     ...baseExerciseSchema,
-    isVariedSets: z.literal(false),
-    isAdvancedSets: z.literal(false),
-    setDetails: z.undefined()
+    is_varied_sets: z.literal(false),
+    is_advanced_sets: z.literal(false),
+    set_details: z.undefined()
   }),
   // Varied exercise schema
   z.object({
     ...baseExerciseSchema,
-    isVariedSets: z.literal(true),
-    isAdvancedSets: z.boolean(),
-    setDetails: z.array(setDetailsSchema).min(1)
+    is_varied_sets: z.literal(true),
+    is_advanced_sets: z.boolean(),
+    set_details: z.array(setDetailsSchema).min(1)
   })
 ]).refine(
-  // Optional: Add validation to ensure proper ID based on source
   (data) => {
-    if (data.source === 'library') return data.libraryId !== undefined;
-    if (data.source === 'user') return data.userExerciseId !== undefined;
+    if (data.source === 'library') return data.library_id !== undefined;
+    if (data.source === 'user') return data.user_exercise_id !== undefined;
     return true;
   },
   {
-    message: "Library exercises must have libraryId and user exercises must have userExerciseId"
+    message: "Library exercises must have library_id and user exercises must have user_exercise_id"
   }
 );
 
@@ -132,24 +145,24 @@ export const exerciseSchema = z.discriminatedUnion('isVariedSets', [
  */
 export const programSettingsSchema = z.object({
   name: z.string().min(1, "Program name is required"),
-  phaseFocus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
-  periodizationType: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
+  phase_focus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
+  periodization_type: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
   notes: z.string().optional(),
-  progressionRules: z.object({
+  progression_rules: z.object({
     type: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
-    loadIncrement: z.number().optional(),
+    load_increment: z.number().optional(),
     frequency: z.enum(Object.values(ProgressionFrequency) as [string, ...string[]]).optional(),
     settings: z.object({
-      volumeIncrementPercentage: z.number().optional(),
-      loadIncrementPercentage: z.number().optional(),
-      programLength: z.number().optional(),
-      weeklyVolumePercentages: z.array(z.number()).optional()
+      volume_increment_percentage: z.number().optional(),
+      load_increment_percentage: z.number().optional(),
+      program_length: z.number().optional(),
+      weekly_volume_percentages: z.array(z.number()).optional()
     }).optional()
   }),
-  volumeTargets: z.array(z.object({
-    muscleGroup: z.string(),
-    minSets: z.number().int().min(0),
-    maxSets: z.number().int().min(0),
+  volume_targets: z.array(z.object({
+    muscle_group: z.string(),
+    min_sets: z.number().int().min(0),
+    max_sets: z.number().int().min(0),
     frequency: z.number().int().min(1).max(7),
   })).optional(),
 });
@@ -159,73 +172,73 @@ export const programSettingsSchema = z.object({
  */
 export const programSchema = z.object({
   id: z.string(),
-  userId: z.string(),
+  user_id: z.string(),
   name: z.string().min(1, "Program name is required"),
-  phaseFocus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
-  periodizationType: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
+  phase_focus: z.enum(Object.values(PhaseFocus) as [string, ...string[]]),
+  periodization_type: z.enum(Object.values(PeriodizationType) as [string, ...string[]]),
   notes: z.string().optional(),
-  progressionRules: programSettingsSchema.shape.progressionRules,
-  volumeTargets: programSettingsSchema.shape.volumeTargets,
+  progression_rules: programSettingsSchema.shape.progression_rules,
+  volume_targets: programSettingsSchema.shape.volume_targets,
   exercises: z.array(exerciseSchema),
-  createdAt: z.date(),
-  updatedAt: z.date()
+  created_at: z.date(),
+  updated_at: z.date()
 });
 
 /**
  * Types for progression settings and rules
  */
-export type ProgressionSettings = {
-  volumeIncrementPercentage?: number;
-  loadIncrementPercentage?: number;
-  programLength?: number;
-  weeklyVolumePercentages?: number[];
+export type progression_settings = {
+  volume_increment_percentage?: number;
+  load_increment_percentage?: number;
+  program_length?: number;
+  weekly_volume_percentages?: number[];
 };
 
-export type ProgressionRules = {
+export type progression_rules = {
   type: keyof typeof PeriodizationType;
-  loadIncrement?: number;
+  load_increment?: number;
   frequency?: keyof typeof ProgressionFrequency;
-  settings?: ProgressionSettings;
+  settings?: progression_settings;
 };
 
-export type VolumeTarget = {
-  muscleGroup: string;
-  minSets: number;
-  maxSets: number;
+export type volume_target = {
+  muscle_group: string;
+  min_sets: number;
+  max_sets: number;
   frequency: number;
 };
 
-export type Program = {
+export type program = {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
-  phaseFocus: keyof typeof PhaseFocus;
-  periodizationType: keyof typeof PeriodizationType;
+  phase_focus: keyof typeof PhaseFocus;
+  periodization_type: keyof typeof PeriodizationType;
   notes?: string;
-  progressionRules: ProgressionRules;
-  volumeTargets?: VolumeTarget[];
-  exercises: Exercise[];
-  createdAt: Date;
-  updatedAt: Date;
+  progression_rules: progression_rules;
+  volume_targets?: volume_target[];
+  exercises: exercise[];
+  created_at: Date;
+  updated_at: Date;
 };
 
 /**
  * Saved program structure (for API responses)
  */
-export interface SavedProgram {
+export interface saved_program {
   id: string;
-  userId: string;
+  user_id: string;
   program_name: string;
   phase_focus: keyof typeof PhaseFocus;
   periodization_type: keyof typeof PeriodizationType;
   notes?: string;
-  progression_rules: ProgressionRules;
-  volumeTargets?: VolumeTarget[];
-  exercises?: Exercise[];
+  progression_rules: progression_rules;
+  volume_targets?: volume_target[];
+  exercises?: exercise[];
   created_at: string;
   updated_at: string;
 }
 
-export interface SavedProgramWithOptional extends Omit<SavedProgram, 'progression_rules'> {
-  progression_rules?: ProgressionRules;
+export interface saved_program_with_optional extends Omit<saved_program, 'progression_rules'> {
+  progression_rules?: progression_rules;
 }

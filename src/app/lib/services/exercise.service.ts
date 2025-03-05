@@ -1,15 +1,15 @@
-import { Exercise } from '@/app/lib/types/pillars/fitness';
+import { exercise } from '@/app/lib/types/pillars/fitness';
 
 /**
  * API calls for exercise management
  */
-export const exerciseService = {
+export const exercise_service = {
   // Create a user exercise
-  create: async (exerciseName: string): Promise<Exercise> => {
+  create: async (exercise_name: string): Promise<exercise> => {
     const response = await fetch('/api/user-exercises', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ exercise_name: exerciseName }),
+      body: JSON.stringify({ exercise_name }),
     });
 
     if (!response.ok) {
@@ -19,7 +19,7 @@ export const exerciseService = {
   },
 
   // Fetch all exercises
-  fetchAll: async (): Promise<Exercise[]> => {
+  fetch_all: async (): Promise<exercise[]> => {
     const response = await fetch('/api/exercises');
     if (!response.ok) {
       throw new Error('Failed to fetch exercises');

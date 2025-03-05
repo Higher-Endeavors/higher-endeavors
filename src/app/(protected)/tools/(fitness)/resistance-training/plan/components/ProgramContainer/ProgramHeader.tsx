@@ -1,9 +1,31 @@
+/**
+ * Program Header Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Helper functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React component names (ProgramHeader)
+ *    - React props interfaces (ProgramHeaderProps)
+ *    - React state variables and event handlers
+ *    - Component-specific helper functions
+ *    - Debug configuration objects
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 import React from 'react';
 import UserSelector from '@/app/components/UserSelector';
 import ProgramBrowser from '../ProgramBrowser/ProgramBrowser';
-import { ProgramListItem } from '@/app/lib/types/pillars/fitness';
+import { program_list_item } from '@/app/lib/types/pillars/fitness';
 
 // For debugging - can be commented out when not needed
 const DEBUG_MODE = false;
@@ -29,7 +51,7 @@ interface ProgramHeaderProps {
   currentUserId: number;
   selectedUserId: number;
   onUserSelect: (userId: number) => void;
-  onProgramSelect: (program: ProgramListItem) => void;
+  onProgramSelect: (program: program_list_item) => void;
   onProgramDelete?: (programId: number) => void;
 }
 

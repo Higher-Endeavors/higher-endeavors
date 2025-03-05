@@ -1,16 +1,37 @@
+/**
+ * Program Browser Component - Casing Conventions
+ * 
+ * This file follows these casing conventions:
+ * 1. snake_case:
+ *    - All types/interfaces that map to database structures
+ *    - Properties that map to database columns
+ *    - Utility functions that work with database-mapped types
+ * 
+ * 2. camelCase:
+ *    - React component names (ProgramBrowser)
+ *    - React props interfaces (ProgramBrowserProps)
+ *    - React state variables and event handlers
+ *    - Component-specific helper functions
+ *    - Debug configuration objects
+ * 
+ * This approach aligns with:
+ * - Database naming conventions (snake_case)
+ * - React/TypeScript conventions (camelCase)
+ * - Consistent patterns across the codebase
+ */
+
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
-import { Program, Exercise, SavedProgram, ProgramListItem } from '@/app/lib/types/pillars/fitness';
+import { program, exercise, saved_program, program_list_item } from '@/app/lib/types/pillars/fitness';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate } from 'react-icons/hi';
 import { Modal } from 'flowbite-react';
 
+// How many programs to show per page
+const ITEMS_PER_PAGE = 5;
 
-  // How many programs to show per page
-  const ITEMS_PER_PAGE = 5;
-
-// Debug Configuration
+// Debug Configuration (using camelCase as these are component-specific)
 const DEBUG = {
   FETCH: false,    // Program fetching
   FILTER: false,   // Filter operations
@@ -27,22 +48,24 @@ function logDebug(category: keyof typeof DEBUG, message: string, data?: any) {
 }
 
 /**
- * This defines what the ProgramBrowser component needs to work:
+* This defines what the ProgramBrowser component needs to work:
  * 
  * @param onProgramSelect - Function that runs when a user clicks on a program
  * @param currentUserId - The ID of the user whose programs we're showing
  * @param isAdmin - Whether the current user is an admin (optional, defaults to false)
- * @param onProgramDelete - Function that runs when a program is deleted (optional)
+ * @param onProgramDelete - Function that runs when a program is deleted (optional) 
+ * Props interface for the ProgramBrowser component
+ * Using camelCase as these are React-specific props
  */
 interface ProgramBrowserProps {
-  onProgramSelect: (program: ProgramListItem) => void;
+  onProgramSelect: (program: program_list_item) => void;
   currentUserId: number;
   isAdmin?: boolean;
   onProgramDelete?: (programId: number) => void;
 }
 
 /**
- * MenuState tracks which program's action menu is currently open.
+* MenuState tracks which program's action menu is currently open.
  * It's an object where:
  * - Keys are program IDs (like "program123")
  * - Values are booleans (true = menu is open, false = menu is closed)
@@ -51,10 +74,24 @@ interface ProgramBrowserProps {
  * {
  *   "program123": true,   // This program's menu is visible
  *   "program456": false,  // This program's menu is hidden
- * }
+ * } 
+ * Interface for tracking menu state
+ * Using camelCase as this is React component state
  */
 interface MenuState {
   [key: string]: boolean;
+}
+
+/**
+ * Interface for filter state
+ * Using camelCase as this is React component state
+ */
+interface FilterState {
+  search: string;
+  dateRange: 'all' | 'week' | 'month' | 'year';
+  phaseFocus: string;
+  periodizationType: string;
+  sortBy: 'newest' | 'oldest' | 'name';
 }
 
 /**
@@ -76,12 +113,11 @@ export default function ProgramBrowser({
   isAdmin = false,
   onProgramDelete
 }: ProgramBrowserProps) {
-  // Track the state of programs and UI
-  // const [exercises, setExercises] = useState<Exercise[]>([]);
-  const [programs, setPrograms] = useState<ProgramListItem[]>([]);
+  // Track the state of programs and UI (using camelCase for React state)
+  const [programs, setPrograms] = useState<program_list_item[]>([]);
   const [menuState, setMenuState] = useState<MenuState>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [programToDelete, setProgramToDelete] = useState<ProgramListItem | null>(null);
+  const [programToDelete, setProgramToDelete] = useState<program_list_item | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState({
     programs: true,
@@ -92,16 +128,7 @@ export default function ProgramBrowser({
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
 
-  // Define FilterState interface
-  interface FilterState {
-    search: string;
-    dateRange: 'all' | 'week' | 'month' | 'year';
-    phaseFocus: string;
-    periodizationType: string;
-    sortBy: 'newest' | 'oldest' | 'name';
-  }
-
-  // Search and filter settings
+  // Search and filter settings (using camelCase for React state)
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     dateRange: 'all',
@@ -124,7 +151,7 @@ export default function ProgramBrowser({
 
 
 // Future Enhancement: Exercise filtering state
-// const [exercises, setExercises] = useState<Exercise[]>([]);
+// const [exercises, setExercises] = useState<exercise[]>([]);
 
 // const fetchExercises = async () => {
 //   try {
@@ -140,7 +167,7 @@ export default function ProgramBrowser({
    * For admin users, can fetch programs for other users
    */
    // Filter logic
-const getFilteredPrograms = useCallback((programs: ProgramListItem[]) => {
+const getFilteredPrograms = useCallback((programs: program_list_item[]) => {
   return programs.filter(program => {
     if (filters.search && !program.program_name.toLowerCase().includes(filters.search.toLowerCase())) {
       return false;
@@ -210,11 +237,10 @@ const fetchPrograms = async () => {
   } catch (error) {
     handleError(error, 'fetch programs');
   } finally {
-    // Set a timeout to indicate we've attempted to load
     setTimeout(() => {
       setHasAttemptedLoad(true);
       setIsLoading(prev => ({ ...prev, programs: false }));
-    }, 2000); // Show loading spinner for 2 seconds before showing no programs message
+    }, 2000);
   }
 };
 
@@ -239,16 +265,13 @@ const getPaginatedPrograms = useCallback(() => {
 }, [currentPage, filteredPrograms]);
 
   useEffect(() => {
-    console.log('Debug - useEffect triggered with currentUserId:', currentUserId);
-    setCurrentPage(1); // Reset to first page when user changes
+    logDebug('RENDER', 'useEffect triggered with currentUserId:', currentUserId);
+    setCurrentPage(1);
     fetchPrograms();
-    // Future Enhancement: Exercise filtering
-  // fetchExercises();
   }, [currentUserId, isAdmin]);
 
   useEffect(() => {
     return () => {
-      // Cleanup on unmount
       setMenuState({});
       setProgramToDelete(null);
     };
@@ -261,9 +284,9 @@ const getPaginatedPrograms = useCallback(() => {
     hasPrevPage: currentPage > 1
   }), [filteredPrograms.length, currentPage]);
 
-  // Get current programs
   const currentPrograms = getPaginatedPrograms();
 
+  // Event handlers (using camelCase as these are React-specific)
   const handleMenuClick = useCallback((e: React.MouseEvent, programId: number) => {
     e.stopPropagation();
     setMenuState(prev => ({
@@ -272,13 +295,13 @@ const getPaginatedPrograms = useCallback(() => {
     }));
   }, []);
 
-  const handleViewEdit = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
+  const handleViewEdit = useCallback((e: React.MouseEvent, program: program_list_item) => {
     e.stopPropagation();
     onProgramSelect(program);
     setMenuState(prev => ({ ...prev, [program.id]: false }));
   }, [onProgramSelect]);
 
-  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: ProgramListItem) => {
+  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: program_list_item) => {
     e.stopPropagation();
     try {
       setIsLoading(prev => ({ ...prev, duplicate: true }));
@@ -290,7 +313,7 @@ const getPaginatedPrograms = useCallback(() => {
     }
   }, [currentUserId, fetchPrograms]);
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, program: program_list_item) => {
     e.stopPropagation();
     setProgramToDelete(program);
     setShowDeleteConfirm(true);
@@ -550,10 +573,10 @@ const getPaginatedPrograms = useCallback(() => {
                           <span>Type: {program.periodization_type || 'None'}</span>
                           <span>Phase: {program.phase_focus || 'Not specified'}</span>
                         </div>
-                        {program.exerciseSummary && program.exerciseSummary.exercises && program.exerciseSummary.exercises.length > 0 && (
+                        {program.exercise_summary && program.exercise_summary.exercises && program.exercise_summary.exercises.length > 0 && (
                           <div className="mt-2">
-                            <span className="font-medium">Exercises ({program.exerciseSummary.totalExercises}): </span>
-                            <span>{program.exerciseSummary.exercises.map(ex => ex.name).join(', ')}</span>
+                            <span className="font-medium">Exercises ({program.exercise_summary.total_exercises}): </span>
+                            <span>{program.exercise_summary.exercises.map((ex: { name: string }) => ex.name).join(', ')}</span>
                           </div>
                         )}
                       </div>

@@ -3,20 +3,17 @@
 import React, { useState } from 'react';
 import ProgramSettings from './ProgramSettings';
 import type { ProgramSettingsFormData } from './ProgramSettings';
+import { phase_focus_type, PeriodizationType, progression_rules } from '@/app/lib/types/pillars/fitness';
 
+/**
+ * Props interface for the ProgramSettingsSection component
+ * Using snake_case for database-mapped properties
+ */
 interface ProgramSettingsSectionProps {
   name: string;
-  phase_focus: ProgramSettingsFormData['phase_focus'];
-  periodization_type: ProgramSettingsFormData['periodization_type'];
-  progression_rules?: {
-    type: string;
-    settings: {
-      volumeIncrementPercentage?: number;
-      loadIncrementPercentage?: number;
-      programLength?: number;
-      weeklyVolumePercentages?: number[];
-    };
-  };
+  phase_focus: phase_focus_type;
+  periodization_type: keyof typeof PeriodizationType;
+  progression_rules?: progression_rules;
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;
 }
 
