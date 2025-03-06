@@ -1,7 +1,7 @@
 import { useSensors, useSensor, KeyboardSensor, PointerSensor } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
-import type { Exercise } from '@/app/lib/types/pillars/fitness';
+import type { exercise } from '@/app/lib/types/pillars/fitness';
 
 export function useDragAndDrop() {
   /* Commented out until DND functionality is implemented

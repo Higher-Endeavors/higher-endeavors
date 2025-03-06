@@ -1,44 +1,53 @@
 import { SetStateAction } from 'react';
-import { Program, Exercise, WeekExercise, ProgressionRules } from '@/app/lib/types/pillars/fitness';
-import { calculateProgressedExercises } from '@/app/lib/utils/fitness/resistance-training/exerciseProgression';
+import { 
+  program, 
+  exercise, 
+  week_exercise, 
+  progression_rules 
+} from '@/app/lib/types/pillars/fitness';
+import { calculate_progressed_exercises } from '@/app/lib/utils/fitness/resistance-training/exerciseProgression';
 
 interface UseWeekManagementProps {
-  program: Program;
+  program: program;
   activeWeek: number;
   setActiveWeek: (week: number) => void;
-  setWeekExercises: (value: SetStateAction<{ [key: number]: Exercise[] }>) => void;
+  setWeekExercises: (value: SetStateAction<{ [key: number]: exercise[] }>) => void;
 }
 
 export function useWeekManagement({
-  program,
+  program: program_data,
   activeWeek,
   setActiveWeek,
   setWeekExercises
 }: UseWeekManagementProps) {
-  const handleWeekChange = (weekNumber: number) => {
-    const settings = program?.progressionRules?.settings;
+  const handleWeekChange = (week_number: number) => {
+    const settings = program_data?.progression_rules?.settings;
     if (!settings) return;
     
-    const programLength = settings.programLength || 4;
-    if (weekNumber < 1 || weekNumber > programLength) return;
+    const program_length = settings.program_length || 4;
+    if (week_number < 1 || week_number > program_length) return;
     
-    setActiveWeek(weekNumber);
+    setActiveWeek(week_number);
   };
 
-  const applyProgressionToWeek = (weekNumber: number) => {
-    setWeekExercises((prev: { [key: number]: Exercise[] }) => {
-      const exercisesWithWeek = Object.fromEntries(
+  const applyProgressionToWeek = (week_number: number) => {
+    setWeekExercises((prev: { [key: number]: exercise[] }) => {
+      const exercises_with_week = Object.fromEntries(
         Object.entries(prev).map(([week, exercises]) => [
           week,
           exercises.map(ex => ({
             ...ex,
-            weekNumber: parseInt(week),
-            baseExerciseId: ex.id,
-            weekSpecificId: ex.id
+            week_number: parseInt(week),
+            base_exercise_id: ex.id,
+            week_specific_id: ex.id
           }))
         ])
       );
-      return calculateProgressedExercises(weekNumber, exercisesWithWeek, program?.progressionRules as ProgressionRules) as { [key: number]: Exercise[] };
+      return calculate_progressed_exercises(
+        week_number, 
+        exercises_with_week, 
+        program_data?.progression_rules as progression_rules
+      ) as { [key: number]: exercise[] };
     });
   };
 

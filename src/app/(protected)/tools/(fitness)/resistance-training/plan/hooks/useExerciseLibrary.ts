@@ -41,13 +41,13 @@ export function useExerciseLibrary(options?: UseExerciseLibraryOptions) {
                         name: exercise.exercise_name,
                         source: exercise.source || 'library',
                         difficulty: exercise.difficulty_name,
-                        targetMuscleGroup: exercise.target_muscle_group || 'N/A',
-                        primaryEquipment: exercise.primary_equipment || 'N/A',
-                        secondaryEquipment: exercise.secondary_equipment,
-                        exerciseFamily: exercise.exercise_family || 'N/A',
-                        bodyRegion: exercise.body_region || 'N/A',
-                        movementPattern: exercise.movement_pattern || 'N/A',
-                        movementPlane: exercise.movement_plane || 'N/A',
+                        target_muscle_group: exercise.target_muscle_group || 'N/A',
+                        primary_equipment: exercise.primary_equipment || 'N/A',
+                        secondary_equipment: exercise.secondary_equipment,
+                        exercise_family: exercise.exercise_family || 'N/A',
+                        body_region: exercise.body_region || 'N/A',
+                        movement_pattern: exercise.movement_pattern || 'N/A',
+                        movement_plane: exercise.movement_plane || 'N/A',
                         laterality: exercise.laterality || 'N/A'
                     }
                 }));

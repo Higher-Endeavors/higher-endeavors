@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import {
-  Program,
-  Exercise,
+  program,
+  exercise,
   PhaseFocus,
   PeriodizationType,
   ProgressionFrequency,
-  createVariedExercise,
-  createPlannedExercise,
-  BaseExercise,
-  PlannedExercise,
-  VariedExercise,
-  ExerciseSource,
-  ProgramListItem,
-  ProgressionRules,
-  LoadUnit
+  create_varied_exercise,
+  create_planned_exercise,
+  base_exercise,
+  planned_exercise,
+  varied_exercise,
+  exercise_source,
+  program_list_item,
+  load_unit
 } from '@/app/lib/types/pillars/fitness';
 
 interface UseProgramManagementProps {
-  setProgram: (program: Program) => void;
-  setWeekExercises: (exercises: { [key: number]: Exercise[] }) => void;
+  setProgram: (program: program) => void;
+  setWeekExercises: (exercises: { [key: number]: exercise[] }) => void;
   currentUserId: number;
   onError?: (error: string) => void;
 }
@@ -30,36 +29,36 @@ export function useProgramManagement({
   onError 
 }: UseProgramManagementProps) {
   
-  const fetchProgramDetails = async (programId: number): Promise<Program> => {
+  const fetchProgramDetails = async (programId: number): Promise<program> => {
     const response = await fetch(`/api/resistance-training/program/${programId}`);
     if (!response.ok) throw new Error('Failed to fetch program details');
     return response.json();
   };
   
-  const handleProgramSelect = async (programListItem: ProgramListItem) => {
-    const fullProgram = await fetchProgramDetails(programListItem.id);
+  const handleProgramSelect = async (program_list_item: program_list_item) => {
+    const full_program = await fetchProgramDetails(program_list_item.id);
   
     setProgram({
-      id: fullProgram.id,
-      user_id: fullProgram.user_id,
-      program_name: fullProgram.program_name,
-      phase_focus: fullProgram.phase_focus,
-      periodization_type: fullProgram.periodization_type,
+      id: full_program.id,
+      user_id: full_program.user_id,
+      program_name: full_program.program_name,
+      phase_focus: full_program.phase_focus,
+      periodization_type: full_program.periodization_type,
       progression_rules: {
-        type: fullProgram.progression_rules?.type || PeriodizationType.None,
+        type: full_program.progression_rules?.type || PeriodizationType.None,
         settings: {
-          volume_increment_percentage: fullProgram.progression_rules?.settings?.volume_increment_percentage ?? 0,
-          load_increment_percentage: fullProgram.progression_rules?.settings?.load_increment_percentage ?? 0,
-          program_length: fullProgram.progression_rules?.settings?.program_length ?? 4,
-          weekly_volume_percentages: fullProgram.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
+          volume_increment_percentage: full_program.progression_rules?.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: full_program.progression_rules?.settings?.load_increment_percentage ?? 0,
+          program_length: full_program.progression_rules?.settings?.program_length ?? 4,
+          weekly_volume_percentages: full_program.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
         }
       },
-      created_at: new Date(fullProgram.created_at),
-      updated_at: new Date(fullProgram.updated_at),
-      notes: fullProgram.notes || ''
+      created_at: new Date(full_program.created_at),
+      updated_at: new Date(full_program.updated_at),
+      notes: full_program.notes || ''
     });
-};
-     // volumeTargets: selectedProgram.volumeTargets || [],
+  };
+  // volumeTargets: selectedProgram.volumeTargets || [],
       /* createdAt: typeof selectedProgram.created_at === 'string' 
         ? new Date(selectedProgram.created_at) 
         : selectedProgram.created_at,
@@ -68,7 +67,6 @@ export function useProgramManagement({
         : selectedProgram.updated_at
     });
   }; */
-
   const loadProgramExercises = async (programId: string) => {
     try {
       const response = await fetch(`/api/resistance-training/program/${programId}`);
@@ -76,31 +74,31 @@ export function useProgramManagement({
       
       const data = await response.json() as {
         weeks: Array<{
-          weekNumber: number;
+          week_number: number;
           notes?: string;
           days: Array<{
-            dayNumber: number;
-            dayName?: string;
+            day_number: number;
+            day_name?: string;
             notes?: string;
             exercises: Array<{
               id?: string;
               name?: string;
-              customName?: string;
+              custom_name?: string;
               source: 'library' | 'user';
-              libraryId?: string;
-              userExerciseId?: string;
+              exercise_library_id?: string;
+              user_exercise_id?: string;
               pairing: string;
               notes?: string;
-              orderIndex: number;
-              isVariedSets: boolean;
-              isAdvancedSets: boolean;
+              order_index: number;
+              is_varied_sets: boolean;
+              is_advanced_sets: boolean;
               sets: Array<{
-                setNumber: number;
-                reps: number;
-                load: number;
-                loadUnit: string;
-                tempo: string;
-                rest: number;
+                set_number: number;
+                planned_reps: number;
+                planned_load: number;
+                load_unit: string;
+                planned_tempo: string;
+                planned_rest: number;
                 notes?: string;
               }>;
             }>;
@@ -112,60 +110,62 @@ export function useProgramManagement({
         throw new Error('Invalid program data: missing weeks array');
       }
       
-      const newWeekExercises: { [key: number]: Exercise[] } = {};
+      const new_week_exercises: { [key: number]: exercise[] } = {};
       
-      data.weeks.forEach((week) => {  // Remove `: APIWeek`
+      data.weeks.forEach((week) => {
         if (!week.days || !Array.isArray(week.days)) {
-          console.warn(`Week ${week.weekNumber} has no days array`);
+          console.warn(`Week ${week.week_number} has no days array`);
           return;
         }
       
-        const weekExercises: Exercise[] = [];
-        week.days.forEach((day) => {  // Remove `: APIDay`
+        const week_exercises: exercise[] = [];
+        week.days.forEach((day) => {
           if (!day.exercises || !Array.isArray(day.exercises)) {
-            console.warn(`Day ${day.dayNumber} in week ${week.weekNumber} has no exercises array`);
+            console.warn(`Day ${day.day_number} in week ${week.week_number} has no exercises array`);
             return;
           }
       
           day.exercises.forEach((exercise) => {
-            const baseExercise: Omit<PlannedExercise, 'isVariedSets' | 'isAdvancedSets'> = {
+            const base_exercise: Omit<planned_exercise, 'is_varied_sets' | 'is_advanced_sets'> = {
                 id: exercise.id ? parseInt(exercise.id) : Date.now(),
-                exerciseId: exercise.libraryId ? parseInt(exercise.libraryId) : 0, // Required by BaseExercise
-                name: exercise.name || exercise.customName || 'Unknown Exercise',
+                exercise_id: exercise.exercise_library_id ? parseInt(exercise.exercise_library_id) : 0,
+                name: exercise.name || exercise.custom_name || 'Unknown Exercise',
                 source: exercise.source === 'library' ? 'exercise_library' : 'user_exercises',
                 pairing: exercise.pairing || 'A1',
                 sets: exercise.sets.length,
                 notes: exercise.notes || ''
               };
 
-            const hasVariedSets = exercise.sets.length > 1 && exercise.sets.some((set, idx, arr) => {
+            const has_varied_sets = exercise.sets.length > 1 && exercise.sets.some((set, idx, arr) => {
               if (idx === 0) return false;
-              const prevSet = arr[idx - 1];
-              return set.reps !== prevSet.reps || set.load !== prevSet.load || set.tempo !== prevSet.tempo;
+              const prev_set = arr[idx - 1];
+              return set.planned_reps !== prev_set.planned_reps || 
+                     set.planned_load !== prev_set.planned_load || 
+                     set.planned_tempo !== prev_set.planned_tempo;
             });
 
-            const exerciseData = hasVariedSets
-              ? createVariedExercise(baseExercise, exercise.sets.map(set => ({
-                  setNumber: set.setNumber,
-                  plannedReps: set.reps,
-                  plannedLoad: set.load,
-                  loadUnit: set.loadUnit as LoadUnit,
-                  plannedTempo: set.tempo,
-                  plannedRest: set.rest,
+            const exercise_data = has_varied_sets
+              ? create_varied_exercise(base_exercise, exercise.sets.map(set => ({
+                  set_number: set.set_number,
+                  planned_reps: set.planned_reps,
+                  planned_load: set.planned_load,
+                  load_unit: set.load_unit as load_unit,
+                  planned_tempo: set.planned_tempo,
+                  planned_rest: set.planned_rest,
                   notes: set.notes || ''
                 })))
-              : createPlannedExercise(baseExercise);
+              : create_planned_exercise(base_exercise);
 
-            weekExercises.push(exerciseData);
+            week_exercises.push(exercise_data);
           });
         });
 
-        if (weekExercises.length > 0) {
-          newWeekExercises[week.weekNumber] = weekExercises;
+        if (week_exercises.length > 0) {
+          new_week_exercises[week.week_number] = week_exercises;
         }
       });
 
-      setWeekExercises(newWeekExercises);
+      setWeekExercises(new_week_exercises);
     } catch (error) {
       console.error('Error loading program exercises:', error);
       if (onError) {
@@ -197,31 +197,31 @@ export function useProgramManagement({
     setWeekExercises({});
   };
 
-  const handleProgramUpdate = (program: Program) => {
-    if (!program.user_id) return;
+  const handleProgramUpdate = (program_data: program) => {
+    if (!program_data.user_id) return;
 
     setProgram({
-      id: program.id,
-      user_id: program.user_id,
-      program_name: program.program_name,
-      phase_focus: program.phase_focus,
-      periodization_type: program.periodization_type,
+      id: program_data.id,
+      user_id: program_data.user_id,
+      program_name: program_data.program_name,
+      phase_focus: program_data.phase_focus,
+      periodization_type: program_data.periodization_type,
       progression_rules: {
-        type: program.progression_rules?.type || PeriodizationType.None,
+        type: program_data.progression_rules?.type || PeriodizationType.None,
         settings: {
-          volume_increment_percentage: program.progression_rules?.settings?.volume_increment_percentage ?? 0,
-          load_increment_percentage: program.progression_rules?.settings?.load_increment_percentage ?? 0,
-          program_length: program.progression_rules?.settings?.program_length ?? 4,
-          weekly_volume_percentages: program.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
+          volume_increment_percentage: program_data.progression_rules?.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: program_data.progression_rules?.settings?.load_increment_percentage ?? 0,
+          program_length: program_data.progression_rules?.settings?.program_length ?? 4,
+          weekly_volume_percentages: program_data.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100]
         }
       },
-      created_at: typeof program.created_at === 'string' 
-        ? new Date(program.created_at) 
-        : program.created_at,
-      updated_at: typeof program.updated_at === 'string' 
-        ? new Date(program.updated_at) 
-        : program.updated_at,
-      notes: program.notes || ''
+      created_at: typeof program_data.created_at === 'string' 
+        ? new Date(program_data.created_at) 
+        : program_data.created_at,
+      updated_at: typeof program_data.updated_at === 'string' 
+        ? new Date(program_data.updated_at) 
+        : program_data.updated_at,
+      notes: program_data.notes || ''
     });
   };
 

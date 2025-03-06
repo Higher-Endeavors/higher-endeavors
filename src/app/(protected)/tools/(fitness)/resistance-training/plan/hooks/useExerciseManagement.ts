@@ -1,9 +1,19 @@
 import { useState } from 'react';
-import type { ExerciseOption, BaseExercise, Exercise, Program, ExerciseSource, LoadUnit, VariedExercise } from '@/app/lib/types/pillars/fitness';
-import { DefaultLoadUnit } from '@/app/lib/types/pillars/fitness';
-import { createPlannedExercise, createVariedExercise, PlannedExercise } from '@/app/lib/types/pillars/fitness';
-import { getNextPairing } from '../utils/ExercisePairings';
-import { transformToRegularExercise } from '../utils/ExerciseTransformations';
+import type { 
+  ExerciseOption, 
+  base_exercise, 
+  exercise, 
+  program, 
+  exercise_source, 
+  load_unit, 
+  varied_exercise,
+  planned_exercise,
+  planned_exercise_set
+} from '@/app/lib/types/pillars/fitness';
+import { default_load_unit } from '@/app/lib/types/pillars/fitness';
+import { create_planned_exercise, create_varied_exercise } from '@/app/lib/types/pillars/fitness';
+import { get_next_pairing } from '../utils/ExercisePairings';
+import { transform_to_regular_exercise } from '../utils/ExerciseTransformations';
 
 /**
  * Debug Configuration
@@ -48,21 +58,21 @@ const Debug = {
 
 export function useExerciseManagement(
     userSettings: any, 
-    program: Program,
+    program: program,
     modalControls: { 
       setIsExerciseModalOpen: (open: boolean) => void,
       setIsAdvancedSearchOpen: (open: boolean) => void
     },
     { weekExercises, activeWeek, setWeekExercises }: {
-      weekExercises: { [key: number]: Exercise[] },
+      weekExercises: { [key: number]: exercise[] },
       activeWeek: number,
-      setWeekExercises: (value: { [key: number]: Exercise[] } | ((prev: { [key: number]: Exercise[] }) => { [key: number]: Exercise[] })) => void
+      setWeekExercises: (value: { [key: number]: exercise[] } | ((prev: { [key: number]: exercise[] }) => { [key: number]: exercise[] })) => void
     }
   ) {
     const { setIsExerciseModalOpen, setIsAdvancedSearchOpen } = modalControls;
-    const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
+    const [editingExercise, setEditingExercise] = useState<exercise | undefined>();
     const [selectedExerciseName, setSelectedExerciseName] = useState('');
-    const [selectedExercise, setSelectedExercise] = useState<Exercise | undefined>();
+    const [selectedExercise, setSelectedExercise] = useState<exercise | undefined>();
 
     const handleAddExercise = () => {
         setEditingExercise(undefined);
@@ -73,36 +83,41 @@ export function useExerciseManagement(
     let tempIdCounter = 1;
     
     const handleExerciseSelect = (exercise: ExerciseOption) => {
-      const baseExercise = {
+      const base_exercise = {
         id: -(tempIdCounter++),  // Negative to avoid conflicts with real DB IDs
-        exerciseId: exercise.libraryId || exercise.id,  // Use libraryId for library exercises, id for user exercises
+        exercise_id: exercise.libraryId || exercise.id,  // Use libraryId for library exercises, id for user exercises
         name: exercise.label || '',
-        pairing: getNextPairing(weekExercises[activeWeek] || []),
+        pairing: get_next_pairing(weekExercises[activeWeek] || []),
         sets: 3,
-        reps: 10,
-        load: 0,
-        tempo: '2010',
-        rest: 60,
-        loadUnit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || DefaultLoadUnit,
+        is_varied_sets: false,
+        is_advanced_sets: false,
+        planned_sets: [{
+          set_number: 1,
+          planned_reps: 10,
+          planned_load: 0,
+          load_unit: userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || default_load_unit,
+          planned_rest: 60,
+          planned_tempo: '2010'
+        }],
         notes: '',
-        source: exercise.source as 'exercise_library' | 'user_exercises'  // Use the correct source type
+        source: exercise.source as 'exercise_library' | 'user_exercises'
       };
     
-      setSelectedExercise(createPlannedExercise(baseExercise));
+      setSelectedExercise(create_planned_exercise(base_exercise));
       setIsAdvancedSearchOpen(false);
     };
 
     const handleAdvancedSearchSelect = (exercise: ExerciseOption) => {
-      const transformedExercise = transformToRegularExercise(exercise, userSettings, () => getNextPairing(weekExercises[activeWeek] || []));
+      const transformed_exercise = transform_to_regular_exercise(exercise, userSettings, () => get_next_pairing(weekExercises[activeWeek] || []));
       setSelectedExerciseName(exercise.data.name);
-      setEditingExercise(transformedExercise);
+      setEditingExercise(transformed_exercise);
       setIsExerciseModalOpen(true);
     };
 
     const handleEditExercise = (id: number) => {
       const exercise = weekExercises[activeWeek]?.find(ex => ex.id === id);
-      if (exercise && !exercise.isVariedSets) {
-        setEditingExercise(createPlannedExercise({
+      if (exercise && !exercise.is_varied_sets) {
+        setEditingExercise(create_planned_exercise({
           ...exercise,
           id
         }));
@@ -111,78 +126,77 @@ export function useExerciseManagement(
       }
     };
 
-    const handleSaveExercise = async (formattedExercise: Exercise): Promise<void> => {
+    const handleSaveExercise = async (formatted_exercise: exercise): Promise<void> => {
       Debug.form('Pre-formatting exercise data', {
-        formattedExercise,
-        isVariedSets: formattedExercise.isVariedSets,
-        plannedSets: 'plannedSets' in formattedExercise && formattedExercise.plannedSets ? formattedExercise.plannedSets : null,
-        setsCount: 'plannedSets' in formattedExercise && formattedExercise.plannedSets ? formattedExercise.plannedSets.length : 0
+        formatted_exercise,
+        is_varied_sets: formatted_exercise.is_varied_sets,
+        planned_sets: 'planned_sets' in formatted_exercise && formatted_exercise.planned_sets ? formatted_exercise.planned_sets : null,
+        sets_count: 'planned_sets' in formatted_exercise && formatted_exercise.planned_sets ? formatted_exercise.planned_sets.length : 0
       });
     
-      const exerciseData = formattedExercise.isVariedSets 
-        ? createVariedExercise({
-            id: formattedExercise.id,
-            exerciseId: formattedExercise.exerciseId,
-            name: formattedExercise.name,
-            source: formattedExercise.source as 'exercise_library' | 'user_exercises'
-          }, (formattedExercise as VariedExercise).setDetails || [])
-        : createPlannedExercise({
-            id: formattedExercise.id,
-            exerciseId: formattedExercise.exerciseId,
-            name: formattedExercise.name,
-            source: formattedExercise.source as 'exercise_library' | 'user_exercises'
+      const exercise_data = formatted_exercise.is_varied_sets 
+        ? create_varied_exercise({
+            id: formatted_exercise.id,
+            exercise_id: formatted_exercise.exercise_id,
+            name: formatted_exercise.name,
+            source: formatted_exercise.source
+          }, (formatted_exercise as varied_exercise).set_details || [])
+        : create_planned_exercise({
+            id: formatted_exercise.id,
+            exercise_id: formatted_exercise.exercise_id,
+            name: formatted_exercise.name,
+            source: formatted_exercise.source
           });
     
       // Add additional properties after creation
-      if (!exerciseData.isVariedSets && 'plannedSets' in formattedExercise) {
-        const plannedExercise = exerciseData as PlannedExercise;
-        Object.assign(plannedExercise, {
-          pairing: formattedExercise.pairing,
-          plannedSets: (formattedExercise as PlannedExercise).plannedSets?.map(set => ({
-            setNumber: set.setNumber,
-            plannedReps: set.plannedReps,
-            plannedLoad: set.plannedLoad,
-            loadUnit: set.loadUnit,
-            plannedRest: set.plannedRest,
-            plannedTempo: set.plannedTempo,
+      if (!exercise_data.is_varied_sets && 'planned_sets' in formatted_exercise) {
+        const planned_exercise_data = exercise_data as planned_exercise;
+        Object.assign(planned_exercise_data, {
+          pairing: formatted_exercise.pairing,
+          planned_sets: (formatted_exercise as planned_exercise).planned_sets?.map((set: planned_exercise_set) => ({
+            set_number: set.set_number,
+            planned_reps: set.planned_reps,
+            planned_load: set.planned_load,
+            load_unit: set.load_unit,
+            planned_rest: set.planned_rest,
+            planned_tempo: set.planned_tempo,
             rpe: set.rpe,
             rir: set.rir,
             notes: set.notes
           })),
-          sets: (formattedExercise as PlannedExercise).plannedSets?.length || 0,
-          notes: formattedExercise.notes
+          sets: (formatted_exercise as planned_exercise).planned_sets?.length || 0,
+          notes: formatted_exercise.notes
         });
       } else {
-        Object.assign(exerciseData as VariedExercise, {
-          pairing: formattedExercise.pairing,
-          notes: formattedExercise.notes
+        Object.assign(exercise_data as varied_exercise, {
+          pairing: formatted_exercise.pairing,
+          notes: formatted_exercise.notes
         });
       }
     
       Debug.form('Post-formatting exercise data', {
-        exerciseData,
-        isVariedSets: exerciseData.isVariedSets,
-        plannedSets: 'plannedSets' in exerciseData && exerciseData.plannedSets ? exerciseData.plannedSets : null,
-        setsCount: 'plannedSets' in exerciseData && exerciseData.plannedSets ? exerciseData.plannedSets.length : 0,
-        pairing: exerciseData.pairing
+        exercise_data,
+        is_varied_sets: exercise_data.is_varied_sets,
+        planned_sets: 'planned_sets' in exercise_data && exercise_data.planned_sets ? exercise_data.planned_sets : null,
+        sets_count: 'planned_sets' in exercise_data && exercise_data.planned_sets ? exercise_data.planned_sets.length : 0,
+        pairing: exercise_data.pairing
       });
     
-    
-      setWeekExercises((prev: { [key: number]: Exercise[] }) => {
-        const newWeekExercises = { ...prev };
+      setWeekExercises((prev: { [key: number]: exercise[] }) => {
+        const new_week_exercises = { ...prev };
         if (editingExercise) {
-          Object.keys(newWeekExercises).forEach(weekNum => {
-            newWeekExercises[Number(weekNum)] = newWeekExercises[Number(weekNum)]?.map(ex =>
-              ex.id === exerciseData.id ? exerciseData : ex
+          Object.keys(new_week_exercises).forEach(weekNum => {
+            new_week_exercises[Number(weekNum)] = new_week_exercises[Number(weekNum)]?.map(ex =>
+              ex.id === exercise_data.id ? exercise_data : ex
             ) || [];
           });
         } else {
-          if (!newWeekExercises[activeWeek]) {
-            newWeekExercises[activeWeek] = [];
+          if (!new_week_exercises[activeWeek]) {
+            new_week_exercises[activeWeek] = [];
           }
-          newWeekExercises[activeWeek] = [...newWeekExercises[activeWeek], exerciseData];
+          new_week_exercises[activeWeek] = [...new_week_exercises[activeWeek], exercise_data];
         }
-        return newWeekExercises;
+        return new_week_exercises;
       });
     
       modalControls.setIsExerciseModalOpen(false);
@@ -190,13 +204,13 @@ export function useExerciseManagement(
 
     const handleDeleteExercise = (id: number) => {
       setWeekExercises(prev => {
-        const newWeekExercises = { ...prev };
-        Object.keys(newWeekExercises).forEach(week => {
-          newWeekExercises[Number(week)] = newWeekExercises[Number(week)]?.filter(
+        const new_week_exercises = { ...prev };
+        Object.keys(new_week_exercises).forEach(week => {
+          new_week_exercises[Number(week)] = new_week_exercises[Number(week)]?.filter(
             ex => ex.id !== id
           ) || [];
         });
-        return newWeekExercises;
+        return new_week_exercises;
       });
     };
 

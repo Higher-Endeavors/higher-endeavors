@@ -1,13 +1,13 @@
-import { Exercise } from "@/app/lib/types/pillars/fitness";
+import { exercise } from "@/app/lib/types/pillars/fitness";
 import { useState } from "react";
 
 export function useExerciseModal() {
     const [isExerciseModalOpen, setIsExerciseModalOpen] = useState(false);
     const [isExerciseSearchOpen, setIsExerciseSearchOpen] = useState(false);
     const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
-    const [editingExercise, setEditingExercise] = useState<Exercise | undefined>();
+    const [editingExercise, setEditingExercise] = useState<exercise | undefined>();
     const [selectedExerciseName, setSelectedExerciseName] = useState('');
-    const [selectedExercise, setSelectedExercise] = useState<Exercise | undefined>();
+    const [selectedExercise, setSelectedExercise] = useState<exercise | undefined>();
   
     return {
       isExerciseModalOpen, setIsExerciseModalOpen,

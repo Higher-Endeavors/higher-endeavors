@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import ProgramSettings from './ProgramSettings';
 import type { ProgramSettingsFormData } from './ProgramSettings';
-import { phase_focus_type, PeriodizationType, progression_rules } from '@/app/lib/types/pillars/fitness';
+import { PeriodizationType, PhaseFocus, progression_rules } from '@/app/lib/types/pillars/fitness';
 
 /**
  * Props interface for the ProgramSettingsSection component
@@ -11,7 +11,7 @@ import { phase_focus_type, PeriodizationType, progression_rules } from '@/app/li
  */
 interface ProgramSettingsSectionProps {
   name: string;
-  phase_focus: phase_focus_type;
+  phase_focus: keyof typeof PhaseFocus;
   periodization_type: keyof typeof PeriodizationType;
   progression_rules?: progression_rules;
   onSettingsChange: (settings: Partial<ProgramSettingsFormData>) => void;

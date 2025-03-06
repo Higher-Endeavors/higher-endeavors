@@ -1,18 +1,16 @@
 'use client';
 
 import { useState } from 'react';
-import { Program, Exercise } from '@/app/lib/types/pillars/fitness';
-import { transformWeekExercises } from '../utils/ExerciseTransformations';
+import { program, exercise } from '@/app/lib/types/pillars/fitness';
+import { transform_week_exercises } from '../utils/ExerciseTransformations';
 import { formatProgramData, saveProgramToAPI } from '../utils/programTransformations';
 
-
-
 interface UseProgramSaveProps {
-  program: Program;
-  weekExercises: { [key: number]: Exercise[] };
+  program: program;
+  weekExercises: { [key: number]: exercise[] };
   selectedUserId: number;
   sessionUserId: number;
-  setProgram: (value: Program | ((prev: Program) => Program)) => void;
+  setProgram: (value: program | ((prev: program) => program)) => void;
   onSuccess: () => void;
   onError: (error: string) => void;
 }
@@ -42,9 +40,9 @@ export function useProgramSave({
     setIsSaving(true);
 
     try {
-      const weeks = transformWeekExercises(weekExercises, program.progression_rules?.settings?.program_length);
-      const programData = formatProgramData(program, weeks, selectedUserId, sessionUserId);
-      await saveProgramToAPI(programData, program.id, setProgram);
+      const weeks = transform_week_exercises(weekExercises, program.progression_rules?.settings?.program_length);
+      const program_data = formatProgramData(program, weeks, selectedUserId, sessionUserId);
+      await saveProgramToAPI(program_data, program.id, setProgram);
       onSuccess();
     } catch (error) {
       onError(error instanceof Error ? error.message : 'Failed to save program');

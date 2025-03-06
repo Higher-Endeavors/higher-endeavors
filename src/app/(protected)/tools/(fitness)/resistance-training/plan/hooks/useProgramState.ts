@@ -1,69 +1,79 @@
 import { useState, useEffect } from 'react';
-import { Program, PeriodizationType, Exercise, WeekExercise } from '@/app/lib/types/pillars/fitness';
-import { DefaultProgram } from '@/app/lib/constants/ProgramDefaults';
-import { applyLinearProgression } from '@/app/lib/types/pillars/fitness';
+import { 
+  program, 
+  PeriodizationType, 
+  exercise, 
+  week_exercise,
+  apply_linear_progression 
+} from '@/app/lib/types/pillars/fitness';
+import { default_program } from '@/app/lib/constants/ProgramDefaults';
 
 export function useProgramState() {
-  const [program, setProgram] = useState<Program>({
-    ...DefaultProgram,
-    progressionRules: {
+  const [program_data, setProgram] = useState<program>({
+    ...default_program,
+    progression_rules: {
       type: PeriodizationType.Linear,
       settings: {
-        volumeIncrementPercentage: 0,
-        loadIncrementPercentage: 0,
-        programLength: 4,
-        weeklyVolumePercentages: [100, 80, 90, 60]
+        volume_increment_percentage: 0,
+        load_increment_percentage: 0,
+        program_length: 4,
+        weekly_volume_percentages: [100, 80, 90, 60]
       }
     }
   });
-  const [weekExercises, setWeekExercises] = useState<{ [key: number]: Exercise[] }>({});
+
+  const [weekExercises, setWeekExercises] = useState<{ [key: number]: exercise[] }>({});
   const [activeWeek, setActiveWeek] = useState(1);
-  const [activeExercise, setActiveExercise] = useState<Exercise | undefined>();
+  const [activeExercise, setActiveExercise] = useState<exercise | undefined>();
 
   useEffect(() => {
-    if (!program) return;
+    if (!program_data) return;
 
-    setWeekExercises((prevWeekExercises) => {
+    setWeekExercises((prev_week_exercises) => {
       // If there are no exercises for the active week, return the current state
-      if (!prevWeekExercises[activeWeek]) {
-        return prevWeekExercises;
+      if (!prev_week_exercises[activeWeek]) {
+        return prev_week_exercises;
       }
 
       // Get the current week's exercises
-      const currentWeekExercises = prevWeekExercises[activeWeek];
+      const current_week_exercises = prev_week_exercises[activeWeek];
       
       // Apply progression if needed
-      const updatedExercises = currentWeekExercises.map((exercise: Exercise) => {
-        if (program.periodizationType === 'Linear' && program.progressionRules?.settings) {
-          return applyLinearProgression(
+      const updated_exercises = current_week_exercises.map((exercise: exercise) => {
+        if (program_data.periodization_type === 'Linear' && program_data.progression_rules?.settings) {
+          return apply_linear_progression(
             exercise,
             activeWeek,
-            program.progressionRules.settings.volumeIncrementPercentage || 0,
-            program.progressionRules.settings.loadIncrementPercentage || 0
+            program_data.progression_rules.settings.volume_increment_percentage || 0,
+            program_data.progression_rules.settings.load_increment_percentage || 0
           );
         }
         return exercise;
       });
 
       return {
-        ...prevWeekExercises,
-        [activeWeek]: updatedExercises
+        ...prev_week_exercises,
+        [activeWeek]: updated_exercises
       };
     });
   }, [
-    program?.periodizationType,
-    program?.progressionRules?.settings?.programLength,
-    program?.progressionRules?.settings?.volumeIncrementPercentage,
-    program?.progressionRules?.settings?.loadIncrementPercentage,
-    program?.progressionRules?.settings?.weeklyVolumePercentages,
+    program_data?.periodization_type,
+    program_data?.progression_rules?.settings?.program_length,
+    program_data?.progression_rules?.settings?.volume_increment_percentage,
+    program_data?.progression_rules?.settings?.load_increment_percentage,
+    program_data?.progression_rules?.settings?.weekly_volume_percentages,
     activeWeek,
-    program
+    program_data
   ]);
 
   return {
-    program, setProgram,
-    weekExercises, setWeekExercises,
-    activeWeek, setActiveWeek,
-    activeExercise, setActiveExercise
+    program: program_data, 
+    setProgram,
+    weekExercises, 
+    setWeekExercises,
+    activeWeek, 
+    setActiveWeek,
+    activeExercise, 
+    setActiveExercise
   };
 }

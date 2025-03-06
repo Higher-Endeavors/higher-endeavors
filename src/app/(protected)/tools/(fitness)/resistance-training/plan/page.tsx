@@ -4,8 +4,8 @@ import React from 'react';
 import AddExerciseModal from './ExerciseModals/AddExerciseModal';
 import ExerciseSearch from './ExerciseModals/ExerciseSearch';
 import WeekProgram from './components/ProgramContainer/WeekProgram';
-import { calculateSessionVolume } from '@/app/lib/utils/fitness/resistance-training/calculations';
-import { Exercise } from '@/app/lib/types/pillars/fitness';
+import { calculate_session_volume } from '@/app/lib/utils/fitness/resistance-training/calculations';
+import { exercise, PeriodizationType, PhaseFocus, progression_rules } from '@/app/lib/types/pillars/fitness';
 import { useToast } from '@/app/lib/hooks/useToast';
 import ProgramHeader from './components/ProgramContainer/ProgramHeader';
 import ProgramSettingsSection from './components/ProgramContainer/ProgramSettingsSection';
@@ -33,7 +33,7 @@ function PlanPageContent() {
     setWeekExercises, 
     activeWeek,
     setActiveWeek 
-  } = useProgramState(); // This now includes the program length effect
+  } = useProgramState();
 
   const { 
     isExerciseModalOpen, setIsExerciseModalOpen,
@@ -51,10 +51,10 @@ function PlanPageContent() {
     userSettings, 
     settingsLoading, 
     isAdmin, 
-    selectedUserId, 
+    selected_user_id, 
     setSelectedUserId,
     handleUserSelect,
-    currentUserId
+    current_user_id
   } = useUserManagement();
 
   const { 
@@ -76,8 +76,8 @@ function PlanPageContent() {
   const { handleSave, isSaving } = useProgramSave({
     program,
     weekExercises,
-    selectedUserId,
-    sessionUserId: currentUserId,
+    selectedUserId: selected_user_id,
+    sessionUserId: current_user_id,
     setProgram,
     onSuccess: () => {
       toast.success('Program saved successfully');
@@ -95,7 +95,7 @@ function PlanPageContent() {
   } = useProgramManagement({ 
     setProgram, 
     setWeekExercises, 
-    currentUserId,
+    currentUserId: current_user_id,
     onError: (error) => {
       toast.error(error);
     }
@@ -114,7 +114,7 @@ function PlanPageContent() {
     setWeekExercises
   });
 
-  // DND functionality to be implemented later
+    // DND functionality to be implemented later
   // const { sensors, handleDragStart, handleDragEnd } = useDragAndDrop();
 
 
@@ -132,8 +132,8 @@ function PlanPageContent() {
 
       <ProgramHeader
         isAdmin={isAdmin}
-        currentUserId={currentUserId}
-        selectedUserId={selectedUserId}
+        currentUserId={current_user_id}
+        selectedUserId={selected_user_id}
         onUserSelect={handleUserSelect}
         onProgramSelect={handleProgramSelect}
         onProgramDelete={handleProgramDelete}
@@ -141,27 +141,25 @@ function PlanPageContent() {
 
       <ProgramSettingsSection
         name={program.program_name}
-        phaseFocus={program.phase_focus}
-        periodizationType={program.periodization_type}
-        progression_rules={program.progression_rules}
+        phase_focus={program.phase_focus as keyof typeof PhaseFocus}
+        periodization_type={program.periodization_type as keyof typeof PeriodizationType}
+        progression_rules={program.progression_rules as progression_rules}
         onSettingsChange={handleSettingsChange}
       />
-      {/* Volume Targets - commented out for now */}
+
+{/* Volume Targets - commented out for now */}
       {/*<div className="mb-6">
         <VolumeTargets
           targets={program.volumeTargets}
           onChange={handleVolumeTargetsChange}
         />
       </div>*/}
-
-      {/* Week Tabs */}
       <WeekTabs
         activeWeek={activeWeek}
         programLength={program?.progression_rules?.settings?.program_length || 4}
         onWeekChange={handleWeekChange}
       />
 
-      {/* Exercises Section */}
       <div className="mt-6 bg-white rounded-lg shadow p-6">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold dark:text-slate-900">Week {activeWeek} Exercises</h2>
@@ -174,29 +172,28 @@ function PlanPageContent() {
         </div>
 
         <WeekProgram
-          weekNumber={activeWeek}
+          week_number={activeWeek}
           exercises={weekExercises[activeWeek] || []}
           onExercisesChange={handleWeekExercisesChange}
           onEdit={handleEditExercise}
           onDelete={handleDeleteExercise}
         />
 
-        {/* Volume Summary */}
         {weekExercises[activeWeek]?.length > 0 && (
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
             <h3 className="text-lg font-semibold mb-2 dark:text-slate-900">Session Summary</h3>
             <div className="grid grid-cols-3 gap-4">
-              {Object.entries(calculateSessionVolume(
+              {Object.entries(calculate_session_volume(
                 weekExercises[activeWeek] || [],
                 userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs'
               )).map(([key, value]) => (
                 <div key={key}>
                   <p className="text-sm text-gray-600">
-                    {key === 'totalLoad' 
+                    {key === 'total_load' 
                       ? `Total Load: ${value} ${userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs'}`
-                      : key === 'totalSets'
+                      : key === 'total_sets'
                       ? `Total Sets: ${value}`
-                      : key === 'totalReps'
+                      : key === 'total_reps'
                       ? `Total Reps: ${value}`
                       : `${key}: ${value}`
                     }
@@ -208,7 +205,6 @@ function PlanPageContent() {
         )}
       </div>
 
-      {/* Save Button - Positioned below ExerciseList block */}
       <div className="mt-6 flex justify-start">
         <button
           onClick={handleSave}
@@ -234,7 +230,6 @@ function PlanPageContent() {
         </button>
       </div>
 
-      {/* Exercise Modals */}
       <AddExerciseModal
         isOpen={isExerciseModalOpen}
         onClose={() => setIsExerciseModalOpen(false)}

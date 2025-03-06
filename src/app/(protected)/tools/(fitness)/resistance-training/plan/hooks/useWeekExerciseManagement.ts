@@ -1,65 +1,70 @@
-import { Exercise, Program, PlannedExercise, PlannedExerciseSet } from '@/app/lib/types/pillars/fitness';
-import { applyLinearProgression } from '@/app/lib/types/pillars/fitness';
+import { 
+  exercise, 
+  program, 
+  planned_exercise, 
+  planned_exercise_set 
+} from '@/app/lib/types/pillars/fitness';
+import { apply_linear_progression } from '@/app/lib/types/pillars/fitness';
 
 interface UseWeekExerciseManagementProps {
-  program: Program;
+  program: program;
   activeWeek: number;
-  setWeekExercises: (exercises: { [key: number]: Exercise[] } | ((prev: { [key: number]: Exercise[] }) => { [key: number]: Exercise[] })) => void;
+  setWeekExercises: (exercises: { [key: number]: exercise[] } | ((prev: { [key: number]: exercise[] }) => { [key: number]: exercise[] })) => void;
 }
 
 export function useWeekExerciseManagement({
-  program,
+  program: program_data,
   activeWeek,
   setWeekExercises
 }: UseWeekExerciseManagementProps) {
-  const handleWeekExercisesChange = (exercises: Exercise[]) => {
+  const handleWeekExercisesChange = (exercises: exercise[]) => {
     setWeekExercises(prev => {
-      const newWeekExercises = { ...prev };
+      const new_week_exercises = { ...prev };
       
       if (activeWeek === 1) {
-        newWeekExercises[1] = exercises;
+        new_week_exercises[1] = exercises;
         
-        const programLength = program.progressionRules?.settings?.programLength ?? 4;
-        const weeklyVolumePercentages = program.progressionRules?.settings?.weeklyVolumePercentages ?? [100, 100, 100, 100];
+        const program_length = program_data.progression_rules?.settings?.program_length ?? 4;
+        const weekly_volume_percentages = program_data.progression_rules?.settings?.weekly_volume_percentages ?? [100, 100, 100, 100];
 
-        for (let week = 2; week <= programLength; week++) {
-          if (program.periodizationType === 'Linear') {
-            newWeekExercises[week] = exercises.map(exercise => ({
-              ...applyLinearProgression(
+        for (let week = 2; week <= program_length; week++) {
+          if (program_data.periodization_type === 'Linear') {
+            new_week_exercises[week] = exercises.map(exercise => ({
+              ...apply_linear_progression(
                 exercise,
                 week,
-                program.progressionRules?.settings?.volumeIncrementPercentage ?? 0,
-                program.progressionRules?.settings?.loadIncrementPercentage ?? 0
+                program_data.progression_rules?.settings?.volume_increment_percentage ?? 0,
+                program_data.progression_rules?.settings?.load_increment_percentage ?? 0
               ),
               id: exercise.id * 100 + week // Generate unique numeric ID
             }));
-          } else if (program.periodizationType === 'Undulating') {
-            const weekPercentage = weeklyVolumePercentages[week - 1] ?? 100;
-            newWeekExercises[week] = exercises.map(exercise => {
-              const volumePercentage = weekPercentage / 100;
-              const plannedExercise = exercise as PlannedExercise;
-              const newReps = Math.max(1, Math.round((plannedExercise.plannedSets?.[0]?.plannedReps || 10) * volumePercentage));
+          } else if (program_data.periodization_type === 'Undulating') {
+            const week_percentage = weekly_volume_percentages[week - 1] ?? 100;
+            new_week_exercises[week] = exercises.map(exercise => {
+              const volume_percentage = week_percentage / 100;
+              const planned_exercise_data = exercise as planned_exercise;
+              const new_reps = Math.max(1, Math.round((planned_exercise_data.planned_sets?.[0]?.planned_reps || 10) * volume_percentage));
               return {
                 ...exercise,
                 id: exercise.id * 100 + week, // Generate unique numeric ID
-                plannedSets: plannedExercise.plannedSets?.map((set: PlannedExerciseSet) => ({
+                planned_sets: planned_exercise_data.planned_sets?.map((set: planned_exercise_set) => ({
                   ...set,
-                  plannedReps: newReps
+                  planned_reps: new_reps
                 }))
               };
             });
           } else {
-            newWeekExercises[week] = exercises.map(exercise => ({
+            new_week_exercises[week] = exercises.map(exercise => ({
               ...exercise,
               id: exercise.id * 100 + week // Generate unique numeric ID
             }));
           }
         }
       } else {
-        newWeekExercises[activeWeek] = exercises;
+        new_week_exercises[activeWeek] = exercises;
       }
       
-      return newWeekExercises;
+      return new_week_exercises;
     });
   };
 
