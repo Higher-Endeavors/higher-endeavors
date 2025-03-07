@@ -1,5 +1,5 @@
-import type { exercise, varied_exercise, exercise_source } from '@/app/lib/types/pillars/fitness/exercise.types';
-import { create_planned_exercise, create_varied_exercise } from '@/app/lib/types/pillars/fitness/exercise.types';
+import type { exercise, exercise_source } from '@/app/lib/types/pillars/fitness/exercise.types';
+import { create_exercise } from '@/app/lib/types/pillars/fitness/exercise.types';
 
 export const create_exercise_with_pairing = (
   exercise: exercise, 
@@ -12,9 +12,7 @@ export const create_exercise_with_pairing = (
     source: exercise.source
   } as const;
 
-  return !exercise.is_varied_sets 
-    ? create_planned_exercise({ ...base_exercise })
-    : create_varied_exercise(base_exercise, (exercise as varied_exercise).set_details);
+  return create_exercise(base_exercise, exercise.is_varied_sets, exercise.is_advanced_sets, exercise.planned_sets);
 };
 
 /**

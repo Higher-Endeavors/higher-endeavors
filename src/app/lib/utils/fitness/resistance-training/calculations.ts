@@ -1,8 +1,6 @@
 import { 
   exercise,
-  planned_exercise,
-  varied_exercise,
-  planned_exercise_set,
+  exercise_set,
   load_unit 
 } from '@/app/lib/types/pillars/fitness';
 import { calculate_tempo_total, get_numeric_load, convert_weight } from '../unit-conversions';
@@ -22,10 +20,22 @@ export const calculate_session_volume = (
   let total_load = 0;
 
   exercises.forEach(exercise => {
-    if (exercise.is_varied_sets) {
-      const varied_exercise_instance = exercise as varied_exercise;
-      total_sets += varied_exercise_instance.set_details.length;
-      varied_exercise_instance.set_details.forEach((set: planned_exercise_set) => {
+    total_sets += exercise.sets;
+
+    exercise.planned_sets.forEach((set: exercise_set) => {
+      // Handle sub-sets if they exist
+      if (set.sub_sets && set.sub_sets.length > 0) {
+        set.sub_sets.forEach(sub_set => {
+          total_reps += sub_set.planned_reps;
+          const load = sub_set.planned_load ? get_numeric_load(sub_set.planned_load) : 0;
+          if (sub_set.load_unit && sub_set.load_unit !== preferred_unit) {
+            total_load += convert_weight(load * sub_set.planned_reps, sub_set.load_unit, preferred_unit);
+          } else {
+            total_load += load * sub_set.planned_reps;
+          }
+        });
+      } else {
+        // Handle regular sets
         total_reps += set.planned_reps;
         const load = set.planned_load ? get_numeric_load(set.planned_load) : 0;
         if (set.load_unit && set.load_unit !== preferred_unit) {
@@ -33,22 +43,8 @@ export const calculate_session_volume = (
         } else {
           total_load += load * set.planned_reps;
         }
-      });
-    } else {
-      const planned_exercise_instance = exercise as planned_exercise;
-      total_sets += planned_exercise_instance.sets;
-      if (planned_exercise_instance.planned_sets) {
-        planned_exercise_instance.planned_sets.forEach((set: planned_exercise_set) => {
-          total_reps += set.planned_reps;
-          const load = set.planned_load ? get_numeric_load(set.planned_load) : 0;
-          if (set.load_unit && set.load_unit !== preferred_unit) {
-            total_load += convert_weight(load * set.planned_reps, set.load_unit, preferred_unit);
-          } else {
-            total_load += load * set.planned_reps;
-          }
-        });
       }
-    }
+    });
   });
 
   return { total_sets, total_reps, total_load };
@@ -56,22 +52,19 @@ export const calculate_session_volume = (
 
 export const calculate_session_duration = (exercises: exercise[]): number => {
   return exercises.reduce((total, exercise) => {
-    if (exercise.is_varied_sets) {
-      const varied_exercise_instance = exercise as varied_exercise;
-      return total + varied_exercise_instance.set_details.reduce((set_total: number, set: planned_exercise_set) => {
+    return total + exercise.planned_sets.reduce((set_total: number, set: exercise_set) => {
+      if (set.sub_sets && set.sub_sets.length > 0) {
+        // Calculate duration for each sub-set
+        return set_total + set.sub_sets.reduce((sub_total, sub_set) => {
+          const rep_time = calculate_tempo_total(sub_set.planned_tempo);
+          return sub_total + (sub_set.planned_reps * rep_time) + (sub_set.planned_rest ?? 0);
+        }, 0);
+      } else {
+        // Calculate duration for regular set
         const rep_time = calculate_tempo_total(set.planned_tempo);
         return set_total + (set.planned_reps * rep_time) + (set.planned_rest ?? 0);
-      }, 0);
-    } else {
-      const planned_exercise_instance = exercise as planned_exercise;
-      if (planned_exercise_instance.planned_sets) {
-        return total + planned_exercise_instance.planned_sets.reduce((set_total: number, set: planned_exercise_set) => {
-          const rep_time = calculate_tempo_total(set.planned_tempo);
-          return set_total + (set.planned_reps * rep_time) + (set.planned_rest ?? 0);
-        }, 0);
       }
-      return total;
-    }
+    }, 0);
   }, 0);
 };
 
@@ -81,21 +74,17 @@ export const calculate_set_tut = (reps: number, tempo: string = '2010'): number 
 };
 
 export const calculate_exercise_tut = (exercise: exercise): number => {
-  if (exercise.is_varied_sets) {
-    const varied_exercise_instance = exercise as varied_exercise;
-    return varied_exercise_instance.set_details.reduce((total: number, set: planned_exercise_set) => {
+  return exercise.planned_sets.reduce((total: number, set: exercise_set) => {
+    if (set.sub_sets && set.sub_sets.length > 0) {
+      // Calculate TUT for each sub-set
+      return total + set.sub_sets.reduce((sub_total, sub_set) => {
+        return sub_total + calculate_set_tut(sub_set.planned_reps, sub_set.planned_tempo || '2010');
+      }, 0);
+    } else {
+      // Calculate TUT for regular set
       return total + calculate_set_tut(set.planned_reps, set.planned_tempo || '2010');
-    }, 0);
-  }
-  
-  const planned_exercise_instance = exercise as planned_exercise;
-  if (planned_exercise_instance.planned_sets) {
-    return planned_exercise_instance.planned_sets.reduce((total: number, set: planned_exercise_set) => {
-      return total + calculate_set_tut(set.planned_reps, set.planned_tempo || '2010');
-    }, 0);
-  }
-  
-  return 0;
+    }
+  }, 0);
 };
 
 export const calculate_linear_progression = (

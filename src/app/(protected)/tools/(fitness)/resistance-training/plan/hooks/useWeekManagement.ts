@@ -2,7 +2,6 @@ import { SetStateAction } from 'react';
 import { 
   program, 
   exercise, 
-  week_exercise, 
   progression_rules 
 } from '@/app/lib/types/pillars/fitness';
 import { calculate_progressed_exercises } from '@/app/lib/utils/fitness/resistance-training/exerciseProgression';
@@ -32,20 +31,9 @@ export function useWeekManagement({
 
   const applyProgressionToWeek = (week_number: number) => {
     setWeekExercises((prev: { [key: number]: exercise[] }) => {
-      const exercises_with_week = Object.fromEntries(
-        Object.entries(prev).map(([week, exercises]) => [
-          week,
-          exercises.map(ex => ({
-            ...ex,
-            week_number: parseInt(week),
-            base_exercise_id: ex.id,
-            week_specific_id: ex.id
-          }))
-        ])
-      );
       return calculate_progressed_exercises(
         week_number, 
-        exercises_with_week, 
+        prev, 
         program_data?.progression_rules as progression_rules
       ) as { [key: number]: exercise[] };
     });

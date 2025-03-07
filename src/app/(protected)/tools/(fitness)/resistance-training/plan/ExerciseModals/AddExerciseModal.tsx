@@ -16,14 +16,10 @@ import {
   ExerciseSelectHandler,
   load_unit,
   ExerciseFormData,
-  planned_exercise_set,
-  planned_exercise_sub_set,
-  get_next_pairing,
-  is_valid_pairing,
-  create_planned_exercise,
-  create_varied_exercise,
-  planned_exercise,
-  varied_exercise
+  exercise_set,
+  create_exercise,
+  exercise_sub_set,
+  base_exercise
 } from '@/app/lib/types/pillars/fitness';
 import { FilterOptionOption } from 'react-select';
 import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
@@ -155,6 +151,24 @@ const customSelectStyles = {
 };
 
 /**
+ * Helper function to get the next available pairing
+ */
+const getNextPairing = (exercises: exercise[]): string => {
+  const existingPairings = exercises.map(ex => ex.pairing).filter(Boolean);
+  if (existingPairings.length === 0) return 'A1';
+
+  const lastPairing = existingPairings.sort().pop() || 'A1';
+  const letter = lastPairing.charAt(0);
+  const number = parseInt(lastPairing.slice(1));
+
+  if (number < 9) {
+    return `${letter}${number + 1}`;
+  } else {
+    return `${String.fromCharCode(letter.charCodeAt(0) + 1)}1`;
+  }
+};
+
+/**
  * Props required by the AddExerciseModal:
  * 
  * Core Props:
@@ -238,19 +252,7 @@ export default function AddExerciseModal({
   const defaultUnit: load_unit = (userSettings?.pillar_settings?.fitness?.resistanceTraining?.loadUnit || 'lbs') === 'kg' ? 'kg' : 'lbs';
   const alternateUnit: load_unit = defaultUnit === 'kg' ? 'lbs' : 'kg';
 
-  // Initialize useAlternateUnit based on user settings when modal opens
-  useEffect(() => {
-    if (isOpen && exercise) {
-      const exerciseUnit = 'set_details' in exercise 
-        ? exercise.set_details[0]?.load_unit 
-        : exercise.planned_sets?.[0]?.load_unit;
-      
-      // Use exercise unit if available, otherwise use user's preferred unit
-      setUseAlternateUnit(exerciseUnit ? exerciseUnit !== 'kg' : defaultUnit !== 'kg');
-    }
-  }, [isOpen, exercise, defaultUnit]);
-
-   // State for handling new exercise creation flow
+  // Add state for creating new exercise
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
 
@@ -269,18 +271,18 @@ export default function AddExerciseModal({
   } = useForm<ExerciseFormData>({
     resolver: zodResolver(exerciseSchema),
     defaultValues: {
-      id: '',                    // String ID for form
-      name: '',                  // Exercise name
-      pairing: 'A1',            // Default pairing
-      sets: 3,                  // Default number of sets
-      reps: 8,                  // Default reps per set
-      load: 0,                  // Default load (can be number or string)
-      tempo: '2010',            // Default tempo
-      rest: 60,                 // Default rest in seconds
-      notes: '',                // Optional notes
-      isVariedSets: false,      // Whether sets vary in reps/load
-      isAdvancedSets: false,    // Whether sets include subsets
-      setDetails: undefined     // Details for varied sets
+      id: '',
+      name: '',
+      pairing: 'A1',
+      sets: 1,
+      reps: 1,
+      load: 0,
+      tempo: '2010',
+      rest: 60,
+      notes: '',
+      isVariedSets: false,
+      isAdvancedSets: false,
+      setDetails: undefined
     }
   });
 
@@ -289,13 +291,37 @@ export default function AddExerciseModal({
   const isAdvancedSets = watch('isAdvancedSets');
   const currentSets = watch('sets');
 
-  // Update the watch effect
+  // Initialize useAlternateUnit based on user settings when modal opens
   useEffect(() => {
-    const subscription = watch((value) => {
-      Debug.form('Form value changed:', value);
-    });
-    return () => subscription?.unsubscribe?.();
-  }, [watch]);
+    if (isOpen && exercise) {
+      const resetData: ExerciseFormData = {
+        id: exercise.id.toString(),
+        name: selectedExerciseName || exercise.name,
+        pairing: exercise.pairing,
+        sets: exercise.sets,
+        isVariedSets: exercise.is_varied_sets,
+        isAdvancedSets: exercise.is_advanced_sets,
+        reps: exercise.is_varied_sets ? 0 : exercise.planned_sets[0]?.planned_reps ?? 0,
+        load: exercise.is_varied_sets ? 0 : exercise.planned_sets[0]?.planned_load ?? 0,
+        tempo: exercise.planned_sets[0]?.planned_tempo ?? '2010',
+        rest: exercise.planned_sets[0]?.planned_rest ?? 60,
+        notes: exercise.notes,
+        setDetails: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
+          set_number: set.set_number,
+          planned_reps: set.planned_reps,
+          planned_load: set.planned_load,
+          planned_rest: set.planned_rest,
+          planned_tempo: set.planned_tempo,
+          rpe: set.rpe,
+          rir: set.rir,
+          notes: set.notes,
+          sub_sets: set.sub_sets
+        })) : undefined
+      };
+      reset(resetData);
+    }
+  }, [isOpen, exercise, selectedExerciseName, reset]);
+
   /**
    * Effect: Initialize form when editing existing exercise
    * Handles type conversion for discriminated union
@@ -304,24 +330,35 @@ export default function AddExerciseModal({
     Debug.form('Initializing form', {
       isEditing: !!exercise,
       exerciseId: exercise?.id,
-      nextPairing: exercise ? exercise.pairing : get_next_pairing(exercises.filter(ex => ex.pairing))
+      nextPairing: exercise ? exercise.pairing : getNextPairing(exercises.filter(ex => ex.pairing))
     });
 
     if (exercise) {
-      const isVaried = 'set_details' in exercise;
       const formData = {
         ...exercise,
         id: exercise.id.toString(),
         name: selectedExerciseName || exercise.name,
-        isVariedSets: isVaried,
-        isAdvancedSets: isVaried && exercise.set_details?.some(set => 
-          set.sub_sets && set.sub_sets.length > 0
-        )
+        isVariedSets: exercise.is_varied_sets,
+        isAdvancedSets: exercise.is_advanced_sets,
+        setDetails: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
+          set_number: set.set_number,
+          planned_reps: set.planned_reps,
+          planned_load: set.planned_load,
+          planned_rest: set.planned_rest,
+          planned_tempo: set.planned_tempo,
+          notes: set.notes,
+          sub_sets: set.sub_sets?.map(subSet => ({
+            sub_set_number: subSet.sub_set_number,
+            planned_reps: subSet.planned_reps,
+            planned_load: subSet.planned_load,
+            planned_rest: subSet.planned_rest
+          }))
+        })) : undefined
       };
       reset(formData);
     } else {
-      // Use our utility function to get the next pairing
-      const nextPairing = get_next_pairing(exercises.filter(ex => ex.pairing));
+      // Use our local utility function to get the next pairing
+      const nextPairing = getNextPairing(exercises.filter(ex => ex.pairing));
 
       // Default values for new exercises
       reset({
@@ -341,13 +378,6 @@ export default function AddExerciseModal({
     }
   }, [exercise, exercises, reset, selectedExerciseName]);
 
-  // Update the watch effect
-  useEffect(() => {
-    const subscription = watch((value) => {
-      Debug.form('Form value changed:', value);
-    });
-    return () => subscription?.unsubscribe?.();
-  }, [watch]);
 
   /**
    * Handles the selection of an exercise from the dropdown
@@ -374,25 +404,24 @@ export default function AddExerciseModal({
     }
   };
 
-   // Handle pre-selected exercise name
-   useEffect(() => {
-    Debug.exerciseMgmt('Pre-selected exercise effect triggered', {
-      selectedExerciseName,
-      exerciseOptionsCount: exerciseOptions.length
+  useEffect(() => {
+    // Only run this effect if we're editing an existing exercise
+    if (!isOpen || !exercise || !selectedExerciseName || exerciseOptions.length === 0) return;
+
+    Debug.exerciseMgmt('Setting up exercise for editing', {
+      exerciseName: selectedExerciseName,
+      exerciseId: exercise.id
     });
     
-    if (selectedExerciseName && exerciseOptions.length > 0) {
-      const matchingExercise = exerciseOptions.find(
-        option => option.label === selectedExerciseName
-      );
-      Debug.exerciseMgmt('Found matching exercise:', matchingExercise);
-      
-      if (matchingExercise) {
-        Debug.exerciseMgmt('Selecting pre-selected exercise');
-        handleExerciseSelect(matchingExercise, { action: 'select-option' });
-      }
+    const matchingExercise = exerciseOptions.find(
+      option => option.label === selectedExerciseName
+    );
+    
+    if (matchingExercise) {
+      Debug.exerciseMgmt('Pre-selecting exercise for editing');
+      handleExerciseSelect(matchingExercise, { action: 'select-option' });
     }
-  }, [selectedExerciseName, exerciseOptions, handleExerciseSelect]);
+  }, [isOpen, exercise, selectedExerciseName, exerciseOptions, handleExerciseSelect]);
 
   // Use exerciseLibrary if provided (minimal change)
    useEffect(() => {
@@ -466,7 +495,7 @@ export default function AddExerciseModal({
     Debug.setMgmt('Managing set details', { isVariedSets, currentSets });
 
     if (isVariedSets && currentSets > 0) {
-      const newSetDetails: planned_exercise_set[] = Array.from({ length: currentSets }, (_, i) => ({
+      const newSetDetails: exercise_set[] = Array.from({ length: currentSets }, (_, i) => ({
         id: i + 1,
         set_number: i + 1,
         planned_reps: watch('reps'),
@@ -497,10 +526,22 @@ export default function AddExerciseModal({
           ...exercise,
           id: exercise.id.toString(),
           name: selectedExerciseName || exercise.name,
-          isVariedSets: 'set_details' in exercise,
-          isAdvancedSets: 'set_details' in exercise && exercise.set_details?.some(set => 
-            set.sub_sets && set.sub_sets.length > 0
-          )
+          isVariedSets: exercise.is_varied_sets,
+          isAdvancedSets: exercise.is_advanced_sets,
+          setDetails: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
+            set_number: set.set_number,
+            planned_reps: set.planned_reps,
+            planned_load: set.planned_load,
+            planned_rest: set.planned_rest,
+            planned_tempo: set.planned_tempo,
+            notes: set.notes,
+            sub_sets: set.sub_sets?.map(subSet => ({
+              sub_set_number: subSet.sub_set_number,
+              planned_reps: subSet.planned_reps,
+              planned_load: subSet.planned_load,
+              planned_rest: subSet.planned_rest
+            }))
+          })) : undefined
         });
       } else {
         Debug.form('Resetting form to defaults');
@@ -527,7 +568,7 @@ export default function AddExerciseModal({
    * Handles form submission with proper type conversion
    */
   const onSubmit = async (data: ExerciseFormData) => {
-    Debug.form('Form submission started', { data, errors });
+    Debug.form('Form submission started', { data });
   
     if (!selectedExercise) {
       Debug.validation('No exercise selected');
@@ -535,83 +576,84 @@ export default function AddExerciseModal({
       return;
     }
   
-    // 1. Basic exercise data (matches BaseExercise type and program_day_exercises table)
-    const baseExerciseData = {
-      id: parseInt(data.id),
-      name: data.name,
-      exercise_id: selectedExercise.data.id,
-      source: selectedExercise.data.source === 'user' ? 'user_exercises' : 'exercise_library' as 'user_exercises' | 'exercise_library',
-      pairing: data.pairing,
-      notes: data.notes
-    };
+    try {
+      // 1. Prepare base exercise data with proper optional handling
+      const baseExerciseData: Omit<base_exercise, 'is_varied_sets' | 'is_advanced_sets'> = {
+        id: Number(data.id),
+        name: data.name,
+        exercise_id: selectedExercise.data.id,
+        source: selectedExercise.data.source === 'library' ? 'exercise_library' : 'user_exercises' as const
+      };
+      Debug.form('Base exercise data prepared', baseExerciseData);
   
-    // 2. Handle load unit standardization (matches LoadUnit type)
-    const loadUnit = (useAlternateUnit ? alternateUnit : defaultUnit) as load_unit;
+      // 2. Determine load unit (simplified)
+      const loadUnit = useAlternateUnit ? 'kg' : 'lbs' as load_unit;
+      Debug.form('Load unit determined', { loadUnit });
   
-    if (data.isVariedSets) {
-      Debug.form('Creating varied exercise', { setDetails: data.setDetails });
-      
-      // 3a. Format varied exercise (matches VariedExercise type and program_day_exercise_sets/sub_sets tables)
-      const exercise: varied_exercise = {
-        ...baseExerciseData,
-        is_varied_sets: true,
-        is_advanced_sets: data.isAdvancedSets,
-        set_details: data.setDetails?.map(set => ({
+      // 3. Create planned_sets array based on form state
+      let planned_sets: exercise_set[];
+  
+      if (data.isVariedSets) {
+        // For varied/advanced sets, use the setDetails directly
+        planned_sets = data.setDetails?.map(set => ({
           set_number: set.set_number,
           planned_reps: set.planned_reps,
-          planned_load: set.planned_load || undefined,
-          load_unit: set.planned_load ? loadUnit : undefined,
+          planned_load: set.planned_load,
+          load_unit: loadUnit,
+          planned_tempo: data.tempo,
           planned_rest: set.planned_rest,
-          planned_tempo: set.planned_tempo,
-          rpe: set.rpe,
-          rir: set.rir,
-          notes: set.notes,
-          sub_sets: data.isAdvancedSets ? set.sub_sets?.map(subSet => ({
+          notes: '',
+          sub_sets: data.isAdvancedSets ? set.sub_sets?.map((subSet: exercise_sub_set) => ({
             sub_set_number: subSet.sub_set_number,
             planned_reps: subSet.planned_reps,
-            planned_load: subSet.planned_load || undefined,
-            load_unit: subSet.load_unit,
-            planned_rest: subSet.planned_rest,
-            planned_tempo: subSet.planned_tempo,
-            rpe: subSet.rpe,
-            rir: subSet.rir
+            planned_load: subSet.planned_load,
+            load_unit: loadUnit,
+            planned_rest: subSet.planned_rest
           })) : undefined
-        })) || []
-      };
-  
-      Debug.form('Submitting varied exercise', exercise);
-      await onSave(exercise);
-  
-    } else {
-      Debug.form('Creating planned exercise');
-  
-      // 3b. Format planned exercise (matches PlannedExercise type and program_day_exercise_sets table)
-      const exercise: planned_exercise = {
-        ...baseExerciseData,
-        is_varied_sets: false,
-        is_advanced_sets: false,
-        sets: data.sets,
-        planned_sets: Array.from({ length: data.sets }, (_, i) => ({
+        })) || [];
+      } else {
+        // For standard sets, create array of identical sets
+        planned_sets = Array.from({ length: data.sets }, (_, i) => ({
           set_number: i + 1,
           planned_reps: data.reps,
-          planned_load: data.load || undefined,
-          load_unit: data.load ? loadUnit : undefined,
-          planned_rest: data.rest,
+          planned_load: data.load,
+          load_unit: loadUnit,
           planned_tempo: data.tempo,
-          rpe: data.rpe,
-          rir: data.rir,
-          notes: data.notes
-        }))
-      };
+          planned_rest: data.rest
+        }));
+      }
+      Debug.form('Planned sets created', { planned_sets });
   
-      Debug.form('Submitting planned exercise', exercise);
+      // 4. Create the final exercise object using the new helper
+      const exercise = create_exercise(
+        baseExerciseData,
+        data.isVariedSets,
+        data.isAdvancedSets,
+        planned_sets
+      );
+  
+      Debug.form('Final exercise data', exercise);
       await onSave(exercise);
+      onClose();
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      toast.error('Failed to save exercise');
     }
-  
-    Debug.form('Exercise saved successfully');
-    setUseAlternateUnit(false);
-    onClose();
   };
+
+  const formSubmitHandler = handleSubmit((data) => {
+    Debug.form('Form submit handler triggered', { data });
+    try {
+      return onSubmit(data);
+    } catch (error) {
+      Debug.form('Error in formSubmitHandler:', error);
+      throw error; // Re-throw to be caught by the form's error handler
+    }
+  }, (errors) => {
+    // This is the validation errors handler
+    Debug.validation('Form validation failed:', errors);
+    return false;
+  });
 
   /**
    * Adds a subset to a specific set in varied exercises
@@ -628,7 +670,7 @@ export default function AddExerciseModal({
     const updatedSetDetails = [...currentSetDetails];
     const currentSet = updatedSetDetails[setIndex];
     
-    const newSubSet: planned_exercise_sub_set = {
+    const newSubSet: exercise_sub_set = {
       sub_set_number: (currentSet.sub_sets?.length || 0) + 1,
       planned_reps: currentSet.planned_reps,
       planned_load: currentSet.planned_load,
@@ -657,7 +699,7 @@ export default function AddExerciseModal({
     const currentSet = updatedSetDetails[setIndex];
 
     if (currentSet.sub_sets) {
-      currentSet.sub_sets = currentSet.sub_sets.filter((_: planned_exercise_sub_set, idx: number) => idx !== subSetIndex);
+      currentSet.sub_sets = currentSet.sub_sets.filter((_: exercise_sub_set, idx: number) => idx !== subSetIndex);
       Debug.setMgmt('Updated set details', { setIndex, remainingSubSets: currentSet.sub_sets.length });
     }
 
@@ -705,8 +747,8 @@ export default function AddExerciseModal({
       setIsCreatingExercise(false);
       
     } catch (error) {
-      Debug.api('Error creating user exercise', error);
-      console.error('Error creating user exercise:', error);
+      Debug.form('Error saving exercise', error);
+      toast.error('Failed to save exercise: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -788,7 +830,25 @@ export default function AddExerciseModal({
         {exercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
       <Modal.Body>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            Debug.form('Raw form submit event triggered');
+            try {
+              const result = formSubmitHandler(e);
+              if (result && typeof result.catch === 'function') {
+                result.catch((error) => {
+                  Debug.form('Error in form submission:', error);
+                });
+              } else {
+                Debug.form('Form handler did not return a promise', { result });
+              }
+            } catch (error) {
+              Debug.form('Error in form event handler:', error);
+            }
+          }} 
+          className="space-y-4"
+        >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Exercise Selection Section */}
             <div className="col-span-2">
@@ -980,13 +1040,11 @@ export default function AddExerciseModal({
                   <button
                     type="button"
                     onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md 
-                             flex items-center space-x-1 text-gray-700"
-                    title={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
-                    aria-label={`Switch to ${useAlternateUnit ? defaultUnit : alternateUnit}`}
+                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                    title={`Switch to ${useAlternateUnit ? 'lbs' : 'kg'}`}
                   >
-                    <HiSwitchHorizontal className="h-4 w-4" aria-hidden="true" />
-                    <span>{useAlternateUnit ? alternateUnit : defaultUnit}</span>
+                    <HiSwitchHorizontal className="h-4 w-4" />
+                    <span>{useAlternateUnit ? 'kg' : 'lbs'}</span>
                   </button>
                 </div>
                 {errors.load && (
@@ -1149,7 +1207,7 @@ export default function AddExerciseModal({
               </div>
               
               <div className="grid gap-4">
-                {watch('setDetails')?.map((set: planned_exercise_set, setIndex: number) => (
+                {watch('setDetails')?.map((set: exercise_set, setIndex: number) => (
                   <div key={set.set_number} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium dark:text-white">Set {set.set_number}</span>
@@ -1213,7 +1271,7 @@ export default function AddExerciseModal({
                     )}
 
                      {/* Sub-sets */}
-                     {isAdvancedSets && set.sub_sets?.map((subSet: planned_exercise_sub_set, subSetIndex: number) => (
+                     {isAdvancedSets && set.sub_sets?.map((subSet: exercise_sub_set, subSetIndex: number) => (
                       <div key={subSetIndex} className="space-y-4 p-4 border rounded-lg">
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium dark:text-white">
@@ -1296,12 +1354,6 @@ export default function AddExerciseModal({
           </div>
         </form>
       </Modal.Body>
-      {isCreatingExercise && <ConfirmationDialog 
-        isOpen={isCreatingExercise}
-        exerciseName={newExerciseName}
-        onConfirm={handleCreateExercise}
-        onCancel={() => setIsCreatingExercise(false)}
-      />}
     </Modal>
   );
 }

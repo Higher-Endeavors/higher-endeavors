@@ -12,7 +12,14 @@ export function useUserManagement() {
   const { settings: userSettings, isLoading: settingsLoading } = useUserSettings();
   const [isAdmin, setIsAdmin] = useState(false);
   const current_user_id = session?.user?.id ? parseInt(session.user.id) : 0;
-  const [selected_user_id, setSelectedUserId] = useState<number>(current_user_id);
+  const [selected_user_id, setSelectedUserId] = useState<number>(0);
+
+  // Initialize selected_user_id when session loads
+  useEffect(() => {
+    if (current_user_id) {
+      setSelectedUserId(current_user_id);
+    }
+  }, [current_user_id]);
 
   // Debug logs
   useEffect(() => {
@@ -20,26 +27,17 @@ export function useUserManagement() {
       isAdmin,
       session_user_id: session?.user?.id,
       selected_user_id,
-      settingsLoading
+      settingsLoading,
+      user_role: session?.user?.role
     });
-  }, [isAdmin, session?.user?.id, selected_user_id, settingsLoading]);
+  }, [isAdmin, session?.user?.id, selected_user_id, settingsLoading, session?.user?.role]);
 
-  // Check admin status
+  // Check admin status from session
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (session?.user?.id) {
-        try {
-          const response = await fetch('/api/users');
-          setIsAdmin(response.ok);
-        } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        }
-      }
-    };
-
-    checkAdminStatus();
-  }, [session?.user?.id]);
+    if (session?.user?.role) {
+      setIsAdmin(session.user.role === 'admin');
+    }
+  }, [session?.user?.role]);
 
   const handleUserSelect = (user_id: number) => {
     setSelectedUserId(user_id);

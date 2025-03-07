@@ -1,33 +1,10 @@
 import type { 
   exercise,
-  week_exercise, 
-  ExerciseOption, 
-  planned_exercise_set, 
-  program, 
-  varied_exercise, 
-  planned_exercise,
+  ExerciseOption,
+  exercise_set,
   exercise_source
 } from '@/app/lib/types/pillars/fitness';
 import type { UserSettings } from '@/app/lib/types/user_settings';
-
-/**
- * Transforms a base exercise into a week-specific exercise
- * @param base_exercise The original exercise
- * @param week_number The week number this exercise belongs to
- * @returns week_exercise with week-specific properties
- */
-
-// Temporary implementation until we connect to database
-const generate_week_specific_id = (): number => {
-    return Math.floor(Math.random() * 1000000);  // Generates random ID between 0-999999
-};
-
-export const create_week_exercise = (base_exercise: exercise, week_number: number): week_exercise => ({
-    ...base_exercise,
-    week_number,
-    base_exercise_id: base_exercise.id as number,
-    week_specific_id: generate_week_specific_id()
-});
 
 /**
  * Transforms an ExerciseOption into a regular exercise with default values
@@ -70,28 +47,19 @@ export const transform_to_regular_exercise = (
  * @returns The transformed exercise ready for saving
  */
 export const transform_exercise_for_save = (exercise: exercise, index: number) => {
-  if (exercise.is_varied_sets) {
-    const varied_exercise = exercise as varied_exercise;
-    return {
-      ...exercise,
-      order_index: index,
-      sets: varied_exercise.set_details.map((set: planned_exercise_set) => ({
-        set_number: set.set_number,
-        reps: set.planned_reps,
-        load: set.planned_load,
-        load_unit: set.load_unit,
-        tempo: set.planned_tempo,
-        rest: set.planned_rest,
-        notes: set.notes
-      }))
-    };
-  }
-    
-  // For regular exercises, omit the varied set properties
   const { is_varied_sets, is_advanced_sets, ...base_exercise } = exercise;
   return {
     ...base_exercise,
-    order_index: index
+    order_index: index,
+    sets: exercise.planned_sets.map((set: exercise_set) => ({
+      set_number: set.set_number,
+      reps: set.planned_reps,
+      load: set.planned_load,
+      load_unit: set.load_unit,
+      tempo: set.planned_tempo,
+      rest: set.planned_rest,
+      notes: set.notes
+    }))
   };
 };
 
@@ -123,23 +91,14 @@ export const transform_week_exercises = (
             custom_exercise_name: exercise.name,
             pairing: exercise.pairing,
             notes: exercise.notes,
-            sets: exercise.is_varied_sets 
-              ? (exercise as varied_exercise).set_details.map((set: planned_exercise_set) => ({
-                  set_number: set.set_number,
-                  planned_reps: set.planned_reps,
-                  planned_load: set.planned_load,
-                  load_unit: set.load_unit,
-                  planned_rest: set.planned_rest,
-                  planned_tempo: set.planned_tempo
-                }))
-              : (exercise as planned_exercise).planned_sets?.map((set: planned_exercise_set, set_index: number) => ({
-                  set_number: set_index + 1,
-                  planned_reps: set.planned_reps,
-                  planned_load: set.planned_load,
-                  load_unit: set.load_unit,
-                  planned_rest: set.planned_rest,
-                  planned_tempo: set.planned_tempo
-                })) || []
+            sets: exercise.planned_sets.map((set: exercise_set) => ({
+              set_number: set.set_number,
+              planned_reps: set.planned_reps,
+              planned_load: set.planned_load,
+              load_unit: set.load_unit,
+              planned_rest: set.planned_rest,
+              planned_tempo: set.planned_tempo
+            }))
           }))
         }]
       });

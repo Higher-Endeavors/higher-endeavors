@@ -64,43 +64,10 @@ export interface base_exercise {
   source: 'exercise_library' | 'user_exercises';
 }
 
-export interface planned_exercise extends base_exercise {
-  pairing: string;
-  sets: number;
-  is_varied_sets: boolean;
-  is_advanced_sets: boolean;
-  planned_sets?: planned_exercise_set[];
-  notes?: string;
-}
-
-export interface varied_exercise extends base_exercise {
-  pairing: string;
-  is_varied_sets: true;
-  is_advanced_sets: boolean;
-  set_details: planned_exercise_set[];
-  notes?: string;
-}
-
-export function is_varied_exercise(exercise: exercise): exercise is varied_exercise {
-  return 'set_details' in exercise && exercise.set_details !== undefined;
-}
-
-export type exercise = planned_exercise | varied_exercise;
-
-export interface planned_exercise_set {
-  set_number: number;
-  planned_reps: number;
-  planned_load?: string | number;
-  load_unit?: load_unit;
-  planned_rest?: number;
-  planned_tempo?: string;
-  rpe?: number;
-  rir?: number;
-  notes?: string;
-  sub_sets?: planned_exercise_sub_set[];
-}
-
-export interface planned_exercise_sub_set {
+/**
+ * Exercise set interfaces
+ */
+export interface exercise_sub_set {
   sub_set_number: number;
   planned_reps: number;
   planned_load?: string | number;
@@ -111,15 +78,72 @@ export interface planned_exercise_sub_set {
   rir?: number;
 }
 
-export interface week_exercise extends base_exercise {
-  week_number: number;
-  base_exercise_id: number;
-  week_specific_id: number;
+export interface exercise_set {
+  set_number: number;
+  planned_reps: number;
+  planned_load?: string | number;
+  load_unit?: load_unit;
+  planned_rest?: number;
+  planned_tempo?: string;
+  rpe?: number;
+  rir?: number;
+  notes?: string;
+  sub_sets?: exercise_sub_set[];
 }
 
 /**
- * Type for exercise options in react-select (React-specific, remains camelCase)
+ * Main exercise interface
  */
+export interface exercise extends base_exercise {
+  pairing: string;
+  sets: number;
+  planned_sets: exercise_set[];
+  notes?: string;
+  // UI state flags
+  is_varied_sets: boolean;
+  is_advanced_sets: boolean;
+}
+
+/**
+ * Helper functions for exercise management
+ */
+export function create_exercise(
+  base_exercise: Omit<base_exercise, 'is_varied_sets' | 'is_advanced_sets'>,
+  is_varied_sets: boolean = false,
+  is_advanced_sets: boolean = false,
+  planned_sets: exercise_set[] = []
+): exercise {
+  return {
+    ...base_exercise,
+    pairing: '',
+    sets: planned_sets.length || 0,
+    is_varied_sets,
+    is_advanced_sets,
+    planned_sets: planned_sets.length > 0 ? planned_sets : []
+  };
+}
+
+/**
+ * React-specific types (remain in camelCase)
+ */
+export interface ExerciseFormData {
+  id: string;
+  name: string;
+  pairing: string;
+  sets: number;
+  reps: number;
+  load: number | string | undefined;
+  loadUnit?: load_unit;
+  tempo: string;
+  rest: number;
+  notes?: string;
+  rpe?: number;
+  rir?: number;
+  isVariedSets: boolean;
+  isAdvancedSets: boolean;
+  setDetails?: exercise_set[];
+}
+
 export interface ExerciseOption {
   id: number;
   value: string;
@@ -152,80 +176,24 @@ export type ExerciseSelectHandler = (
   }
 ) => void;
 
-/**
- * Helper functions for exercise management
- */
-export function create_planned_exercise(base_exercise: Omit<base_exercise, 'is_varied_sets' | 'is_advanced_sets'>): planned_exercise {
-  return {
-    ...base_exercise,
-    pairing: '',
-    sets: 0,
-    is_varied_sets: false,
-    is_advanced_sets: false
-  };
+export interface ExerciseItemProps {
+  exercise: exercise;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
-export function create_varied_exercise(
-  base_exercise: Omit<base_exercise, 'is_varied_sets' | 'is_advanced_sets'>,
-  set_details: planned_exercise_set[]
-): varied_exercise {
-  return {
-    ...base_exercise,
-    pairing: '',
-    is_varied_sets: true,
-    is_advanced_sets: set_details.length > 0,
-    set_details
-  };
+export interface MenuState {
+  [key: number]: boolean;
 }
 
-export function get_next_pairing(exercises: exercise[]): string {
-  if (exercises.length === 0) return 'A1';
-  
-  const pairings = exercises.map(e => e.pairing).sort();
-  const last_pairing = pairings[pairings.length - 1];
-  
-  if (!last_pairing) return 'A1';
-  
-  const letter = last_pairing.charAt(0);
-  const number = parseInt(last_pairing.charAt(1));
-  
-  if (number === 2) {
-    return String.fromCharCode(letter.charCodeAt(0) + 1) + '1';
-  }
-  
-  return letter + '2';
+export interface ExerciseListProps {
+  exercises: exercise[];
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
-export function apply_linear_progression(
-  exercise: exercise,
-  week_number: number,
-  volume_increment_percentage: number,
-  load_increment_percentage: number
-): exercise {
-  if ('is_varied_sets' in exercise && exercise.is_varied_sets) {
-    const varied_exercise = exercise as varied_exercise;
-    const updated_sets = varied_exercise.set_details.map(set => {
-      const base_reps = set.planned_reps;
-      const base_load = typeof set.planned_load === 'number' ? set.planned_load : 0;
-
-      const volume_multiplier = 1 + ((week_number - 1) * (volume_increment_percentage / 100));
-      const load_multiplier = 1 + ((week_number - 1) * (load_increment_percentage / 100));
-
-      return {
-        ...set,
-        planned_reps: Math.max(1, Math.round(base_reps * volume_multiplier)),
-        planned_load: typeof set.planned_load === 'number' 
-          ? Math.round(base_load * load_multiplier * 100) / 100 
-          : set.planned_load
-      };
-    });
-
-    return {
-      ...exercise,
-      set_details: updated_sets
-    };
-  }
-  return exercise;
+export interface GroupedExercises {
+  [key: string]: exercise[];
 }
 
 /**
@@ -278,45 +246,4 @@ export interface training_session {
 
 export function is_valid_pairing(pairing: string): boolean {
   return /^([A-Z][1-2]|WU|CD)$/.test(pairing);
-}
-
-/**
- * React-specific types (remain in camelCase)
- */
-export interface ExerciseFormData {
-  id: string;
-  name: string;
-  pairing: string;
-  sets: number;
-  reps: number;
-  load: number | string | undefined;
-  loadUnit?: load_unit;
-  tempo: string;
-  rest: number;
-  notes?: string;
-  rpe?: number;
-  rir?: number;
-  isVariedSets: boolean;
-  isAdvancedSets: boolean;
-  setDetails?: planned_exercise_set[];
-}
-
-export interface ExerciseItemProps {
-  exercise: exercise;
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-}
-
-export interface MenuState {
-  [key: number]: boolean;
-}
-
-export interface ExerciseListProps {
-  exercises: exercise[];
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
-}
-
-export interface GroupedExercises {
-  [key: string]: exercise[];
 }

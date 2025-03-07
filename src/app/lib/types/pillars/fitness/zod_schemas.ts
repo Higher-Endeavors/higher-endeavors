@@ -62,81 +62,105 @@ export const loadSchema = z.union([
  * Schema for validating sub-sets within a set
  */
 export const subSetSchema = z.object({
-  reps: z.number().int().min(1).max(99),
-  load: loadSchema,
+  sub_set_number: z.number().int().min(1),
+  planned_reps: z.number().int().min(1).max(99),
+  planned_load: loadSchema.optional(),
   load_unit: z.enum(['kg', 'lbs'] as const).optional(),
-  notes: z.string().optional(),
-  rest: z.number().int().min(0).max(600).optional()
+  planned_tempo: z.string().regex(TEMPO_REGEX).optional(),
+  planned_rest: z.number().int().min(0).max(600).optional(),
+  rpe: z.number().refine(
+    (val) => (val >= 0 && val <= 10) || (val >= 6 && val <= 20),
+    { message: "RPE must be between 0-10 (modified) or 6-20 (Borg scale)" }
+  ).optional(),
+  rir: z.number().min(0).max(10).optional()
 });
 
 /**
- * Schema for validating individual set details in varied exercises
+ * Schema for validating individual set details
  */
 export const setDetailsSchema = z.object({
   set_number: z.number().int().min(1),
-  reps: z.number().int().min(1).max(99),
-  load: loadSchema,
+  planned_reps: z.number().int().min(1).max(99),
+  planned_load: loadSchema.optional(),
   load_unit: z.enum(['kg', 'lbs'] as const).optional(),
-  tempo: z.string().regex(TEMPO_REGEX, {
-    message: "Tempo must be 4 digits with optional 'X' in position 3"
-  }),
-  rest: z.number().int().min(0).max(600),
+  planned_tempo: z.string().regex(TEMPO_REGEX).optional(),
+  planned_rest: z.number().int().min(0).max(600).optional(),
+  rpe: z.number().refine(
+    (val) => (val >= 0 && val <= 10) || (val >= 6 && val <= 20),
+    { message: "RPE must be between 0-10 (modified) or 6-20 (Borg scale)" }
+  ).optional(),
+  rir: z.number().min(0).max(10).optional(),
   notes: z.string().optional(),
   sub_sets: z.array(subSetSchema).optional()
 });
 
 /**
- * Base schema for exercise validation
+ * Base schema for common exercise properties
  */
-const baseExerciseSchema = {
-  id: z.string(),
+const baseExerciseSchema = z.object({
+  id: z.number(),
   name: z.string().min(1, "Exercise name is required"),
+  exercise_id: z.number(),
+  source: z.enum(['exercise_library', 'user_exercises'] as const),
   pairing: z.string().regex(PAIRING_REGEX, {
-    message: "Pairing must be a letter followed by 1-2, or WU/CD"
+    message: "Pairing must be a letter followed by 1-2 digits, or WU/CD"
   }),
-  sets: z.number().int().min(1).max(99),
-  reps: z.number().int().min(1).max(99),
-  load: loadSchema,
-  load_unit: z.enum(['kg', 'lbs'] as const).optional(),
-  tempo: z.string().regex(TEMPO_REGEX, {
-    message: "Tempo must be 4 digits with optional 'X' in position 3"
-  }),
-  rest: z.number().int().min(0).max(600),
   notes: z.string().optional(),
-  rpe: z.number().optional(),
-  rir: z.number().optional(),
-  source: z.enum(['library', 'user', 'custom']).optional(),
-  library_id: z.number().optional(),
-  user_exercise_id: z.number().optional(),
-};
+  rpe: z.number().refine(
+    (val) => (val >= 0 && val <= 10) || (val >= 6 && val <= 20),
+    { message: "RPE must be between 0-10 (modified) or 6-20 (Borg scale)" }
+  ).optional(),
+  rir: z.number().min(0).max(10).optional()
+});
 
 /**
  * Main schema for validating exercises
- * Uses discriminated union to handle both regular and varied exercises
+ * Uses discriminated union to handle different exercise types
  */
-export const exerciseSchema = z.discriminatedUnion('is_varied_sets', [
-  // Regular exercise schema
-  z.object({
-    ...baseExerciseSchema,
-    is_varied_sets: z.literal(false),
-    is_advanced_sets: z.literal(false),
-    set_details: z.undefined()
+export const exerciseSchema = z.discriminatedUnion('exercise_set_type', [
+  // Standard exercise schema (fixed sets)
+  baseExerciseSchema.extend({
+    exercise_set_type: z.literal('standard'),
+    sets: z.number().int().min(1).max(99),
+    planned_sets: z.array(z.object({
+      set_number: z.number().int().min(1),
+      planned_reps: z.number().int().min(1).max(99),
+      planned_load: loadSchema.optional(),
+      load_unit: z.enum(['kg', 'lbs'] as const).optional(),
+      planned_tempo: z.string().regex(TEMPO_REGEX).optional(),
+      planned_rest: z.number().int().min(0).max(600).optional(),
+      rpe: z.number().min(0).max(10).optional(),
+      rir: z.number().min(0).max(10).optional(),
+      notes: z.string().optional()
+    }))
   }),
-  // Varied exercise schema
-  z.object({
-    ...baseExerciseSchema,
-    is_varied_sets: z.literal(true),
-    is_advanced_sets: z.boolean(),
-    set_details: z.array(setDetailsSchema).min(1)
+  // Varied exercise schema (different sets)
+  baseExerciseSchema.extend({
+    exercise_set_type: z.literal('varied'),
+    sets: z.number().int().min(1).max(99),
+    planned_sets: z.array(setDetailsSchema)
+  }),
+  // Advanced exercise schema (sets with subsets)
+  baseExerciseSchema.extend({
+    exercise_set_type: z.literal('advanced'),
+    sets: z.number().int().min(1).max(99),
+    planned_sets: z.array(setDetailsSchema.extend({
+      sub_sets: z.array(subSetSchema).min(1)
+    }))
   })
 ]).refine(
+  (data) => data.planned_sets.length === data.sets,
+  {
+    message: "Number of planned sets must match the sets count"
+  }
+).refine(
   (data) => {
-    if (data.source === 'library') return data.library_id !== undefined;
-    if (data.source === 'user') return data.user_exercise_id !== undefined;
-    return true;
+    if (data.source === 'exercise_library') return data.exercise_id !== undefined;
+    if (data.source === 'user_exercises') return data.exercise_id !== undefined;
+    return false;
   },
   {
-    message: "Library exercises must have library_id and user exercises must have user_exercise_id"
+    message: "Exercise must have a valid exercise_id for its source"
   }
 );
 
