@@ -24,6 +24,7 @@ import {
 import { FilterOptionOption } from 'react-select';
 import { exerciseSchema } from '@/app/lib/types/pillars/fitness/zod_schemas';
 import { useToast } from '@/app/lib/hooks/useToast';
+import { transformFormToDatabase } from '@/app/lib/utils/transformers';
 
 /**
  * Debug Configuration
@@ -273,16 +274,25 @@ export default function AddExerciseModal({
     defaultValues: {
       id: '',
       name: '',
+      exerciseId: 0,  // Back to camelCase
+      source: 'exercise_library' as const,
       pairing: 'A1',
-      sets: 1,
-      reps: 1,
+      sets: 3,
+      reps: 10,
       load: 0,
+      loadUnit: defaultUnit,
       tempo: '2010',
       rest: 60,
       notes: '',
-      isVariedSets: false,
-      isAdvancedSets: false,
-      setDetails: undefined
+      isVariedSets: false,  // Back to camelCase
+      isAdvancedSets: false,  // Back to camelCase
+      plannedSets: [{  // Back to camelCase
+        set_number: 1,
+        planned_reps: 10,
+        planned_load: 0,
+        planned_tempo: '2010',
+        planned_rest: 60
+      }]
     }
   });
 
@@ -297,26 +307,19 @@ export default function AddExerciseModal({
       const resetData: ExerciseFormData = {
         id: exercise.id.toString(),
         name: selectedExerciseName || exercise.name,
+        exerciseId: exercise.exercise_id,
+        source: exercise.source,
         pairing: exercise.pairing,
         sets: exercise.sets,
         isVariedSets: exercise.is_varied_sets,
         isAdvancedSets: exercise.is_advanced_sets,
         reps: exercise.is_varied_sets ? 0 : exercise.planned_sets[0]?.planned_reps ?? 0,
         load: exercise.is_varied_sets ? 0 : exercise.planned_sets[0]?.planned_load ?? 0,
+        loadUnit: exercise.planned_sets[0]?.load_unit,
         tempo: exercise.planned_sets[0]?.planned_tempo ?? '2010',
         rest: exercise.planned_sets[0]?.planned_rest ?? 60,
         notes: exercise.notes,
-        setDetails: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
-          set_number: set.set_number,
-          planned_reps: set.planned_reps,
-          planned_load: set.planned_load,
-          planned_rest: set.planned_rest,
-          planned_tempo: set.planned_tempo,
-          rpe: set.rpe,
-          rir: set.rir,
-          notes: set.notes,
-          sub_sets: set.sub_sets
-        })) : undefined
+        plannedSets: exercise.planned_sets
       };
       reset(resetData);
     }
@@ -364,6 +367,8 @@ export default function AddExerciseModal({
       reset({
         id: Math.random().toString(36).substr(2, 9),
         name: '',
+        exerciseId: 0,
+        source: 'exercise_library' as const,
         pairing: nextPairing,
         sets: 3,
         reps: 10,
@@ -373,7 +378,7 @@ export default function AddExerciseModal({
         notes: '',
         isVariedSets: false,
         isAdvancedSets: false,
-        setDetails: undefined
+        plannedSets: []
       } satisfies ExerciseFormData);
     }
   }, [exercise, exercises, reset, selectedExerciseName]);
@@ -493,10 +498,9 @@ export default function AddExerciseModal({
    */
   useEffect(() => {
     Debug.setMgmt('Managing set details', { isVariedSets, currentSets });
-
+  
     if (isVariedSets && currentSets > 0) {
-      const newSetDetails: exercise_set[] = Array.from({ length: currentSets }, (_, i) => ({
-        id: i + 1,
+      const newPlannedSets: exercise_set[] = Array.from({ length: currentSets }, (_, i) => ({
         set_number: i + 1,
         planned_reps: watch('reps'),
         planned_load: Number(watch('load')) || 0,
@@ -507,11 +511,11 @@ export default function AddExerciseModal({
         sub_sets: []
       }));
       
-      Debug.setMgmt('Creating new set details', { setCount: newSetDetails.length });
-      setValue('setDetails', newSetDetails);
+      Debug.setMgmt('Creating new planned sets', { setCount: newPlannedSets.length });
+      setValue('plannedSets', newPlannedSets);
     } else {
-      Debug.setMgmt('Clearing set details');
-      setValue('setDetails', undefined);
+      Debug.setMgmt('Clearing planned sets');
+      setValue('plannedSets', []);
     }
   }, [isVariedSets, currentSets, setValue, watch]);
 
@@ -528,12 +532,12 @@ export default function AddExerciseModal({
           name: selectedExerciseName || exercise.name,
           isVariedSets: exercise.is_varied_sets,
           isAdvancedSets: exercise.is_advanced_sets,
-          setDetails: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
-            set_number: set.set_number,
-            planned_reps: set.planned_reps,
-            planned_load: set.planned_load,
-            planned_rest: set.planned_rest,
-            planned_tempo: set.planned_tempo,
+          plannedSets: exercise.is_varied_sets ? exercise.planned_sets.map(set => ({
+            setNumber: set.set_number,
+            plannedReps: set.planned_reps,
+            plannedLoad: set.planned_load,
+            plannedTempo: set.planned_tempo,
+            plannedRest: set.planned_rest,
             notes: set.notes,
             sub_sets: set.sub_sets?.map(subSet => ({
               sub_set_number: subSet.sub_set_number,
@@ -577,66 +581,40 @@ export default function AddExerciseModal({
     }
   
     try {
-      // 1. Prepare base exercise data with proper optional handling
-      const baseExerciseData: Omit<base_exercise, 'is_varied_sets' | 'is_advanced_sets'> = {
+      const exerciseData = {
         id: Number(data.id),
         name: data.name,
         exercise_id: selectedExercise.data.id,
-        source: selectedExercise.data.source === 'library' ? 'exercise_library' : 'user_exercises' as const
-      };
-      Debug.form('Base exercise data prepared', baseExerciseData);
-  
-      // 2. Determine load unit (simplified)
-      const loadUnit = useAlternateUnit ? 'kg' : 'lbs' as load_unit;
-      Debug.form('Load unit determined', { loadUnit });
-  
-      // 3. Create planned_sets array based on form state
-      let planned_sets: exercise_set[];
-  
-      if (data.isVariedSets) {
-        // For varied/advanced sets, use the setDetails directly
-        planned_sets = data.setDetails?.map(set => ({
+        source: selectedExercise.data.source === 'library' 
+          ? ('exercise_library' as const) 
+          : ('user_exercises' as const),
+        is_varied_sets: Boolean(data.isVariedSets),
+        is_advanced_sets: Boolean(data.isAdvancedSets),
+        planned_sets: data.plannedSets.map(set => ({
           set_number: set.set_number,
-          planned_reps: set.planned_reps,
-          planned_load: set.planned_load,
-          load_unit: loadUnit,
-          planned_tempo: data.tempo,
-          planned_rest: set.planned_rest,
-          notes: '',
-          sub_sets: data.isAdvancedSets ? set.sub_sets?.map((subSet: exercise_sub_set) => ({
-            sub_set_number: subSet.sub_set_number,
-            planned_reps: subSet.planned_reps,
-            planned_load: subSet.planned_load,
-            load_unit: loadUnit,
-            planned_rest: subSet.planned_rest
-          })) : undefined
-        })) || [];
-      } else {
-        // For standard sets, create array of identical sets
-        planned_sets = Array.from({ length: data.sets }, (_, i) => ({
-          set_number: i + 1,
-          planned_reps: data.reps,
-          planned_load: data.load,
-          load_unit: loadUnit,
-          planned_tempo: data.tempo,
-          planned_rest: data.rest
-        }));
-      }
-      Debug.form('Planned sets created', { planned_sets });
+          planned_reps: set.planned_reps || 0,  // Ensure non-null values
+          planned_load: set.planned_load || 0,
+          planned_tempo: set.planned_tempo || '2010',
+          planned_rest: set.planned_rest || 60
+        })) || []  // Ensure non-null array
+      };
   
-      // 4. Create the final exercise object using the new helper
-      const exercise = create_exercise(
-        baseExerciseData,
-        data.isVariedSets,
-        data.isAdvancedSets,
-        planned_sets
+      const createdExercise = create_exercise(
+        {
+          id: exerciseData.id,
+          name: exerciseData.name,
+          exercise_id: exerciseData.exercise_id,
+          source: exerciseData.source
+        },
+        exerciseData.is_varied_sets,
+        exerciseData.is_advanced_sets,
+        exerciseData.planned_sets
       );
   
-      Debug.form('Final exercise data', exercise);
-      await onSave(exercise);
+      await onSave(createdExercise);
       onClose();
     } catch (error) {
-      console.error('Error submitting form:', error);
+      Debug.form('Error in form submission:', error);
       toast.error('Failed to save exercise');
     }
   };
@@ -661,49 +639,49 @@ export default function AddExerciseModal({
   const handleAddSubSet = (setIndex: number) => {
     Debug.setMgmt('Adding subset', { setIndex });
     
-    const currentSetDetails = watch('setDetails') || [];
-    if (setIndex >= currentSetDetails.length) {
-      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentSetDetails.length });
+    const currentPlannedSets = watch('plannedSets') || [];
+    if (setIndex >= currentPlannedSets.length) {
+      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentPlannedSets.length });
       return;
     }
-
-    const updatedSetDetails = [...currentSetDetails];
-    const currentSet = updatedSetDetails[setIndex];
+  
+    const updatedPlannedSets = [...currentPlannedSets];
+    const currentSet = updatedPlannedSets[setIndex];
     
     const newSubSet: exercise_sub_set = {
       sub_set_number: (currentSet.sub_sets?.length || 0) + 1,
       planned_reps: currentSet.planned_reps,
       planned_load: currentSet.planned_load,
-      planned_tempo: currentSet.planned_tempo,
+      load_unit: currentSet.load_unit,
       planned_rest: currentSet.planned_rest,
-      load_unit: currentSet.load_unit
+      planned_tempo: currentSet.planned_tempo
     };
-
+  
     currentSet.sub_sets = currentSet.sub_sets ?? [];
     currentSet.sub_sets.push(newSubSet);
-
-    Debug.setMgmt('Updated set details', { setIndex, subSetsCount: currentSet.sub_sets.length });
-    setValue('setDetails', updatedSetDetails);
+  
+    Debug.setMgmt('Updated planned sets', { setIndex, subSetsCount: currentSet.sub_sets.length });
+    setValue('plannedSets', updatedPlannedSets);
   };
 
   const handleRemoveSubSet = (setIndex: number, subSetIndex: number) => {
     Debug.setMgmt('Removing subset', { setIndex, subSetIndex });
-
-    const currentSetDetails = watch('setDetails') || [];
-    if (setIndex >= currentSetDetails.length) {
-      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentSetDetails.length });
+  
+    const currentPlannedSets = watch('plannedSets') || [];
+    if (setIndex >= currentPlannedSets.length) {
+      Debug.setMgmt('Invalid set index', { setIndex, totalSets: currentPlannedSets.length });
       return;
     }
-
-    const updatedSetDetails = [...currentSetDetails];
-    const currentSet = updatedSetDetails[setIndex];
-
+  
+    const updatedPlannedSets = [...currentPlannedSets];
+    const currentSet = updatedPlannedSets[setIndex];
+  
     if (currentSet.sub_sets) {
-      currentSet.sub_sets = currentSet.sub_sets.filter((_: exercise_sub_set, idx: number) => idx !== subSetIndex);
-      Debug.setMgmt('Updated set details', { setIndex, remainingSubSets: currentSet.sub_sets.length });
+      currentSet.sub_sets = currentSet.sub_sets.filter((_, idx) => idx !== subSetIndex);
+      Debug.setMgmt('Updated planned sets', { setIndex, remainingSubSets: currentSet.sub_sets.length });
     }
-
-    setValue('setDetails', updatedSetDetails);
+  
+    setValue('plannedSets', updatedPlannedSets);
   };
 
   /**
@@ -946,7 +924,7 @@ export default function AddExerciseModal({
                         onChange={(e) => {
                           onChange(e.target.checked);
                           if (!e.target.checked) {
-                            setValue('setDetails', undefined);
+                            setValue('plannedSets', []);
                           }
                         }}
                         {...field}
@@ -1207,7 +1185,7 @@ export default function AddExerciseModal({
               </div>
               
               <div className="grid gap-4">
-                {watch('setDetails')?.map((set: exercise_set, setIndex: number) => (
+                {watch('plannedSets')?.map((set: exercise_set, setIndex: number) => (
                   <div key={set.set_number} className="space-y-4 p-4 border rounded-lg">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium dark:text-white">Set {set.set_number}</span>
@@ -1234,7 +1212,7 @@ export default function AddExerciseModal({
                             id={`set-${setIndex}-reps`}
                             type="number"
                             placeholder="Enter reps"
-                            {...register(`setDetails.${setIndex}.planned_reps`)}
+                            {...register(`plannedSets.${setIndex}.planned_reps`)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
@@ -1245,7 +1223,7 @@ export default function AddExerciseModal({
                           <input
                             id={`set-${setIndex}-load`}
                             type="text"
-                            {...register(`setDetails.${setIndex}.planned_load`, {
+                            {...register(`plannedSets.${setIndex}.planned_load`, {
                               setValueAs: v => {
                                 const num = Number(v);
                                 return isNaN(num) ? v : num;
@@ -1263,7 +1241,7 @@ export default function AddExerciseModal({
                             id={`set-${setIndex}-rest`}
                             type="number"
                             placeholder="Enter rest"
-                            {...register(`setDetails.${setIndex}.planned_rest`)}
+                            {...register(`plannedSets.${setIndex}.planned_rest`)}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                           />
                         </div>
@@ -1295,7 +1273,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-reps`}
                               type="number"
                               placeholder="Enter reps"
-                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_reps`)}
+                              {...register(`plannedSets.${setIndex}.sub_sets.${subSetIndex}.planned_reps`)}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>
@@ -1307,7 +1285,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-load`}
                               type="text"
                               placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
-                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_load`, {
+                              {...register(`plannedSets.${setIndex}.sub_sets.${subSetIndex}.planned_load`, {
                                 setValueAs: v => {
                                   const num = Number(v);
                                   return isNaN(num) ? v : num;
@@ -1324,7 +1302,7 @@ export default function AddExerciseModal({
                               id={`subset-${setIndex}-${subSetIndex}-rest`}
                               type="number"
                               placeholder="Enter rest"
-                              {...register(`setDetails.${setIndex}.sub_sets.${subSetIndex}.planned_rest`)}
+                              {...register(`plannedSets.${setIndex}.sub_sets.${subSetIndex}.planned_rest`)}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
                             />
                           </div>

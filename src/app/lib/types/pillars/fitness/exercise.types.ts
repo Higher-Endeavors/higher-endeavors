@@ -129,19 +129,21 @@ export function create_exercise(
 export interface ExerciseFormData {
   id: string;
   name: string;
+  exerciseId: number;
+  source: 'exercise_library' | 'user_exercises';
   pairing: string;
   sets: number;
   reps: number;
-  load: number | string | undefined;
-  loadUnit?: load_unit;
-  tempo: string;
-  rest: number;
-  notes?: string;
+  load: number | string;
+  loadUnit?: 'kg' | 'lbs';
+  tempo?: string;
+  rest?: number;
   rpe?: number;
   rir?: number;
+  notes?: string;
   isVariedSets: boolean;
   isAdvancedSets: boolean;
-  setDetails?: exercise_set[];
+  plannedSets: exercise_set[];
 }
 
 export interface ExerciseOption {

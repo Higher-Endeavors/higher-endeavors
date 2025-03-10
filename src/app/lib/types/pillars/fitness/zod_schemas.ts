@@ -95,10 +95,10 @@ export const setDetailsSchema = z.object({
 });
 
 /**
- * Base schema for common exercise properties
+ * Main schema for validating exercises
  */
-const baseExerciseSchema = z.object({
-  id: z.number(),
+export const exerciseSchema = z.object({
+  id: z.number().or(z.string().transform(Number)),
   name: z.string().min(1, "Exercise name is required"),
   exercise_id: z.number(),
   source: z.enum(['exercise_library', 'user_exercises'] as const),
@@ -106,49 +106,16 @@ const baseExerciseSchema = z.object({
     message: "Pairing must be a letter followed by 1-2 digits, or WU/CD"
   }),
   notes: z.string().optional(),
+  sets: z.number().int().min(1).max(99),
+  is_varied_sets: z.boolean(),
+  is_advanced_sets: z.boolean(),
+  planned_sets: z.array(setDetailsSchema),
   rpe: z.number().refine(
     (val) => (val >= 0 && val <= 10) || (val >= 6 && val <= 20),
     { message: "RPE must be between 0-10 (modified) or 6-20 (Borg scale)" }
   ).optional(),
   rir: z.number().min(0).max(10).optional()
-});
-
-/**
- * Main schema for validating exercises
- * Uses discriminated union to handle different exercise types
- */
-export const exerciseSchema = z.discriminatedUnion('exercise_set_type', [
-  // Standard exercise schema (fixed sets)
-  baseExerciseSchema.extend({
-    exercise_set_type: z.literal('standard'),
-    sets: z.number().int().min(1).max(99),
-    planned_sets: z.array(z.object({
-      set_number: z.number().int().min(1),
-      planned_reps: z.number().int().min(1).max(99),
-      planned_load: loadSchema.optional(),
-      load_unit: z.enum(['kg', 'lbs'] as const).optional(),
-      planned_tempo: z.string().regex(TEMPO_REGEX).optional(),
-      planned_rest: z.number().int().min(0).max(600).optional(),
-      rpe: z.number().min(0).max(10).optional(),
-      rir: z.number().min(0).max(10).optional(),
-      notes: z.string().optional()
-    }))
-  }),
-  // Varied exercise schema (different sets)
-  baseExerciseSchema.extend({
-    exercise_set_type: z.literal('varied'),
-    sets: z.number().int().min(1).max(99),
-    planned_sets: z.array(setDetailsSchema)
-  }),
-  // Advanced exercise schema (sets with subsets)
-  baseExerciseSchema.extend({
-    exercise_set_type: z.literal('advanced'),
-    sets: z.number().int().min(1).max(99),
-    planned_sets: z.array(setDetailsSchema.extend({
-      sub_sets: z.array(subSetSchema).min(1)
-    }))
-  })
-]).refine(
+}).refine(
   (data) => data.planned_sets.length === data.sets,
   {
     message: "Number of planned sets must match the sets count"
