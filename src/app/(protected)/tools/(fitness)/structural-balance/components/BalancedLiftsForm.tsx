@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSession } from "next-auth/react"
+import Select from 'react-select';
 import BalancedLiftsList from './BalancedLiftsList';
 
 type FormData = {
@@ -27,6 +28,11 @@ type BalLift = {
 };
 type BalLifts = BalLift[];
 
+type SelectOption = {
+  value: number;
+  label: string;
+};
+
 function doCalculate(refLifts: RefLifts, formValues: FormData) {
   const masterLiftIdx = refLifts.map(e => e.id).indexOf(Number(formValues.exercise_name))
   const masterLiftRefLoad = refLifts[masterLiftIdx].struct_bal_ref_lift_load;
@@ -49,7 +55,7 @@ function doCalculate(refLifts: RefLifts, formValues: FormData) {
 };
 
 export default function BalancedLiftsForm({ refLifts }: { refLifts: RefLifts }) {
-  const { register, getValues, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
+  const { register, getValues, setValue, handleSubmit, formState: { errors }, reset } = useForm<FormData>();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isErrorVisible, setIsErrorVisible] = useState(false);
   const [isListVisible, setIsListVisible] = useState(false);
@@ -57,17 +63,22 @@ export default function BalancedLiftsForm({ refLifts }: { refLifts: RefLifts }) 
   const [isNoteVisible, setIsNoteVisible] = useState(false);
   const [balLifts, setBalLifts] = useState<BalLifts>([]);
   const { data: session } = useSession();
+  const [selectedLift, setSelectedLift] = useState<string>("");
+  const selectOptions: SelectOption[] = refLifts.map((lift) => ({
+    value: lift.id,
+    label: lift.exercise_name,
+  }));
 
-  const handleMasterLiftChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedLiftId = event.target.value;
-    const refLiftIdx = refLifts.map(e => e.id).indexOf(Number(selectedLiftId));
-    if (refLifts[refLiftIdx].struct_bal_ref_lift_note) {
-      setLiftNote(refLifts[refLiftIdx].struct_bal_ref_lift_note);
-      setIsNoteVisible(true);
-    } else {
-      setLiftNote("");
-      setIsNoteVisible(false);
-
+  const handleMasterLiftChange = (option: SelectOption | null) => {
+    if (option) {
+      const refLiftIdx = refLifts.map(e => e.id).indexOf(Number(option.value));
+      if (refLifts[refLiftIdx].struct_bal_ref_lift_note) {
+        setLiftNote(refLifts[refLiftIdx].struct_bal_ref_lift_note);
+        setIsNoteVisible(true);
+      } else {
+        setLiftNote("");
+        setIsNoteVisible(false);
+      }
     }
   };
 
@@ -120,20 +131,23 @@ export default function BalancedLiftsForm({ refLifts }: { refLifts: RefLifts }) 
             >
               Master Lift
             </label>
-            <select
+            <Select
+              options={selectOptions}
+              onChange={(option) => {
+                handleMasterLiftChange(option);
+                if (option) {
+                  setValue('exercise_name', option.value.toString());
+                }
+              }}
+              className='text-base font-medium text-gray-700'
+              placeholder="Select Master Lift"
+              isClearable
+            />
+            <input
+              type="hidden"
               {...register('exercise_name', { required: 'Master lift is required' })}
-              onChange={(e) => handleMasterLiftChange(e)}
-              id="exercise_name"
-              className='w-full rounded-md border border-gray-300 bg-white py-3 px-6 text-base font-medium text-gray-700 outline-none focus:border-purple-500 focus:shadow-md'
-            >
-              <option value="">Select Master Lift</option>
-              {refLifts.map((refLift: RefLift) => (
-                <option key={refLift.id} value={refLift.id}>
-                  {refLift.exercise_name}
-                </option>
-              ))}
-
-            </select>
+              value={selectedLift}
+            />
             {errors.exercise_name && <span className="text-red-500 text-sm mt-1">{errors.exercise_name.message}</span>}
           </div>
           <div className={`mb-4 p-4 ${isNoteVisible ? 'block' : 'hidden'}`}>
