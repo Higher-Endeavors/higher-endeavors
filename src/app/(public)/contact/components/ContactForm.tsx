@@ -27,7 +27,7 @@ async function sendErrorEmail(replyTo: string, subject: string, body: string) {
 
 export default function ContactForm() {
   const searchParams = useSearchParams();
-  const inquiryParam = searchParams.get('inquiry');
+  const inquiryParam = searchParams?.get('inquiry');
   
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
     defaultValues: {

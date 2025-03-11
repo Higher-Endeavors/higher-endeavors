@@ -42,16 +42,28 @@ export default function DropdownMenu() {
             label={<Avatar placeholderInitials={initials} rounded />}
             arrowIcon={false}
             inline
+            className="[&_ul]:list-none [&_ul]:p-0"
         >
             <Dropdown.Header>
                 <span className="block text-sm">{session?.user?.name ?? "User name"}</span>
                 <span className="block truncate text-sm font-medium">{session?.user?.email ?? "Email address"}</span>
             </Dropdown.Header>
-            {/* <Dropdown.Item>Settings</Dropdown.Item> */}
+            {session && (
+                <>
+                    <Dropdown.Item as={Link} href="/user/dashboard">
+                        Dashboard
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} href="/guide/table-of-contents">
+                        Guide Table of Contents
+                    </Dropdown.Item>
+                    <Dropdown.Item as={Link} href="/user/bio">User Bio</Dropdown.Item>
+                    <Dropdown.Item as={Link} href="/user/settings">User Settings</Dropdown.Item>
+                </>
+            )}
             <Dropdown.Divider />
             {!session && (
                 <Dropdown.Item onClick={async () => {
-                    await signInHandler()
+                    await signInHandler("")
                 }}>Sign in</Dropdown.Item>
             )}
             {session && (
