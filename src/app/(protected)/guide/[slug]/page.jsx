@@ -11,7 +11,8 @@ import { getArticleBySlug } from "../../../lib/cmsAdapter.js";
 //import ArticleTitle from '../components/article-title'
 import Head from "next/head";
 
-export default async function Page({ params }) {
+export default async function Page(props) {
+  const params = await props.params;
   const article = await getArticleBySlug(params.slug);
 
   return (
