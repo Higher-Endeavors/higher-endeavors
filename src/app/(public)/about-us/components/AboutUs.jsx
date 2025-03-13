@@ -9,7 +9,7 @@ const AboutUs = () => {
           Founded in 2006 by Jason Cockfield, Higher Endeavors began as a response to the limitations he experienced working in the corporate gym environment. As a personal trainer, Jason found that the traditional gym model prioritized profit over the well-being and progress of clients. Frustrated by this, he set out to create a service that focused on the true needs of individuals—helping them realize their potential and achieve their ideal selves.
           </p>
           <p className="mb-4">
-          Over the past two decades, Jason has continuously expanded his approach, incorporating a wide range of knowledge and practices from various disciplines. This evolution has shaped Higher Endeavors into what it is today: a holistic service that integrates lifestyle management, health, nutrition, and fitness to provide individuals with the comprehensive support they need to succeed.
+          Over the past two decades, Jason has continuously expanded his approach, incorporating a wide range of knowledge and practices from various disciplines. This evolution has shaped Higher Endeavors into what it is today: a holistic service that integrates lifestyle, health, nutrition, and fitness to provide individuals with the comprehensive support they need to succeed.
           </p>
         </section>
   

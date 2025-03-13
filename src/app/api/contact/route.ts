@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { VerifaliaRestClient } from "verifalia";
-import { adminNoticeEmail } from "@/app/lib/admin-notice-email";
+import { adminNoticeEmail } from "@/app/lib/adminNoticeEmail";
 const Client = require("pg").Client;
 
 const username = process.env.VERIFALIA_USERNAME;
@@ -12,7 +12,7 @@ const verifalia = new VerifaliaRestClient({
 });
 
 export async function POST(request: Request) {
-  const { firstname, lastname, email, message, turnstileToken } =
+  const { firstname, lastname, email, message, inquiryType, turnstileToken } =
     await request.json();
 
   //
@@ -98,6 +98,7 @@ export async function POST(request: Request) {
     `
       <p>Name: ${firstname} ${lastname}</p>
       <p>Email: ${email}</p>
+      <p>Inquiry Type: ${inquiryType}</p>
       <p>Message: ${message}</p>
     `
   );
@@ -110,8 +111,8 @@ export async function POST(request: Request) {
     await client.connect();
 
     const query = {
-      text: "INSERT INTO email_contacts(first_name, last_name, email_address, contact_message) VALUES($1, $2, $3, $4)",
-      values: [firstname, lastname, email, message],
+      text: "INSERT INTO email_contacts(first_name, last_name, email_address, contact_message, inquiry_type) VALUES($1, $2, $3, $4, $5)",
+      values: [firstname, lastname, email, message, inquiryType],
     };
 
     await client.query(query);

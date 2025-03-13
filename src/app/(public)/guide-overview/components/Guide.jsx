@@ -8,7 +8,7 @@ const Guide = () => {
             <section className="my-8">
                 <h2 className="text-2xl font-bold mb-4">Why This Guide?</h2>
                 <p>
-                At Higher Endeavors&apos; we believe in long-term, sustainable change. Our intent is to make this Guide your primary resource for understanding yourself. We have organized the information into four key pillars: Lifestyle Management, Health, Nutrition, and Fitness.
+                At Higher Endeavors&apos; we believe in long-term, sustainable change. Our intent is to make this Guide your primary resource for understanding yourself. We have organized the information into four key pillars: Lifestyle, Health, Nutrition, and Fitness.
                 </p>
             </section>
             <section className="my-8">
