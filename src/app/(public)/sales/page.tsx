@@ -9,6 +9,7 @@ import ServiceCards from './components/SalesCards'
 import ServiceInfo from './components/ServiceInfo'
 import FAQ from './components/FAQ'
 import Link from 'next/link'
+import BetaTesting from './components/BetaTesting'
 
 export default function SalesPage() {
   return (
@@ -18,6 +19,7 @@ export default function SalesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <SalesHero />
             <VideoSection />
+            <BetaTesting />
             <ServiceCards />
             <ServiceInfo />
             <FAQ />
