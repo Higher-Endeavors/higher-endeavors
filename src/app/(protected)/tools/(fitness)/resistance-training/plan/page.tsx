@@ -92,6 +92,8 @@ function PlanPageContent() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
+  //*** The user's role is in the session look at 
+
   // Check admin status
   useEffect(() => {
     const checkAdminStatus = async () => {
