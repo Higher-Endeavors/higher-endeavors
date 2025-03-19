@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useSession, SessionProvider } from 'next-auth/react';
+
 interface Props {
   isConnected: boolean;
   userId?: string;
@@ -46,5 +49,39 @@ export function GarminConnectButton({ isConnected, userId }: Props) {
         </button>
       )}
     </div>
+  );
+}
+
+function GarminPageContent() {
+  const { data: session } = useSession({ required: true });
+  const userId = session?.user?.id;
+  const [isConnected, setIsConnected] = useState(false);
+  const [garminUserId, setGarminUserId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (userId) {
+      fetch(`/api/garmin/status?userId=${userId}`)
+        .then(res => res.json())
+        .then(data => {
+          setIsConnected(data.connected);
+          setGarminUserId(data.garminUserId);
+        })
+        .catch(err => console.error('Error checking Garmin connection:', err));
+    }
+  }, [userId]);
+
+  return (
+    <div className="container mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Garmin Connection</h1>
+      <GarminConnectButton isConnected={isConnected} userId={garminUserId} />
+    </div>
+  );
+}
+
+export default function GarminPage() {
+  return (
+    <SessionProvider>
+      <GarminPageContent />
+    </SessionProvider>
   );
 }

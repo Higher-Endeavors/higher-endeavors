@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import GarminWorkouts from '@/app/(protected)/user/devices/garmin/components/GarminWorkouts';
-import GarminWorkoutSchedule from '@/app/(protected)/user/devices/garmin/components/GarminWorkoutSchedule';
-import GarminWorkoutEditor from '@/app/(protected)/user/devices/garmin/components/GarminWorkoutEditor';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useSession, SessionProvider } from 'next-auth/react';
+import GarminWorkouts from '@/app/(protected)/user/(devices)/garmin/components/GarminWorkouts';
+import GarminWorkoutSchedule from '@/app/(protected)/user/(devices)/garmin/components/GarminWorkoutSchedule';
+import GarminWorkoutEditor from '@/app/(protected)/user/(devices)/garmin/components/GarminWorkoutEditor';
+import { Tabs } from 'flowbite-react';
 import { Workout } from '@/app/lib/utils/garmin/trainingDataAccess';
 
-export default function GarminTrainingDashboard() {
-  const { data: session } = useSession();
+function GarminTrainingDashboardContent() {
+  const { data: session } = useSession({ required: true });
   const userId = session?.user?.id ? parseInt(session.user.id) : 0;
   const [showEditor, setShowEditor] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<number | undefined>(undefined);
@@ -100,44 +100,42 @@ export default function GarminTrainingDashboard() {
   }
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="mb-6 flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-bold">Garmin Training Dashboard</h1>
-          <p className="text-gray-600 mt-2">
-            Manage your workouts and training schedule
-          </p>
+      <div className="container mx-auto p-4">
+        <div className="mb-6 flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold">Garmin Training Dashboard</h1>
+            <p className="text-gray-600 mt-2">
+              Manage your workouts and training schedule
+            </p>
+          </div>
+          <button
+            className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded"
+            onClick={handleCreateWorkout}
+          >
+            Create New Workout
+          </button>
         </div>
-        <button
-          className="bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded"
-          onClick={handleCreateWorkout}
-        >
-          Create New Workout
-        </button>
-      </div>
 
-      <Tabs 
-        defaultValue="workouts" 
-        className="w-full"
-        value={activeTab}
-        onValueChange={setActiveTab}
-      >
-        <TabsList className="mb-6">
-          <TabsTrigger value="workouts">My Workouts</TabsTrigger>
-          <TabsTrigger value="schedule">Training Schedule</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="workouts" className="bg-white rounded-lg border p-4">
-          <GarminWorkouts 
-            userId={userId} 
-            onEditWorkout={handleEditWorkout}
-          />
-        </TabsContent>
-        
-        <TabsContent value="schedule" className="bg-white rounded-lg border p-4">
-          <GarminWorkoutSchedule userId={userId} />
-        </TabsContent>
-      </Tabs>
-    </div>
+        <Tabs>
+          <Tabs.Item active={activeTab === 'workouts'} title="My Workouts" onClick={() => setActiveTab('workouts')}>
+            <div className="bg-white rounded-lg border p-4">
+              <GarminWorkouts userId={userId} onEditWorkout={handleEditWorkout} />
+            </div>
+          </Tabs.Item>
+          <Tabs.Item active={activeTab === 'schedule'} title="Training Schedule" onClick={() => setActiveTab('schedule')}>
+            <div className="bg-white rounded-lg border p-4">
+              <GarminWorkoutSchedule userId={userId} />
+            </div>
+          </Tabs.Item>
+        </Tabs>
+      </div>
   );
 } 
+
+export default function GarminTrainingDashboard() {
+  return (
+    <SessionProvider>
+      <GarminTrainingDashboardContent />
+    </SessionProvider>
+  );
+}
