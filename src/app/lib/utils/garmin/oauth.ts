@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { GARMIN_CONFIG } from './config';
 import { TokenResponse, AccessTokenResponse, GarminTokens } from './types';
 import { SingleQuery } from '@/app/lib/dbAdapter';
+import { requestTokenStore } from './requestTokenStore';
 
 export const garminOAuth = {
   oauth: new OAuth({
@@ -19,10 +20,13 @@ export const garminOAuth = {
     }
   }),
 
-  async getRequestToken(): Promise<TokenResponse> {
+  async getRequestToken(callbackUrl: string): Promise<TokenResponse> {
     const authHeader = this.oauth.toHeader(this.oauth.authorize({
       url: GARMIN_CONFIG.REQUEST_TOKEN_URL,
-      method: 'POST'
+      method: 'POST',
+      data: {
+        oauth_callback: callbackUrl
+      }
     }));
 
     const response = await fetch(GARMIN_CONFIG.REQUEST_TOKEN_URL, {
@@ -35,14 +39,28 @@ export const garminOAuth = {
     }
 
     const text = await response.text();
-    return this.parseTokenResponse(text);
+    const tokens = this.parseTokenResponse(text);
+    
+    // Store the request token and secret
+    requestTokenStore.store(tokens.oauth_token, tokens.oauth_token_secret);
+    
+    return tokens;
   },
 
   async getAccessToken(oauth_token: string, oauth_verifier: string): Promise<AccessTokenResponse> {
+    // Get the stored request token secret
+    const stored = requestTokenStore.get(oauth_token);
+    if (!stored) {
+      throw new Error('Invalid or expired request token');
+    }
+
     const authHeader = this.oauth.toHeader(this.oauth.authorize({
       url: GARMIN_CONFIG.ACCESS_TOKEN_URL,
       method: 'POST',
       data: { oauth_verifier }
+    }, {
+      key: oauth_token,
+      secret: stored.secret
     }));
 
     const response = await fetch(GARMIN_CONFIG.ACCESS_TOKEN_URL, {
@@ -56,6 +74,9 @@ export const garminOAuth = {
     if (!response.ok) {
       throw new Error(`Failed to get access token: ${response.statusText}`);
     }
+
+    // Remove the used request token
+    requestTokenStore.remove(oauth_token);
 
     const text = await response.text();
     const tokens = this.parseTokenResponse(text);

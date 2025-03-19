@@ -16,6 +16,11 @@ export const SingleQuery = (text, params, callback) => {
   return pool.query(text, params, callback);
 };
 
+export const Query = async (text, params = []) => {
+  // Implementation similar to SingleQuery but returning multiple rows
+  return pool.query(text, params);
+};
+
 // This is an example of how to code a transaction in a route
 // ***** It is CRITICAL to release the client when done *****
 

@@ -1,23 +1,13 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { auth } from '@/app/auth';
 import { garminOAuth } from '@/app/lib/utils/garmin/oauth';
-import { saveGarminTokens } from '@/app/lib/utils/db/garmin';
+import { SingleQuery } from '@/app/lib/dbAdapter';
 
 export async function GET(request: Request) {
   try {
-    // Get the user's session
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get('session_token');
-    
-    if (!sessionToken?.value) {
-      return NextResponse.redirect(new URL('/login', request.url));
-    }
-
-    // Here you would validate the session token and get the user ID
-    // using your existing authentication system
-    const userId = ''; // TODO: Get this from your session management
-
-    if (!userId) {
+    // Get the authenticated user
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.redirect(new URL('/login', request.url));
     }
 
@@ -34,17 +24,24 @@ export async function GET(request: Request) {
 
     // Exchange the request token for access token
     const tokens = await garminOAuth.getAccessToken(oauth_token, oauth_verifier);
-    
-    // Get the user's permissions from Garmin
-    const permissions = await garminOAuth.getUserPermissions(tokens.accessToken);
 
-    // Save tokens and permissions to database
-    await saveGarminTokens(userId, tokens, permissions);
+    // Save tokens to database
+    await SingleQuery(
+      `INSERT INTO user_garmin_tokens 
+        (user_id, garmin_user_id, oauth_token, oauth_token_secret) 
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (user_id) DO UPDATE 
+        SET garmin_user_id = $2, 
+            oauth_token = $3, 
+            oauth_token_secret = $4,
+            updated_at = NOW()`,
+      [session.user.id, tokens.userId, tokens.oauth_token, tokens.oauth_token_secret]
+    );
 
     // Redirect to success page
-    return NextResponse.redirect(new URL('/garmin/success', request.url));
+    return NextResponse.redirect(new URL('/user/devices?status=connected', request.url));
   } catch (error) {
     console.error('Error in Garmin callback:', error);
-    return NextResponse.redirect(new URL('/garmin/error', request.url));
+    return NextResponse.redirect(new URL('/user/devices?error=connection_failed', request.url));
   }
 } 
