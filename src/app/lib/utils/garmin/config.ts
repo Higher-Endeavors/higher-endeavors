@@ -7,7 +7,7 @@ export const GARMIN_CONFIG = {
     AUTH_URL: 'https://connect.garmin.com/oauthConfirm',
     REQUEST_TOKEN_URL: 'https://connectapi.garmin.com/oauth-service/oauth/request_token',
     ACCESS_TOKEN_URL: 'https://connectapi.garmin.com/oauth-service/oauth/access_token',
-    USER_ID_URL: 'https://connectapi.garmin.com/oauth-service/oauth/user/id',
+    USER_ID_URL: 'https://apis.garmin.com/wellness-api/rest/user/id',
     PERMISSIONS_URL: 'https://connectapi.garmin.com/oauth-service/oauth/user/permissions',
     CONSUMER_KEY: process.env.GARMIN_CONSUMER_KEY!,
     CONSUMER_SECRET: process.env.GARMIN_CONSUMER_SECRET!,
