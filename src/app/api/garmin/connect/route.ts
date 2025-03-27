@@ -1,22 +1,19 @@
-import { NextResponse } from 'next/server';
-import { garminOAuth } from '@/app/lib/utils/garmin/oauth';
-import { GARMIN_CONFIG } from '@/app/lib/utils/garmin/config';
+import { NextRequest, NextResponse } from 'next/server';
+import { grantAdapter } from '@/app/lib/utils/grant-adapter';
+import { grantConfig } from '@/app/lib/utils/garmin/grantConfig';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    // Get the base URL from the current request
-    const baseUrl = new URL(request.url).origin;
+    // Initialize the Grant OAuth flow
+    const grantSession = await grantAdapter(
+      request, 
+      NextResponse.next(), 
+      grantConfig
+    );
     
-    // Construct callback URL dynamically
-    const callbackUrl = `${baseUrl}/api/garmin/callback`;
-    console.log("Using callback URL:", callbackUrl);
-    
-    const tokenResponse = await garminOAuth.getRequestToken(callbackUrl);
-    
-    // Create authorization URL with the token
-    const authUrl = `${GARMIN_CONFIG.AUTH_URL}?oauth_token=${tokenResponse.oauth_token}`;
-    
-    return NextResponse.redirect(authUrl);
+    // Grant will handle redirecting to the authorization URL
+    // The flow will continue when the user is redirected back to the callback URL
+    return NextResponse.redirect(grantSession.redirect);
   } catch (error) {
     console.error('Error initiating Garmin OAuth:', error);
     return NextResponse.redirect(new URL('/user/garmin?error=oauth_failed', request.url));
