@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="author" content="XB Software" />
+		<meta name="publisher" content="XB Software" />
+		<meta name="copyright" content="XB Software" />
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1,  user-scalable=no, shrink-to-fit=no"
+		/>
+		<link rel="icon" href="../favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="../assets/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="../assets/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="../assets/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="../assets/favicon/icon-96.png" sizes="96x96" />
+		<link
+			rel="icon"
+			href="../assets/favicon/icon-144.png"
+			sizes="144x144"
+		/>
+
+		<!-- Event Calendar -->
+		<link rel="stylesheet" href="../dist/event-calendar.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdn.dhtmlx.com/fonts/wxi/wx-icons.css"
+		/>
+		<script src="../dist/event-calendar.js"></script>
+
+		<!-- Demo data -->
+		<script src="./common/data.js"></script>
+		<script src="./common/config.js"></script>
+		<link rel="stylesheet" href="../assets/demos.css" />
+
+		<!-- DHTMLX Suite -->
+		<script src="https://cdn.dhtmlx.com/suite/edge/suite.js"></script>
+		<link
+			rel="stylesheet"
+			href="https://cdn.dhtmlx.com/suite/edge/suite.css"
+		/>
+		<title>Event Calendar: Configuration</title>
+	</head>
+
+	<body>
+		<div class="g-wrap">
+			<header class="g-header">
+				<div class="h-wrap">
+					<div class="h-nav">
+						<a href="../index.html">Back to demos</a>
+					</div>
+					<div class="h-title">Event Calendar: Configuration</div>
+					<div class="h-cta">
+						<a
+							href="https://dhtmlx.com/docs/products/dhtmlxEventCalendar/download.shtml"
+							target="_blank"
+							class="g-btn"
+							>Free Trial</a
+						>
+					</div>
+				</div>
+			</header>
+			<div class="content">
+				<div id="root"></div>
+				<div class="form move" id="form_wrapper">
+					<div class="form-title" id="title">
+						Event Calendar config
+					</div>
+					<div class="form-body" id="form"></div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			const { EventCalendar } = eventCalendar;
+			const config = { ...initConfig };
+
+			const widget = new EventCalendar("#root", {
+				events: getData(),
+				config,
+				date: new Date(2022, 5, 10),
+			});
+			const form = new dhx.Form("form", {
+				css: "form-content",
+				rows: formControls,
+			});
+			form.setValue({ ...config, views: config.views.map(v => v.id) });
+			const form_wrapper = document.getElementById("form_wrapper");
+			const title = document.getElementById("title");
+			title.addEventListener("click", () => {
+				form_wrapper.classList.toggle("move");
+			});
+			form.events.on("change", (name, value) => {
+				let newConfig = { ...form.getValue() };
+				newConfig.views = views.filter(v =>
+					newConfig.views.includes(v.id)
+				);
+				const viewsWithRange = newConfig.views.filter(
+					v => v.layout === "week" || v.layout === "day"
+				);
+				const { start, end } = newConfig;
+				viewsWithRange.forEach(v => {
+					v.config.timeRange = [start, end];
+				});
+				widget.setConfig({ config: newConfig });
+			});
+		</script>
+	</body>
+</html>

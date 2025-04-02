@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="author" content="XB Software" />
+		<meta name="publisher" content="XB Software" />
+		<meta name="copyright" content="XB Software" />
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1,  user-scalable=no, shrink-to-fit=no"
+		/>
+		<link rel="icon" href="../favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="../assets/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="../assets/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="../assets/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="../assets/favicon/icon-96.png" sizes="96x96" />
+		<link
+			rel="icon"
+			href="../assets/favicon/icon-144.png"
+			sizes="144x144"
+		/>
+
+		<!-- Event Calendar -->
+		<link rel="stylesheet" href="../dist/event-calendar.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdn.dhtmlx.com/fonts/wxi/wx-icons.css"
+		/>
+		<script src="../dist/event-calendar.js"></script>
+		<script src="./common/login.js"></script>
+		<link rel="stylesheet" href="../assets/demos.css" />
+
+		<title>Event Calendar: Backend with synchronization</title>
+	</head>
+
+	<body>
+		<div class="g-wrap">
+			<header class="g-header">
+				<div class="h-wrap">
+					<div class="h-nav">
+						<a href="../index.html">Back to demos</a>
+					</div>
+					<div class="h-title">
+						Scheduler backend with synchronization
+					</div>
+					<div class="h-cta">
+						<a
+							href="https://dhtmlx.com/docs/products/dhtmlxScheduler/download.shtml"
+							target="_blank"
+							class="g-btn"
+							>Free Trial</a
+						>
+					</div>
+				</div>
+			</header>
+
+			<div id="root"></div>
+		</div>
+
+		<script>
+			const {
+				EventCalendar,
+				RestDataProvider,
+				RemoteEvents,
+				remoteUpdates,
+			} = eventCalendar;
+
+			const url = "https://docs.dhtmlx.com/event-calendar-backend";
+
+			login(url).then(token => {
+				const restProvider = new RestDataProvider(url);
+				restProvider.setHeaders({
+					"Remote-Token": token,
+				});
+				Promise.all([
+					restProvider.getEvents(),
+					restProvider.getCalendars(),
+				]).then(([events, calendars]) => {
+					// set fetched data
+					const calendar = new EventCalendar("#root", {
+						events,
+						calendars,
+					});
+					calendar.api.setNext(restProvider);
+
+					// get updates from server to client
+					const remoteEvents = new RemoteEvents(
+						url + "/api/v1",
+						token
+					);
+					remoteEvents.on(
+						remoteUpdates(
+							calendar.api,
+							restProvider.getIDResolver()
+						)
+					);
+				});
+			});
+		</script>
+	</body>
+</html>

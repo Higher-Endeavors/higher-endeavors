@@ -11,6 +11,9 @@ importers:
       '@auth/pg-adapter':
         specifier: ^1.7.4
         version: 1.7.4(nodemailer@6.10.0)(pg@8.13.1)
+      '@dhx/trial-eventcalendar':
+        specifier: ^2.3.0
+        version: 2.3.0
       '@dnd-kit/accessibility':
         specifier: ^3.1.1
         version: 3.1.1(react@19.0.0)
@@ -200,6 +203,9 @@ packages:
   '@babel/types@7.26.7':
     resolution: {integrity: sha512-t8kDRGrKXyp6+tjUh7hw2RLyclsW4TRoRvRHtSyAX9Bb5ldlFh+90YAYY6awRXrlB4G5G2izNeGySpATlFzmOg==}
     engines: {node: '>=6.9.0'}
+
+  '@dhx/trial-eventcalendar@2.3.0':
+    resolution: {integrity: sha512-x3TUwq98j+4lipYwyL49OIIGEFTapd74cPPBpDuxNv8hLAuINtADuL5mO7pvewcqtAFLMUk1r4tEa8tOaGWkaw==}
 
   '@dnd-kit/accessibility@3.1.1':
     resolution: {integrity: sha512-2P+YgaXF+gRsIihwwY1gCsQSYnu9Zyj2py8kY5fFvUM1qm2WA2u639R6YNVfU4GWr+ZM5mqEsfHZZLoRONbemw==}
@@ -2074,6 +2080,8 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.25.9
       '@babel/helper-validator-identifier': 7.25.9
+
+  '@dhx/trial-eventcalendar@2.3.0': {}
 
   '@dnd-kit/accessibility@3.1.1(react@19.0.0)':
     dependencies:

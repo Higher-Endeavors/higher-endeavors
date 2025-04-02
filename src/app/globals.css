@@ -68,3 +68,24 @@ body {
     --background-end-rgb: 59, 57, 56;
   }
 }
+
+/* specify styles for the Event Calendar container */
+.widget {
+  height: 100%;
+}
+
+/* DHTMLX Event Calendar Styles */
+/* html,
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+#root {
+    height: 100%;
+}
+
+.dhx_calendar {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+} */

@@ -1,0 +1,318 @@
+# What's new in DHTMLX Event Calendar
+
+## Version 2.3.0 (December 11, 2024)
+
+### New functionality
+
+- An ability to create custom views from all built-in views
+
+### Updates
+
+- Improve UI for readonly calendars and events
+- Improve Calendar Info popup
+- Events lasting a few hours that span across 2 days are shown as all-day events
+
+### Fixes
+
+- The interception of the "edit-event" works incorrectly
+- The event drag resizing is broken for events with numeric IDs in the Timeline view
+- The RestDataProvider works incorrectly with the modified events of recurring series
+
+
+## Version 2.2.7 (October 24, 2024)
+
+### Fixes
+
+- Incorrect work of the colsWidth and colsCount properties in Timeline view
+- Info popup is not updated after saving changes of the event through the edit form
+- Localization error when using templates
+
+## Version 2.2.6 (October 21, 2024)
+
+### Fixes
+
+- Incorrect work of the custom weekly recurrence when setting the repeat day different from the original start day of the event
+- Incorrect work of the event interception
+
+## Version 2.2.5 (September 26, 2024)
+
+### Fixes
+
+- The end date of the monthly recurring event is displayed incorrectly
+- The extra week is displayed in the Month view
+- Using Bootstrap breaks built-in styles
+
+## Version 2.2.4 (September 12, 2024)
+
+### Fixes
+
+- Wrong input value for month recurring events
+- The parse() method throws an error when called after the add-event
+
+## Version 2.2.3 (August 19, 2024)
+
+### Fixes
+
+- Incorrect behavior after canceling the add-event via the api.intercept() method
+- An error occurs after applying validation rules via the config.editorValidation property
+- Add missing type definitions related to config options
+
+## Version 2.2.2 (June 7, 2024)
+
+### Fixes
+
+- Agenda view. The "Today" column text is cut off
+- Incorrect state on select weekly recurring that is longer than 7 days
+- Month view. The hidden events are still rendered to DOM
+- Redundant calls of subscription to reactive bounds
+- Unable to open a popup after editing a recurring event
+- The showEventInfo() method works incorrectly
+
+## Version 2.2.1 (May 7, 2024)
+
+### Fixes
+
+- Redundant calls of subscription to reactive bounds
+
+## Version 2.2 (April 25, 2023)
+
+### Updates
+
+#### Properties
+
+- The events property was extended by the recurringEventId, originalStartTime and status parameters
+- The config property was extended by the calendarValidation and defaultEditorValues parameters
+
+#### Events
+
+- The update-event event was extended by the mode parameter
+
+### Fixes​
+
+- Hidden events in tne Month view are still rendered to DOM
+- Incorrect work of Weekly recurrence when editing a single event in the Month view
+- Recurring exception doesn't work if start_date is not specified
+- Recurring workdays bug
+- The config.viewControl property is set to "auto" for mobile devices
+- UI regression in the Year view
+
+## Version 2.1.10 (February 28, 2024)
+
+- Broken trial build on npm server
+
+## Version 2.1.9 (February 28, 2024)
+
+- All day events are displayed incorrectly in the Timeline mode
+- The setConfig() method doesn't refresh calendars
+- Creating a recurring event causes a script error
+- Browser is crashed after double-clicking on the date in the Year view
+- Type script files are not included in package
+- Event changes are not tracked when using the Multiselect control in the editor
+- Incorrect values of STDATE and DTEND properties of recurring events after edit
+
+## Version 2.1.8 (February 14, 2024)
+
+- Incorrect work of the "UNTIL" rule. Event Calendar skips the last instance of the series
+- The dragResize: false config shows the icon for resizing events
+- New calendars without specified colors include almost the same colors
+- When the exception in a recurring event is created, the update-event event receives an incomplete object
+- Displaying incorrect time after editing via the time picker
+- Extend localization with the meridianFormat property. Refer to the Localization guide for more information
+
+## Version 2.1.7 (January 23, 2024)
+
+- Clicking on the event in the Year view causes a script error
+- Default event duration and timeStep doesn't apply on event creation
+- Recurring. Changing end_date after recurring event causes a script error
+- Single-day month events cannot be find by a css selector. Add specific classes to single-day and multievent
+
+## Version 2.1.6 (January 18, 2024)
+
+- Creating a new event and clicking the empty space closes the editor
+- Deleting a recurring event via the popup info works incorrectly
+- Incorrect DTEND of recurring events
+- Incorrect popup position in the Timeline view
+- Case sensitive BYDAY component of RRULE is not compatible with Google Calendar
+- Unexpected behavior of the recurring event form in auto-save mode
+
+## Version 2.1.5 (November 15, 2023)
+
+- Script error occurs on double click in Unassigned section of Timeline
+- Deleting symbols from search input doesn't update search result
+- Deleting instances of recurring series doesn't work
+- Regression in the setConfig() method introduced in v2.1.4
+- The setConfig() method doesn't store the previous state
+- Buttons on the Editor panel now have fixed position instead of static
+- Style improvements
+
+## Version 2.1.4 (November 3, 2023)
+
+### Fixes
+
+- A click on the navigation panel doesn't close the datepicker
+- The edit form doesn't work correctly for recurring events
+- Optimize calls of subscribe callback functions
+
+## Version 2.1.3 (October 31, 2023)
+
+### Updates
+
+- An ability to validate data entered in the editor fields
+
+### Fixes
+
+- Incorrect display of events with duplicated ids. Duplicating id is not allowed
+- Contents of Timeline label stretches the column and causes incorrect positions of events
+- The setLocale() method doesn't work
+- Timeline shows events that end before min-date of the time scale
+- The Today line in Agenda view is displayed on top of datepicker calendar
+- Wrong key for the Assignees label in the locale object
+- The dateTitle template doesn't work in Agenda and Year views
+
+## Version 2.1.2 (September 15, 2023)
+
+### Updates
+
+- The createEvent() method was extended by the event object argument
+
+### Fixes
+
+- Script error when calling the setConfig() or setLocale() method if the Event Calendar configuration includes templates
+- Rebuilding Event Calendar when calling the setConfig() method
+- Regression from v2.1.0 causing a script error at the Event Calendar startup if the Day/Week views in the views array lack their own configuration options
+- Event positioning issues occurs after dragging and dropping multiday events
+- Incorrect format of event ID arguments in various event handlers
+- UI animations
+
+## Version 2.1.1 (September 5, 2023)
+
+### Updates
+
+- Support of server-side updates and Multiuser backend
+- An ability to import Event Calendar package as ES module
+
+## Version 2.1 (August 30, 2023)
+
+### Updates
+
+#### Properties
+
+- The config property was extended by the dateTitle, eventVerticalSpace and eventHorizontalSpace parameters
+
+#### Style
+
+- New CSS animations and transitions when working with UI
+
+### Deprecated API
+
+- The eventMargin parameter of the config property was deprecated. Use the eventHorizontalSpace parameter instead
+
+### Fixes​
+
+- The info popup does not show in the readonly mode
+- The event can be created via an editor in the readonly mode
+- Script error occurs when a date is clicked in the Year view
+- The view selector width on Toolbar is 100% on any screen
+
+## Version 2.0.3 (March 13, 2023)
+
+### Fixes​
+
+- The Agenda view issues cause script errors on the page
+- The cellCss template in the Week view works incorrectly
+
+## Version 2.0.2 (March 7, 2023)
+
+### Updates
+
+#### Properties
+
+- The config property of Event Calendar is extended by the dateClick property
+
+#### Fixes​
+
+- An event is out of the month cell if the eventHeight property is set to 50 or more
+
+## Version 2.0.1 (February 23, 2023)
+
+### Fixes​
+
+- The Repeat event control resets week days when the End by part of new event is changed
+- The Popup window of Recurring events sometimes has an incorrect position in the Agenda view
+- TypeError when the Create event button is doubleclicked
+
+
+## Version 2.0 (February 14, 2023)
+
+### New functionality
+
+- Timeline view
+- Recurring events
+- Custom view modes
+- Section for unassigned events in the Timeline view
+- Switching through the view modes via the toggle or dropdown controls
+- Dim past events
+- Highlight the current time using red line in the Day, Week, Agenda and Timeline view modes
+
+### Updates
+
+#### Methods
+
+- The setMode() method of Event Calendar is updated
+
+#### Properties
+
+- The templates property of Event Calendar is extended by the timelineSection parameter (template)
+- The editorShape property is extended by the recurring type (editor field)
+- The events property of Event Calendar is extended by the RRULE, STDATE, DTEND and recurring parameters (data fields). These parameters are bound to the recurring type of editor
+- The mode property of Event Calendar is extended by the timeline parameter (view mode). The Timeline view mode is optional and can be configured in the config.views property
+- The config property of Event Calendar is extended by the viewControl and dimPastEvents parameters
+- The config.view property of Event Calendar is fully updated. See the Migration to newer versions for details.
+
+## Version 1.1 (November 10, 2022)
+
+### New functionality
+
+- An ability to view events in the Year and Agenda modes
+- An ability to highlight the grid cells via API
+- An ability to use the multiselet and radio types of editor
+
+### Updates
+
+#### Methods
+
+- The setMode() method of Event Calendar is updated
+
+#### Properties
+
+- The templates property of Event Calendar is extended by the yearEvent, agendaEvent and agendaDate parameters
+- The config property of Event Calendar is extended by the cellCss parameter
+- The editorShape property is extended by the multiselect and radio types
+- The mode property of Event Calendar is extended by the year and agenda parameters (view modes)
+
+
+## Version 1.0 (September 1, 2022)
+
+### Initial functionality
+
+- The ability to work with events:
+
+  - add new events in the following way:
+    - by clicking on the + Create event button
+    - by double clicking on the empty space
+    - by clicking on the empty space and dragging the cursor down
+  - show an info popup window with brief information by clicking on the event
+  - edit an event via an editor by double clicking on the event or using the popup window (to open editor)
+  - reschedule events by dragging them to the desired position along a time scale (calendar cell/date)
+  - reschedule events by resizing them
+  - delete events via an info popup or an editor
+  - group events using calendars
+- The ability to work with calendars:
+  - add new calendars
+  - edit calendars
+  - delete calendars
+- The ability to view events through the "Day", "Week" and "Month" view modes
+- Localization
+- Integration with backend
+- Cross browser compatibility
+- Touch support

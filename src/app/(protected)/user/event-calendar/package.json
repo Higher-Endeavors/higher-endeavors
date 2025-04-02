@@ -1,0 +1,15 @@
+{
+  "name": "@dhx/trial-eventcalendar",
+  "version": "2.3.0",
+  "description": "DHTMLX Event Calendar widget",
+  "homepage": "https://dhtmlx.com/docs/products/dhtmlxEventCalendar/",
+  "main": "dist/event-calendar.es.js",
+  "license": "LicenseRef-license.txt",
+  "publishConfig": {
+    "registry": "https://npm.dhtmlx.com"
+  },
+  "files": [
+    "dist",
+    "license.txt"
+  ]
+}

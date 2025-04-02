@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta name="author" content="XB Software" />
+		<meta name="publisher" content="XB Software" />
+		<meta name="copyright" content="XB Software" />
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1,  user-scalable=no, shrink-to-fit=no"
+		/>
+		<link rel="icon" href="../favicon.ico" type="image/x-icon" />
+		<link rel="icon" href="../assets/favicon/icon-16.png" sizes="16x16" />
+		<link rel="icon" href="../assets/favicon/icon-32.png" sizes="32x32" />
+		<link rel="icon" href="../assets/favicon/icon-48.png" sizes="48x48" />
+		<link rel="icon" href="../assets/favicon/icon-96.png" sizes="96x96" />
+		<link
+			rel="icon"
+			href="../assets/favicon/icon-144.png"
+			sizes="144x144"
+		/>
+
+		<!-- Event Calendar -->
+		<link rel="stylesheet" href="../dist/event-calendar.css" />
+		<link
+			rel="stylesheet"
+			href="https://cdn.dhtmlx.com/fonts/wxi/wx-icons.css"
+		/>
+		<script src="../dist/event-calendar.js"></script>
+
+		<!-- Demo data -->
+		<script src="./common/data.js"></script>
+		<link rel="stylesheet" href="../assets/demos.css" />
+		<script
+			src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/2.0.0-alpha0/date_fns.min.js"
+			integrity="sha512-0kon+2zxkK5yhflwFqaTaIhLVDKGVH0YH/jm8P8Bab/4EOgC/n7gWyy7WE4EXrfPOVDeNdaebiAng0nsfeFd9A=="
+			crossorigin="anonymous"
+			referrerpolicy="no-referrer"
+		></script>
+
+		<title>Event Calendar: Backend</title>
+	</head>
+
+	<body>
+		<div class="g-wrap">
+			<header class="g-header">
+				<div class="h-wrap">
+					<div class="h-nav">
+						<a href="../index.html">Back to demos</a>
+					</div>
+					<div class="h-title">Event Calendar: Backend</div>
+					<div class="h-cta">
+						<a
+							href="https://dhtmlx.com/docs/products/dhtmlxEventCalendar/download.shtml"
+							target="_blank"
+							class="g-btn"
+							>Free Trial</a
+						>
+					</div>
+				</div>
+			</header>
+
+			<div id="root"></div>
+		</div>
+
+		<script>
+			const { EventCalendar, RestDataProvider } = eventCalendar;
+			const { format } = dateFns;
+
+			const url = "https://docs.dhtmlx.com/event-calendar-backend";
+			const restProvider = new RestDataProvider(url);
+			const editorShape = [
+				...eventCalendar.defaultEditorShape,
+				{
+					key: "files",
+					type: "files",
+					label: "Attachments",
+					config: {
+						multiple: true,
+					},
+					uploadURL: url + "/uploads",
+				},
+			];
+			function weekEvent({ event, calendar }) {
+				const start_date = format(event.start_date, "HH:mm");
+				const end_date = format(event.end_date, "HH:mm");
+
+				return `
+				<div class="week_event_wrapper">
+					<div>${event.text}</div>
+					<div>
+						${start_date}
+						-
+						${end_date}
+					</div>
+					${
+						event.files?.length
+							? `<img src=${event.files[0].url} style="width: 80px; height: 60px" alt="" />`
+							: ""
+					}
+				</div>
+		`;
+			}
+
+			Promise.all([
+				restProvider.getEvents(),
+				restProvider.getCalendars(),
+			]).then(([events, calendars]) => {
+				const obj = new EventCalendar("#root", {
+					events,
+					calendars,
+					date: new Date(2022, 7, 22),
+					editorShape,
+					templates: { weekEvent },
+				});
+				obj.api.setNext(restProvider);
+			});
+		</script>
+	</body>
+</html>
