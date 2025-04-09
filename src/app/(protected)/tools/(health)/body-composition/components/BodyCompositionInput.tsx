@@ -259,7 +259,6 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   };
 
   const onSubmit = async (data: FormInputs) => {
-    console.log('Form submission started');
     
     const errors = validateMeasurements(
       data.weight,
@@ -366,18 +365,14 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       <form 
         onSubmit={(e) => {
           e.preventDefault();
-          console.log('Form submit event triggered');
           const formData = watch();
-          console.log('Form data:', formData);
           
           // Ensure we have required values
           if (!formData.weight || formData.weight <= 0) {
-            console.log('Invalid weight value');
             return;
           }
 
           if (formData.bodyFatMethod === 'manual' && (!formData.manualBodyFat || formData.manualBodyFat <= 0)) {
-            console.log('Invalid manual body fat value');
             return;
           }
 

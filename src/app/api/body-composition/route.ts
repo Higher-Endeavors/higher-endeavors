@@ -72,11 +72,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('API route: Starting authentication check');
     const session = await auth();
     
     if (!session?.user?.id) {
-      console.log('API route: Unauthorized - no user ID in session');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -89,13 +87,10 @@ export async function GET(request: NextRequest) {
     const isAdmin = await checkAdminAccess(parseInt(session.user.id));
     const effectiveUserId = parsedTargetUserId && isAdmin ? parsedTargetUserId : parseInt(session.user.id);
 
-    console.log('API route: Fetching entries from database');
     const result = await SingleQuery(
       `SELECT * FROM body_composition_entries WHERE user_id = $1 ORDER BY created_at DESC`,
       [effectiveUserId]
     );
-
-    console.log('Debug - Raw DB Result:', JSON.stringify(result.rows[0], null, 2));
 
     // Transform the data to match the frontend types
     const entries = result.rows.map((entry: any) => {
@@ -130,7 +125,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log('API route: Successfully fetched entries');
     return NextResponse.json({ entries });
   } catch (error) {
     console.error("Error fetching body composition entries:", error);

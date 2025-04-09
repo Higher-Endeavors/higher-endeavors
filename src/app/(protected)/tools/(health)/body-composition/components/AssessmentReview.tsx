@@ -29,9 +29,6 @@ const getDifferenceColor = (diff: number): string => {
 };
 
 export default function AssessmentReview({ entries, selectedEntryId, onEntrySelect }: Props) {
-  console.log('Debug - AssessmentReview - All entries:', entries);
-  console.log('Debug - AssessmentReview - Selected ID:', selectedEntryId);
-  
   const sortedEntries = [...entries].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
   );
@@ -39,10 +36,6 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
   const selectedEntry = entries.find(entry => entry.id === selectedEntryId);
   const [comparisonEntryId, setComparisonEntryId] = useState<string | null>(null);
   const comparisonEntry = entries.find(entry => entry.id === comparisonEntryId);
-
-  // Debug logging
-  console.log('Debug - AssessmentReview - Selected Entry:', selectedEntry);
-  console.log('Debug - AssessmentReview - Comparison Entry:', comparisonEntry);
 
   const renderMeasurementWithComparison = (
     label: string,

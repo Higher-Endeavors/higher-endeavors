@@ -62,13 +62,11 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         }
 
         const data = await response.json();
-        console.log('Debug - API Response:', data);
         
         if (!data.entries || !Array.isArray(data.entries)) {
           throw new Error('Invalid response format');
         }
 
-        console.log('Debug - First Entry:', data.entries[0]);
         setEntries(data.entries);
         setSelectedEntryId(null); // Reset selected entry when user changes
       } catch (err) {
@@ -94,7 +92,6 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         }
 
         const data = await response.json();
-        console.log('Debug - API Response:', data);
         
         setUserSettings(data.settings);
       } catch (err) {

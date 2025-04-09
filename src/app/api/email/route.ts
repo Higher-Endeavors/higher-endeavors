@@ -38,7 +38,6 @@ try {
     return NextResponse.json({ message: "Success: email was sent" })
 
 } catch (error) {
-    console.log(error)
     NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 })
 
 }

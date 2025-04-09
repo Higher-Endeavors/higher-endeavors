@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
     await client.end();
     return NextResponse.json({ message: "Success: message stored" });
   } catch (error) {
-    console.log(error);
     NextResponse.json({ error: "COULD NOT STORE MESSAGE" }, { status: 500 });
   }
 }

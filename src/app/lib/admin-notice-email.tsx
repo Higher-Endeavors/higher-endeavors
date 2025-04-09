@@ -36,7 +36,6 @@ try {
     return "Success: email was sent"
 
 } catch (error) {
-    console.log(error)
     return "COULD NOT SEND MESSAGE"
 }
 }

@@ -11,12 +11,6 @@ export async function POST(request: Request) {
 
     const data = await request.json();
     
-    // Log the data being sent
-    console.log('Intake form submission data:', {
-      email: session.user.email,
-      formData: data
-    });
-
     // Get user ID
     const userResult = await SingleQuery(
       'SELECT id FROM users WHERE email = $1',
@@ -63,8 +57,6 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    // Log the full error for debugging
-    console.error('Error in intake form submission:', error);
     return NextResponse.json(
       { error: 'Failed to save intake form' },
       { status: 500 }

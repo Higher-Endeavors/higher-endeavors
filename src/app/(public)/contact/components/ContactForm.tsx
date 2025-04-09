@@ -169,7 +169,6 @@ export default function ContactForm() {
           siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
           onSuccess={(token) => setTurnstileToken(token)}
           onError={(error) => {
-            console.log('Turnstile client error', error)
             setSubmitError('Turnstile verification failed. Please try again.');
             setIsErrorVisible(true);
             sendErrorEmail(
