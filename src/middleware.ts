@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   let sessionTokenName = "";
-  if (process.env.LOCALHOST_DEV == "true") {
+  if (process.env.RUNTIME_ENV == "dev") {
     sessionTokenName = "authjs.session-token"
   } else {
     sessionTokenName = "__Secure-authjs.session-token"
