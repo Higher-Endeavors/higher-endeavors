@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# State Management Rules
+
+## Local State
+- Use useState for component-level state
+- Keep state as close as possible to where it's used
+- Use TypeScript for state types
+## Modal State
+- Use boolean state for modal visibility
+- Include onClose handler in props
+- Handle state cleanup on unmount
+
+## Data Loading
+- Use loading states for async operations
+- Handle error states appropriately
+- Show appropriate loading indicators

@@ -1,0 +1,22 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# UI Component Guidelines
+## Collapsible Sections
+- Use the isOpen state pattern for collapsible sections
+- Include a visual indicator for collapsed/expanded state
+- Maintain consistent animation timing (200ms)
+
+## Modals
+- Place modals at the root level of the component
+- Use Flowbite's Modal component for consistency
+- Include proper aria labels and roles
+- Handle escape key and click outside for closing
+
+## Lists and Items
+- Use consistent spacing between items (space-y-4)
+- Maintain consistent padding and margins
+- Use grid or flex layouts for item content
+- Include proper hover and focus states

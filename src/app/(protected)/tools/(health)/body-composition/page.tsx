@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession, SessionProvider } from 'next-auth/react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
-import UserSelector from './components/UserSelector';
+import UserSelector from '../../../components/UserSelector';
 import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';

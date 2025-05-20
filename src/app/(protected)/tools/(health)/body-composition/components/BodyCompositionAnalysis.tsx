@@ -15,7 +15,7 @@ import {
 } from 'chart.js';
 import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.js';
 import AssessmentReview from './AssessmentReview';
-import UserSelector from './UserSelector';
+import UserSelector from '../../../../components/UserSelector.jsx';
 
 ChartJS.register(
   CategoryScale,
