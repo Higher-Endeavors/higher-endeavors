@@ -15,6 +15,8 @@ alwaysApply: false
 - Suffix modal components with 'Modal' (e.g., AddExerciseModal)
 - Suffix list components with 'List' (e.g., ExerciseList)
 - Suffix item components with 'Item' (e.g., ExerciseItem)
+- Component file names indicate whether it is a server or client component, i.e. ComponentName.server.tsx or ComponentName.client.tsx
+
 ## Component Props
 - Define interfaces for component props at the top of the file
 - Use TypeScript for all component props

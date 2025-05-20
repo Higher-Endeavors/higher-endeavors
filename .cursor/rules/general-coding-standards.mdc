@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# General
+
+## Project Structure
+- The basic project structure is authorization and feature based
+
+## Coding Standards
+- Use Typescript strict typing, all files should have a .ts or .tsx extension
+- Javascript files, .js or .jsx, are only allowed from third-party packages
+
+### Naming Conventions
+
+#### kebab-case
+- This is the default naming convention for top level file names.
+
+#### camelCase
+- Variable names
+- Function names
+- Hooks
+
+#### PascalCase
+- React component names
+- Typescript types
+
+#### snake_case
+- Postgres/ Backend functionality
+- Database column names
+
+## Assumptions
+- We will not be using edge deployment for the time being.
