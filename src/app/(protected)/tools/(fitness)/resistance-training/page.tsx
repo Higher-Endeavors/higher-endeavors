@@ -1,7 +1,6 @@
 // Core
 'use client';
 import { SessionProvider } from "next-auth/react";
-import { useEffect } from "react";
 import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 
@@ -19,20 +18,11 @@ import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 export default function ResistanceTrainingPage() {
   const resistanceTrainingArticles = [
     {
-      title: "Understanding Periodization",
-      description: "Learn about different periodization models and how to apply them to your training program.",
-      href: "/guides/fitness/periodization"
+      title: "Tempo Overview",
+      description: "Learn how to use tempo to improve your training.",
+      href: "/guide/tempo-overview"
     },
-    {
-      title: "Exercise Selection Principles",
-      description: "Guidelines for selecting exercises based on your training goals and experience level.",
-      href: "/guides/fitness/exercise-selection"
-    },
-    {
-      title: "Volume and Intensity Management",
-      description: "How to properly manage training volume and intensity for optimal progress.",
-      href: "/guides/fitness/volume-intensity"
-    }
+    
   ];
 
   return (
