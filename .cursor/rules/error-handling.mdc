@@ -1,0 +1,20 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Error Handling Guidelines
+
+## Component Errors
+- Use TypeScript for type safety
+- Handle undefined/null cases
+- Provide fallback UI for error states
+## API Errors
+- Handle network errors
+- Show appropriate error messages
+- Provide retry mechanisms where appropriate
+
+## Form Validation
+- Validate input before submission
+- Show clear error messages
+- Handle edge cases
