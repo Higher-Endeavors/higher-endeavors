@@ -11,7 +11,7 @@ export default function ExerciseList() {
   const placeholderExercises = [
     {
       id: '1',
-      name: 'Treadmill Intervals',
+      name: 'Treadmill Warm-Up',
       pairing: 'Warm-Up',
       sets: 1,
       planned_sets: [
@@ -21,71 +21,67 @@ export default function ExerciseList() {
           planned_load: 3.5, // intensity value
           load_unit: 'mph', // intensity metric
           planned_tempo: 'Easy', // pace/cadence
-          planned_rest: 0 // recovery in min
+          planned_rest: 0, // recovery in min
+          notes: ''
         }
       ],
       notes: 'Start easy, focus on raising core temperature.'
     },
     {
       id: '2',
-      name: 'Interval Run',
-      pairing: 'Work',
+      name: 'Intervals',
+      pairing: 'Intervals',
       sets: 4,
       planned_sets: [
+        // Interval 1 - Work
         {
           set_number: 1,
-          planned_reps: 5, // duration in min
-          planned_load: 7.5, // intensity value
-          load_unit: 'mph', // intensity metric
-          planned_tempo: 'Moderate', // pace/cadence
-          planned_rest: 2 // recovery in min
+          pairing: 'Work',
+          planned_reps: 2, // duration in min
+          planned_load: 180, // intensity value
+          load_unit: 'bpm', // intensity metric
+          planned_tempo: '',
+          planned_rest: 0,
+          notes: ''
         },
+        // Interval 1 - Recovery
+        {
+          set_number: 1,
+          pairing: 'Recovery',
+          planned_reps: 1, // duration in min
+          planned_load: 140, // intensity value
+          load_unit: 'bpm', // intensity metric
+          planned_tempo: '',
+          planned_rest: 0,
+          notes: ''
+        },
+        // Interval 2 - Work
         {
           set_number: 2,
-          planned_reps: 5,
-          planned_load: 7.5,
-          load_unit: 'mph',
-          planned_tempo: 'Moderate',
-          planned_rest: 2
+          pairing: 'Work',
+          planned_reps: 2,
+          planned_load: 180,
+          load_unit: 'bpm',
+          planned_tempo: '',
+          planned_rest: 0,
+          notes: ''
         },
+        // Interval 2 - Recovery
         {
-          set_number: 3,
-          planned_reps: 5,
-          planned_load: 7.5,
-          load_unit: 'mph',
-          planned_tempo: 'Moderate',
-          planned_rest: 2
-        },
-        {
-          set_number: 4,
-          planned_reps: 5,
-          planned_load: 7.5,
-          load_unit: 'mph',
-          planned_tempo: 'Moderate',
-          planned_rest: 2
+          set_number: 2,
+          pairing: 'Recovery',
+          planned_reps: 1,
+          planned_load: 140,
+          load_unit: 'bpm',
+          planned_tempo: '',
+          planned_rest: 0,
+          notes: ''
         }
       ],
       notes: 'Maintain consistent pace for each interval.'
     },
     {
       id: '3',
-      name: 'Active Recovery Walk',
-      pairing: 'Recovery',
-      sets: 1,
-      planned_sets: [
-        {
-          set_number: 1,
-          planned_reps: 10,
-          planned_load: 3.0,
-          load_unit: 'mph',
-          planned_tempo: 'Easy',
-          planned_rest: 0
-        }
-      ],
-      notes: 'Keep HR below 120.'
-    },
-    {
-      id: '4',
       name: 'Cool-Down Cycle',
       pairing: 'Cool-Down',
       sets: 1,
@@ -96,7 +92,9 @@ export default function ExerciseList() {
           planned_load: 80,
           load_unit: 'watts',
           planned_tempo: 'Light',
-          planned_rest: 0
+          planned_rest: 0,
+          pairing: 'Cool-Down',
+          notes: ''
         }
       ],
       notes: 'Gradually decrease intensity.'
@@ -113,32 +111,10 @@ export default function ExerciseList() {
     // Placeholder for delete functionality
   };
 
-  // Helper: Get work and recovery exercises
+  // Only render three cards: Warm-Up, Intervals, Cool-Down
   const warmUp = placeholderExercises.find(e => e.pairing === 'Warm-Up');
+  const intervalsExercise = placeholderExercises.find(e => e.pairing === 'Intervals');
   const coolDown = placeholderExercises.find(e => e.pairing === 'Cool-Down');
-  const work = placeholderExercises.find(e => e.pairing === 'Work');
-  const recovery = placeholderExercises.find(e => e.pairing === 'Recovery');
-
-  // Build alternated intervals
-  let alternatedIntervals: any[] = [];
-  if (work && recovery) {
-    const workSets = work.planned_sets;
-    const recoverySet = recovery.planned_sets[0]; // Assume one recovery set for all
-    for (let i = 0; i < workSets.length; i++) {
-      alternatedIntervals.push({
-        ...work,
-        planned_sets: [workSets[i]],
-        intervalType: 'Work',
-        intervalNumber: i + 1
-      });
-      alternatedIntervals.push({
-        ...recovery,
-        planned_sets: [{ ...recoverySet, set_number: i + 1 }],
-        intervalType: 'Recovery',
-        intervalNumber: i + 1
-      });
-    }
-  }
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -160,23 +136,21 @@ export default function ExerciseList() {
             />
           </div>
         )}
-        {/* Alternating Work/Recovery Intervals */}
-        {alternatedIntervals.map((interval, idx) => (
-          <div key={interval.intervalType + interval.intervalNumber + idx}>
+        {/* Intervals */}
+        {intervalsExercise && (
+          <div>
             <div className="flex items-center gap-4 mb-2">
               <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
-              <h3 className="text-lg font-semibold text-gray-700">
-                Interval {interval.intervalNumber} ({interval.intervalType})
-              </h3>
+              <h3 className="text-lg font-semibold text-gray-700">Intervals</h3>
               <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
             </div>
             <ExerciseItem
-              exercise={interval}
+              exercise={intervalsExercise}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />
           </div>
-        ))}
+        )}
         {/* Cool-Down */}
         {coolDown && (
           <div>

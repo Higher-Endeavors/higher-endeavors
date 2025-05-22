@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { HiOutlineTrash } from 'react-icons/hi';
 
 // Components
 
@@ -21,7 +22,7 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
   const [pairing, setPairing] = useState('Work');
   const [useIntervals, setUseIntervals] = useState(true);
   const [intervals, setIntervals] = useState([
-    { duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
+    { pairing: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
   ]);
 
   const pairingOptions = [
@@ -46,7 +47,7 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
   const handleAddInterval = () => {
     setIntervals(prev => [
       ...prev,
-      { duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
+      { pairing: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
     ]);
   };
 
@@ -77,20 +78,22 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
               />
             </div>
 
-            {/* Pairing/Grouping */}
-            <div>
-              <label htmlFor="pairing" className="block text-sm font-medium dark:text-white">
-                Pairing / Grouping
-              </label>
-              <Select
-                id="pairing"
-                options={pairingOptions}
-                value={pairingOptions.find(opt => opt.value === pairing)}
-                onChange={opt => setPairing(opt?.value || 'Work')}
-                classNamePrefix="select"
-                className="dark:text-slate-700"
-              />
-            </div>
+            {/* Pairing/Grouping - only show if not using intervals */}
+            {!useIntervals && (
+              <div>
+                <label htmlFor="pairing" className="block text-sm font-medium dark:text-white">
+                  Pairing / Grouping
+                </label>
+                <Select
+                  id="pairing"
+                  options={pairingOptions}
+                  value={pairingOptions.find(opt => opt.value === pairing)}
+                  onChange={opt => setPairing(opt?.value || 'Work')}
+                  classNamePrefix="select"
+                  className="dark:text-slate-700"
+                />
+              </div>
+            )}
 
             {/* Intervals Checkbox */}
             <div className="flex items-center space-x-2 mt-6">
@@ -107,11 +110,11 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
             </div>
           </div>
 
-          {/* Intervals Table or Single Interval */}
+          {/* Intervals Card Layout (Varied Sets style) */}
           {useIntervals ? (
-            <div className="space-y-2">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="text-md font-semibold dark:text-white">Intervals</h3>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium dark:text-white">Interval Details</h3>
                 <button
                   type="button"
                   onClick={handleAddInterval}
@@ -120,78 +123,83 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                   + Add Interval
                 </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border text-sm">
-                  <thead className="bg-gray-100 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-2 py-1 border">#</th>
-                      <th className="px-2 py-1 border">Duration (min)</th>
-                      <th className="px-2 py-1 border">Intensity</th>
-                      <th className="px-2 py-1 border">Intensity Metric</th>
-                      <th className="px-2 py-1 border">Notes</th>
-                      <th className="px-2 py-1 border"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {intervals.map((interval, idx) => (
-                      <tr key={idx}>
-                        <td className="px-2 py-1 border text-center">{idx + 1}</td>
-                        <td className="px-2 py-1 border">
-                          <input
-                            type="number"
-                            min="1"
-                            value={interval.duration}
-                            onChange={e => handleIntervalChange(idx, 'duration', Number(e.target.value))}
-                            className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                          />
-                        </td>
-                        <td className="px-2 py-1 border">
-                          <input
-                            type="text"
-                            value={interval.intensity}
-                            onChange={e => handleIntervalChange(idx, 'intensity', e.target.value)}
-                            className="w-20 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                          />
-                        </td>
-                        <td className="px-2 py-1 border min-w-[120px]">
-                          <Select
-                            options={intensityMetricOptions}
-                            value={intensityMetricOptions.find(opt => opt.value === interval.intensityMetric)}
-                            onChange={opt => handleIntervalChange(idx, 'intensityMetric', opt?.value || 'Pace')}
-                            classNamePrefix="select"
-                            className="dark:text-slate-700"
-                            styles={{ menu: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minWidth: 120, width: '100%' }) }}
-                          />
-                        </td>
-                        <td className="px-2 py-1 border">
-                          <input
-                            type="text"
-                            value={interval.notes}
-                            onChange={e => handleIntervalChange(idx, 'notes', e.target.value)}
-                            className="w-32 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                          />
-                        </td>
-                        <td className="px-2 py-1 border text-center">
-                          {intervals.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveInterval(idx)}
-                              className="text-red-500 hover:text-red-700 text-xs"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {intervals.map((interval, idx) => (
+                <div key={idx} className="space-y-4 p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium dark:text-white">Interval {idx + 1}</span>
+                    {intervals.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveInterval(idx)}
+                        className="text-red-500 hover:text-red-700 text-lg p-1"
+                        aria-label="Remove interval"
+                      >
+                        <HiOutlineTrash />
+                      </button>
+                    )}
+                  </div>
+                  {/* First row: Pairing/Grouping and Duration */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium dark:text-white">Pairing / Grouping</label>
+                      <Select
+                        options={pairingOptions}
+                        value={pairingOptions.find(opt => opt.value === interval.pairing || 'Work')}
+                        onChange={opt => handleIntervalChange(idx, 'pairing', opt?.value || 'Work')}
+                        classNamePrefix="select"
+                        className="mt-1 dark:text-slate-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium dark:text-white">Duration (min)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={interval.duration}
+                        onChange={e => handleIntervalChange(idx, 'duration', Number(e.target.value))}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                      />
+                    </div>
+                  </div>
+                  {/* Second row: Intensity and Intensity Metric */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium dark:text-white">Intensity</label>
+                      <input
+                        type="text"
+                        value={interval.intensity}
+                        onChange={e => handleIntervalChange(idx, 'intensity', e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium dark:text-white">Intensity Metric</label>
+                      <Select
+                        options={intensityMetricOptions}
+                        value={intensityMetricOptions.find(opt => opt.value === interval.intensityMetric)}
+                        onChange={opt => handleIntervalChange(idx, 'intensityMetric', opt?.value || 'Pace')}
+                        classNamePrefix="select"
+                        className="mt-1 dark:text-slate-700"
+                        styles={{ menu: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minWidth: 120, width: '100%' }) }}
+                      />
+                    </div>
+                  </div>
+                  {/* Third row: Notes */}
+                  <div className="mt-2">
+                    <label className="block text-sm font-medium dark:text-white">Notes</label>
+                    <input
+                      type="text"
+                      value={interval.notes}
+                      onChange={e => handleIntervalChange(idx, 'notes', e.target.value)}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="space-y-2">
-              <h3 className="text-md font-semibold dark:text-white">Interval</h3>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium dark:text-white">Duration (min)</label>
                   <input
@@ -199,7 +207,7 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                     min="1"
                     value={intervals[0].duration}
                     onChange={e => handleIntervalChange(0, 'duration', Number(e.target.value))}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
                   />
                 </div>
                 <div>
@@ -208,7 +216,7 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                     type="text"
                     value={intervals[0].intensity}
                     onChange={e => handleIntervalChange(0, 'intensity', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
                   />
                 </div>
                 <div>
@@ -218,19 +226,19 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                     value={intensityMetricOptions.find(opt => opt.value === intervals[0].intensityMetric)}
                     onChange={opt => handleIntervalChange(0, 'intensityMetric', opt?.value || 'Pace')}
                     classNamePrefix="select"
-                    className="dark:text-slate-700"
+                    className="mt-1 dark:text-slate-700"
                     styles={{ menu: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minWidth: 120, width: '100%' }) }}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium dark:text-white">Notes</label>
-                  <input
-                    type="text"
-                    value={intervals[0].notes}
-                    onChange={e => handleIntervalChange(0, 'notes', e.target.value)}
-                    className="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                  />
-                </div>
+              </div>
+              <div className="mt-2">
+                <label className="block text-sm font-medium dark:text-white">Notes</label>
+                <input
+                  type="text"
+                  value={intervals[0].notes}
+                  onChange={e => handleIntervalChange(0, 'notes', e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
+                />
               </div>
             </div>
           )}
