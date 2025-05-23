@@ -11,6 +11,7 @@ import UserSelector from "../../../components/UserSelector";
 import ProgramBrowser from "./components/ProgramBrowser";
 import ProgramSettings from "./components/ProgramSettings";
 import ExerciseList from "./components/ExerciseList";
+import SessionSummary from "./components/SessionSummary";
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 
@@ -43,6 +44,7 @@ return (
           <ProgramBrowser />
           <ProgramSettings />
           <ExerciseList />
+          <SessionSummary />
         </div>
 
         {/* Sidebar */}

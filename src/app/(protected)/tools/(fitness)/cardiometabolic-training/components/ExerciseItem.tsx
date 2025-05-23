@@ -5,33 +5,34 @@ import { HiOutlineDotsVertical } from 'react-icons/hi';
 
 interface ExerciseItemProps {
   exercise: {
-    id: string;
+    id: number;
     name: string;
-    pairing: string;
-    sets: number;
-    planned_sets: Array<{
-      set_number?: number;
-      planned_reps?: number;
-      planned_load?: number;
-      load_unit?: string;
+    step_type: string;
+    intervals: number;
+    planned_intervals: Array<{
+      interval_number?: number;
+      planned_duration?: number;
+      planned_intensity?: number;
+      intensity_unit?: string;
       planned_tempo?: string;
       planned_rest?: number;
-      sub_sets?: Array<{
-        planned_reps?: number;
-        planned_load?: number;
-        load_unit?: string;
+      sub_intervals?: Array<{
+        planned_duration?: number;
+        planned_intensity?: number;
+        intensity_unit?: string;
       }>;
     }>;
     notes?: string;
   };
-  onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onEdit: (id: number) => void;
+  onDelete: (id: number) => void;
 }
 
 export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: string]: boolean }>({});
+  console.log(exercise)
 
-  const toggleMenu = (id: string) => {
+  const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({
       ...prev,
       [id]: !prev[id]
@@ -50,20 +51,22 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
  
 
   // Build a CME-appropriate list of intervals
-  const intervals = exercise.planned_sets.map((set, idx) => ({
-    intervalNumber: set.set_number || idx + 1,
-    effortType: (typeof (set as any).pairing === 'string' ? (set as any).pairing : (idx % 2 === 0 ? 'Work' : 'Recovery')),
+  const intervals = exercise.planned_intervals.map((interval, idx) => ({
+    intervalNumber: interval.interval_number || idx + 1,
+    effortType: (typeof (interval as any).step_type === 'string' ? (interval as any).step_type : (idx % 2 === 0 ? 'Work' : 'Recovery')),
     exerciseName: exercise.name,
-    duration: set.planned_reps || 0, // minutes
-    intensityValue: set.planned_load || '',
-    intensityUnit: set.load_unit || '',
-    intervalNotes: (set as any).notes || '',
+    duration: interval.planned_duration || 0, // minutes
+    intensityValue: interval.planned_intensity || '',
+    intensityUnit: interval.intensity_unit || '',
+    intervalNotes: (interval as any).notes || '',
   }));
 
   // Calculate summary
   const totalDuration = intervals.reduce((sum, i) => sum + (i.duration || 0), 0);
   const totalWorkDuration = intervals.filter(i => i.effortType === 'Work').reduce((sum, i) => sum + (i.duration || 0), 0);
 
+  console.log(intervals)
+  
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
       <div className="flex items-center justify-between">
@@ -117,7 +120,7 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
         </div>
       </div>
       <div className="mt-4">
-        <div className="grid grid-cols-5 gap-2 text-xs text-gray-500 font-semibold pb-1 border-b">
+        <div className="grid grid-cols-5 gap-2 text-xs text-gray-900 font-semibold pb-1 border-b">
           <div>Interval x Effort</div>
           <div>Exercise</div>
           <div>Duration</div>
@@ -125,7 +128,7 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
           <div>Notes</div>
         </div>
         {intervals.map((interval, idx) => (
-          <div key={idx} className="grid grid-cols-5 gap-2 py-2 items-center text-sm border-b last:border-b-0">
+          <div key={idx} className="grid grid-cols-5 gap-2 py-2 items-center text-sm border-b last:border-b-0 text-gray-900">
             <div>{`Interval ${interval.intervalNumber} - ${interval.effortType}`}</div>
             <div>{interval.exerciseName}</div>
             <div>{interval.duration} minutes</div>
@@ -133,10 +136,10 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
             <div>{interval.intervalNotes}</div>
           </div>
         ))}
-        <div className="grid grid-cols-5 gap-2 py-2 items-center text-sm border-t mt-2">
-          <div className="col-span-2 font-medium">Total Duration: {totalDuration} minutes</div>
-          <div className="font-medium">Total Work Duration: {totalWorkDuration} minutes</div>
-          <div className="col-span-2 text-right">Notes</div>
+        <div className="grid grid-cols-5 gap-2 py-2 items-center text-sm border-t mt-2 bg-purple-50 text-purple-700 font-semibold">
+          <div className="col-span-2">Total Duration: {totalDuration} minutes</div>
+          <div>Total Work Duration: {totalWorkDuration} minutes</div>
+          <div className="col-span-2 text-left break-words">Notes: {exercise.notes || ''}</div>
         </div>
       </div>
     </div>

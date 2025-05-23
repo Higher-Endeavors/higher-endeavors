@@ -10,90 +10,78 @@ export default function ExerciseList() {
   // Updated placeholder data for CardioMetabolic Training
   const placeholderExercises = [
     {
-      id: '1',
+      id: 1,
       name: 'Treadmill Warm-Up',
-      pairing: 'Warm-Up',
-      sets: 1,
-      planned_sets: [
+      step_type: 'Warm-Up',
+      intervals: 1,
+      planned_intervals: [
         {
-          set_number: 1,
-          planned_reps: 10, // duration in min
-          planned_load: 3.5, // intensity value
-          load_unit: 'mph', // intensity metric
-          planned_tempo: 'Easy', // pace/cadence
-          planned_rest: 0, // recovery in min
+          interval_number: 1,
+          planned_duration: 10, // duration in min
+          planned_intensity: 3.5, // intensity value
+          intensity_unit: 'mph', // intensity metric
           notes: ''
         }
       ],
       notes: 'Start easy, focus on raising core temperature.'
     },
     {
-      id: '2',
+      id: 2,
       name: 'Intervals',
-      pairing: 'Intervals',
-      sets: 4,
-      planned_sets: [
+      step_type: 'Intervals',
+      intervals: 4,
+      planned_intervals: [
         // Interval 1 - Work
         {
-          set_number: 1,
-          pairing: 'Work',
-          planned_reps: 2, // duration in min
-          planned_load: 180, // intensity value
-          load_unit: 'bpm', // intensity metric
-          planned_tempo: '',
-          planned_rest: 0,
+          interval_number: 1,
+          step_type: 'Work',
+          planned_duration: 2, // duration in min
+          planned_intensity: 180, // intensity value
+          intensity_unit: 'bpm', // intensity metric
           notes: ''
         },
         // Interval 1 - Recovery
         {
-          set_number: 1,
-          pairing: 'Recovery',
-          planned_reps: 1, // duration in min
-          planned_load: 140, // intensity value
-          load_unit: 'bpm', // intensity metric
-          planned_tempo: '',
-          planned_rest: 0,
+          interval_number: 1,
+          step_type: 'Recovery',
+          planned_duration: 1, // duration in min
+          planned_intensity: 140, // intensity value
+          intensity_unit: 'bpm', // intensity metric
           notes: ''
         },
         // Interval 2 - Work
         {
-          set_number: 2,
-          pairing: 'Work',
-          planned_reps: 2,
-          planned_load: 180,
-          load_unit: 'bpm',
-          planned_tempo: '',
-          planned_rest: 0,
+          interval_number: 2,
+          step_type: 'Work',
+          planned_duration: 2,
+          planned_intensity: 180,
+          intensity_unit: 'bpm',
           notes: ''
         },
         // Interval 2 - Recovery
         {
-          set_number: 2,
-          pairing: 'Recovery',
-          planned_reps: 1,
-          planned_load: 140,
-          load_unit: 'bpm',
-          planned_tempo: '',
-          planned_rest: 0,
+          interval_number: 2,
+          step_type: 'Recovery',
+          planned_duration: 1,
+          planned_intensity: 140,
+          intensity_unit: 'bpm',
           notes: ''
         }
       ],
       notes: 'Maintain consistent pace for each interval.'
     },
     {
-      id: '3',
+      id: 3,
       name: 'Cool-Down Cycle',
-      pairing: 'Cool-Down',
-      sets: 1,
-      planned_sets: [
+      step_type: 'Cool-Down',
+      intervals: 1,
+      planned_intervals: [
         {
-          set_number: 1,
-          planned_reps: 8,
-          planned_load: 80,
-          load_unit: 'watts',
-          planned_tempo: 'Light',
-          planned_rest: 0,
-          pairing: 'Cool-Down',
+          interval_number: 1,
+          step_type: 'Cool-Down',
+          planned_duration: 8,
+          planned_intensity: 80,
+          intensity_unit: 'watts',
           notes: ''
         }
       ],
@@ -101,20 +89,20 @@ export default function ExerciseList() {
     }
   ];
 
-  const handleEdit = (id: string) => {
+  const handleEdit = (id: number) => {
     console.log('Edit exercise:', id);
     // Placeholder for edit functionality
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     console.log('Delete exercise:', id);
     // Placeholder for delete functionality
   };
 
   // Only render three cards: Warm-Up, Intervals, Cool-Down
-  const warmUp = placeholderExercises.find(e => e.pairing === 'Warm-Up');
-  const intervalsExercise = placeholderExercises.find(e => e.pairing === 'Intervals');
-  const coolDown = placeholderExercises.find(e => e.pairing === 'Cool-Down');
+  const warmUp = placeholderExercises.find(e => e.step_type === 'Warm-Up');
+  const intervalsExercise = placeholderExercises.find(e => e.step_type === 'Intervals');
+  const coolDown = placeholderExercises.find(e => e.step_type === 'Cool-Down');
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">

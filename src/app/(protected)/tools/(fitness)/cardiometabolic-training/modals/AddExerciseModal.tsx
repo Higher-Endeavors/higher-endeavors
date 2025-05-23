@@ -19,13 +19,13 @@ interface AddExerciseModalProps {
 export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalProps) {
   // CardioMetabolic Endurance Training fields
   const [exerciseName, setExerciseName] = useState('');
-  const [pairing, setPairing] = useState('Work');
+  const [stepType, setStepType] = useState('Work');
   const [useIntervals, setUseIntervals] = useState(true);
   const [intervals, setIntervals] = useState([
-    { pairing: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
+    { stepType: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
   ]);
 
-  const pairingOptions = [
+  const stepTypeOptions = [
     { value: 'Warm-Up', label: 'Warm-Up' },
     { value: 'Work', label: 'Work' },
     { value: 'Recovery', label: 'Recovery' },
@@ -47,7 +47,7 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
   const handleAddInterval = () => {
     setIntervals(prev => [
       ...prev,
-      { pairing: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
+      { stepType: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }
     ]);
   };
 
@@ -78,17 +78,17 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
               />
             </div>
 
-            {/* Pairing/Grouping - only show if not using intervals */}
+            {/* Step Type - only show if not using intervals */}
             {!useIntervals && (
               <div>
                 <label htmlFor="pairing" className="block text-sm font-medium dark:text-white">
-                  Pairing / Grouping
+                  Step Type
                 </label>
                 <Select
-                  id="pairing"
-                  options={pairingOptions}
-                  value={pairingOptions.find(opt => opt.value === pairing)}
-                  onChange={opt => setPairing(opt?.value || 'Work')}
+                  id="stepType"
+                  options={stepTypeOptions}
+                  value={stepTypeOptions.find(opt => opt.value === stepType)}
+                  onChange={opt => setStepType(opt?.value || 'Work')}
                   classNamePrefix="select"
                   className="dark:text-slate-700"
                 />
@@ -138,14 +138,14 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                       </button>
                     )}
                   </div>
-                  {/* First row: Pairing/Grouping and Duration */}
+                  {/* First row: Step Type and Duration */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium dark:text-white">Pairing / Grouping</label>
+                      <label className="block text-sm font-medium dark:text-white">Step Type</label>
                       <Select
-                        options={pairingOptions}
-                        value={pairingOptions.find(opt => opt.value === interval.pairing || 'Work')}
-                        onChange={opt => handleIntervalChange(idx, 'pairing', opt?.value || 'Work')}
+                        options={stepTypeOptions}
+                        value={stepTypeOptions.find(opt => opt.value === interval.stepType || 'Work')}
+                        onChange={opt => handleIntervalChange(idx, 'stepType', opt?.value || 'Work')}
                         classNamePrefix="select"
                         className="mt-1 dark:text-slate-700"
                       />
