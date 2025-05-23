@@ -16,6 +16,7 @@ alwaysApply: false
 3. Implement business logic
 4. Add error handling
 5. Implement loading states
+
 ## Testing
 1. Test UI responsiveness
 2. Test dark mode
