@@ -30,7 +30,6 @@ interface ExerciseItemProps {
 
 export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: string]: boolean }>({});
-  console.log(exercise)
 
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({
@@ -65,7 +64,6 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
   const totalDuration = intervals.reduce((sum, i) => sum + (i.duration || 0), 0);
   const totalWorkDuration = intervals.filter(i => i.effortType === 'Work').reduce((sum, i) => sum + (i.duration || 0), 0);
 
-  console.log(intervals)
   
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
