@@ -5,10 +5,14 @@ alwaysApply: false
 ---
 # Styling Guidelines
 
+## General
+- Text and background color combinations must meet WCAG AA contrast standards.
+
 ## Dark Mode
 - Use dark: prefix for dark mode styles
 - Maintain consistent color scheme
 - Test both light and dark modes
+
 ## Responsive Design
 - Use mobile-first approach
 - Use appropriate breakpoints (sm, md, lg, xl)
