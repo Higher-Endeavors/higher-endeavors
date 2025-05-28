@@ -7,6 +7,7 @@ export type SpeedUnit = 'mph' | 'kph' | 'min_mile' | 'min_km';
 export type NotificationType = 'email' | 'text' | 'app';
 export type CircumferenceUnit = 'in' | 'cm';
 export type BodyFatMethod = 'manual' | 'bioelectrical' | 'skinfold';
+export type MacronutrientTargetMode = 'grams' | 'percent';
 
 export type CircumferenceMeasurement = 
   | 'neck'
@@ -43,9 +44,27 @@ export interface HealthSettings {
   trackingPreferences?: string[];
 }
 
+export interface MacronutrientTargets {
+  protein: number; // grams or percent
+  carbs: number;   // grams or percent
+  fat: number;     // grams or percent
+}
+
 export interface NutritionSettings {
   foodMeasurement: FoodMeasurementUnit;
   hydrationUnit: HydrationUnit;
+  /**
+   * Daily calorie target for the user
+   */
+  calorieTarget?: number;
+  /**
+   * User's macronutrient targets (protein, carbs, fat)
+   */
+  macronutrientTargets?: MacronutrientTargets;
+  /**
+   * Whether the user is setting macros by grams or percent
+   */
+  macronutrientTargetMode?: MacronutrientTargetMode;
 }
 
 export interface FitnessSettings {
