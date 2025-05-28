@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import NutritionItem, { NutritionItemType } from './NutritionItem';
+import AddFoodModal from '../modals/AddFoodModal';
+import PostMeal from '../modals/PostMeal';
+import { HiOutlineClipboardList } from 'react-icons/hi';
 
 export type MealType = {
   mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner';
@@ -103,6 +106,8 @@ const placeholderMeals: MealType[] = [
 
 export default function NutritionList() {
   const [collapsedMeals, setCollapsedMeals] = useState<Record<string, boolean>>({});
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [postMealOpen, setPostMealOpen] = useState<string | null>(null);
 
   const handleEdit = (id: number) => {
     console.log('Edit food/drink:', id);
@@ -156,7 +161,17 @@ export default function NutritionList() {
             <div key={meal.mealType}>
               <div className="flex items-center gap-4 mb-2">
                 <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
-                <h3 className="text-lg font-semibold text-gray-700">{mealLabels[meal.mealType]}</h3>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPostMealOpen(meal.mealType)}
+                    className="text-purple-600 hover:text-purple-800 focus:outline-none"
+                    aria-label={`Post-meal feedback for ${mealLabels[meal.mealType]}`}
+                  >
+                    <HiOutlineClipboardList className="h-5 w-5" />
+                  </button>
+                  <h3 className="text-lg font-semibold text-gray-700">{mealLabels[meal.mealType]}</h3>
+                </div>
                 <button
                   className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200"
                   style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
@@ -189,6 +204,7 @@ export default function NutritionList() {
                   ))}
                 </div>
               )}
+              <PostMeal isOpen={postMealOpen === meal.mealType} onClose={() => setPostMealOpen(null)} />
             </div>
           );
         })}
@@ -197,7 +213,7 @@ export default function NutritionList() {
       {/* Add Food/Drink Button */}
       <div className="mt-6 flex">
         <button
-          onClick={() => console.log('Open Add Food/Drink Modal')}
+          onClick={() => setIsAddModalOpen(true)}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -206,6 +222,7 @@ export default function NutritionList() {
           Add Food/Drink
         </button>
       </div>
+      <AddFoodModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} />
     </div>
   );
 }
