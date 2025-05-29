@@ -12,6 +12,9 @@ alwaysApply: true
 - Use Typescript strict typing, all files should have a .ts or .tsx extension
 - Javascript files, .js or .jsx, are only allowed from third-party packages
 
+### Components
+- Functions should only be declared as such, do not use React.FC, as that is an outdated standard. Reference the Structural Balance functionality to see best coding standards. 
+
 ### Naming Conventions
 
 #### kebab-case
