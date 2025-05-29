@@ -2,6 +2,7 @@
 
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { useState } from 'react';
 
 interface AdvancedFoodSearchProps {
   isOpen: boolean;
@@ -77,7 +78,29 @@ const placeholderFoods = [
   }
 ];
 
+// Placeholder nutrition data for demonstration
+const placeholderNutritionData = {
+  calories: 120,
+  protein: 5,
+  carbs: 22,
+  fat: 2,
+  servingSize: '1 cup',
+};
+
 export default function AdvancedFoodSearch({ isOpen, onClose, onSelect }: AdvancedFoodSearchProps) {
+  const [selectedFood, setSelectedFood] = useState<any>(null);
+
+  // Nutrition info for selected food (placeholder logic)
+  const nutrition = selectedFood
+    ? {
+        calories: placeholderNutritionData.calories,
+        protein: placeholderNutritionData.protein,
+        carbs: placeholderNutritionData.carbs,
+        fat: placeholderNutritionData.fat,
+        servingSize: placeholderNutritionData.servingSize,
+      }
+    : null;
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -99,7 +122,25 @@ export default function AdvancedFoodSearch({ isOpen, onClose, onSelect }: Advanc
                 DropdownIndicator: () => null,
                 IndicatorSeparator: () => null
               }}
+              onChange={food => setSelectedFood(food)}
             />
+          </div>
+
+          {/* Nutrition Info Panel */}
+          <div className="mb-2">
+            {selectedFood ? (
+              <div className="bg-white dark:bg-slate-100 rounded-lg shadow p-4 flex flex-col gap-2 border border-gray-200">
+                <div className="text-sm font-semibold text-gray-700 mb-1">Nutrition Info (per {nutrition?.servingSize}):</div>
+                <div className="flex gap-6 text-sm text-gray-700">
+                  <div><span className="font-bold">Calories:</span> {nutrition?.calories}</div>
+                  <div><span className="font-bold">Protein:</span> {nutrition?.protein}g</div>
+                  <div><span className="font-bold">Carbs:</span> {nutrition?.carbs}g</div>
+                  <div><span className="font-bold">Fat:</span> {nutrition?.fat}g</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 italic">Select a food to see nutrition info.</div>
+            )}
           </div>
 
           {/* Filters in a responsive grid */}
@@ -175,6 +216,8 @@ export default function AdvancedFoodSearch({ isOpen, onClose, onSelect }: Advanc
                     onSelect(food);
                     onClose();
                   }}
+                  onMouseEnter={() => setSelectedFood(food)}
+                  onFocus={() => setSelectedFood(food)}
                 >
                   <div className="font-medium text-gray-900 dark:text-gray-100">
                     {food.label}

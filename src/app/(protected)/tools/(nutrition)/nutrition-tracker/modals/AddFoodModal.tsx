@@ -27,6 +27,17 @@ const mealOptions = [
   { value: 'dinner', label: 'Dinner' },
 ];
 
+// Placeholder nutrition data for demonstration
+const placeholderNutritionData = {
+  calories: 120,
+  protein: 5,
+  carbs: 22,
+  fat: 2,
+  servingSize: '1 cup',
+  unit: 'cup',
+  quantity: 1,
+};
+
 export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
   const [foodName, setFoodName] = useState('');
   const [quantity, setQuantity] = useState('');
@@ -34,6 +45,26 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
   const [meal, setMeal] = useState(mealOptions[0].value);
   const [notes, setNotes] = useState('');
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
+  const [selectedFood, setSelectedFood] = useState<any>(null); // Placeholder for selected food object
+
+  // Calculate nutrition info based on quantity/unit (placeholder logic)
+  const qty = parseFloat(quantity) || 1;
+  const showNutrition = selectedFood || foodName;
+  const nutrition = showNutrition
+    ? {
+        calories: placeholderNutritionData.calories * qty,
+        protein: placeholderNutritionData.protein * qty,
+        carbs: placeholderNutritionData.carbs * qty,
+        fat: placeholderNutritionData.fat * qty,
+        servingSize: `${qty} ${unit}`,
+      }
+    : null;
+
+  const handleFoodSelect = (food: any) => {
+    setFoodName(food.label);
+    setSelectedFood(food);
+    setIsAdvancedSearchOpen(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,11 +97,31 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
               id="food-name"
               type="text"
               value={foodName}
-              onChange={e => setFoodName(e.target.value)}
+              onChange={e => {
+                setFoodName(e.target.value);
+                setSelectedFood(null);
+              }}
               placeholder="Enter food or drink name"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
               required
             />
+          </div>
+
+          {/* Nutrition Info Panel */}
+          <div className="mb-2">
+            {showNutrition ? (
+              <div className="bg-white dark:bg-slate-100 rounded-lg shadow p-4 flex flex-col gap-2 border border-gray-200">
+                <div className="text-sm font-semibold text-gray-700 mb-1">Nutrition Info (per {nutrition?.servingSize}):</div>
+                <div className="flex gap-6 text-sm text-gray-700">
+                  <div><span className="font-bold">Calories:</span> {nutrition?.calories}</div>
+                  <div><span className="font-bold">Protein:</span> {nutrition?.protein}g</div>
+                  <div><span className="font-bold">Carbs:</span> {nutrition?.carbs}g</div>
+                  <div><span className="font-bold">Fat:</span> {nutrition?.fat}g</div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs text-gray-500 italic">Select a food to see nutrition info.</div>
+            )}
           </div>
 
           {/* Quantity and Unit */}
@@ -158,11 +209,7 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
         <AdvancedFoodSearch
           isOpen={isAdvancedSearchOpen}
           onClose={() => setIsAdvancedSearchOpen(false)}
-          onSelect={(food) => {
-            // Handle the selected food
-            setFoodName(food.label);
-            setIsAdvancedSearchOpen(false);
-          }}
+          onSelect={handleFoodSelect}
         />
       </Modal.Body>
     </Modal>

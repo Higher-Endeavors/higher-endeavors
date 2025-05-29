@@ -142,7 +142,7 @@ export default function NutritionList() {
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
-      <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900 mb-4">Nutrition List</h2>
+     {/* <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900 mb-4">Nutrition List</h2> */}
       <div className="space-y-4">
         {placeholderMeals.map(meal => {
           // Calculate meal totals

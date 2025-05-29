@@ -9,9 +9,12 @@ import Footer from "../../../../components/Footer";
 // Components
 import UserSelector from "../../../components/UserSelector";
 import DailySummary from "./components/DailySummary";
+import HydrationTracker from "./components/HydrationTracker";
 import NutritionList from "./components/NutritionList";
+import DailyNutritionSettings from "./components/DailyNutritionSettings";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import RelatedContent from "../../(components)/RelatedContent";
+import DateSelector from "../../(components)/DateSelector";
 
 export default function NutritionTrackerPage() {
     const nutritionTrackerArticles = [
@@ -37,14 +40,17 @@ export default function NutritionTrackerPage() {
         <div className="flex flex-col lg:flex-row gap-6">
             {/* Main Content */}
             <div className="flex-grow space-y-4">
-            <div className="max-w-md">
+            <div className="flex gap-4 max-w-md items-center">
                 <UserSelector
                 onUserSelect={() => {}}
                 currentUserId={1}
                 />
+                <DateSelector />
             </div>
                 <DailySummary />
+                <HydrationTracker />
                 <NutritionList />
+                <DailyNutritionSettings />
             </div>
 
             {/* Sidebar */}
