@@ -29,6 +29,14 @@ const initialSettings: UserSettings = {
   nutrition: {
     foodMeasurement: 'grams',
     hydrationUnit: 'oz',
+    defaultMealSchedule: {
+      id: 'default',
+      name: 'Default',
+      meals: [],
+      nutrientDistribution: { mode: 'even' }
+    },
+    customMealSchedules: [],
+    scheduleAssignments: {},
   },
   fitness: {
     resistanceTraining: {
