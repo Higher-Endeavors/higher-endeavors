@@ -793,14 +793,48 @@ const NutrientDistribution: React.FC<NutrientDistributionProps> = ({
               </tr>
             ))}
             {distributionMode === 'custom-macros' && (
-              <tr className="bg-gray-50 font-semibold">
-                <td className="px-2 py-1">Total</td>
-                <td className="px-2 py-1">-</td>
-                <td className="px-2 py-1">{caloriesSum}</td>
-                <td className="px-2 py-1">{macroSum.protein}</td>
-                <td className="px-2 py-1">{macroSum.carbs}</td>
-                <td className="px-2 py-1">{macroSum.fat}</td>
-              </tr>
+              <>
+                <tr className="bg-gray-50 font-semibold">
+                  <td className="px-2 py-1">Total</td>
+                  <td className="px-2 py-1">-</td>
+                  <td className="px-2 py-1">{caloriesSum}</td>
+                  <td className="px-2 py-1">{macroSum.protein}</td>
+                  <td className="px-2 py-1">{macroSum.carbs}</td>
+                  <td className="px-2 py-1">{macroSum.fat}</td>
+                </tr>
+                {/* Needed row */}
+                <tr className="bg-yellow-50 font-semibold text-yellow-700">
+                  <td className="px-2 py-1">Needed</td>
+                  <td className="px-2 py-1">-</td>
+                  <td className="px-2 py-1">
+                    {(() => {
+                      const diff = Math.round((calorieTarget || 0) - caloriesSum);
+                      return diff === 0 ? '0' : diff > 0 ? `+${diff}` : `${diff}`;
+                    })()}
+                  </td>
+                  <td className="px-2 py-1">
+                    {(() => {
+                      const target = Math.round(macroTotals.protein || 0);
+                      const diff = target - Math.round(macroSum.protein);
+                      return diff === 0 ? '0' : diff > 0 ? `+${diff}` : `${diff}`;
+                    })()}
+                  </td>
+                  <td className="px-2 py-1">
+                    {(() => {
+                      const target = Math.round(macroTotals.carbs || 0);
+                      const diff = target - Math.round(macroSum.carbs);
+                      return diff === 0 ? '0' : diff > 0 ? `+${diff}` : `${diff}`;
+                    })()}
+                  </td>
+                  <td className="px-2 py-1">
+                    {(() => {
+                      const target = Math.round(macroTotals.fat || 0);
+                      const diff = target - Math.round(macroSum.fat);
+                      return diff === 0 ? '0' : diff > 0 ? `+${diff}` : `${diff}`;
+                    })()}
+                  </td>
+                </tr>
+              </>
             )}
           </tbody>
         </table>
