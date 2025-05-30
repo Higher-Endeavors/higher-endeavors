@@ -103,12 +103,16 @@ export default function UserSidebar() {
             <div className="font-bold text-lg text-slate-900 dark:text-white">John Smith</div>
             <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">name@company.com</div>
             <div className="flex gap-2 mb-2">
-              <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Settings">
-                <FaCog className="w-5 h-5 text-slate-500 dark:text-slate-300" />
-              </button>
-              <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Bio">
-                <FaIdBadge className="w-5 h-5 text-slate-500 dark:text-slate-300" />
-              </button>
+              <Link href="/user/settings">
+                <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Settings">
+                  <FaCog className="w-5 h-5 text-slate-500 dark:text-slate-300" />
+                </button>
+              </Link>
+              <Link href="/user/bio">
+                <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Bio">
+                  <FaIdBadge className="w-5 h-5 text-slate-500 dark:text-slate-300" />
+                </button>
+              </Link>
             </div>
             <button className="flex items-center justify-center gap-2 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 mb-2">
               <FaSignOutAlt /> Logout
