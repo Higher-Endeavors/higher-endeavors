@@ -4,8 +4,14 @@ import { Avatar, Dropdown } from "flowbite-react";
 import { signInHandler } from "@/app/lib/signInHandler";
 import { useSession } from "next-auth/react";
 import Link from 'next/link';
+import { usePathname } from "next/navigation";
 
 export default function DropdownMenu() {
+    const pathname = usePathname();
+    const isProtected = pathname.startsWith("/user") || pathname.startsWith("/tools") || pathname.startsWith("/guide");
+    if (isProtected) {
+        return null;
+    }
 
     const { data: session } = useSession();
 
@@ -53,11 +59,6 @@ export default function DropdownMenu() {
                     <Dropdown.Item as={Link} href="/user/dashboard">
                         Dashboard
                     </Dropdown.Item>
-                    <Dropdown.Item as={Link} href="/guide/table-of-contents">
-                        Guide Table of Contents
-                    </Dropdown.Item>
-                    <Dropdown.Item as={Link} href="/user/bio">User Bio</Dropdown.Item>
-                    <Dropdown.Item as={Link} href="/user/settings">User Settings</Dropdown.Item>
                 </>
             )}
             <Dropdown.Divider />

@@ -14,7 +14,7 @@ import NutritionList from "./components/NutritionList";
 import DailyNutritionSettings from "./components/DailyNutritionSettings";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import RelatedContent from "../../(components)/RelatedContent";
-import DateSelector from "../../(components)/DateSelector";
+import DateSelector from "../../../components/DateSelector";
 
 export default function NutritionTrackerPage() {
     const nutritionTrackerArticles = [
