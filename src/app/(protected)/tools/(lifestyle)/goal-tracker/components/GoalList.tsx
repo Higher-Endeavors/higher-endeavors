@@ -82,9 +82,12 @@ export default function GoalList() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [addSubGoalParentId, setAddSubGoalParentId] = useState<string | null>(null);
   const [progressModalGoalId, setProgressModalGoalId] = useState<string | null>(null);
+  const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
 
   const handleEdit = (id: string) => {
-    alert(`Edit goal ${id}`);
+    setEditingGoalId(id);
+    setIsAddModalOpen(true);
+    setAddSubGoalParentId(null);
   };
 
   const handleDelete = (id: string) => {
@@ -92,9 +95,15 @@ export default function GoalList() {
   };
 
   const handleAddGoal = (goal: GoalItemType) => {
-    setGoals(goals => [...goals, goal]);
+    setGoals(goals => {
+      if (editingGoalId) {
+        return goals.map(g => g.id === editingGoalId ? { ...g, ...goal, id: editingGoalId } : g);
+      }
+      return [...goals, goal];
+    });
     setIsAddModalOpen(false);
     setAddSubGoalParentId(null);
+    setEditingGoalId(null);
   };
 
   const handleAddSubGoal = (parentId: string) => {
@@ -111,8 +120,6 @@ export default function GoalList() {
   };
 
   const handleSaveProgress = (progress: { value: number; percent: number; notes: string }) => {
-    // Placeholder: update goal progress in state if desired
-    // For now, just close the modal
     setProgressModalGoalId(null);
   };
 
@@ -136,6 +143,7 @@ export default function GoalList() {
   );
 
   const progressGoal = goals.find(g => g.id === progressModalGoalId);
+  const editingGoal = editingGoalId ? goals.find(g => g.id === editingGoalId) : undefined;
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -144,7 +152,7 @@ export default function GoalList() {
       </div>
       <div className="mt-6 flex">
         <button
-          onClick={() => { setIsAddModalOpen(true); setAddSubGoalParentId(null); }}
+          onClick={() => { setIsAddModalOpen(true); setAddSubGoalParentId(null); setEditingGoalId(null); }}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center gap-2"
         >
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -155,10 +163,11 @@ export default function GoalList() {
       </div>
       <AddGoalModal
         isOpen={isAddModalOpen}
-        onClose={() => { setIsAddModalOpen(false); setAddSubGoalParentId(null); }}
+        onClose={() => { setIsAddModalOpen(false); setAddSubGoalParentId(null); setEditingGoalId(null); }}
         onAdd={handleAddGoal}
         parentGoalId={addSubGoalParentId}
         parentGoalOptions={goals.filter(g => !g.parentId)}
+        editingGoal={editingGoal}
       />
       {progressGoal && progressGoal.category === 'Other' && (
         <ProgressTrackingModal

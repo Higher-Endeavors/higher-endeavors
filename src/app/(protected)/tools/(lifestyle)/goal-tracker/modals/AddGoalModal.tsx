@@ -8,6 +8,7 @@ interface AddGoalModalProps {
   onAdd: (goal: any) => void;
   parentGoalId?: string | null;
   parentGoalOptions?: GoalItemType[];
+  editingGoal?: GoalItemType | null;
 }
 
 const categoryOptions = [
@@ -27,7 +28,7 @@ const metricOptions = [
   { value: '%', label: '%' },
 ];
 
-export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, parentGoalOptions = [] }: AddGoalModalProps) {
+export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, parentGoalOptions = [], editingGoal }: AddGoalModalProps) {
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
   const [bodyCompSub, setBodyCompSub] = useState(bodyCompSubOptions[0].value);
@@ -36,6 +37,8 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [ongoing, setOngoing] = useState(false);
+  const [repeatFrequency, setRepeatFrequency] = useState('');
+  const [repeatInterval, setRepeatInterval] = useState(1);
   const [description, setDescription] = useState('');
   const [bodyWeight, setBodyWeight] = useState('');
   const [bodyFatPercentage, setBodyFatPercentage] = useState('');
@@ -43,14 +46,40 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
   const [isChildGoal, setIsChildGoal] = useState(false);
 
   useEffect(() => {
-    if (parentGoalId) {
-      setSelectedParentId(parentGoalId);
-      setIsChildGoal(true);
-    } else {
+    if (isOpen && editingGoal) {
+      setName(editingGoal.name || '');
+      setCategory(editingGoal.category || '');
+      setBodyCompSub((editingGoal as any).bodyCompSub || bodyCompSubOptions[0].value);
+      setMetric(editingGoal.metric || metricOptions[0].value);
+      setCustomMetric(editingGoal.metric || '');
+      setStartDate(editingGoal.startDate || '');
+      setEndDate(editingGoal.endDate || '');
+      setOngoing((editingGoal as any).ongoing ?? false);
+      setRepeatFrequency((editingGoal as any).repeatFrequency || '');
+      setRepeatInterval((editingGoal as any).repeatInterval || 1);
+      setDescription(editingGoal.notes || '');
+      setBodyWeight((editingGoal as any).bodyWeight ?? '');
+      setBodyFatPercentage((editingGoal as any).bodyFatPercentage ?? '');
+      setSelectedParentId(editingGoal.parentId || null);
+      setIsChildGoal(!!editingGoal.parentId);
+    } else if (isOpen && !editingGoal) {
+      setName('');
+      setCategory('');
+      setBodyCompSub(bodyCompSubOptions[0].value);
+      setMetric(metricOptions[0].value);
+      setCustomMetric('');
+      setStartDate('');
+      setEndDate('');
+      setOngoing(false);
+      setRepeatFrequency('');
+      setRepeatInterval(1);
+      setDescription('');
+      setBodyWeight('');
+      setBodyFatPercentage('');
       setSelectedParentId(null);
       setIsChildGoal(false);
     }
-  }, [parentGoalId, isOpen]);
+  }, [isOpen, editingGoal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,6 +101,8 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
       bodyFatPercentage: category === 'Body Composition' ? bodyFatPercentage : undefined,
       parentId: isChildGoal ? selectedParentId || undefined : undefined,
       ongoing,
+      repeatFrequency: ongoing ? repeatFrequency : undefined,
+      repeatInterval: ongoing ? repeatInterval : undefined,
     });
     setName('');
     setCategory('');
@@ -81,6 +112,8 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
     setStartDate('');
     setEndDate('');
     setOngoing(false);
+    setRepeatFrequency('');
+    setRepeatInterval(1);
     setDescription('');
     setBodyWeight('');
     setBodyFatPercentage('');
@@ -100,6 +133,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
             setSelectedParentId(null);
             setIsChildGoal(false);
             setOngoing(false);
+            setRepeatFrequency('');
             onClose();
           }}
           className="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
@@ -109,7 +143,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
-        <h3 className="text-lg font-semibold mb-4">Add New Goal</h3>
+        <h3 className="text-lg font-semibold mb-4 text-gray-700">Add New Goal</h3>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Goal Name</label>
@@ -181,7 +215,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
               </select>
               <div className="grid grid-cols-2 gap-4 mb-2">
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Body Weight</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Weight</label>
                   <input
                     type="number"
                     value={bodyWeight}
@@ -191,7 +225,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Body Fat Percentage</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Fat Percentage</label>
                   <input
                     type="number"
                     value={bodyFatPercentage}
@@ -216,40 +250,72 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
               />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                required
-              />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 justify-between">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                <label className="flex items-center gap-1 text-xs font-normal text-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {!ongoing && (
+              <>
+                <div className="flex flex-col">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                   <input
-                    type="checkbox"
-                    checked={ongoing}
-                    onChange={e => setOngoing(e.target.checked)}
-                    className="form-checkbox h-4 w-4 text-blue-600"
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    required
                   />
-                  Ongoing
-                </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={e => setEndDate(e.target.value)}
+                    className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    required
+                  />
+                </div>
+              </>
+            )}
+            {ongoing && (
+              <div className="flex flex-row gap-2 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={e => setStartDate(e.target.value)}
+                    className="block w-32 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Repeat</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={repeatInterval}
+                    onChange={e => setRepeatInterval(Number(e.target.value))}
+                    className="block w-20 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                  <select
+                    value={repeatFrequency}
+                    onChange={e => setRepeatFrequency(e.target.value)}
+                    className="block w-40 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    required
+                  >
+                    <option value="">Select frequency...</option>
+                    <option value="Day">Day(s)</option>
+                    <option value="Week">Week(s)</option>
+                    <option value="Month">Month(s)</option>
+                    <option value="Year">Year(s)</option>
+                    <option value="Custom">Custom</option>
+                  </select>
+                </div>
               </div>
-              {!ongoing && (
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={e => setEndDate(e.target.value)}
-                  className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                  required
-                />
-              )}
-            </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Goal Description</label>
