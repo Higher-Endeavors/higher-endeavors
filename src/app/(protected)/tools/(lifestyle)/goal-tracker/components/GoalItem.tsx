@@ -107,6 +107,14 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
                   <button
                     onClick={(e) => {
                       e.preventDefault();
+                      onAddSubGoal(goal.id);
+                      handleMenuClose();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-blue-700 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  >Add Child Goal</button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
                       setShowArchiveConfirm(true);
                       handleMenuClose();
                     }}
@@ -136,7 +144,11 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
         <div className="mt-2 text-gray-700">
           <div className="flex justify-between text-xs mb-1">
             <span>Progress</span>
-            <span>{actualProgress}% / {desiredProgress}%</span>
+            <span>
+              <span className="text-blue-500">{actualProgress}%</span>
+              {' / '}
+              <span className="text-green-600">{desiredProgress}%</span>
+            </span>
           </div>
           <div className="relative w-full h-4 bg-gray-200 rounded-full">
             <div
