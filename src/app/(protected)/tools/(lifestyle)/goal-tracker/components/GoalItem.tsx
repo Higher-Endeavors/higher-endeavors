@@ -25,11 +25,14 @@ interface GoalItemProps {
   onDelete: (id: string) => void;
   onAddSubGoal: (parentId: string) => void;
   onTrackProgress?: (id: string) => void;
+  onArchive: (id: string) => void;
   children?: React.ReactNode;
 }
 
-export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrackProgress, children }: GoalItemProps) {
+export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrackProgress, onArchive, children }: GoalItemProps) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Calculate progress (placeholder logic)
   const progressPercent = Math.min(
@@ -51,11 +54,14 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
   const handleMenuClose = () => setMenuOpen(false);
 
   return (
-    <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
+    <div className={`bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group ${goal.status === 'archived' ? 'opacity-60 grayscale pointer-events-none' : ''}`}>
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <span className="font-medium text-lg dark:text-slate-900">{goal.name}</span>
           <span className="text-xs text-gray-500">{goal.category} &bull; {goal.metric}</span>
+          {goal.status === 'archived' && (
+            <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-gray-300 text-gray-700 rounded">Archived</span>
+          )}
         </div>
         <div className="relative">
           <button
@@ -63,6 +69,7 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
             aria-label="Goal item options"
             aria-expanded={menuOpen}
             className="p-1 hover:bg-gray-100 rounded-full"
+            disabled={goal.status === 'archived'}
           >
             <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" aria-hidden="true" />
           </button>
@@ -100,19 +107,19 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      onDelete(goal.id);
+                      setShowArchiveConfirm(true);
+                      handleMenuClose();
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-yellow-700 dark:text-yellow-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                  >Archive</button>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowDeleteConfirm(true);
                       handleMenuClose();
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
                   >Delete</button>
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      onAddSubGoal(goal.id);
-                      handleMenuClose();
-                    }}
-                    className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  >Add Sub-Goal</button>
                 </div>
               </div>
             </>
@@ -141,6 +148,11 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
               style={{ width: `${desiredProgress}%`, zIndex: 1 }}
             />
           </div>
+          <div className="flex gap-4 mt-2 text-xs items-center">
+            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-blue-500 rounded"></span> Actual Progress</span>
+            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-green-400 opacity-50 rounded"></span> Desired Progress</span>
+            <span className="text-gray-500">Percentages: <span className="text-blue-500">Actual</span> / <span className="text-green-600">Desired</span></span>
+          </div>
         </div>
         {goal.notes && (
           <div className="mt-2 text-xs text-gray-600">
@@ -150,6 +162,32 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
         {/* Render sub-goals if any */}
         {children}
       </div>
+      {/* Archive Confirmation Dialog */}
+      {showArchiveConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
+            <div className="mb-4 text-gray-800 font-semibold">Archive this goal?</div>
+            <div className="mb-4 text-sm text-gray-600">You can restore archived goals later. They will be hidden from active lists.</div>
+            <div className="flex justify-end gap-2">
+              <button className="px-3 py-1 rounded bg-gray-200 text-gray-700" onClick={() => setShowArchiveConfirm(false)}>Cancel</button>
+              <button className="px-3 py-1 rounded bg-yellow-600 text-white" onClick={() => { onArchive(goal.id); setShowArchiveConfirm(false); }}>Archive</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-xs">
+            <div className="mb-4 text-gray-800 font-semibold">Delete this goal?</div>
+            <div className="mb-4 text-sm text-gray-600">This action cannot be undone. Are you sure you want to permanently delete this goal?</div>
+            <div className="flex justify-end gap-2">
+              <button className="px-3 py-1 rounded bg-gray-200 text-gray-700" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+              <button className="px-3 py-1 rounded bg-red-600 text-white" onClick={() => { onDelete(goal.id); setShowDeleteConfirm(false); }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

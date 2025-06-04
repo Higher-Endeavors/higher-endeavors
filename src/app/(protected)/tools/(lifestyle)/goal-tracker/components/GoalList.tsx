@@ -123,6 +123,10 @@ export default function GoalList() {
     setProgressModalGoalId(null);
   };
 
+  const handleArchive = (id: string) => {
+    setGoals(goals => goals.map(goal => goal.id === id ? { ...goal, status: 'archived' } : goal));
+  };
+
   const goalTree = buildGoalTree(goals);
 
   const renderGoal = (goal: GoalItemType & { subGoals: GoalItemType[] }) => (
@@ -133,6 +137,7 @@ export default function GoalList() {
       onDelete={handleDelete}
       onAddSubGoal={handleAddSubGoal}
       onTrackProgress={handleTrackProgress}
+      onArchive={handleArchive}
     >
       {goal.subGoals.length > 0 && (
         <div className="ml-6 mt-2 border-l-2 border-blue-200 pl-4">
