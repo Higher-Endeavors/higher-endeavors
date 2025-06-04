@@ -44,6 +44,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
   const [bodyFatPercentage, setBodyFatPercentage] = useState('');
   const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
   const [isChildGoal, setIsChildGoal] = useState(false);
+  const [goalValue, setGoalValue] = useState('');
 
   useEffect(() => {
     if (isOpen && editingGoal) {
@@ -62,6 +63,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
       setBodyFatPercentage((editingGoal as any).bodyFatPercentage ?? '');
       setSelectedParentId(editingGoal.parentId || null);
       setIsChildGoal(!!editingGoal.parentId);
+      setGoalValue(editingGoal.category === 'Other' ? String(editingGoal.targetValue ?? '') : '');
     } else if (isOpen && !editingGoal) {
       setName('');
       setCategory('');
@@ -76,10 +78,16 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
       setDescription('');
       setBodyWeight('');
       setBodyFatPercentage('');
-      setSelectedParentId(null);
-      setIsChildGoal(false);
+      if (parentGoalId) {
+        setIsChildGoal(true);
+        setSelectedParentId(parentGoalId);
+      } else {
+        setIsChildGoal(false);
+        setSelectedParentId(null);
+      }
+      setGoalValue('');
     }
-  }, [isOpen, editingGoal]);
+  }, [isOpen, editingGoal, parentGoalId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +100,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
       startDate,
       endDate: ongoing ? '' : endDate,
       currentValue: 0,
-      targetValue: 0,
+      targetValue: category === 'Other' ? Number(goalValue) : 0,
       desiredRate: 0,
       actualRate: 0,
       notes: description,
@@ -119,6 +127,7 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
     setBodyFatPercentage('');
     setSelectedParentId(null);
     setIsChildGoal(false);
+    setGoalValue('');
     onClose();
   };
 
@@ -202,121 +211,168 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
             </select>
           </div>
           {category === 'Body Composition' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Body Composition Goal</label>
-              <select
-                value={bodyCompSub}
-                onChange={e => setBodyCompSub(e.target.value)}
-                className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2 mb-2"
-              >
-                {bodyCompSubOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-              <div className="grid grid-cols-2 gap-4 mb-2">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Weight</label>
-                  <input
-                    type="number"
-                    value={bodyWeight}
-                    onChange={e => setBodyWeight(e.target.value)}
-                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                    placeholder="lbs or kg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Fat Percentage</label>
-                  <input
-                    type="number"
-                    value={bodyFatPercentage}
-                    onChange={e => setBodyFatPercentage(e.target.value)}
-                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                    placeholder="%"
-                  />
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Body Composition Goal</label>
+                <select
+                  value={bodyCompSub}
+                  onChange={e => setBodyCompSub(e.target.value)}
+                  className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2 mb-2"
+                >
+                  {bodyCompSubOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <div className="grid grid-cols-2 gap-4 mb-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Weight</label>
+                    <input
+                      type="number"
+                      value={bodyWeight}
+                      onChange={e => setBodyWeight(e.target.value)}
+                      className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      placeholder="lbs or kg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Goal Body Fat Percentage</label>
+                    <input
+                      type="number"
+                      value={bodyFatPercentage}
+                      onChange={e => setBodyFatPercentage(e.target.value)}
+                      className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      placeholder="%"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={e => setStartDate(e.target.value)}
+                  className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                  required
+                />
+              </div>
+              <div className="flex flex-col">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={e => setEndDate(e.target.value)}
+                  className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                  required
+                />
+              </div>
+            </>
           )}
           {category === 'Other' && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Custom Tracking Metric</label>
-              <input
-                type="text"
-                value={customMetric}
-                onChange={e => setCustomMetric(e.target.value)}
-                className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                placeholder="Enter custom metric (e.g. pages, hours, etc.)"
-                required
-              />
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {!ongoing && (
-              <>
-                <div className="flex flex-col">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={e => setEndDate(e.target.value)}
-                    className="block w-28 max-w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
-                    required
-                  />
-                </div>
-              </>
-            )}
-            {ongoing && (
+            <>
               <div className="flex flex-row gap-2 items-end">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={e => setStartDate(e.target.value)}
-                    className="block w-32 rounded border border-gray-300 text-gray-700 px-2 py-2"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Repeat</label>
+                <div className="w-1/3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Goal Value</label>
                   <input
                     type="number"
                     min={1}
-                    value={repeatInterval}
-                    onChange={e => setRepeatInterval(Number(e.target.value))}
-                    className="block w-20 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    value={goalValue}
+                    onChange={e => setGoalValue(e.target.value)}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    placeholder="e.g. 10"
                     required
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
-                  <select
-                    value={repeatFrequency}
-                    onChange={e => setRepeatFrequency(e.target.value)}
-                    className="block w-40 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Custom Tracking Metric</label>
+                  <input
+                    type="text"
+                    value={customMetric}
+                    onChange={e => setCustomMetric(e.target.value)}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    placeholder="e.g. books, hours, pages"
                     required
-                  >
-                    <option value="">Select frequency...</option>
-                    <option value="Day">Day(s)</option>
-                    <option value="Week">Week(s)</option>
-                    <option value="Month">Month(s)</option>
-                    <option value="Year">Year(s)</option>
-                    <option value="Custom">Custom</option>
-                  </select>
+                  />
                 </div>
               </div>
-            )}
-          </div>
+              <div className="flex items-center gap-2 mb-2 mt-2">
+                <input
+                  type="checkbox"
+                  checked={ongoing}
+                  onChange={e => setOngoing(e.target.checked)}
+                  className="form-checkbox h-4 w-4 text-blue-600"
+                  id="ongoing-checkbox"
+                />
+                <label htmlFor="ongoing-checkbox" className="text-sm font-medium text-gray-700 select-none">Ongoing</label>
+              </div>
+              {!ongoing && (
+                <div className="flex flex-row gap-4 mt-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      required
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Due Date</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={e => setEndDate(e.target.value)}
+                      className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {ongoing && (
+                <div className="flex flex-row gap-2 items-end">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={e => setStartDate(e.target.value)}
+                      className="block w-32 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Repeat</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={repeatInterval}
+                      onChange={e => setRepeatInterval(Number(e.target.value))}
+                      className="block w-20 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                    <select
+                      value={repeatFrequency}
+                      onChange={e => setRepeatFrequency(e.target.value)}
+                      className="block w-40 rounded border border-gray-300 text-gray-700 px-2 py-2"
+                      required
+                    >
+                      <option value="">Select frequency...</option>
+                      <option value="Day">Day(s)</option>
+                      <option value="Week">Week(s)</option>
+                      <option value="Month">Month(s)</option>
+                      <option value="Year">Year(s)</option>
+                      <option value="Custom">Custom</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Goal Description</label>
             <textarea
