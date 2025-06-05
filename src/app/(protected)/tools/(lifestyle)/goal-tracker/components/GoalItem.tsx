@@ -17,6 +17,17 @@ export type GoalItemType = {
   notes?: string;
   status: GoalStatus;
   parentId?: string; // New: parent goal id for sub-goals
+  // New fields for step-based modal
+  goalFocus?: string;
+  goalType?: string;
+  goalTracking?: string;
+  customMetric?: string;
+  goalValue?: number;
+  ongoing?: boolean;
+  repeatFrequency?: string;
+  repeatInterval?: number;
+  bodyWeight?: string;
+  bodyFatPercentage?: string;
 };
 
 interface GoalItemProps {
