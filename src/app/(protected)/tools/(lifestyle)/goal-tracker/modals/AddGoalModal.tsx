@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 import type { GoalItemType } from '../components/GoalItem';
 
@@ -51,67 +51,23 @@ const goalTrackingOptions = [
 ];
 
 export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, parentGoalOptions = [], editingGoal }: AddGoalModalProps) {
-  // Step-based state
-  const [goalFocus, setGoalFocus] = useState('');
-  const [goalType, setGoalType] = useState('');
-  const [goalTracking, setGoalTracking] = useState('');
-  const [name, setName] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [ongoing, setOngoing] = useState(false);
-  const [repeatFrequency, setRepeatFrequency] = useState('');
-  const [repeatInterval, setRepeatInterval] = useState(1);
-  const [description, setDescription] = useState('');
-  const [bodyWeight, setBodyWeight] = useState('');
-  const [bodyFatPercentage, setBodyFatPercentage] = useState('');
-  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
-  const [isChildGoal, setIsChildGoal] = useState(false);
-  const [customMetric, setCustomMetric] = useState('');
-  const [goalValue, setGoalValue] = useState('');
-
-  useEffect(() => {
-    if (isOpen && editingGoal) {
-      // Prefill all fields for editing
-      setGoalFocus(editingGoal.goalFocus || '');
-      setGoalType(editingGoal.goalType || '');
-      setGoalTracking(editingGoal.goalTracking || '');
-      setName(editingGoal.name || '');
-      setCustomMetric(editingGoal.customMetric || '');
-      setGoalValue(editingGoal.goalValue ? String(editingGoal.goalValue) : '');
-      setStartDate(editingGoal.startDate || '');
-      setEndDate(editingGoal.endDate || '');
-      setOngoing(editingGoal.ongoing ?? false);
-      setRepeatFrequency(editingGoal.repeatFrequency || '');
-      setRepeatInterval(editingGoal.repeatInterval || 1);
-      setDescription(editingGoal.notes || '');
-      setBodyWeight(editingGoal.bodyWeight ?? '');
-      setBodyFatPercentage(editingGoal.bodyFatPercentage ?? '');
-      setSelectedParentId(editingGoal.parentId || null);
-      setIsChildGoal(!!editingGoal.parentId);
-    } else if (isOpen && !editingGoal) {
-      setGoalFocus('');
-      setGoalType('');
-      setGoalTracking('');
-      setName('');
-      setCustomMetric('');
-      setGoalValue('');
-      setStartDate('');
-      setEndDate('');
-      setOngoing(false);
-      setRepeatFrequency('');
-      setRepeatInterval(1);
-      setDescription('');
-      setBodyWeight('');
-      setBodyFatPercentage('');
-      if (parentGoalId) {
-        setIsChildGoal(true);
-        setSelectedParentId(parentGoalId);
-      } else {
-        setIsChildGoal(false);
-        setSelectedParentId(null);
-      }
-    }
-  }, [isOpen, editingGoal, parentGoalId]);
+  // Step-based state, initialized from editingGoal or parentGoalId
+  const [goalFocus, setGoalFocus] = useState(editingGoal?.goalFocus || '');
+  const [goalType, setGoalType] = useState(editingGoal?.goalType || '');
+  const [goalTracking, setGoalTracking] = useState(editingGoal?.goalTracking || '');
+  const [name, setName] = useState(editingGoal?.name || '');
+  const [startDate, setStartDate] = useState(editingGoal?.startDate || '');
+  const [endDate, setEndDate] = useState(editingGoal?.endDate || '');
+  const [ongoing, setOngoing] = useState(editingGoal?.ongoing ?? false);
+  const [repeatFrequency, setRepeatFrequency] = useState(editingGoal?.repeatFrequency || '');
+  const [repeatInterval, setRepeatInterval] = useState(editingGoal?.repeatInterval || 1);
+  const [description, setDescription] = useState(editingGoal?.notes || '');
+  const [bodyWeight, setBodyWeight] = useState(editingGoal?.bodyWeight ?? '');
+  const [bodyFatPercentage, setBodyFatPercentage] = useState(editingGoal?.bodyFatPercentage ?? '');
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(editingGoal?.parentId || parentGoalId || null);
+  const [isChildGoal, setIsChildGoal] = useState(!!(editingGoal?.parentId || parentGoalId));
+  const [customMetric, setCustomMetric] = useState(editingGoal?.customMetric || '');
+  const [goalValue, setGoalValue] = useState(editingGoal?.goalValue ? String(editingGoal.goalValue) : '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

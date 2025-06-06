@@ -167,6 +167,7 @@ export default function GoalList() {
         </button>
       </div>
       <AddGoalModal
+        key={editingGoal?.id || 'new'}
         isOpen={isAddModalOpen}
         onClose={() => { setIsAddModalOpen(false); setAddSubGoalParentId(null); setEditingGoalId(null); }}
         onAdd={handleAddGoal}
