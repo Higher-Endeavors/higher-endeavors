@@ -177,11 +177,18 @@ export default function UserSidebar() {
             onClick={() => setLifestyleOpen((prev) => !prev)}
           />
           {lifestyleOpen && expanded && (
-            <Link href="/tools/sleep-quiz">
-              <div className="ml-8">
-                <SidebarLink expanded={expanded} icon={null} label="Sleep Quality Assessment" isSubLink />
-              </div>
-            </Link>
+            <>
+              <Link href="/tools/goal-tracker">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Goal Tracker" isSubLink />
+                </div>
+              </Link>
+              <Link href="/tools/sleep-quiz">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Sleep Quality Assessment" isSubLink />
+                </div>
+              </Link>
+            </>
           )}
           <SidebarLink
             expanded={expanded}
