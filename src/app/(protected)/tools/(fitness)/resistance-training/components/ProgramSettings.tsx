@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Select from 'react-select';
+import React from 'react';
 
 export default function ProgramSettings() {
   const [isOpen, setIsOpen] = useState(true);
@@ -9,20 +10,44 @@ export default function ProgramSettings() {
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
 
   const phaseFocusOptions = [
-    { value: 'GPP', label: 'GPP' },
-    { value: 'Strength', label: 'Strength' },
-    { value: 'Hypertrophy', label: 'Hypertrophy' },
-    { value: 'Power', label: 'Power' },
-    { value: 'Endurance', label: 'Endurance' },
-    { value: 'Other', label: 'Other' }
+    { value: 'GPP', label: 'General Physical Preparedness (GPP)' },
+  { value: 'Strength', label: 'Strength' },
+  { value: 'Hypertrophy', label: 'Hypertrophy' },
+  { value: 'Power', label: 'Power' },
+  { value: 'Endurance', label: 'Muscular Endurance' },
+  { value: 'Recovery', label: 'Recovery' },
+  { value: 'Intensification', label: 'Intensification' },
+  { value: 'Accumulation', label: 'Accumulation' },
+  { value: 'Other', label: 'Other (Custom)' }
   ];
 
+  // Only None, Linear, Undulating
   const periodizationOptions = [
     { value: 'None', label: 'None' },
     { value: 'Linear', label: 'Linear' },
-    { value: 'Undulating', label: 'Undulating' },
-    { value: 'Block', label: 'Block' }
+    { value: 'Undulating', label: 'Undulating' }
   ];
+
+  // Local state for periodization type and program length
+  const [periodizationType, setPeriodizationType] = useState('None');
+  const [programLength, setProgramLength] = useState(4);
+  // State for progression settings
+  const [volumeIncrement, setVolumeIncrement] = useState('');
+  const [loadIncrement, setLoadIncrement] = useState('');
+  const [weeklyVolumes, setWeeklyVolumes] = useState(['100', '80', '90', '60']);
+
+  // Update weeklyVolumes array if programLength changes (for Undulating)
+  React.useEffect(() => {
+    setWeeklyVolumes(prev => {
+      const arr = [...prev];
+      if (programLength > arr.length) {
+        for (let i = arr.length; i < programLength; i++) arr.push('100');
+      } else if (programLength < arr.length) {
+        arr.length = programLength;
+      }
+      return arr;
+    });
+  }, [programLength]);
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -84,7 +109,8 @@ export default function ProgramSettings() {
             </label>
             <Select
               options={periodizationOptions}
-              defaultValue={periodizationOptions[0]}
+              value={periodizationOptions.find(opt => opt.value === periodizationType)}
+              onChange={opt => setPeriodizationType(opt?.value || 'None')}
               className="basic-single dark:text-slate-700"
               classNamePrefix="select"
             />
@@ -105,11 +131,69 @@ export default function ProgramSettings() {
               min="1"
               max="52"
               step="1"
+              value={programLength}
+              onChange={e => setProgramLength(Math.max(1, Number(e.target.value)))}
             />
             <p className="mt-1 text-sm text-gray-500">
               Set the duration of your training program
             </p>
           </div>
+
+          {/* Progression Settings */}
+          {(periodizationType === 'Linear' || periodizationType === 'Undulating') && (
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700">Progression Settings</h3>
+              {periodizationType === 'Linear' && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Volume Increment (%)
+                    </label>
+                    <input
+                      type="number"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                      placeholder="5"
+                      value={volumeIncrement}
+                      onChange={e => setVolumeIncrement(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Load Increment (%)
+                    </label>
+                    <input
+                      type="number"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                      placeholder="2.5"
+                      value={loadIncrement}
+                      onChange={e => setLoadIncrement(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              {periodizationType === 'Undulating' && (
+                <div className="grid grid-cols-2 gap-4">
+                  {weeklyVolumes.map((val, i) => (
+                    <div key={i}>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Week {i + 1} Volume (%)
+                      </label>
+                      <input
+                        type="number"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                        placeholder="100"
+                        value={val}
+                        onChange={e => {
+                          const newVal = e.target.value;
+                          setWeeklyVolumes(prev => prev.map((v, idx) => idx === i ? newVal : v));
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Program Notes */}
           <div>
