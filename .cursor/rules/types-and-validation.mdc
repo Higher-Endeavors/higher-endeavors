@@ -1,0 +1,123 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Types & Validation Rules for Resistance Training Tool
+
+This document outlines the conventions and best practices for defining TypeScript interfaces/types and Zod schemas in the Resistance Training tool. Follow these guidelines to ensure consistency, maintainability, and type safety across the codebase.
+
+---
+
+## 1. TypeScript Interface/Type Guidelines
+
+- **Naming**
+  - Use **PascalCase** for all interfaces and types (e.g., `ResistanceProgram`, `PlannedSet`).
+  - Use `interface` for object shapes, and `type` for unions or more complex types.
+
+- **Optional vs Required Fields**
+  - Use `?` for optional fields only when the field is not always present (e.g., `notes?: string`).
+  - Required fields should always be present in the data model and Zod schema.
+
+- **Nesting & Recursion**
+  - For recursive/nested structures (e.g., sets with `subSets`), use a single level of recursion unless otherwise specified.
+  - Always document recursive fields clearly.
+
+- **Sync with Database**
+  - Keep interfaces/types in sync with the database schema. If the DB changes, update the types and Zod schemas accordingly.
+
+- **Enums & Unions**
+  - Use TypeScript union types for fields with a limited set of values (e.g., `type?: 'varied' | 'advanced'`).
+
+---
+
+## 2. Zod Schema Guidelines
+
+- **Naming**
+  - Use the suffix `Schema` for all Zod schemas (e.g., `ResistanceProgramSchema`).
+
+- **Type Matching**
+  - Zod schemas must match the corresponding TypeScript interface exactly.
+  - For recursive schemas, use an explicit type annotation (e.g., `z.ZodType<PlannedSet>`).
+
+- **Enums & Optionals**
+  - Use `z.enum([...])` for enum/union fields.
+  - Use `.optional()` for fields that are not always required.
+
+- **Placement**
+  - Place Zod schemas in a dedicated file (e.g., `resistance-training.zod.ts`) and import types from the main types file.
+
+---
+
+## 3. General Best Practices
+
+- **Update Both**
+  - When the database schema changes, update both the TypeScript types and Zod schemas.
+
+- **Validation**
+  - Always validate user input with Zod before sending data to the backend or saving to state.
+
+- **Versioning**
+  - If the schema evolves significantly, consider versioning your types and schemas or documenting migration steps.
+
+---
+
+## 4. Examples
+
+### Simple Interface & Schema
+```ts
+// types/resistance-training.types.ts
+export interface UserExercise {
+  userExerciseId: number;
+  userId: number;
+  exerciseName: string;
+  description?: string;
+}
+
+// types/resistance-training.zod.ts
+import { z } from 'zod';
+export const UserExerciseSchema = z.object({
+  userExerciseId: z.number().int(),
+  userId: z.number().int(),
+  exerciseName: z.string().min(1),
+  description: z.string().optional(),
+});
+```
+### Recursive/Nested Structure
+```ts
+// types/resistance-training.types.ts
+export interface PlannedSet {
+  set?: number;
+  reps?: number;
+  subSets?: PlannedSet[];
+  type?: 'varied' | 'advanced';
+}
+
+// types/resistance-training.zod.ts
+import { z } from 'zod';
+import type { PlannedSet } from './resistance-training.types';
+export const PlannedSetSchema: z.ZodType<PlannedSet> = z.object({
+  set: z.number().int().optional(),
+  reps: z.number().int().optional(),
+  subSets: z.array(z.lazy(() => PlannedSetSchema)).optional(),
+  type: z.enum(['varied', 'advanced']).optional(),
+});
+```
+
+### Form Validation Example
+```ts
+import { PlannedExerciseSchema } from './resistance-training.zod';
+
+const result = PlannedExerciseSchema.safeParse(formData);
+if (!result.success) {
+  // Handle validation errors
+  console.error(result.error);
+}
+```
+
+---
+
+## 5. Updating & Maintaining
+- Review this file when adding new types or schemas.
+- Keep examples up to date with best practices.
+- Encourage contributors to reference this file during code reviews.
