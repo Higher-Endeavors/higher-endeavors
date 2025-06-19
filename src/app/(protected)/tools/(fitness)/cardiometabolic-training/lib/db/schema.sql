@@ -19,8 +19,8 @@ CREATE TABLE IF NOT EXISTS public.cme_programs (
         REFERENCES public.users(id)
         ON UPDATE CASCADE ON DELETE CASCADE,
     program_name VARCHAR(100) NOT NULL,
-    goal VARCHAR(100),
-    periodization_type VARCHAR(50),
+    macrocycle_phase VARCHAR(50),
+    focus_block VARCHAR(50),
     progression_rules JSONB,
     program_duration SMALLINT,
     notes TEXT,
@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS public.cme_programs (
 CREATE TABLE IF NOT EXISTS public.cme_program_templates (
     cme_program_template_id SERIAL PRIMARY KEY,
     template_name VARCHAR(100) NOT NULL,
-    goal VARCHAR(100),
-    periodization_type VARCHAR(50),
+    macrocycle_phase VARCHAR(50),
+    focus_block VARCHAR(50),
     progression_rules JSONB,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT now(),
