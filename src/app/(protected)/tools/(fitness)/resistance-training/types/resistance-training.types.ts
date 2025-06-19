@@ -105,12 +105,17 @@ export interface UserExercise {
  * Represents an exercise from the central library.
  */
 export interface ExerciseLibraryItem {
-  exerciseLibraryId: number;
+  exercise_library_id: number;
   name: string;
-  targetMuscleGroup?: string;
-  primaryEquipment?: string;
-  difficulty?: string;
-  [key: string]: any; // For extensibility
+  source: 'library';
+  exercise_family: string | null;
+  body_region: string | null;
+  muscle_group: string | null;
+  movement_pattern: string | null;
+  movement_plane: string | null;
+  equipment: string | null;
+  laterality: string | null;
+  difficulty: string | null;
 }
 
 // --- Performance Structures ---

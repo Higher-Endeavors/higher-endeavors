@@ -3,116 +3,77 @@
 import { useState } from 'react';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import ExerciseItem from './ExerciseItem';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
 
-export default function ExerciseList() {
+interface ExerciseListProps {
+  exercises: ExerciseLibraryItem[] | null;
+  isLoading: boolean;
+}
+
+export default function ExerciseList({ exercises, isLoading }: ExerciseListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [plannedExercises, setPlannedExercises] = useState<PlannedExercise[]>([]);
 
-  // Updated placeholder data to match ExerciseItem interface
-  const placeholderExercises = [
-    {
-      id: '1',
-      name: 'Bench Press',
-      pairing: 'A1',
-      sets: 3,
-      planned_sets: [
-        {
-          set_number: 1,
-          planned_reps: 8,
-          planned_load: 135,
-          load_unit: 'lbs',
-          planned_tempo: '2010',
-          planned_rest: 90
-        },
-        {
-          set_number: 2,
-          planned_reps: 8,
-          planned_load: 135,
-          load_unit: 'lbs',
-          planned_tempo: '2010',
-          planned_rest: 90
-        },
-        {
-          set_number: 3,
-          planned_reps: 8,
-          planned_load: 135,
-          load_unit: 'lbs',
-          planned_tempo: '2010',
-          planned_rest: 90
-        }
-      ],
-      notes: 'Focus on chest activation'
-    },
-    {
-      id: '2',
-      name: 'Squat',
-      pairing: 'A2',
-      sets: 3,
-      planned_sets: [
-        {
-          set_number: 1,
-          planned_reps: 5,
-          planned_load: 225,
-          load_unit: 'lbs',
-          planned_tempo: '3010',
-          planned_rest: 120
-        },
-        {
-          set_number: 2,
-          planned_reps: 5,
-          planned_load: 225,
-          load_unit: 'lbs',
-          planned_tempo: '3010',
-          planned_rest: 120
-        },
-        {
-          set_number: 3,
-          planned_reps: 5,
-          planned_load: 225,
-          load_unit: 'lbs',
-          planned_tempo: '3010',
-          planned_rest: 120
-        }
-      ]
-    }
-  ];
-
-  const handleEdit = (id: string) => {
+  const handleEdit = (id: number) => {
     console.log('Edit exercise:', id);
     // Placeholder for edit functionality
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (id: number) => {
     console.log('Delete exercise:', id);
     // Placeholder for delete functionality
   };
 
+  const handleAddExercise = (exercise: PlannedExercise) => {
+    setPlannedExercises(prev => [...prev, exercise]);
+    setIsModalOpen(false);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900 mb-4">Exercise List</h2>
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
       <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900 mb-4">Exercise List</h2>
+      
       {/* Exercise List */}
       <div className="space-y-4">
-        {placeholderExercises.map((exercise, index) => {
-          const isFirstInGroup = index === 0 || exercise.pairing[0] !== placeholderExercises[index - 1].pairing[0];
+        {plannedExercises.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No exercises added yet. Click the button below to add exercises to your workout.
+          </div>
+        ) : (
+          plannedExercises.map((exercise, index) => {
+            const isFirstInGroup = index === 0 || exercise.pairing[0] !== plannedExercises[index - 1].pairing[0];
 
-          return (
-            <div key={exercise.id}>
-              {isFirstInGroup && (
-                <div className="flex items-center gap-4 mb-2">
-                  <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
-                  <h3 className="text-lg font-semibold text-gray-700">
-                    Group {exercise.pairing[0]}
-                  </h3>
-                  <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
-                </div>
-              )}
-              <ExerciseItem
-                exercise={exercise}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-              />
-            </div>
-          );
-        })}
+            return (
+              <div key={`${exercise.exerciseLibraryId}-${exercise.pairing}`}>
+                {isFirstInGroup && (
+                  <div className="flex items-center gap-4 mb-2">
+                    <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
+                    <h3 className="text-lg font-semibold text-gray-700">
+                      Group {exercise.pairing[0]}
+                    </h3>
+                    <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
+                  </div>
+                )}
+                <ExerciseItem
+                  exercise={exercise}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              </div>
+            );
+          })
+        )}
       </div>
 
       {/* Add Exercise Button - Below the exercise list */}
@@ -130,7 +91,9 @@ export default function ExerciseList() {
 
       <AddExerciseModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => setIsModalOpen(false)}
+        onAdd={handleAddExercise}
+        exercises={exercises || []}
       />
     </div>
   );

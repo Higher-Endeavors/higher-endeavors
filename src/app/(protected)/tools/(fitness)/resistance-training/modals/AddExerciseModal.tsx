@@ -10,20 +10,29 @@ import { BsPlus, BsDash } from 'react-icons/bs';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onAdd: (exercise: PlannedExercise) => void;
+  exercises: ExerciseLibraryItem[];
 }
 
+interface ExerciseOption {
+  value: number;
+  label: string;
+  exercise: ExerciseLibraryItem;
+}
 
-export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalProps) {
+export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: AddExerciseModalProps) {
   const [isVariedSets, setIsVariedSets] = useState(false);
   const [isAdvancedSets, setIsAdvancedSets] = useState(false);
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [notes, setNotes] = useState('');
   const [setsCount, setSetsCount] = useState(3); // default to 3 sets
+  const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [variedSets, setVariedSets] = useState<{ reps: string; load: string; rest: string; subSets: { reps: string; load: string; rest: string }[] }[]>([
     { reps: '', load: '', rest: '', subSets: [] },
     { reps: '', load: '', rest: '', subSets: [] },
@@ -32,6 +41,13 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
+
+  // Convert exercises to options for the Select component
+  const exerciseOptions: ExerciseOption[] = exercises.map(exercise => ({
+    value: exercise.exercise_library_id,
+    label: exercise.name,
+    exercise
+  }));
 
   // Keep variedSets array in sync with setsCount
   React.useEffect(() => {
@@ -50,13 +66,48 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
     }
   }, [setsCount, isVariedSets]);
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedExercise) return;
+
+    const newExercise: PlannedExercise = {
+      exerciseLibraryId: selectedExercise.value,
+      exerciseSource: 'library',
+      weekNumber: 1, // These would come from the program context
+      dayNumber: 1,  // These would come from the program context
+      pairing: 'A1', // This should be determined based on existing exercises
+      setCount: setsCount,
+      notes,
+      createdAt: new Date().toISOString(),
+      detail: isVariedSets 
+        ? variedSets.map((set, index) => ({
+            set: index + 1,
+            reps: parseInt(set.reps) || 0,
+            load: set.load,
+            restSec: parseInt(set.rest) || 0,
+            tempo: '2010', // Default tempo
+          }))
+        : Array(setsCount).fill({
+            reps: 0,
+            load: '0',
+            restSec: 0,
+            tempo: '2010',
+          }).map((set, index) => ({
+            ...set,
+            set: index + 1,
+          }))
+    };
+
+    onAdd(newExercise);
+  };
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
         Add Exercise
       </Modal.Header>
       <Modal.Body>
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Exercise Selection Section */}
             <div className="col-span-2">
@@ -65,11 +116,11 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                   Exercise Name
                 </label>
                 <button
-                    type="button"
-                    onClick={() => setIsAdvancedSearchOpen(true)}
-                    className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
-                    >
-                    Advanced Search
+                  type="button"
+                  onClick={() => setIsAdvancedSearchOpen(true)}
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                >
+                  Advanced Search
                 </button>
               </div>
               <div className="flex gap-2">
@@ -79,6 +130,9 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
                     classNamePrefix="select"
                     placeholder="Select or search for an exercise..."
                     isClearable
+                    options={exerciseOptions}
+                    value={selectedExercise}
+                    onChange={(option) => setSelectedExercise(option)}
                   />
                 </div>
               </div>
@@ -406,16 +460,6 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
             </div>
           )}
 
-            <AdvancedExerciseSearch
-            isOpen={isAdvancedSearchOpen}
-            onClose={() => setIsAdvancedSearchOpen(false)}
-            onSelect={(exercise) => {
-                // Handle the selected exercise
-                console.log('Selected exercise:', exercise);
-                setIsAdvancedSearchOpen(false);
-            }}
-            />
-
           <div className="flex justify-end space-x-3">
             <button
               type="button"
@@ -426,13 +470,27 @@ export default function AddExerciseModal({ isOpen, onClose }: AddExerciseModalPr
             </button>
             <button
               type="submit"
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
+              disabled={!selectedExercise}
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Exercise
             </button>
           </div>
         </form>
       </Modal.Body>
+
+      <AdvancedExerciseSearch
+        isOpen={isAdvancedSearchOpen}
+        onClose={() => setIsAdvancedSearchOpen(false)}
+        onSelect={(exercise) => {
+          const option = exerciseOptions.find(opt => opt.value === exercise.exercise_library_id);
+          if (option) {
+            setSelectedExercise(option);
+          }
+          setIsAdvancedSearchOpen(false);
+        }}
+        exercises={exercises}
+      />
     </Modal>
   );
 }
