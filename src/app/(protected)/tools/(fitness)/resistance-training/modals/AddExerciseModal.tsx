@@ -7,6 +7,8 @@ import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import React from 'react';
 import { BsPlus, BsDash } from 'react-icons/bs';
+import { useForm, Controller } from 'react-hook-form';
+import { addCustomExercise } from '../actions/exerciseActions';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
@@ -26,14 +28,22 @@ interface ExerciseOption {
   exercise: ExerciseLibraryItem;
 }
 
+interface AddExerciseFormValues {
+  selectedExercise: ExerciseOption | null;
+  notes: string;
+  setsCount: number;
+  pairing: string;
+  reps: string;
+  load: string;
+  rest: string;
+  tempo: string;
+}
+
 export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId }: AddExerciseModalProps) {
   const [isVariedSets, setIsVariedSets] = useState(false);
   const [isAdvancedSets, setIsAdvancedSets] = useState(false);
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
-  const [notes, setNotes] = useState('');
-  const [setsCount, setSetsCount] = useState(3); // default to 3 sets
-  const [selectedExercise, setSelectedExercise] = useState<ExerciseOption | null>(null);
   const [variedSets, setVariedSets] = useState<{ reps: string; load: string; rest: string; subSets: { reps: string; load: string; rest: string }[] }[]>([
     { reps: '', load: '', rest: '', subSets: [] },
     { reps: '', load: '', rest: '', subSets: [] },
@@ -54,56 +64,50 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     exercise
   }));
 
-  // Keep variedSets array in sync with setsCount
-  React.useEffect(() => {
-    if (isVariedSets) {
-      setVariedSets((prev) => {
-        const newArr = [...prev];
-        if (setsCount > prev.length) {
-          for (let i = prev.length; i < setsCount; i++) {
-            newArr.push({ reps: '', load: '', rest: '', subSets: [] });
-          }
-        } else if (setsCount < prev.length) {
-          newArr.length = setsCount;
-        }
-        return newArr;
-      });
-    }
-  }, [setsCount, isVariedSets]);
+  const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
+    defaultValues: {
+      selectedExercise: null,
+      notes: '',
+      setsCount: 3,
+      pairing: '',
+      reps: '',
+      load: '',
+      rest: '',
+      tempo: '2010',
+    },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedExercise) return;
-
+  const onSubmit = (data: AddExerciseFormValues) => {
+    if (!data.selectedExercise) return;
     const newExercise: PlannedExercise = {
-      exerciseLibraryId: selectedExercise.value,
+      exerciseLibraryId: data.selectedExercise.value,
       exerciseSource: 'library',
       weekNumber: 1, // These would come from the program context
       dayNumber: 1,  // These would come from the program context
-      pairing: 'A1', // This should be determined based on existing exercises
-      setCount: setsCount,
-      notes,
+      pairing: data.pairing || 'A1', // This should be determined based on existing exercises
+      setCount: data.setsCount,
+      notes: data.notes,
       createdAt: new Date().toISOString(),
-      detail: isVariedSets 
+      detail: isVariedSets
         ? variedSets.map((set, index) => ({
             set: index + 1,
             reps: parseInt(set.reps) || 0,
             load: set.load,
             restSec: parseInt(set.rest) || 0,
-            tempo: '2010', // Default tempo
+            tempo: data.tempo || '2010',
           }))
-        : Array(setsCount).fill({
+        : Array(data.setsCount).fill({
             reps: 0,
             load: '0',
             restSec: 0,
-            tempo: '2010',
+            tempo: data.tempo || '2010',
           }).map((set, index) => ({
             ...set,
             set: index + 1,
-          }))
+          })),
     };
-
     onAdd(newExercise);
+    reset();
   };
 
   // Custom NoOptionsMessage for Select
@@ -170,7 +174,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         Add Exercise
       </Modal.Header>
       <Modal.Body>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Exercise Selection Section */}
             <div className="col-span-2">
@@ -188,15 +192,21 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <Select
-                    className="basic-single dark:text-slate-700"
-                    classNamePrefix="select"
-                    placeholder="Select or search for an exercise..."
-                    isClearable
-                    options={exerciseOptions}
-                    value={selectedExercise}
-                    onChange={(option) => setSelectedExercise(option)}
-                    components={{ NoOptionsMessage }}
+                  <Controller
+                    name="selectedExercise"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        className="basic-single dark:text-slate-700"
+                        classNamePrefix="select"
+                        placeholder="Select or search for an exercise..."
+                        isClearable
+                        options={exerciseOptions}
+                        value={field.value}
+                        onChange={field.onChange}
+                        components={{ NoOptionsMessage }}
+                      />
+                    )}
                   />
                 </div>
               </div>
@@ -207,11 +217,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               <label htmlFor="exercise-pairing" className="block text-sm font-medium dark:text-white">
                 Pairing
               </label>
-              <input
-                id="exercise-pairing"
-                type="text"
-                placeholder="e.g., A1, B2"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+              <Controller
+                name="pairing"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    id="exercise-pairing"
+                    type="text"
+                    placeholder="e.g., A1, B2"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  />
+                )}
               />
             </div>
 
@@ -234,17 +251,36 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                   </label>
                 </div>
               </div>
-              <input
-                id="exercise-sets"
-                type="number"
-                min="1"
-                placeholder="Enter number of sets"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                value={setsCount}
-                onChange={e => {
-                  const val = Math.max(1, Number(e.target.value));
-                  setSetsCount(val);
-                }}
+              <Controller
+                name="setsCount"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    id="exercise-sets"
+                    type="number"
+                    min="1"
+                    placeholder="Enter number of sets"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    onChange={e => {
+                      const val = Math.max(1, Number(e.target.value));
+                      field.onChange(val);
+                      if (isVariedSets) {
+                        setVariedSets(prev => {
+                          const newArr = [...prev];
+                          if (val > prev.length) {
+                            for (let i = prev.length; i < val; i++) {
+                              newArr.push({ reps: '', load: '', rest: '', subSets: [] });
+                            }
+                          } else if (val < prev.length) {
+                            newArr.length = val;
+                          }
+                          return newArr;
+                        });
+                      }
+                    }}
+                  />
+                )}
               />
             </div>
 
@@ -254,11 +290,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                 <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
                   Reps
                 </label>
-                <input
-                  id="exercise-reps"
-                  type="number"
-                  placeholder="Enter number of reps"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                <Controller
+                  name="reps"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="exercise-reps"
+                      type="number"
+                      placeholder="Enter number of reps"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                  )}
                 />
               </div>
             ) : (
@@ -279,11 +322,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input
-                    id="exercise-load"
-                    type="text"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                    placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
+                  <Controller
+                    name="load"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-load"
+                        type="text"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                        placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit}, BW, or band color`}
+                      />
+                    )}
                   />
                   <button
                     type="button"
@@ -318,11 +368,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               <label htmlFor="exercise-tempo" className="block text-sm font-medium dark:text-white">
                 Tempo (4 digits, X for explosive)
               </label>
-              <input
-                id="exercise-tempo"
-                type="text"
-                placeholder="e.g., 2010"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+              <Controller
+                name="tempo"
+                control={control}
+                render={({ field }) => (
+                  <input
+                    {...field}
+                    id="exercise-tempo"
+                    type="text"
+                    placeholder="e.g., 2010"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  />
+                )}
               />
             </div>
 
@@ -332,11 +389,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                 <label htmlFor="exercise-rest" className="block text-sm font-medium dark:text-white">
                   Rest (seconds)
                 </label>
-                <input
-                  id="exercise-rest"
-                  type="number"
-                  placeholder="Enter rest period"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                <Controller
+                  name="rest"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="exercise-rest"
+                      type="number"
+                      placeholder="Enter rest period"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                  )}
                 />
               </div>
             )}
@@ -346,13 +410,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               <label htmlFor="exercise-notes" className="block text-sm font-medium dark:text-white">
                 Notes
               </label>
-              <textarea
-                id="exercise-notes"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                rows={3}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                placeholder="Add any additional notes about the exercise"
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => (
+                  <textarea
+                    {...field}
+                    id="exercise-notes"
+                    rows={3}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    placeholder="Add any additional notes about the exercise"
+                  />
+                )}
               />
             </div>
           </div>
@@ -534,7 +603,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             </button>
             <button
               type="submit"
-              disabled={!selectedExercise}
+              disabled={!watch('selectedExercise')}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Add Exercise
@@ -549,7 +618,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         onSelect={(exercise) => {
           const option = exerciseOptions.find(opt => opt.value === exercise.exercise_library_id);
           if (option) {
-            setSelectedExercise(option);
+            setValue('selectedExercise', option);
           }
           setIsAdvancedSearchOpen(false);
         }}
@@ -562,50 +631,39 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         onConfirm={async (exerciseName) => {
           setCreationError(null);
           setIsCreatingExercise(true);
-          try {
-            const response = await fetch('/api/user-exercises', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ exercise_name: exerciseName, user_id: userId })
-            });
-            if (!response.ok) {
-              const errorData = await response.json();
-              setCreationError(errorData.error || 'Failed to create exercise');
-              // Optionally show toast here
-              setIsCreatingExercise(false);
-              return;
-            }
-            const newExercise = await response.json();
-            // Add to options with custom color and (Custom) label
-            const newOption: ExerciseOption = {
-              value: newExercise.id,
-              label: `${newExercise.exercise_name} (Custom)` ,
-              exercise: {
-                exercise_library_id: newExercise.id,
-                name: newExercise.exercise_name,
-                source: 'user',
-                exercise_family: null,
-                body_region: null,
-                muscle_group: null,
-                movement_pattern: null,
-                movement_plane: null,
-                equipment: null,
-                laterality: null,
-                difficulty: null
-              }
-            };
-            setSelectedExercise(newOption);
+          // Use FormData and server action
+          const formData = new FormData();
+          formData.append('exercise_name', exerciseName);
+          formData.append('user_id', String(userId));
+          const result = await addCustomExercise(formData);
+          if (result && result.error) {
+            setCreationError(result.error);
             setIsCreatingExercise(false);
-            setShowConfirmation(false);
-            setCreationError(null);
-            // Optionally show toast here
-            // Add to exerciseOptions with color distinction
-            exerciseOptions.push(newOption);
-          } catch (error: any) {
-            setCreationError(error.message || 'Failed to create exercise');
-            setIsCreatingExercise(false);
-            // Optionally show toast here
+            return;
           }
+          // Add to options with custom color and (Custom) label
+          const newOption: ExerciseOption = {
+            value: result.id,
+            label: `${result.exercise_name} (Custom)` ,
+            exercise: {
+              exercise_library_id: result.id,
+              name: result.exercise_name,
+              source: 'user',
+              exercise_family: null,
+              body_region: null,
+              muscle_group: null,
+              movement_pattern: null,
+              movement_plane: null,
+              equipment: null,
+              laterality: null,
+              difficulty: null
+            }
+          };
+          setValue('selectedExercise', newOption);
+          setIsCreatingExercise(false);
+          setShowConfirmation(false);
+          setCreationError(null);
+          exerciseOptions.push(newOption);
         }}
         onCancel={() => {
           setShowConfirmation(false);

@@ -8,7 +8,7 @@ import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.types';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
-import ResistanceTrainingClient from "./ResistanceTrainingClient";
+import ResistanceTrainingClient from "./components/ResistanceTraining.client";
 import { auth } from '@/app/auth';
 
 // Components

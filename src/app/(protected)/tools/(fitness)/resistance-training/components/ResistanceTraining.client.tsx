@@ -1,13 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import UserSelector from '../../../components/UserSelector';
-import ProgramBrowser from './components/ProgramBrowser';
-import ProgramSettings from './components/ProgramSettings';
-import ExerciseList from './components/ExerciseList';
-import SessionSummary from './components/SessionSummary';
-import AddExerciseModal from './modals/AddExerciseModal';
-import { ExerciseLibraryItem, PlannedExercise } from '../resistance-training/types/resistance-training.types';
+import UserSelector from '../../../../components/UserSelector';
+import ProgramBrowser from './ProgramBrowser';
+import ProgramSettings from './ProgramSettings';
+import ExerciseList from './ExerciseList';
+import SessionSummary from './SessionSummary';
+import AddExerciseModal from '../modals/AddExerciseModal';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
 
 export default function ResistanceTrainingClient({
   exercises,
