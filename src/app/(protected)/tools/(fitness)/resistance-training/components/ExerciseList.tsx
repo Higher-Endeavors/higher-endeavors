@@ -8,9 +8,10 @@ import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-traini
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;
   isLoading: boolean;
+  userId: number;
 }
 
-export default function ExerciseList({ exercises, isLoading }: ExerciseListProps) {
+export default function ExerciseList({ exercises, isLoading, userId }: ExerciseListProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [plannedExercises, setPlannedExercises] = useState<PlannedExercise[]>([]);
 
@@ -94,6 +95,7 @@ export default function ExerciseList({ exercises, isLoading }: ExerciseListProps
         onClose={() => setIsModalOpen(false)}
         onAdd={handleAddExercise}
         exercises={exercises || []}
+        userId={userId}
       />
     </div>
   );

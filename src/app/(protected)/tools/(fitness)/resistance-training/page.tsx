@@ -4,12 +4,12 @@ import { SessionProvider } from "next-auth/react";
 import { useEffect } from "react";
 import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
-
-// Dependencies
-
-// Hooks
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.types';
+import RelatedContent from "../../(components)/RelatedContent";
+import OnboardingChecklist from "../../(components)/OnboardingChecklist";
+import ResistanceTrainingClient from "./ResistanceTrainingClient";
+import { auth } from '@/app/auth';
 
 // Components
 import UserSelector from "../../../components/UserSelector";
@@ -17,11 +17,11 @@ import ProgramBrowser from "./components/ProgramBrowser";
 import ProgramSettings from "./components/ProgramSettings";
 import ExerciseList from "./components/ExerciseList";
 import SessionSummary from "./components/SessionSummary";
-import RelatedContent from "../../(components)/RelatedContent";
-import OnboardingChecklist from "../../(components)/OnboardingChecklist";
-import ResistanceTrainingClient from "./ResistanceTrainingClient";
 
 export default async function ResistanceTrainingPage() {
+  const session = await auth();
+  const loggedInUserId = session?.user?.id ? Number(session.user.id) : 1;
+
   let exercises: ExerciseLibraryItem[] = [];
   let error: Error | null = null;
   try {
@@ -53,7 +53,11 @@ export default async function ResistanceTrainingPage() {
         <h1 className="text-3xl font-bold my-8">Resistance Training Program Planning</h1>
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-grow space-y-4">
-            <ResistanceTrainingClient exercises={exercises} initialUserId={1} />
+            <ResistanceTrainingClient
+              exercises={exercises}
+              initialUserId={loggedInUserId}
+              userId={loggedInUserId}
+            />
           </div>
           <div className="lg:w-80 flex-shrink-0">
             <OnboardingChecklist />

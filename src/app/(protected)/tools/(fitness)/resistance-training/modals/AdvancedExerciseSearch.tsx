@@ -100,7 +100,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.exerciseFamily}
                 isClearable
                 placeholder="Filter by exercise family"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, exerciseFamily: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    exerciseFamily: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -113,7 +118,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.bodyRegion}
                 isClearable
                 placeholder="Filter by body region"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, bodyRegion: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    bodyRegion: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -126,7 +136,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.muscleGroup}
                 isClearable
                 placeholder="Filter by muscle group"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, muscleGroup: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    muscleGroup: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -139,7 +154,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.movementPattern}
                 isClearable
                 placeholder="Filter by movement pattern"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, movementPattern: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    movementPattern: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -152,7 +172,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.movementPlane}
                 isClearable
                 placeholder="Filter by movement plane"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, movementPlane: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    movementPlane: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -165,7 +190,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.equipment}
                 isClearable
                 placeholder="Filter by equipment"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, equipment: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    equipment: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
 
@@ -178,7 +208,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.laterality}
                 isClearable
                 placeholder="Filter by laterality"
-                onChange={(option) => setSelectedFilters(prev => ({ ...prev, laterality: option?.value }))}
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    laterality: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
           </div>

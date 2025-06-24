@@ -104,10 +104,10 @@ export interface UserExercise {
 /**
  * Represents an exercise from the central library.
  */
-export interface ExerciseLibraryItem {
+export type ExerciseLibraryItem = {
   exercise_library_id: number;
   name: string;
-  source: 'library';
+  source: 'library' | 'user';
   exercise_family: string | null;
   body_region: string | null;
   muscle_group: string | null;
@@ -116,7 +116,7 @@ export interface ExerciseLibraryItem {
   equipment: string | null;
   laterality: string | null;
   difficulty: string | null;
-}
+};
 
 // --- Performance Structures ---
 

@@ -6,30 +6,58 @@ import ProgramBrowser from './components/ProgramBrowser';
 import ProgramSettings from './components/ProgramSettings';
 import ExerciseList from './components/ExerciseList';
 import SessionSummary from './components/SessionSummary';
-import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.types';
+import AddExerciseModal from './modals/AddExerciseModal';
+import { ExerciseLibraryItem, PlannedExercise } from '../resistance-training/types/resistance-training.types';
 
 export default function ResistanceTrainingClient({
   exercises,
-  initialUserId
+  initialUserId,
+  userId
 }: {
   exercises: ExerciseLibraryItem[];
   initialUserId: number;
+  userId: number;
 }) {
-  const [userId, setUserId] = useState(initialUserId);
+  const [selectedUserId, setSelectedUserId] = useState(userId);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  const handleOpenAddModal = () => setIsAddModalOpen(true);
+  const handleCloseAddModal = () => setIsAddModalOpen(false);
+
+  const handleAddExercise = (exercise: PlannedExercise) => {
+    // TODO: Add logic to add the exercise to the program/session
+    setIsAddModalOpen(false);
+  };
 
   return (
     <>
       <div className="max-w-md">
-        <UserSelector
-          onUserSelect={setUserId}
-          currentUserId={userId}
-        />
+      <UserSelector
+        onUserSelect={userId => {
+          if (userId !== null) setSelectedUserId(userId);
+        }}
+        currentUserId={selectedUserId}
+      />
       </div>
+      <button
+        className="mb-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+        onClick={handleOpenAddModal}
+      >
+        Add Exercise
+      </button>
+      <AddExerciseModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
+        onAdd={handleAddExercise}
+        exercises={exercises}
+        userId={selectedUserId}
+      />
       <ProgramBrowser />
       <ProgramSettings />
       <ExerciseList 
         exercises={exercises}
         isLoading={false}
+        userId={selectedUserId}
       />
       <SessionSummary />
     </>

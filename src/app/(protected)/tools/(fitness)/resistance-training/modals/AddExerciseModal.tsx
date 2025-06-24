@@ -17,6 +17,7 @@ interface AddExerciseModalProps {
   onClose: () => void;
   onAdd: (exercise: PlannedExercise) => void;
   exercises: ExerciseLibraryItem[];
+  userId: number;
 }
 
 interface ExerciseOption {
@@ -25,7 +26,7 @@ interface ExerciseOption {
   exercise: ExerciseLibraryItem;
 }
 
-export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: AddExerciseModalProps) {
+export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId }: AddExerciseModalProps) {
   const [isVariedSets, setIsVariedSets] = useState(false);
   const [isAdvancedSets, setIsAdvancedSets] = useState(false);
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
@@ -38,6 +39,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: 
     { reps: '', load: '', rest: '', subSets: [] },
     { reps: '', load: '', rest: '', subSets: [] },
   ]);
+  const [isCreatingExercise, setIsCreatingExercise] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState('');
+  const [creationError, setCreationError] = useState<string | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
@@ -101,6 +106,64 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: 
     onAdd(newExercise);
   };
 
+  // Custom NoOptionsMessage for Select
+  const NoOptionsMessage = (props: any) => {
+    const inputValue = props.selectProps.inputValue;
+    const handleCreateExercise = () => {
+      setNewExerciseName(inputValue);
+      setShowConfirmation(true);
+    };
+    return (
+      <div className="text-center">
+        <p className="text-gray-900 dark:text-white font-medium">No matches found</p>
+        <button
+          type="button"
+          onClick={handleCreateExercise}
+          className="mt-1 text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-medium"
+        >
+          Create new exercise: {inputValue}
+        </button>
+      </div>
+    );
+  };
+
+  // Confirmation Dialog
+  const ConfirmationDialog = ({
+    isOpen,
+    exerciseName,
+    onConfirm,
+    onCancel
+  }: {
+    isOpen: boolean;
+    exerciseName: string;
+    onConfirm: (name: string) => void;
+    onCancel: () => void;
+  }) => {
+    if (!isOpen) return null;
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl max-w-md w-full">
+          <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Create New Exercise</h3>
+          <p className="mb-6 text-gray-700 dark:text-gray-300">Are you sure you want to create "{exerciseName}"?</p>
+          <div className="flex justify-end space-x-4">
+            <button
+              className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
+              onClick={onCancel}
+            >
+              Cancel
+            </button>
+            <button
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              onClick={() => onConfirm(exerciseName)}
+            >
+              Create Exercise
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -133,6 +196,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: 
                     options={exerciseOptions}
                     value={selectedExercise}
                     onChange={(option) => setSelectedExercise(option)}
+                    components={{ NoOptionsMessage }}
                   />
                 </div>
               </div>
@@ -491,6 +555,67 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises }: 
         }}
         exercises={exercises}
       />
+
+      <ConfirmationDialog
+        isOpen={showConfirmation}
+        exerciseName={newExerciseName}
+        onConfirm={async (exerciseName) => {
+          setCreationError(null);
+          setIsCreatingExercise(true);
+          try {
+            const response = await fetch('/api/user-exercises', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ exercise_name: exerciseName, user_id: userId })
+            });
+            if (!response.ok) {
+              const errorData = await response.json();
+              setCreationError(errorData.error || 'Failed to create exercise');
+              // Optionally show toast here
+              setIsCreatingExercise(false);
+              return;
+            }
+            const newExercise = await response.json();
+            // Add to options with custom color and (Custom) label
+            const newOption: ExerciseOption = {
+              value: newExercise.id,
+              label: `${newExercise.exercise_name} (Custom)` ,
+              exercise: {
+                exercise_library_id: newExercise.id,
+                name: newExercise.exercise_name,
+                source: 'user',
+                exercise_family: null,
+                body_region: null,
+                muscle_group: null,
+                movement_pattern: null,
+                movement_plane: null,
+                equipment: null,
+                laterality: null,
+                difficulty: null
+              }
+            };
+            setSelectedExercise(newOption);
+            setIsCreatingExercise(false);
+            setShowConfirmation(false);
+            setCreationError(null);
+            // Optionally show toast here
+            // Add to exerciseOptions with color distinction
+            exerciseOptions.push(newOption);
+          } catch (error: any) {
+            setCreationError(error.message || 'Failed to create exercise');
+            setIsCreatingExercise(false);
+            // Optionally show toast here
+          }
+        }}
+        onCancel={() => {
+          setShowConfirmation(false);
+          setCreationError(null);
+        }}
+      />
+
+      {creationError && (
+        <div className="text-red-500 text-center mt-2">{creationError}</div>
+      )}
     </Modal>
   );
 }
