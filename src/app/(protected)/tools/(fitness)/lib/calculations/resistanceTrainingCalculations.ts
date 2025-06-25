@@ -26,22 +26,6 @@ export function calculateTimeUnderTension(reps: number = 0, tempo: string = '201
 }
 
 /**
- * Formats TUT display with proper units
- * 
- * @param tut - Time under tension in seconds
- * @returns Formatted string with appropriate units
- */
-export function formatTimeUnderTension(tut: number): string {
-  if (tut < 60) {
-    return `${tut}s`;
-  } else {
-    const minutes = Math.floor(tut / 60);
-    const seconds = tut % 60;
-    return seconds > 0 ? `${minutes}m ${seconds}s` : `${minutes}m`;
-  }
-}
-
-/**
  * Calculates the estimated total session duration based on planned exercises
  * For each set: setTime = TUT (for that set) + rest (for that set)
  * Total Duration = sum of all setTimes (including rest after last set)

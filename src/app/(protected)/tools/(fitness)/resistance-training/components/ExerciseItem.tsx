@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
 import { PlannedExercise, PlannedSet, ExerciseLibraryItem } from '../types/resistance-training.types';
-import { calculateTimeUnderTension, formatTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
+import { calculateTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
 
 interface ExerciseItemProps {
   exercise: PlannedExercise;
@@ -159,7 +159,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
             {exercise.detail?.map((set, idx) => (
               <div key={idx}>
                 <span className="font-medium dark:text-slate-900">
-                  {formatTimeUnderTension(calculateTimeUnderTension(set.reps, set.tempo))}
+                  {calculateTimeUnderTension(set.reps, set.tempo)} sec.
                 </span>
               </div>
             ))}
