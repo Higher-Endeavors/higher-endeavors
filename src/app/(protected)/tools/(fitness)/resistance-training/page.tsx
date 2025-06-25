@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
+import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.types';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
@@ -22,13 +23,17 @@ export default async function ResistanceTrainingPage() {
   const session = await auth();
   const loggedInUserId = session?.user?.id ? Number(session.user.id) : 1;
 
-  let exercises: ExerciseLibraryItem[] = [];
+  let libraryExercises: ExerciseLibraryItem[] = [];
+  let userExercises: ExerciseLibraryItem[] = [];
   let error: Error | null = null;
   try {
-    exercises = await getExerciseLibrary();
+    libraryExercises = await getExerciseLibrary();
+    userExercises = await getUserExerciseLibrary(loggedInUserId);
   } catch (err: any) {
     error = err;
   }
+
+  const allExercises = [...userExercises, ...libraryExercises];
 
   const resistanceTrainingArticles = [
     {
@@ -54,7 +59,7 @@ export default async function ResistanceTrainingPage() {
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-grow space-y-4">
             <ResistanceTrainingClient
-              exercises={exercises}
+              exercises={allExercises}
               initialUserId={loggedInUserId}
               userId={loggedInUserId}
             />

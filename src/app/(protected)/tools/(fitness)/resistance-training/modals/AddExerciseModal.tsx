@@ -20,6 +20,7 @@ interface AddExerciseModalProps {
   onAdd: (exercise: PlannedExercise) => void;
   exercises: ExerciseLibraryItem[];
   userId: number;
+  editingExercise?: PlannedExercise | null;
 }
 
 interface ExerciseOption {
@@ -39,16 +40,10 @@ interface AddExerciseFormValues {
   tempo: string;
 }
 
-export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId }: AddExerciseModalProps) {
-  const [isVariedSets, setIsVariedSets] = useState(false);
+export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise }: AddExerciseModalProps) {
   const [isAdvancedSets, setIsAdvancedSets] = useState(false);
   const [useAlternateUnit, setUseAlternateUnit] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
-  const [variedSets, setVariedSets] = useState<{ reps: string; load: string; rest: string; subSets: { reps: string; load: string; rest: string }[] }[]>([
-    { reps: '', load: '', rest: '', subSets: [] },
-    { reps: '', load: '', rest: '', subSets: [] },
-    { reps: '', load: '', rest: '', subSets: [] },
-  ]);
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [creationError, setCreationError] = useState<string | null>(null);
@@ -57,15 +52,56 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
 
+  const DIFFICULTY_ORDER = [
+    'Basic', 'Beginner', 'Novice', 'Intermediate', 'Advanced',
+    'Expert', 'Master', 'Grand Master', 'Legendary'
+  ];
+
+  const sortedExercises = [...exercises].sort((a, b) => {
+    // 1. User exercises first
+    if (a.source === 'user' && b.source !== 'user') return -1;
+    if (a.source !== 'user' && b.source === 'user') return 1;
+
+    // 2. Within user exercises, sort alphabetically
+    if (a.source === 'user' && b.source === 'user') {
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
+    // 3. Within library exercises, sort by difficulty, then name
+    if (a.source === 'library' && b.source === 'library') {
+      const diffA = DIFFICULTY_ORDER.indexOf(a.difficulty || '');
+      const diffB = DIFFICULTY_ORDER.indexOf(b.difficulty || '');
+      if (diffA !== diffB) return diffA - diffB;
+      return (a.name || '').localeCompare(b.name || '');
+    }
+
+    return 0;
+  });
+
   // Convert exercises to options for the Select component
-  const exerciseOptions: ExerciseOption[] = exercises.map(exercise => ({
+  const exerciseOptions: ExerciseOption[] = sortedExercises.map(exercise => ({
     value: exercise.exercise_library_id,
     label: exercise.name,
     exercise
   }));
 
-  const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
-    defaultValues: {
+  // Helper function to get initial form values
+  const getInitialValues = (): AddExerciseFormValues => {
+    if (editingExercise) {
+      const selectedExercise = exerciseOptions.find(opt => opt.value === editingExercise.exerciseLibraryId);
+      const firstSet = editingExercise.detail?.[0];
+      return {
+        selectedExercise: selectedExercise || null,
+        notes: editingExercise.notes || '',
+        setsCount: editingExercise.setCount,
+        pairing: editingExercise.pairing || '',
+        reps: firstSet?.reps?.toString() || '',
+        load: firstSet?.load || '',
+        rest: firstSet?.restSec?.toString() || '',
+        tempo: firstSet?.tempo || '2010',
+      };
+    }
+    return {
       selectedExercise: null,
       notes: '',
       setsCount: 3,
@@ -74,7 +110,42 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       load: '',
       rest: '',
       tempo: '2010',
-    },
+    };
+  };
+
+  // Initialize varied sets based on editing exercise
+  const getInitialVariedSetsState = () => {
+    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
+      return editingExercise.detail.some((set, index) => 
+        set.reps !== editingExercise.detail?.[0]?.reps || 
+        set.load !== editingExercise.detail?.[0]?.load ||
+        set.restSec !== editingExercise.detail?.[0]?.restSec
+      );
+    }
+    return false;
+  };
+
+  const getInitialVariedSets = () => {
+    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0 && getInitialVariedSetsState()) {
+      return editingExercise.detail.map(set => ({
+        reps: set.reps?.toString() || '',
+        load: set.load || '',
+        rest: set.restSec?.toString() || '',
+        subSets: []
+      }));
+    }
+    return [
+      { reps: '', load: '', rest: '', subSets: [] },
+      { reps: '', load: '', rest: '', subSets: [] },
+      { reps: '', load: '', rest: '', subSets: [] },
+    ];
+  };
+
+  const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
+  const [variedSets, setVariedSets] = useState<{ reps: string; load: string; rest: string; subSets: { reps: string; load: string; rest: string }[] }[]>(getInitialVariedSets());
+
+  const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
+    defaultValues: getInitialValues(),
   });
 
   const onSubmit = (data: AddExerciseFormValues) => {
@@ -97,9 +168,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             tempo: data.tempo || '2010',
           }))
         : Array(data.setsCount).fill({
-            reps: 0,
-            load: '0',
-            restSec: 0,
+            reps: parseInt(data.reps) || 0,
+            load: data.load || '0',
+            restSec: parseInt(data.rest) || 0,
             tempo: data.tempo || '2010',
           }).map((set, index) => ({
             ...set,
@@ -171,7 +242,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
-        Add Exercise
+        {editingExercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
       <Modal.Body>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -606,7 +677,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               disabled={!watch('selectedExercise')}
               className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add Exercise
+              {editingExercise ? 'Update Exercise' : 'Add Exercise'}
             </button>
           </div>
         </form>

@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS public.resist_program_day_exercises (
   exercise_source     VARCHAR(20)  NOT NULL,
   exercise_library_id INTEGER      REFERENCES public.exercise_library(exercise_library_id)
                       ON UPDATE CASCADE ON DELETE SET NULL,
-  user_exercise_id    INTEGER      REFERENCES public.user_exercises(user_exercise_id)
+  user_exercise_id    INTEGER      REFERENCES public.resist_user_exercise_library(user_exercises_id)
                       ON UPDATE CASCADE ON DELETE SET NULL,
   pairing             VARCHAR(3),                -- e.g. 'A1','A2','WU','CD'
 
@@ -98,9 +98,9 @@ default_load     VARCHAR(20),             -- e.g. "100", "band-red"
 );
 
 
--- Table: public.user_exercises
--- DROP TABLE IF EXISTS public.user_exercises;
-CREATE TABLE IF NOT EXISTS public.resist_user_exercises (
+-- Table: public.resist_user_exercise_library
+-- DROP TABLE IF EXISTS public.resist_user_exercise_library;
+CREATE TABLE IF NOT EXISTS public.resist_user_exercise_library (
     user_exercises_id  SERIAL PRIMARY KEY,  -- was integer GENERATED … + PRIMARY KEY(id)
     user_id             INTEGER NOT NULL
                           REFERENCES public.users(id)
@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS public.resist_user_exercises (
     UNIQUE (user_id, exercise_name)
 );
 
-ALTER TABLE public.resist_user_exercises
+ALTER TABLE public.resist_user_exercise_library
     OWNER TO postgres;
 
 
@@ -196,7 +196,7 @@ BEGIN
     'resist_resistance_programs',
     'resist_resistance_program_templates',
     'resist_program_day_exercises',
-    'resist_user_exercises',
+    'resist_user_exercise_library',
     'resist_program_day_exercise_perfs',
     'resist_user_actual_sessions'
   ] LOOP

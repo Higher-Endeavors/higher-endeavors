@@ -42,4 +42,36 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    const { searchParams } = new URL(request.url);
+    // Allow admin to specify user_id, otherwise use session user
+    const userId = searchParams.get('user_id') || session?.user?.id;
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const result = await SingleQuery(
+      `SELECT id, exercise_name FROM user_exercises WHERE user_id = $1`,
+      [userId]
+    );
+
+    // Return as array of objects
+    return NextResponse.json(
+      result.rows.map((row: any) => ({
+        exercise_library_id: row.id,
+        name: row.exercise_name,
+        source: 'user'
+      }))
+    );
+  } catch (error) {
+    console.error('Error fetching user exercises:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch user exercises' },
+      { status: 500 }
+    );
+  }
 } 

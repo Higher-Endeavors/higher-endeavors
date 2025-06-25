@@ -2,15 +2,17 @@
 
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-import { PlannedExercise, PlannedSet } from '../types/resistance-training.types';
+import { PlannedExercise, PlannedSet, ExerciseLibraryItem } from '../types/resistance-training.types';
+import { calculateTimeUnderTension, formatTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
 
 interface ExerciseItemProps {
   exercise: PlannedExercise;
+  exercises: ExerciseLibraryItem[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
-export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) {
+export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: ExerciseItemProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: number]: boolean }>({});
 
   const toggleMenu = (id: number) => {
@@ -29,17 +31,30 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
     return load; // Load is already formatted with unit in the PlannedSet
   };
 
-  const calculateTut = (reps: number = 0, tempo: string = '2010') => {
-    // Placeholder calculation
-    return reps * 4;
+  // Get exercise name by looking up the ID in the exercises array
+  const getExerciseName = () => {
+    const exerciseData = exercises.find(ex => ex.exercise_library_id === exercise.exerciseLibraryId);
+    return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId}`;
   };
+
+  // Calculate total load for this exercise
+  const getTotalLoad = () => {
+    if (!exercise.detail) return 0;
+    return exercise.detail.reduce((sum, set) => {
+      const reps = set.reps || 0;
+      const load = Number(set.load) || 0;
+      return sum + (reps * load);
+    }, 0);
+  };
+
+  const formatNumberWithCommas = (x: number) => x.toLocaleString();
 
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <span className="text-gray-600 dark:text-slate-900 font-semibold">{exercise.pairing}</span>
-          <span className="font-medium dark:text-slate-900">{exercise.exerciseLibraryId}</span>
+          <span className="font-medium dark:text-slate-900">{getExerciseName()}</span>
         </div>
         <div className="relative">
           <button
@@ -144,7 +159,7 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
             {exercise.detail?.map((set, idx) => (
               <div key={idx}>
                 <span className="font-medium dark:text-slate-900">
-                  {calculateTut(set.reps, set.tempo)}s
+                  {formatTimeUnderTension(calculateTimeUnderTension(set.reps, set.tempo))}
                 </span>
               </div>
             ))}
@@ -162,7 +177,7 @@ export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseIte
             <div>
               <span className="mr-1">Total Load:</span>
               <span>
-                {exercise.detail?.reduce((sum, set) => sum + (Number(set.load) || 0), 0)}
+                {formatNumberWithCommas(getTotalLoad())}
               </span>
             </div>
           </div>
