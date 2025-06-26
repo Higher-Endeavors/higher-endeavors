@@ -9,24 +9,7 @@ import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
-import type { UserSettings } from '@/app/lib/types/userSettings';
-
-// Default settings object that matches the UserSettings type
-const defaultSettings: UserSettings = {
-  user_id: 0,
-  height_unit: 'imperial',
-  weight_unit: 'lbs',
-  temperature_unit: 'F',
-  time_format: '12h',
-  date_format: 'MM/DD/YYYY',
-  language: 'en',
-  notifications_email: false,
-  notifications_text: false,
-  notifications_app: false,
-  pillar_settings: {},
-  created_at: new Date().toISOString(),
-  updated_at: new Date().toISOString()
-};
+import type { UserSettings } from '../../../user/settings/types/settings';
 
 function BodyCompositionContent() {
   const { data: session } = useSession();
@@ -133,11 +116,13 @@ function BodyCompositionContent() {
 
         {showBioNotification && (
           <div className="lg:col-span-4 order-1 lg:order-2">
-            <RequiredSettingsSidebar
-              userSettings={userSettings || defaultSettings}
-              showNotification={showSettingsNotification}
-              onDismiss={() => setShowSettingsNotification(false)}
-            />
+            {userSettings && (
+              <RequiredSettingsSidebar
+                userSettings={userSettings}
+                showNotification={showSettingsNotification}
+                onDismiss={() => setShowSettingsNotification(false)}
+              />
+            )}
           </div>
         )}
       </div>

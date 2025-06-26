@@ -128,7 +128,15 @@ export interface NutritionSettings {
 
 export interface FitnessSettings {
   resistanceTraining: {
-    weightUnit: WeightUnit;
+    /**
+     * @deprecated Use loadUnit instead. This is kept for backward compatibility.
+     */
+    weightUnit?: WeightUnit;
+    loadUnit?: WeightUnit; // new, fallback to 'lbs' in UI
+    trackRPE?: boolean;
+    trackRIR?: boolean;
+    availableEquipment?: string[];
+    rpeScale?: string;
   };
   cardioMetabolic: {
     speedUnit: SpeedUnit;

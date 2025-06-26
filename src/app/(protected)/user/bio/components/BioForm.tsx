@@ -203,13 +203,13 @@ export default function BioForm() {
           {/* Height */}
           <div>
             <label htmlFor="height" className="block mb-1 text-sm font-medium text-gray-700">
-              Height ({settings?.height_unit === 'metric' ? 'cm' : 'ft/in'})
+              Height ({settings?.general?.heightUnit === 'cm' ? 'cm' : 'ft/in'})
             </label>
             <input
               type="text"
               id="height"
               {...register('height')}
-              placeholder={settings?.height_unit === 'metric' ? 'e.g., 175' : 'e.g., 5\'10"'}
+              placeholder={settings?.general?.heightUnit === 'cm' ? 'e.g., 175' : 'e.g., 5\'10"'}
               className={`w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 dark:text-slate-800 ${
                 errors.height ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-blue-500'
               }`}

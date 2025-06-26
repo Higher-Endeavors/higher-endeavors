@@ -9,6 +9,7 @@ import React from 'react';
 import { BsPlus, BsDash } from 'react-icons/bs';
 import { useForm, Controller } from 'react-hook-form';
 import { addCustomExercise } from '../actions/exerciseActions';
+import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
@@ -175,6 +176,12 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
   const selectedExercise = watch('selectedExercise');
   const isCarry = selectedExercise?.exercise?.exercise_family === 'Carry';
+
+  const { settings, isLoading: isLoadingSettings } = useUserSettings();
+  const resistanceSettings = settings?.fitness?.resistanceTraining;
+  const showRPE = resistanceSettings?.trackRPE;
+  const showRIR = resistanceSettings?.trackRIR;
+  const rpeScale = resistanceSettings?.rpeScale || '0-10';
 
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
@@ -539,10 +546,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             )}
 
             {/* RPE Input */}
-            {!isVariedSets || !isAdvancedSets ? (
+            {showRPE && (!isVariedSets || !isAdvancedSets) && (
               <div>
                 <label htmlFor="exercise-rpe" className="block text-sm font-medium dark:text-white">
-                  RPE (0-10)
+                  RPE ({rpeScale})
                 </label>
                 <Controller
                   name="rpe"
@@ -552,20 +559,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       {...field}
                       id="exercise-rpe"
                       type="number"
-                      min={0}
-                      max={10}
-                      placeholder="Enter RPE (0-10)"
+                      min={rpeScale === '6-20' ? 6 : 0}
+                      max={rpeScale === '6-20' ? 20 : 10}
+                      placeholder={`Enter RPE (${rpeScale})`}
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                     />
                   )}
                 />
               </div>
-            ) : (
-              <div />
             )}
 
             {/* RIR Input */}
-            {!isVariedSets || !isAdvancedSets ? (
+            {showRIR && (!isVariedSets || !isAdvancedSets) && (
               <div>
                 <label htmlFor="exercise-rir" className="block text-sm font-medium dark:text-white">
                   RIR (0-10)
@@ -580,14 +585,12 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       type="number"
                       min={0}
                       max={10}
-                      placeholder="Enter RIR"
+                      placeholder="Enter RIR (0-10)"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                     />
                   )}
                 />
               </div>
-            ) : (
-              <div />
             )}
 
             {/* Notes Field */}
@@ -696,36 +699,40 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                           }}
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm dark:text-white">RPE</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={10}
-                          placeholder="RPE (0-10)"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          value={set.rpe}
-                          onChange={e => {
-                            const newVal = e.target.value;
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rpe: newVal } : s));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm dark:text-white">RIR</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={10}
-                          placeholder="RIR"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          value={set.rir}
-                          onChange={e => {
-                            const newVal = e.target.value;
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rir: newVal } : s));
-                          }}
-                        />
-                      </div>
+                      {showRPE && (
+                        <div>
+                          <label className="block text-sm dark:text-white">RPE</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={10}
+                            placeholder="RPE (0-10)"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            value={set.rpe}
+                            onChange={e => {
+                              const newVal = e.target.value;
+                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rpe: newVal } : s));
+                            }}
+                          />
+                        </div>
+                      )}
+                      {showRIR && (
+                        <div>
+                          <label className="block text-sm dark:text-white">RIR</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={10}
+                            placeholder="RIR (0-10)"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                            value={set.rir}
+                            onChange={e => {
+                              const newVal = e.target.value;
+                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rir: newVal } : s));
+                            }}
+                          />
+                        </div>
+                      )}
                     </div>
                     {/* Sub-sets */}
                     {isAdvancedSets && set.subSets.map((subSet, subSetIdx) => (
