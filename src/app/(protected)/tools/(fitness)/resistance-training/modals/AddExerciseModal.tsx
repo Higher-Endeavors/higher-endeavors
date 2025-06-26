@@ -29,7 +29,14 @@ interface ExerciseOption {
   exercise: ExerciseLibraryItem;
 }
 
-interface AddExerciseFormValues {
+const CARRY_UNITS = [
+  { value: 'seconds', label: 'Seconds' },
+  { value: 'feet', label: 'Feet' },
+  { value: 'yards', label: 'Yards' },
+  { value: 'meters', label: 'Meters' },
+];
+
+type AddExerciseFormValues = {
   selectedExercise: ExerciseOption | null;
   notes: string;
   setsCount: number;
@@ -38,7 +45,10 @@ interface AddExerciseFormValues {
   load: string;
   rest: string;
   tempo: string;
-}
+  repUnit?: string;
+  rpe?: string;
+  rir?: string;
+};
 
 export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise }: AddExerciseModalProps) {
   const [isAdvancedSets, setIsAdvancedSets] = useState(false);
@@ -99,6 +109,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         load: firstSet?.load || '',
         rest: firstSet?.restSec?.toString() || '',
         tempo: firstSet?.tempo || '2010',
+        repUnit: firstSet?.repUnit || (selectedExercise?.exercise?.exercise_family === 'Carry' ? 'yards' : 'reps'),
+        rpe: firstSet?.rpe?.toString() || '',
+        rir: firstSet?.rir?.toString() || '',
       };
     }
     return {
@@ -110,6 +123,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       load: '',
       rest: '',
       tempo: '2010',
+      repUnit: 'reps',
+      rpe: '',
+      rir: '',
     };
   };
 
@@ -131,25 +147,39 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         reps: set.reps?.toString() || '',
         load: set.load || '',
         rest: set.restSec?.toString() || '',
+        rpe: set.rpe?.toString() || '',
+        rir: set.rir?.toString() || '',
         subSets: []
       }));
     }
     return [
-      { reps: '', load: '', rest: '', subSets: [] },
-      { reps: '', load: '', rest: '', subSets: [] },
-      { reps: '', load: '', rest: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
     ];
   };
 
   const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
-  const [variedSets, setVariedSets] = useState<{ reps: string; load: string; rest: string; subSets: { reps: string; load: string; rest: string }[] }[]>(getInitialVariedSets());
+  const [variedSets, setVariedSets] = useState<{
+    reps: string;
+    load: string;
+    rest: string;
+    rpe: string;
+    rir: string;
+    subSets: { reps: string; load: string; rest: string }[];
+  }[]>(getInitialVariedSets());
 
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),
   });
 
+  const selectedExercise = watch('selectedExercise');
+  const isCarry = selectedExercise?.exercise?.exercise_family === 'Carry';
+
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
+    const isCarry = data.selectedExercise.exercise.exercise_family === 'Carry';
+    const repUnit = isCarry ? data.repUnit || 'yards' : 'reps';
     const newExercise: PlannedExercise = {
       exerciseLibraryId: data.selectedExercise.value,
       exerciseSource: 'library',
@@ -166,12 +196,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             load: set.load,
             restSec: parseInt(set.rest) || 0,
             tempo: data.tempo || '2010',
+            repUnit,
+            rpe: set.rpe ? parseInt(set.rpe) : undefined,
+            rir: set.rir ? parseInt(set.rir) : undefined,
           }))
         : Array(data.setsCount).fill({
             reps: parseInt(data.reps) || 0,
             load: data.load || '0',
             restSec: parseInt(data.rest) || 0,
             tempo: data.tempo || '2010',
+            repUnit,
+            rpe: data.rpe ? parseInt(data.rpe) : undefined,
+            rir: data.rir ? parseInt(data.rir) : undefined,
           }).map((set, index) => ({
             ...set,
             set: index + 1,
@@ -274,7 +310,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         isClearable
                         options={exerciseOptions}
                         value={field.value}
-                        onChange={field.onChange}
+                        onChange={option => {
+                          field.onChange(option);
+                          if (option?.exercise?.exercise_family === 'Carry') {
+                            setValue('repUnit', 'yards', { shouldValidate: true });
+                          } else {
+                            setValue('repUnit', 'reps', { shouldValidate: true });
+                          }
+                        }}
                         components={{ NoOptionsMessage }}
                       />
                     )}
@@ -341,7 +384,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                           const newArr = [...prev];
                           if (val > prev.length) {
                             for (let i = prev.length; i < val; i++) {
-                              newArr.push({ reps: '', load: '', rest: '', subSets: [] });
+                              newArr.push({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] });
                             }
                           } else if (val < prev.length) {
                             newArr.length = val;
@@ -359,21 +402,40 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             {!isVariedSets ? (
               <div>
                 <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
-                  Reps
+                  {isCarry ? 'Distance/Time' : 'Reps'}
                 </label>
-                <Controller
-                  name="reps"
-                  control={control}
-                  render={({ field }) => (
-                    <input
-                      {...field}
-                      id="exercise-reps"
-                      type="number"
-                      placeholder="Enter number of reps"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                <div className="flex items-center space-x-2">
+                  <Controller
+                    name="reps"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-reps"
+                        type="number"
+                        placeholder={isCarry ? 'Enter value' : 'Enter number of reps'}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                  {isCarry && (
+                    <Controller
+                      name="repUnit"
+                      control={control}
+                      defaultValue="yards"
+                      render={({ field }) => (
+                        <select
+                          {...field}
+                          className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                        >
+                          {CARRY_UNITS.map(unit => (
+                            <option key={unit.value} value={unit.value}>{unit.label}</option>
+                          ))}
+                        </select>
+                      )}
                     />
                   )}
-                />
+                </div>
               </div>
             ) : (
               <div />
@@ -476,6 +538,58 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
+            {/* RPE Input */}
+            {!isVariedSets || !isAdvancedSets ? (
+              <div>
+                <label htmlFor="exercise-rpe" className="block text-sm font-medium dark:text-white">
+                  RPE (0-10)
+                </label>
+                <Controller
+                  name="rpe"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="exercise-rpe"
+                      type="number"
+                      min={0}
+                      max={10}
+                      placeholder="Enter RPE (0-10)"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                  )}
+                />
+              </div>
+            ) : (
+              <div />
+            )}
+
+            {/* RIR Input */}
+            {!isVariedSets || !isAdvancedSets ? (
+              <div>
+                <label htmlFor="exercise-rir" className="block text-sm font-medium dark:text-white">
+                  RIR (0-10)
+                </label>
+                <Controller
+                  name="rir"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="exercise-rir"
+                      type="number"
+                      min={0}
+                      max={10}
+                      placeholder="Enter RIR"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                  )}
+                />
+              </div>
+            ) : (
+              <div />
+            )}
+
             {/* Notes Field */}
             <div className="col-span-2">
               <label htmlFor="exercise-notes" className="block text-sm font-medium dark:text-white">
@@ -569,21 +683,49 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                           }}
                         />
                       </div>
-                      {isAdvancedSets && (
-                        <div>
-                          <label className="block text-sm dark:text-white">Rest</label>
-                          <input
-                            type="number"
-                            placeholder="Enter rest"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            value={set.rest}
-                            onChange={e => {
-                              const newVal = e.target.value;
-                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rest: newVal } : s));
-                            }}
-                          />
-                        </div>
-                      )}
+                      <div>
+                        <label className="block text-sm dark:text-white">Rest</label>
+                        <input
+                          type="number"
+                          placeholder="Enter rest"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          value={set.rest}
+                          onChange={e => {
+                            const newVal = e.target.value;
+                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rest: newVal } : s));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm dark:text-white">RPE</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={10}
+                          placeholder="RPE (0-10)"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          value={set.rpe}
+                          onChange={e => {
+                            const newVal = e.target.value;
+                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rpe: newVal } : s));
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm dark:text-white">RIR</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={10}
+                          placeholder="RIR"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                          value={set.rir}
+                          onChange={e => {
+                            const newVal = e.target.value;
+                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rir: newVal } : s));
+                          }}
+                        />
+                      </div>
                     </div>
                     {/* Sub-sets */}
                     {isAdvancedSets && set.subSets.map((subSet, subSetIdx) => (

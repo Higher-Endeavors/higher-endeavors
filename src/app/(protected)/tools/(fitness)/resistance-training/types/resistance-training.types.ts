@@ -87,6 +87,7 @@ export interface PlannedSet {
   tempo?: string;
   subSets?: PlannedSet[]; // For advanced/cluster sets (one level)
   type?: 'varied' | 'advanced';
+  repUnit?: string;
 }
 
 /**
