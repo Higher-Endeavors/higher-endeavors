@@ -1,12 +1,13 @@
 import React from 'react';
-import { UseFormRegister, Controller } from 'react-hook-form';
+import { UseFormRegister, Controller, Control } from 'react-hook-form';
 import type { UserSettings } from '../types/settings';
 
 interface GeneralUserSettingsProps {
   register: UseFormRegister<UserSettings>;
+  control: Control<UserSettings>;
 }
 
-const GeneralUserSettings: React.FC<GeneralUserSettingsProps> = ({ register }) => (
+const GeneralUserSettings: React.FC<GeneralUserSettingsProps> = ({ register, control }) => (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold dark:text-slate-600">General Settings</h2>
     {/* Height Unit */}
@@ -56,6 +57,7 @@ const GeneralUserSettings: React.FC<GeneralUserSettingsProps> = ({ register }) =
       <label className="block text-sm font-medium text-gray-700">Notifications</label>
       <Controller
         name="general.notifications"
+        control={control}
         render={({ field }) => (
           <div className="mt-2 space-y-2">
             <label className="inline-flex items-center">

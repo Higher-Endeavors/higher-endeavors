@@ -161,7 +161,7 @@ const SettingsForm = () => {
       {/* Settings Content */}
       <div className="p-6">
         {activeTab === 'general' && (
-          <GeneralUserSettings register={register} />
+          <GeneralUserSettings register={register} control={control} />
         )}
         {activeTab === 'lifestyle' && (
           <LifestyleUserSettings register={register} setValue={setValue} watch={watch} />

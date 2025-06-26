@@ -25,10 +25,10 @@ export async function GET() {
         RETURNING *
       `;
       const newSettings = await SingleQuery(insertQuery, [session.user.id]);
-      return NextResponse.json(newSettings.rows[0]);
+      return NextResponse.json(mapDbSettingsToCanonical(newSettings.rows[0]));
     }
 
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(mapDbSettingsToCanonical(result.rows[0]));
   } catch (error) {
     console.error("Error fetching user settings:", error);
     return NextResponse.json(
@@ -127,4 +127,107 @@ export async function PUT(request: NextRequest) {
   } finally {
     client.release();
   }
+}
+
+// Map flat DB structure to canonical UserSettings structure
+function mapDbSettingsToCanonical(db: any) {
+  // Canonical defaults for each section
+  console.log('RAW DB ROW:', db);
+  console.log('pillarSettings.health:', JSON.stringify(db.pillar_settings.health, null, 2));
+  console.log('pillarSettings.nutrition:', JSON.stringify(db.pillar_settings.nutrition, null, 2));
+  console.log('pillarSettings.fitness:', JSON.stringify(db.pillar_settings.fitness, null, 2));
+  const defaultHealth = {
+    circumferenceUnit: 'in',
+    circumferenceMeasurements: [],
+    bodyFatMethods: [],
+    trackingPreferences: [],
+  };
+  const defaultNutrition = {
+    foodMeasurement: 'grams',
+    hydrationUnit: 'oz',
+    calorieTarget: 0,
+    macronutrientTargets: { protein: 0, carbs: 0, fat: 0 },
+    macronutrientTargetMode: 'grams',
+    defaultMealSchedule: { id: 'default', name: 'Default', meals: [], nutrientDistribution: { mode: 'even' } },
+    customMealSchedules: [],
+    scheduleAssignments: {},
+    foodAllergies: [],
+    dietaryBase: 'omnivore',
+    dietaryStyles: [],
+  };
+  const defaultLifestyle = {
+    deviceIntegration: { enabled: false, devices: [] },
+  };
+  const defaultFitness = {
+    resistanceTraining: { loadUnit: 'lbs', trackRPE: false, trackRIR: false, availableEquipment: [], rpeScale: '0-10' },
+    cardioMetabolic: { speedUnit: 'mph' },
+  };
+
+  // Helper to ensure a value is always an array
+  function ensureArray(val: any): any[] {
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch { return []; }
+    }
+    return [];
+  }
+
+  let pillarSettings = db.pillar_settings;
+  while (typeof pillarSettings === 'string') {
+    try {
+      pillarSettings = JSON.parse(pillarSettings);
+    } catch {
+      pillarSettings = {};
+      break;
+    }
+  }
+  pillarSettings = pillarSettings || {};
+
+  const health = {
+    ...pillarSettings.health,
+    circumferenceMeasurements: ensureArray(pillarSettings.health?.circumferenceMeasurements),
+    bodyFatMethods: ensureArray(pillarSettings.health?.bodyFatMethods),
+    trackingPreferences: ensureArray(pillarSettings.health?.trackingPreferences),
+    circumferenceUnit: pillarSettings.health?.circumferenceUnit || 'in',
+  };
+  const nutrition = {
+    ...pillarSettings.nutrition,
+    foodAllergies: ensureArray(pillarSettings.nutrition?.foodAllergies),
+    dietaryStyles: ensureArray(pillarSettings.nutrition?.dietaryStyles),
+    customMealSchedules: ensureArray(pillarSettings.nutrition?.customMealSchedules),
+    scheduleAssignments: pillarSettings.nutrition?.scheduleAssignments || {},
+    macronutrientTargets: pillarSettings.nutrition?.macronutrientTargets || { protein: 0, carbs: 0, fat: 0 },
+    defaultMealSchedule: pillarSettings.nutrition?.defaultMealSchedule || { id: 'default', name: 'Default', meals: [], nutrientDistribution: { mode: 'even' } },
+  };
+  const lifestyle = {
+    ...pillarSettings.lifestyle,
+    deviceIntegration: pillarSettings.lifestyle?.deviceIntegration || { enabled: false, devices: [] },
+  };
+  const fitness = {
+    ...pillarSettings.fitness,
+    resistanceTraining: pillarSettings.fitness?.resistanceTraining || { loadUnit: 'lbs', trackRPE: false, trackRIR: false, availableEquipment: [], rpeScale: '0-10' },
+    cardioMetabolic: pillarSettings.fitness?.cardioMetabolic || { speedUnit: 'mph' },
+  };
+
+  return {
+    general: {
+      heightUnit: db.height_unit === 'imperial' ? 'ft_in'
+                : db.height_unit === 'metric' ? 'cm'
+                : db.height_unit,
+      weightUnit: db.weight_unit,
+      temperatureUnit: db.temperature_unit,
+      timeFormat: db.time_format,
+      dateFormat: db.date_format,
+      language: db.language,
+      notifications: [
+        ...(db.notifications_email ? ['email'] : []),
+        ...(db.notifications_text ? ['text'] : []),
+        ...(db.notifications_app ? ['app'] : []),
+      ],
+    },
+    health,
+    nutrition,
+    lifestyle,
+    fitness,
+  };
 } 
