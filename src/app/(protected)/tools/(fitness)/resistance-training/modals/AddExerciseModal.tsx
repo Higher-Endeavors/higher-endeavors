@@ -52,8 +52,6 @@ type AddExerciseFormValues = {
 };
 
 export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise }: AddExerciseModalProps) {
-  const [isAdvancedSets, setIsAdvancedSets] = useState(false);
-  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
@@ -133,6 +131,11 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   // Initialize varied sets based on editing exercise
   const getInitialVariedSetsState = () => {
     if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
+      // Advanced Sets: if any set has a subSet property
+      if (editingExercise.detail.some((set: any) => set.subSet)) {
+        return true;
+      }
+      // Varied Sets: if any set differs from the first set
       return editingExercise.detail.some((set, index) => 
         set.reps !== editingExercise.detail?.[0]?.reps || 
         set.load !== editingExercise.detail?.[0]?.load ||
@@ -142,17 +145,54 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     return false;
   };
 
-  const getInitialVariedSets = () => {
-    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0 && getInitialVariedSetsState()) {
-      return editingExercise.detail.map(set => ({
-        reps: set.reps?.toString() || '',
-        load: set.load || '',
-        rest: set.restSec?.toString() || '',
-        rpe: set.rpe?.toString() || '',
-        rir: set.rir?.toString() || '',
-        subSets: []
-      }));
+  const getInitialAdvancedSetsState = () => {
+    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
+      return editingExercise.detail.some((set: any) => set.subSet);
     }
+    return false;
+  };
+
+  const getInitialVariedSets = () => {
+    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
+      // Advanced Sets: group by parent set
+      if (editingExercise.detail.some((set: any) => set.subSet)) {
+        // Group by set number
+        const grouped = editingExercise.detail.reduce((acc: any[], curr: any) => {
+          const setIdx = curr.set - 1;
+          if (!acc[setIdx]) {
+            acc[setIdx] = {
+              reps: '',
+              load: '',
+              rest: '',
+              rpe: '',
+              rir: '',
+              subSets: []
+            };
+          }
+          acc[setIdx].subSets.push({
+            reps: curr.reps?.toString() || '',
+            load: curr.load || '',
+            rest: curr.restSec?.toString() || '',
+            rpe: curr.rpe?.toString() || '',
+            rir: curr.rir?.toString() || ''
+          });
+          return acc;
+        }, []);
+        return grouped;
+      }
+      // Varied Sets: as before
+      if (getInitialVariedSetsState()) {
+        return editingExercise.detail.map(set => ({
+          reps: set.reps?.toString() || '',
+          load: set.load || '',
+          rest: set.restSec?.toString() || '',
+          rpe: set.rpe?.toString() || '',
+          rir: set.rir?.toString() || '',
+          subSets: []
+        }));
+      }
+    }
+    // Default
     return [
       { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
       { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
@@ -161,13 +201,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   };
 
   const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
+  const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
+  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
   const [variedSets, setVariedSets] = useState<{
     reps: string;
     load: string;
     rest: string;
     rpe: string;
     rir: string;
-    subSets: { reps: string; load: string; rest: string }[];
+    subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
   }[]>(getInitialVariedSets());
 
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
@@ -187,6 +229,65 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     if (!data.selectedExercise) return;
     const isCarry = data.selectedExercise.exercise.exercise_family === 'Carry';
     const repUnit = isCarry ? data.repUnit || 'yards' : 'reps';
+    let detail;
+    if (isVariedSets) {
+      if (isAdvancedSets) {
+        // Flatten all sub-sets into detail array
+        detail = variedSets.flatMap((set, setIdx) => {
+          if (set.subSets && set.subSets.length > 0) {
+            return set.subSets.map((subSet, subSetIdx) => ({
+              set: setIdx + 1,
+              subSet: subSetIdx + 1,
+              reps: parseInt(subSet.reps) || 0,
+              load: subSet.load,
+              restSec: parseInt(subSet.rest) || 0,
+              tempo: data.tempo || '2010',
+              repUnit,
+              rpe: ('rpe' in subSet && typeof subSet.rpe === 'string' && subSet.rpe) ? parseInt(subSet.rpe) : undefined,
+              rir: ('rir' in subSet && typeof subSet.rir === 'string' && subSet.rir) ? parseInt(subSet.rir) : undefined,
+            }));
+          } else {
+            // No sub-sets, use main set values
+            return [{
+              set: setIdx + 1,
+              reps: parseInt(set.reps) || 0,
+              load: set.load,
+              restSec: parseInt(data.rest) || 0,
+              tempo: data.tempo || '2010',
+              repUnit,
+              rpe: set.rpe ? parseInt(set.rpe) : undefined,
+              rir: set.rir ? parseInt(set.rir) : undefined,
+            }];
+          }
+        });
+      } else {
+        // Varied sets, not advanced
+        detail = variedSets.map((set, index) => ({
+          set: index + 1,
+          reps: parseInt(set.reps) || 0,
+          load: set.load,
+          restSec: parseInt(data.rest) || 0,
+          tempo: data.tempo || '2010',
+          repUnit,
+          rpe: set.rpe ? parseInt(set.rpe) : undefined,
+          rir: set.rir ? parseInt(set.rir) : undefined,
+        }));
+      }
+    } else {
+      // Standard sets
+      detail = Array(data.setsCount).fill({
+        reps: parseInt(data.reps) || 0,
+        load: data.load || '0',
+        restSec: parseInt(data.rest) || 0,
+        tempo: data.tempo || '2010',
+        repUnit,
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+        rir: data.rir ? parseInt(data.rir) : undefined,
+      }).map((set, index) => ({
+        ...set,
+        set: index + 1,
+      }));
+    }
     const newExercise: PlannedExercise = {
       exerciseLibraryId: data.selectedExercise.value,
       exerciseSource: 'library',
@@ -196,29 +297,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       setCount: data.setsCount,
       notes: data.notes,
       createdAt: new Date().toISOString(),
-      detail: isVariedSets
-        ? variedSets.map((set, index) => ({
-            set: index + 1,
-            reps: parseInt(set.reps) || 0,
-            load: set.load,
-            restSec: parseInt(set.rest) || 0,
-            tempo: data.tempo || '2010',
-            repUnit,
-            rpe: set.rpe ? parseInt(set.rpe) : undefined,
-            rir: set.rir ? parseInt(set.rir) : undefined,
-          }))
-        : Array(data.setsCount).fill({
-            reps: parseInt(data.reps) || 0,
-            load: data.load || '0',
-            restSec: parseInt(data.rest) || 0,
-            tempo: data.tempo || '2010',
-            repUnit,
-            rpe: data.rpe ? parseInt(data.rpe) : undefined,
-            rir: data.rir ? parseInt(data.rir) : undefined,
-          }).map((set, index) => ({
-            ...set,
-            set: index + 1,
-          })),
+      detail,
     };
     onAdd(newExercise);
     reset();
@@ -364,7 +443,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     type="checkbox"
                     id="variedSets"
                     checked={isVariedSets}
-                    onChange={(e) => setIsVariedSets(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsVariedSets(checked);
+                      if (checked) {
+                        // When enabling, sync variedSets to current setsCount
+                        const setsCount = Number(watch('setsCount')) || 1;
+                        setVariedSets(Array.from({ length: setsCount }, () => ({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] })));
+                      }
+                    }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <label htmlFor="variedSets" className="text-sm font-medium dark:text-white">
@@ -383,21 +470,43 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     min="1"
                     placeholder="Enter number of sets"
                     className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    value={field.value === 0 ? '' : field.value}
                     onChange={e => {
-                      const val = Math.max(1, Number(e.target.value));
-                      field.onChange(val);
-                      if (isVariedSets) {
-                        setVariedSets(prev => {
-                          const newArr = [...prev];
-                          if (val > prev.length) {
-                            for (let i = prev.length; i < val; i++) {
-                              newArr.push({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] });
+                      const val = e.target.value;
+                      // Allow empty string for typing
+                      if (val === '') {
+                        field.onChange('');
+                        if (isVariedSets) setVariedSets([]);
+                      } else {
+                        const numVal = Number(val);
+                        field.onChange(numVal);
+                        if (isVariedSets) {
+                          setVariedSets(prev => {
+                            const newArr = [...prev];
+                            if (numVal > prev.length) {
+                              for (let i = prev.length; i < numVal; i++) {
+                                newArr.push({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] });
+                              }
+                            } else if (numVal < prev.length) {
+                              newArr.length = numVal;
                             }
-                          } else if (val < prev.length) {
-                            newArr.length = val;
-                          }
-                          return newArr;
-                        });
+                            return newArr;
+                          });
+                        }
+                      }
+                    }}
+                    onBlur={e => {
+                      let val = e.target.value;
+                      if (val === '' || Number(val) < 1) {
+                        field.onChange(1);
+                        if (isVariedSets) {
+                          setVariedSets(prev => {
+                            if (prev.length !== 1) {
+                              return [{ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] }];
+                            }
+                            return prev;
+                          });
+                        }
                       }
                     }}
                   />
@@ -625,7 +734,28 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       type="checkbox"
                       id="advancedSets"
                       checked={isAdvancedSets}
-                      onChange={(e) => setIsAdvancedSets(e.target.checked)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setIsAdvancedSets(checked);
+                        if (checked) {
+                          setVariedSets(prev => prev.map(set => {
+                            if (!set.subSets || set.subSets.length === 0) {
+                              return {
+                                ...set,
+                                reps: '',
+                                load: '',
+                                rpe: '',
+                                rir: '',
+                                subSets: [
+                                  { reps: set.reps, load: set.load, rest: '', rpe: set.rpe, rir: set.rir }, // 1.1
+                                  { reps: '', load: '', rest: '', rpe: '', rir: '' } // 1.2
+                                ]
+                              };
+                            }
+                            return set;
+                          }));
+                        }
+                      }}
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <label htmlFor="advancedSets" className="text-sm font-medium dark:text-white">
@@ -643,13 +773,32 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         <button
                           type="button"
                           onClick={() => {
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? {
-                              ...s,
-                              subSets: [
-                                ...s.subSets,
-                                { reps: s.reps, load: s.load, rest: s.rest }
-                              ]
-                            } : s));
+                            setVariedSets(prev => prev.map((s, i) => {
+                              if (i !== idx) return s;
+                              // If no sub-sets, move main set values to first sub-set
+                              if (!s.subSets || s.subSets.length === 0) {
+                                return {
+                                  ...s,
+                                  reps: '',
+                                  load: '',
+                                  rpe: '',
+                                  rir: '',
+                                  subSets: [
+                                    { reps: s.reps, load: s.load, rest: '', }, // Set 1.1
+                                    { reps: '', load: '', rest: '', } // Set 1.2 (empty)
+                                  ]
+                                };
+                              } else {
+                                // Add a new empty sub-set
+                                return {
+                                  ...s,
+                                  subSets: [
+                                    ...s.subSets,
+                                    { reps: '', load: '', rest: '' }
+                                  ]
+                                };
+                              }
+                            }));
                           }}
                           aria-label={`Add subset to set ${idx + 1}`}
                           className="p-1 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full border border-blue-200"
@@ -658,82 +807,71 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         </button>
                       )}
                     </div>
-                    {/* Main set inputs */}
-                    <div className={`grid grid-cols-${isAdvancedSets ? '3' : '2'} gap-4`}>
-                      <div>
-                        <label className="block text-sm dark:text-white">Reps</label>
-                        <input
-                          type="number"
-                          placeholder="Enter reps"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          value={set.reps}
-                          onChange={e => {
-                            const newVal = e.target.value;
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, reps: newVal } : s));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm dark:text-white">Load</label>
-                        <input
-                          type="text"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
-                          value={set.load}
-                          onChange={e => {
-                            const newVal = e.target.value;
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, load: newVal } : s));
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm dark:text-white">Rest</label>
-                        <input
-                          type="number"
-                          placeholder="Enter rest"
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                          value={set.rest}
-                          onChange={e => {
-                            const newVal = e.target.value;
-                            setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rest: newVal } : s));
-                          }}
-                        />
-                      </div>
-                      {showRPE && (
+                    {/* Main set inputs: only show if no sub-sets */}
+                    {!(isAdvancedSets && set.subSets && set.subSets.length > 0) && (
+                      <div className={`grid grid-cols-${isAdvancedSets ? '2' : '2'} gap-4`}>
                         <div>
-                          <label className="block text-sm dark:text-white">RPE</label>
+                          <label className="block text-sm dark:text-white">Reps</label>
                           <input
                             type="number"
-                            min={0}
-                            max={10}
-                            placeholder="RPE (0-10)"
+                            placeholder="Enter reps"
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            value={set.rpe}
+                            value={set.reps}
                             onChange={e => {
                               const newVal = e.target.value;
-                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rpe: newVal } : s));
+                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, reps: newVal } : s));
                             }}
                           />
                         </div>
-                      )}
-                      {showRIR && (
                         <div>
-                          <label className="block text-sm dark:text-white">RIR</label>
+                          <label className="block text-sm dark:text-white">Load</label>
                           <input
-                            type="number"
-                            min={0}
-                            max={10}
-                            placeholder="RIR (0-10)"
+                            type="text"
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            value={set.rir}
+                            placeholder={`Enter weight in ${useAlternateUnit ? alternateUnit : defaultUnit} or band color`}
+                            value={set.load}
                             onChange={e => {
                               const newVal = e.target.value;
-                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rir: newVal } : s));
+                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, load: newVal } : s));
                             }}
                           />
                         </div>
-                      )}
-                    </div>
+                        {showRPE && (
+                          <div>
+                            <label className="block text-sm dark:text-white">RPE</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={10}
+                              placeholder="RPE (0-10)"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                              value={set.rpe}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rpe: newVal } : s));
+                              }}
+                            />
+                          </div>
+                        )}
+                        {showRIR && (
+                          <div>
+                            <label className="block text-sm dark:text-white">RIR</label>
+                            <input
+                              type="number"
+                              min={0}
+                              max={10}
+                              placeholder="RIR (0-10)"
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
+                              value={set.rir}
+                              onChange={e => {
+                                const newVal = e.target.value;
+                                setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, rir: newVal } : s));
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {/* Sub-sets */}
                     {isAdvancedSets && set.subSets.map((subSet, subSetIdx) => (
                       <div key={subSetIdx} className="space-y-4 p-4 border rounded-lg mt-2">

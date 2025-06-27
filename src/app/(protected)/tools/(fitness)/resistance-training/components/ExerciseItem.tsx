@@ -109,9 +109,10 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
           <div className="font-medium dark:text-slate-900">
             {exercise.detail?.map((set, idx) => (
-              <div key={idx}>
+              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
-                  Set {set.set || idx + 1}: {set.reps || 0} reps
+                  {(set as any).subSet ? `Set ${set.set}.${(set as any).subSet}` : `Set ${set.set || idx + 1}`}:
+                  {" "}{set.reps || 0} reps
                 </span>
               </div>
             ))}
@@ -121,9 +122,9 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
           <div className="font-medium dark:text-slate-900">
             {exercise.detail?.map((set, idx) => (
-              <div key={idx}>
+              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
-                  {formatLoad(set.load || '0')}
+                  {set.load || '0'}
                 </span>
               </div>
             ))}
@@ -133,7 +134,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
           <div className="font-medium dark:text-slate-900">
             {exercise.detail?.map((set, idx) => (
-              <div key={idx}>
+              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
                   {set.tempo || '2010'}
                 </span>
@@ -145,7 +146,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
           <div className="font-medium dark:text-slate-900">
             {exercise.detail?.map((set, idx) => (
-              <div key={idx}>
+              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
                   {set.restSec || 0}s
                 </span>
@@ -157,7 +158,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
           <div className="font-medium dark:text-slate-900">
             {exercise.detail?.map((set, idx) => (
-              <div key={idx}>
+              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
                   {calculateTimeUnderTension(set.reps, set.tempo)} sec.
                 </span>
