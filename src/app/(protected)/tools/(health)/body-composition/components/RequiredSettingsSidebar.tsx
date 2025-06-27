@@ -1,6 +1,7 @@
 'use client';
 
-import { UserSettings } from '../../../../user/settings/types/settings';
+// import { UserSettings } from '../../../../user/settings/types/settings';
+import { UserSettings } from '@/app/lib/types/userSettings';
 
 interface RequiredSettingsSidebarProps {
   userSettings: UserSettings;

@@ -8,7 +8,7 @@ import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasureme
 import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
-import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
+// import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
 
 interface UserBioData {
   dateOfBirth: string;
@@ -158,14 +158,18 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const manualBodyFat = watch('manualBodyFat');
 
   // Get the enabled circumference measurements from user settings
-  const enabledCircumferenceMeasurements = userSettings?.health?.circumferenceMeasurements || [];
+  const enabledCircumferenceMeasurements = userSettings?.pillar_settings?.health?.circumferenceMeasurements || [];
+  // const enabledCircumferenceMeasurements = userSettings?.health?.circumferenceMeasurements || [];
 
   // Get units from user settings
-  const weightUnit = formatUnit(userSettings?.general?.weightUnit, 'weight');
-  const circumferenceUnit = formatUnit(userSettings?.health?.circumferenceUnit, 'circumference');
+  const weightUnit = formatUnit(userSettings?.weight_unit, 'weight');
+  const circumferenceUnit = formatUnit(userSettings?.pillar_settings?.health?.circumferenceUnit, 'circumference');
+  // const weightUnit = formatUnit(userSettings?.general?.weightUnit, 'weight');
+  // const circumferenceUnit = formatUnit(userSettings?.health?.circumferenceUnit, 'circumference');
 
   // Get the enabled body fat methods from user settings
-  const enabledBodyFatMethods = userSettings?.health?.bodyFatMethods || [];
+  const enabledBodyFatMethods = userSettings?.pillar_settings?.health?.bodyFatMethods || [];
+  // const enabledBodyFatMethods = userSettings?.health?.bodyFatMethods || [];
   
   // Check if manual entry should be available (if manual or bioelectrical is enabled)
   const showManualEntry = enabledBodyFatMethods.includes('manual') || enabledBodyFatMethods.includes('bioelectrical');
@@ -199,7 +203,8 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         .replace(/^(left|right)/, '')  // Remove left/right only from the start
         .replace(/(relaxed|flexed)$/, ''); // Remove relaxed/flexed only from the end
       
-      if (enabledCircumferenceMeasurements.includes(settingKey as CircumferenceMeasurement)) {
+        if (enabledCircumferenceMeasurements.includes(settingKey)) {
+        // if (enabledCircumferenceMeasurements.includes(settingKey as CircumferenceMeasurement)) {
         measurements[key as keyof CircumferenceMeasurements] = defaultCircumferenceMeasurements[key as keyof CircumferenceMeasurements];
       }
     });

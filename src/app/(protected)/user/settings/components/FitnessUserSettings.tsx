@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormSetValue } from 'react-hook-form';
-import type { UserSettings, FitnessSettings } from '../types/settings';
+import type { UserSettings } from '@/app/lib/types/userSettings';
+// import type { UserSettings, FitnessSettings } from '../types/settings';
 
 interface EquipmentItem {
   id: string;

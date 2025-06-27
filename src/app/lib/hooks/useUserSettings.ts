@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { UserSettings } from '../../(protected)/user/settings/types/settings';
+import type { UserSettings, UpdateUserSettingsInput, UseUserSettingsReturn } from '../types/userSettings';
+
+/* import type { UserSettings } from '../../(protected)/user/settings/types/settings';
 
 export interface UseUserSettingsReturn {
   settings: UserSettings | null;
@@ -8,7 +10,7 @@ export interface UseUserSettingsReturn {
   updateSettings: (newSettings: Partial<UserSettings>) => Promise<void>;
   mutationError: Error | null;
   isMutating: boolean;
-}
+} */
 
 export function useUserSettings(): UseUserSettingsReturn {
   const [settings, setSettings] = useState<UserSettings | null>(null);
@@ -37,7 +39,8 @@ export function useUserSettings(): UseUserSettingsReturn {
     }
   };
 
-  const updateSettings = async (newSettings: Partial<UserSettings>) => {
+  const updateSettings = async (newSettings: UpdateUserSettingsInput) => {
+  // const updateSettings = async (newSettings: Partial<UserSettings>) => {
     setMutationError(null);
     setIsMutating(true);
 
