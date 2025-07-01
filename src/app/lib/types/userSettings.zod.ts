@@ -42,26 +42,35 @@ export const GeneralSettingsSchema = z.object({
   weightUnit: WeightUnitSchema,
   temperatureUnit: TemperatureUnitSchema,
   timeFormat: z.enum(["12h", "24h"]),
-  dateFormat: z.string(), // Could be enum if only a few allowed
+  dateFormat: z.string(),
   language: z.string(),
-  notifications: z.array(NotificationTypeSchema),
+  notifications_email: z.boolean(),
+  notifications_text: z.boolean(),
+  notifications_app: z.boolean(),
 });
 
-// Lifestyle Settings
-export const LifestyleSettingsSchema = z.object({
-  deviceIntegration: z.object({
-    enabled: z.boolean(),
-    devices: z.array(z.string()),
-  }).optional(),
+// Fitness Settings (strongly typed)
+export const ResistanceTrainingSchema = z.object({
+  loadUnit: z.string().optional(),
+  trackRPE: z.boolean().optional(),
+  trackRIR: z.boolean().optional(),
+  availableEquipment: z.array(z.string()).optional(),
+  rpeScale: z.string().optional(),
 });
 
-// Health Settings
-export const HealthSettingsSchema = z.object({
-  circumferenceUnit: CircumferenceUnitSchema,
-  circumferenceMeasurements: z.array(CircumferenceMeasurementSchema),
-  bodyFatMethods: z.array(BodyFatMethodSchema),
-  trackingPreferences: z.array(z.string()).optional(),
+export const CardioMetabolicSchema = z.object({
+  speedUnit: z.string().optional(),
 });
+
+export const FitnessSettingsSchema = z.object({
+  resistanceTraining: ResistanceTrainingSchema.optional(),
+  cardioMetabolic: CardioMetabolicSchema.optional(),
+});
+
+// Health, Lifestyle, Nutrition: pass-through objects (JSON, can be strengthened later)
+export const HealthSettingsSchema = z.record(z.unknown());
+export const LifestyleSettingsSchema = z.record(z.unknown());
+export const NutritionSettingsSchema = z.record(z.unknown());
 
 // Macronutrient Targets
 export const MacronutrientTargetsSchema = z.object({
@@ -107,43 +116,13 @@ export const ScheduleAssignmentsSchema = z.record(
   z.string()
 );
 
-// Nutrition Settings
-export const NutritionSettingsSchema = z.object({
-  foodMeasurement: FoodMeasurementUnitSchema,
-  hydrationUnit: HydrationUnitSchema,
-  calorieTarget: z.number().optional(),
-  macronutrientTargets: MacronutrientTargetsSchema.optional(),
-  macronutrientTargetMode: MacronutrientTargetModeSchema.optional(),
-  defaultMealSchedule: CustomMealScheduleSchema,
-  customMealSchedules: z.array(CustomMealScheduleSchema),
-  scheduleAssignments: ScheduleAssignmentsSchema.optional(),
-  foodAllergies: z.array(z.union([FoodAllergySchema, z.string()])).optional(),
-  dietaryBase: DietaryBaseSchema.optional(),
-  dietaryStyles: z.array(DietaryStyleSchema).optional(),
-});
-
-// Fitness Settings
-export const FitnessSettingsSchema = z.object({
-  resistanceTraining: z.object({
-    weightUnit: WeightUnitSchema.optional(),
-    loadUnit: WeightUnitSchema.optional(),
-    trackRPE: z.boolean().optional(),
-    trackRIR: z.boolean().optional(),
-    availableEquipment: z.array(z.string()).optional(),
-    rpeScale: z.string().optional(),
-  }),
-  cardioMetabolic: z.object({
-    speedUnit: SpeedUnitSchema,
-  }),
-});
-
 // Top-level UserSettings
 export const UserSettingsSchema = z.object({
   general: GeneralSettingsSchema,
-  lifestyle: LifestyleSettingsSchema,
-  health: HealthSettingsSchema,
-  nutrition: NutritionSettingsSchema,
   fitness: FitnessSettingsSchema,
+  health: HealthSettingsSchema,
+  lifestyle: LifestyleSettingsSchema,
+  nutrition: NutritionSettingsSchema,
 });
 
 // Export inferred types
@@ -162,13 +141,15 @@ export type CircumferenceMeasurement = z.infer<typeof CircumferenceMeasurementSc
 export type DietaryBase = z.infer<typeof DietaryBaseSchema>;
 export type DietaryStyle = z.infer<typeof DietaryStyleSchema>;
 export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
-export type LifestyleSettings = z.infer<typeof LifestyleSettingsSchema>;
+export type ResistanceTraining = z.infer<typeof ResistanceTrainingSchema>;
+export type CardioMetabolic = z.infer<typeof CardioMetabolicSchema>;
+export type FitnessSettings = z.infer<typeof FitnessSettingsSchema>;
 export type HealthSettings = z.infer<typeof HealthSettingsSchema>;
+export type LifestyleSettings = z.infer<typeof LifestyleSettingsSchema>;
+export type NutritionSettings = z.infer<typeof NutritionSettingsSchema>;
 export type MacronutrientTargets = z.infer<typeof MacronutrientTargetsSchema>;
 export type MealScheduleEntry = z.infer<typeof MealScheduleEntrySchema>;
 export type NutrientDistribution = z.infer<typeof NutrientDistributionSchema>;
 export type CustomMealSchedule = z.infer<typeof CustomMealScheduleSchema>;
 export type ScheduleAssignments = z.infer<typeof ScheduleAssignmentsSchema>;
-export type NutritionSettings = z.infer<typeof NutritionSettingsSchema>;
-export type FitnessSettings = z.infer<typeof FitnessSettingsSchema>;
 export type UserSettings = z.infer<typeof UserSettingsSchema>;

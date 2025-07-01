@@ -1,31 +1,34 @@
-CREATE TABLE public.user_settings (
-    user_id             INTEGER NOT NULL,
+-- Table: public.user_settings
 
-    -- Example stable "general" settings
-    height_unit         VARCHAR(20) DEFAULT 'imperial',
-    weight_unit         VARCHAR(20) DEFAULT 'lbs',
-    temperature_unit    VARCHAR(5)  DEFAULT 'F',
-    time_format         VARCHAR(5)  DEFAULT '12h',
-    date_format         VARCHAR(10) DEFAULT 'MM/DD/YYYY',
-    language            VARCHAR(10) DEFAULT 'en',
-    notifications_email BOOLEAN     DEFAULT TRUE,
-    notifications_text  BOOLEAN     DEFAULT FALSE,
-    notifications_app   BOOLEAN     DEFAULT FALSE,
+DROP TABLE IF EXISTS public.user_settings;
 
-    -- JSONB for frequently evolving “pillar” settings
-    pillar_settings     JSONB       NOT NULL DEFAULT '{}',
+CREATE TABLE IF NOT EXISTS public.user_settings
+(
+    user_settings_id INTEGER NOT NULL 
+               GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 )
+               PRIMARY KEY,
+    user_id INTEGER NOT NULL
+                REFERENCES public.users(id)
+                    ON UPDATE CASCADE
+                    ON DELETE CASCADE,
+    height_unit character varying(20) COLLATE pg_catalog."default" DEFAULT 'imperial'::character varying,
+    weight_unit character varying(20) COLLATE pg_catalog."default" DEFAULT 'lbs'::character varying,
+    temperature_unit character varying(5) COLLATE pg_catalog."default" DEFAULT 'F'::character varying,
+    time_format character varying(5) COLLATE pg_catalog."default" DEFAULT '12h'::character varying,
+    date_format character varying(10) COLLATE pg_catalog."default" DEFAULT 'MM/DD/YYYY'::character varying,
+    language character varying(10) COLLATE pg_catalog."default" DEFAULT 'en'::character varying,
+    notifications_email boolean DEFAULT true,
+    notifications_text boolean DEFAULT false,
+    notifications_app boolean DEFAULT false,
+    fitness_settings json NOT NULL DEFAULT '{}'::json,
+    health_settings json NOT NULL DEFAULT '{}'::json,
+    lifestyle_settings json NOT NULL DEFAULT '{}'::json,
+    nutrition_settings json NOT NULL DEFAULT '{}'::json,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+)
 
-    -- Timestamps
-    created_at          TIMESTAMP WITH TIME ZONE DEFAULT now(),
-    updated_at          TIMESTAMP WITH TIME ZONE DEFAULT now(),
+TABLESPACE pg_default;
 
-    -- Primary key on user_id
-    CONSTRAINT user_settings_pkey PRIMARY KEY (user_id),
-
-    -- Foreign key referencing existing "users" table
-    CONSTRAINT user_settings_user_id_fkey
-      FOREIGN KEY (user_id)
-      REFERENCES public.users (id)
-      ON DELETE CASCADE
-      ON UPDATE CASCADE
-);
+ALTER TABLE IF EXISTS public.user_settings
+    OWNER to postgres;

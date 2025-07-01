@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormSetValue } from 'react-hook-form';
-import type { UserSettings, FitnessSettings } from '@/app/lib/types/userSettings.zod';
+import type { UserSettings, FitnessSettings, ResistanceTraining, CardioMetabolic } from '@/app/lib/types/userSettings.zod';
 
 interface EquipmentItem {
   id: string;
@@ -36,13 +36,18 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
     return () => { isMounted = false; };
   }, []);
 
-  // Handler for updating resistanceTraining settings
-  const handlePillarSettingChange = (section: string, key: string, value: any) => {
-    setValue(`fitness.${section}.${key}` as any, value, { shouldDirty: true });
+  // Handler for updating resistanceTraining or cardioMetabolic settings
+  const handlePillarSettingChange = <T extends keyof FitnessSettings, K extends keyof NonNullable<FitnessSettings[T]>>(
+    section: T,
+    key: K,
+    value: FitnessSettings[T] extends object ? NonNullable<FitnessSettings[T]>[K] : any
+  ) => {
+    setValue(`fitness.${section}.${String(key)}` as any, value, { shouldDirty: true });
   };
 
-  const resistanceTraining = fitness.resistanceTraining || {};
-  const cardioMetabolic = fitness.cardioMetabolic || {};
+  // Use optional chaining and default values
+  const resistanceTraining: ResistanceTraining = fitness.resistanceTraining ?? {};
+  const cardioMetabolic: CardioMetabolic = fitness.cardioMetabolic ?? {};
 
   return (
     <div>
