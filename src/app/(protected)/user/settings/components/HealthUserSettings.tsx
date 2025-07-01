@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement, CircumferenceUnit } from '@/app/lib/types/userSettings.zod';
 // import type { UserSettings, CircumferenceUnit } from '../types/settings';
 
 interface HealthUserSettingsProps {
@@ -15,16 +15,14 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
     const methods = checked
       ? [...(health.bodyFatMethods || []), value]
       : (health.bodyFatMethods || []).filter((method: string) => method !== value);
-      setValue('pillar_settings.health.bodyFatMethods', methods);
-      // setValue('health.bodyFatMethods', methods);
+    setValue('health.bodyFatMethods', methods as BodyFatMethod[]);
   };
 
   const handleCircumferenceChange = (measurement: string, checked: boolean) => {
     const measurements = checked
       ? [...(health.circumferenceMeasurements || []), measurement]
       : (health.circumferenceMeasurements || []).filter((m: string) => m !== measurement);
-      setValue('pillar_settings.health.circumferenceMeasurements', measurements);
-      // setValue('health.circumferenceMeasurements', measurements);
+    setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[]);
   };
 
   return (
@@ -56,8 +54,7 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
         <label className="block text-sm font-medium text-gray-700">Circumference Measurement Unit</label>
         <select
           value={health.circumferenceUnit}
-          onChange={(e) => setValue('pillar_settings.health.circumferenceUnit', e.target.value)}
-          // onChange={(e) => setValue('health.circumferenceUnit', e.target.value as CircumferenceUnit)}
+          onChange={(e) => setValue('health.circumferenceUnit', e.target.value as CircumferenceUnit)}
           className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600"
         >
           <option value="in">Inches</option>

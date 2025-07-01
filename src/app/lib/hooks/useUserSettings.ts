@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { UserSettings, UpdateUserSettingsInput, UseUserSettingsReturn } from '../types/userSettings';
+import type { UserSettings } from '../types/userSettings.zod';
 
 /* import type { UserSettings } from '../../(protected)/user/settings/types/settings';
 
@@ -11,6 +11,16 @@ export interface UseUserSettingsReturn {
   mutationError: Error | null;
   isMutating: boolean;
 } */
+
+export type UpdateUserSettingsInput = Partial<UserSettings>;
+export interface UseUserSettingsReturn {
+  settings: UserSettings | null;
+  isLoading: boolean;
+  error: Error | null;
+  updateSettings: (newSettings: UpdateUserSettingsInput) => Promise<void>;
+  mutationError: Error | null;
+  isMutating: boolean;
+}
 
 export function useUserSettings(): UseUserSettingsReturn {
   const [settings, setSettings] = useState<UserSettings | null>(null);

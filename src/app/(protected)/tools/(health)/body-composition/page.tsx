@@ -10,7 +10,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 // import type { UserSettings } from '../../../user/settings/types/settings';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings } from '@/app/lib/types/userSettings.zod';
 
 // Default settings object that matches the UserSettings typeAdd commentMore actions
 const defaultSettings: UserSettings = {

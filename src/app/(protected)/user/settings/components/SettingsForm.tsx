@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
-// import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '../types/settings';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '@/app/lib/types/userSettings.zod';
 import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 import { useRouter } from 'next/navigation';
 import GeneralUserSettings from './GeneralUserSettings';
@@ -80,32 +79,26 @@ const SettingsForm = () => {
     return <div>Loading settings...</div>;
   }
 
-  // Watch pillar_settings for dynamic fields
-  const pillarSettings = watch('pillar_settings') || {};
-  const lifestyle = pillarSettings.lifestyle || {};
-  const health = pillarSettings.health || {};
-  const nutrition = pillarSettings.nutrition || {};
-  const fitness = pillarSettings.fitness || {};
-  /* const lifestyle = watch('lifestyle') || {};
+  // Watch settings for dynamic fields
+  const general = watch('general') || {};
+  const lifestyle = watch('lifestyle') || {};
   const health = watch('health') || {};
   const nutrition = watch('nutrition') || {};
-  const fitness = watch('fitness') || {}; */
+  const fitness = watch('fitness') || {};
 
   // Handler functions for health settings
   const handleBodyFatMethodChange = (value: string, checked: boolean) => {
     const methods = checked
       ? [...(health.bodyFatMethods || []), value]
       : (health.bodyFatMethods || []).filter((method: string) => method !== value);
-      setValue('pillar_settings.health.bodyFatMethods', methods);
-      // setValue('health.bodyFatMethods', methods as BodyFatMethod[]);
+    setValue('health.bodyFatMethods', methods as BodyFatMethod[]);
   };
 
   const handleCircumferenceChange = (measurement: string, checked: boolean) => {
     const measurements = checked
       ? [...(health.circumferenceMeasurements || []), measurement]
       : (health.circumferenceMeasurements || []).filter((m: string) => m !== measurement);
-    setValue('pillar_settings.health.circumferenceMeasurements', measurements);
-    // setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[]);
+    setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[]);
   };
 
   return (
