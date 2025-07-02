@@ -8,15 +8,18 @@ import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
+import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 export default function ResistanceTrainingClient({
   exercises,
   initialUserId,
-  userId
+  userId,
+  fitnessSettings,
 }: {
   exercises: ExerciseLibraryItem[];
   initialUserId: number;
   userId: number;
+  fitnessSettings?: FitnessSettings;
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [plannedExercises, setPlannedExercises] = useState<PlannedExercise[]>([]);
@@ -89,6 +92,7 @@ export default function ResistanceTrainingClient({
         exercises={exercises}
         userId={selectedUserId}
         editingExercise={editingExercise}
+        fitnessSettings={fitnessSettings}
       />
       {plannedExercises.length > 0 && (
         <div className="mt-6">

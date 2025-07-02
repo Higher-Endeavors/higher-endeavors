@@ -52,20 +52,12 @@ export async function PUT(request: NextRequest) {
 
     await client.query("BEGIN");
 
-    // Extract general settings and pillar settings
-    const {
-      height_unit,
-      weight_unit,
-      temperature_unit,
-      time_format,
-      date_format,
-      language,
-      notifications_email,
-      notifications_text,
-      notifications_app,
-      pillar_settings,
-      ...otherSettings
-    } = settings;
+    // Extract general and pillar settings from canonical UserSettings structure
+    const general = settings.general || {};
+    const fitness = settings.fitness || {};
+    const health = settings.health || {};
+    const lifestyle = settings.lifestyle || {};
+    const nutrition = settings.nutrition || {};
 
     const updateQuery = `
       INSERT INTO user_settings (
@@ -79,10 +71,13 @@ export async function PUT(request: NextRequest) {
         notifications_email,
         notifications_text,
         notifications_app,
-        pillar_settings,
+        fitness_settings,
+        health_settings,
+        lifestyle_settings,
+        nutrition_settings,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
       ON CONFLICT (user_id) 
       DO UPDATE SET
         height_unit = EXCLUDED.height_unit,
@@ -94,23 +89,29 @@ export async function PUT(request: NextRequest) {
         notifications_email = EXCLUDED.notifications_email,
         notifications_text = EXCLUDED.notifications_text,
         notifications_app = EXCLUDED.notifications_app,
-        pillar_settings = EXCLUDED.pillar_settings,
+        fitness_settings = EXCLUDED.fitness_settings,
+        health_settings = EXCLUDED.health_settings,
+        lifestyle_settings = EXCLUDED.lifestyle_settings,
+        nutrition_settings = EXCLUDED.nutrition_settings,
         updated_at = NOW()
       RETURNING *
     `;
 
     const values = [
       session.user.id,
-      height_unit || "imperial",
-      weight_unit || "lbs",
-      temperature_unit || "F",
-      time_format || "12h",
-      date_format || "MM/DD/YYYY",
-      language || "en",
-      notifications_email ?? true,
-      notifications_text ?? false,
-      notifications_app ?? false,
-      pillar_settings || {},
+      general.heightUnit || "imperial",
+      general.weightUnit || "lbs",
+      general.temperatureUnit || "F",
+      general.timeFormat || "12h",
+      general.dateFormat || "MM/DD/YYYY",
+      general.language || "en",
+      general.notifications_email ?? true,
+      general.notifications_text ?? false,
+      general.notifications_app ?? false,
+      JSON.stringify(fitness),
+      JSON.stringify(health),
+      JSON.stringify(lifestyle),
+      JSON.stringify(nutrition),
     ];
 
     const result = await client.query(updateQuery, values);

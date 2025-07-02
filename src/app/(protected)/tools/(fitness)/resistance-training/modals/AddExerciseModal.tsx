@@ -2,14 +2,14 @@
 'use client';
 
 // Dependencies
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import React from 'react';
 import { BsPlus, BsDash } from 'react-icons/bs';
 import { useForm, Controller } from 'react-hook-form';
 import { addCustomExercise } from '../actions/exerciseActions';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
@@ -22,6 +22,7 @@ interface AddExerciseModalProps {
   exercises: ExerciseLibraryItem[];
   userId: number;
   editingExercise?: PlannedExercise | null;
+  fitnessSettings?: FitnessSettings;
 }
 
 interface ExerciseOption {
@@ -51,12 +52,25 @@ type AddExerciseFormValues = {
   rir?: string;
 };
 
-export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise }: AddExerciseModalProps) {
+export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise, fitnessSettings }: AddExerciseModalProps) {
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [isCreatingExercise, setIsCreatingExercise] = useState(false);
   const [newExerciseName, setNewExerciseName] = useState('');
   const [creationError, setCreationError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
+  const [variedSets, setVariedSets] = useState<{
+    reps: string;
+    load: string;
+    rest: string;
+    rpe: string;
+    rir: string;
+    subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
+  }[]>([
+    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+  ]);
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
@@ -202,15 +216,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
   const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
   const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
-  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
-  const [variedSets, setVariedSets] = useState<{
-    reps: string;
-    load: string;
-    rest: string;
-    rpe: string;
-    rir: string;
-    subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
-  }[]>(getInitialVariedSets());
 
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),
@@ -219,8 +224,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const selectedExercise = watch('selectedExercise');
   const isCarry = selectedExercise?.exercise?.exercise_family === 'Carry';
 
-  const { settings, isLoading: isLoadingSettings } = useUserSettings();
-  const resistanceSettings = settings?.fitness?.resistanceTraining;
+  const resistanceSettings = fitnessSettings?.resistanceTraining;
   const showRPE = resistanceSettings?.trackRPE;
   const showRIR = resistanceSettings?.trackRIR;
   const rpeScale = resistanceSettings?.rpeScale || '0-10';

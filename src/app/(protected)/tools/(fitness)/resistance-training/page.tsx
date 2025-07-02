@@ -11,6 +11,8 @@ import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import ResistanceTrainingClient from "./components/ResistanceTraining.client";
 import { auth } from '@/app/auth';
+import { getUserSettings } from '@/app/lib/actions/userSettings';
+import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 // Components
 import UserSelector from "../../../components/UserSelector";
@@ -26,9 +28,12 @@ export default async function ResistanceTrainingPage() {
   let libraryExercises: ExerciseLibraryItem[] = [];
   let userExercises: ExerciseLibraryItem[] = [];
   let error: Error | null = null;
+  let fitnessSettings: FitnessSettings | undefined = undefined;
   try {
     libraryExercises = await getExerciseLibrary();
     userExercises = await getUserExerciseLibrary(loggedInUserId);
+    const userSettings = await getUserSettings();
+    fitnessSettings = userSettings?.fitness;
   } catch (err: any) {
     error = err;
   }
@@ -62,6 +67,7 @@ export default async function ResistanceTrainingPage() {
               exercises={allExercises}
               initialUserId={loggedInUserId}
               userId={loggedInUserId}
+              fitnessSettings={fitnessSettings}
             />
           </div>
           <div className="lg:w-80 flex-shrink-0">
