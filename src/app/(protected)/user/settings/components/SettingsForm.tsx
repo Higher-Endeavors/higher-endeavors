@@ -61,6 +61,7 @@ const SettingsForm = () => {
     control,
     watch,
     setValue,
+    reset,
     formState: { isDirty, dirtyFields },
   } = useForm<UserSettings>({
     defaultValues: dbSettings || undefined,
@@ -73,6 +74,13 @@ const SettingsForm = () => {
   const health = watch('health') || {};
   const nutrition = watch('nutrition') || {};
   const fitness = watch('fitness') || {};
+
+  // Reset form when dbSettings changes
+  useEffect(() => {
+    if (dbSettings) {
+      reset(dbSettings);
+    }
+  }, [dbSettings, reset]);
 
   // Handler functions for health settings
   const handleBodyFatMethodChange = (value: string, checked: boolean) => {
@@ -137,7 +145,6 @@ const SettingsForm = () => {
 
   return (
     <form
-      key={dbSettings ? JSON.stringify(dbSettings) : 'loading'}
       onSubmit={handleSubmit(onSubmit)}
       className="bg-gray-50 rounded-lg shadow"
     >
