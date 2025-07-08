@@ -59,15 +59,15 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
       <label className="block text-sm font-medium text-gray-700">Notifications</label>
       <div className="mt-2 space-y-2">
         <label className="inline-flex items-center">
-          <input type="checkbox" {...register('general.notifications_email')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <input type="checkbox" {...register('general.notificationsEmail')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
           <span className="ml-2 pr-2 text-sm text-gray-600">Email</span>
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" {...register('general.notifications_text')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <input type="checkbox" {...register('general.notificationsText')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
           <span className="ml-2 pr-2 text-sm text-gray-600">Text</span>
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" {...register('general.notifications_app')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+          <input type="checkbox" {...register('general.notificationsApp')} className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
           <span className="ml-2 pr-2 text-sm text-gray-600">App</span>
         </label>
       </div>

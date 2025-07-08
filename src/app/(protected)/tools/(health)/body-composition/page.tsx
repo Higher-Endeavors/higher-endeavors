@@ -10,25 +10,6 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
 
-// Default settings object that matches the canonical UserSettings type
-const defaultSettings: UserSettings = {
-  general: {
-    heightUnit: 'ft_in',
-    weightUnit: 'lbs',
-    temperatureUnit: 'F',
-    timeFormat: '12h',
-    dateFormat: 'MM/DD/YYYY',
-    language: 'en',
-    notifications_email: false,
-    notifications_text: false,
-    notifications_app: false,
-  },
-  fitness: {},
-  health: {},
-  lifestyle: {},
-  nutrition: {},
-};
-
 function BodyCompositionContent() {
   const { data: session } = useSession();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
@@ -153,20 +134,13 @@ function BodyCompositionContent() {
           )}
         </div>
 
-        {showBioNotification && (
+        {showBioNotification && userSettings && (
           <div className="lg:col-span-4 order-1 lg:order-2">
             <RequiredSettingsSidebar
-              userSettings={userSettings || defaultSettings}
+              userSettings={userSettings}
               showNotification={showSettingsNotification}
               onDismiss={() => setShowSettingsNotification(false)}
             />
-            {/* {userSettings && (
-              <RequiredSettingsSidebar
-                userSettings={userSettings}
-                showNotification={showSettingsNotification}
-                onDismiss={() => setShowSettingsNotification(false)}
-              />
-            )} */}
           </div>
         )}
       </div>

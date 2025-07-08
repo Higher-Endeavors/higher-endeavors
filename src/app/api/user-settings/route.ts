@@ -25,10 +25,10 @@ export async function GET() {
         RETURNING *
       `;
       const newSettings = await SingleQuery(insertQuery, [session.user.id]);
-      return NextResponse.json(newSettings.rows[0]);
+      return NextResponse.json(mapDbSettingsToCanonical(newSettings.rows[0]));
     }
 
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(mapDbSettingsToCanonical(result.rows[0]));
   } catch (error) {
     console.error("Error fetching user settings:", error);
     return NextResponse.json(
@@ -49,15 +49,9 @@ export async function PUT(request: NextRequest) {
     }
 
     const settings = await request.json();
+    const dbSettings = mapCanonicalToDbSettings(settings);
 
     await client.query("BEGIN");
-
-    // Extract general and pillar settings from canonical UserSettings structure
-    const general = settings.general || {};
-    const fitness = settings.fitness || {};
-    const health = settings.health || {};
-    const lifestyle = settings.lifestyle || {};
-    const nutrition = settings.nutrition || {};
 
     const updateQuery = `
       INSERT INTO user_settings (
@@ -99,25 +93,25 @@ export async function PUT(request: NextRequest) {
 
     const values = [
       session.user.id,
-      general.heightUnit || "imperial",
-      general.weightUnit || "lbs",
-      general.temperatureUnit || "F",
-      general.timeFormat || "12h",
-      general.dateFormat || "MM/DD/YYYY",
-      general.language || "en",
-      general.notifications_email ?? true,
-      general.notifications_text ?? false,
-      general.notifications_app ?? false,
-      JSON.stringify(fitness),
-      JSON.stringify(health),
-      JSON.stringify(lifestyle),
-      JSON.stringify(nutrition),
+      dbSettings.height_unit || "imperial",
+      dbSettings.weight_unit || "lbs",
+      dbSettings.temperature_unit || "F",
+      dbSettings.time_format || "12h",
+      dbSettings.date_format || "MM/DD/YYYY",
+      dbSettings.language || "en",
+      dbSettings.notifications_email ?? true,
+      dbSettings.notifications_text ?? false,
+      dbSettings.notifications_app ?? false,
+      JSON.stringify(dbSettings.fitness_settings),
+      JSON.stringify(dbSettings.health_settings),
+      JSON.stringify(dbSettings.lifestyle_settings),
+      JSON.stringify(dbSettings.nutrition_settings),
     ];
 
     const result = await client.query(updateQuery, values);
     await client.query("COMMIT");
 
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(mapDbSettingsToCanonical(result.rows[0]));
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Error updating user settings:", error);
@@ -132,156 +126,41 @@ export async function PUT(request: NextRequest) {
 
 // Map flat DB structure to canonical UserSettings structure
 function mapDbSettingsToCanonical(db: any) {
-  // Canonical defaults for each section
-  console.log("RAW DB ROW:", db);
-  console.log(
-    "pillarSettings.health:",
-    JSON.stringify(db.pillar_settings.health, null, 2)
-  );
-  console.log(
-    "pillarSettings.nutrition:",
-    JSON.stringify(db.pillar_settings.nutrition, null, 2)
-  );
-  console.log(
-    "pillarSettings.fitness:",
-    JSON.stringify(db.pillar_settings.fitness, null, 2)
-  );
-  const defaultHealth = {
-    circumferenceUnit: "in",
-    circumferenceMeasurements: [],
-    bodyFatMethods: [],
-    trackingPreferences: [],
-  };
-  const defaultNutrition = {
-    foodMeasurement: "grams",
-    hydrationUnit: "oz",
-    calorieTarget: 0,
-    macronutrientTargets: { protein: 0, carbs: 0, fat: 0 },
-    macronutrientTargetMode: "grams",
-    defaultMealSchedule: {
-      id: "default",
-      name: "Default",
-      meals: [],
-      nutrientDistribution: { mode: "even" },
-    },
-    customMealSchedules: [],
-    scheduleAssignments: {},
-    foodAllergies: [],
-    dietaryBase: "omnivore",
-    dietaryStyles: [],
-  };
-  const defaultLifestyle = {
-    deviceIntegration: { enabled: false, devices: [] },
-  };
-  const defaultFitness = {
-    resistanceTraining: {
-      loadUnit: "lbs",
-      trackRPE: false,
-      trackRIR: false,
-      availableEquipment: [],
-      rpeScale: "0-10",
-    },
-    cardioMetabolic: { speedUnit: "mph" },
-  };
-
-  // Helper to ensure a value is always an array
-  function ensureArray(val: any): any[] {
-    if (Array.isArray(val)) return val;
-    if (typeof val === "string") {
-      try {
-        return JSON.parse(val);
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  }
-
-  let pillarSettings = db.pillar_settings;
-  while (typeof pillarSettings === "string") {
-    try {
-      pillarSettings = JSON.parse(pillarSettings);
-    } catch {
-      pillarSettings = {};
-      break;
-    }
-  }
-  pillarSettings = pillarSettings || {};
-
-  const health = {
-    ...pillarSettings.health,
-    circumferenceMeasurements: ensureArray(
-      pillarSettings.health?.circumferenceMeasurements
-    ),
-    bodyFatMethods: ensureArray(pillarSettings.health?.bodyFatMethods),
-    trackingPreferences: ensureArray(
-      pillarSettings.health?.trackingPreferences
-    ),
-    circumferenceUnit: pillarSettings.health?.circumferenceUnit || "in",
-  };
-  const nutrition = {
-    ...pillarSettings.nutrition,
-    foodAllergies: ensureArray(pillarSettings.nutrition?.foodAllergies),
-    dietaryStyles: ensureArray(pillarSettings.nutrition?.dietaryStyles),
-    customMealSchedules: ensureArray(
-      pillarSettings.nutrition?.customMealSchedules
-    ),
-    scheduleAssignments: pillarSettings.nutrition?.scheduleAssignments || {},
-    macronutrientTargets: pillarSettings.nutrition?.macronutrientTargets || {
-      protein: 0,
-      carbs: 0,
-      fat: 0,
-    },
-    defaultMealSchedule: pillarSettings.nutrition?.defaultMealSchedule || {
-      id: "default",
-      name: "Default",
-      meals: [],
-      nutrientDistribution: { mode: "even" },
-    },
-  };
-  const lifestyle = {
-    ...pillarSettings.lifestyle,
-    deviceIntegration: pillarSettings.lifestyle?.deviceIntegration || {
-      enabled: false,
-      devices: [],
-    },
-  };
-  const fitness = {
-    ...pillarSettings.fitness,
-    resistanceTraining: pillarSettings.fitness?.resistanceTraining || {
-      loadUnit: "lbs",
-      trackRPE: false,
-      trackRIR: false,
-      availableEquipment: [],
-      rpeScale: "0-10",
-    },
-    cardioMetabolic: pillarSettings.fitness?.cardioMetabolic || {
-      speedUnit: "mph",
-    },
-  };
-
   return {
     general: {
-      heightUnit:
-        db.height_unit === "imperial"
-          ? "ft_in"
-          : db.height_unit === "metric"
-          ? "cm"
-          : db.height_unit,
+      heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
       language: db.language,
-      notifications: [
-        ...(db.notifications_email ? ["email"] : []),
-        ...(db.notifications_text ? ["text"] : []),
-        ...(db.notifications_app ? ["app"] : []),
-      ],
+      notificationsEmail: db.notifications_email,
+      notificationsText: db.notifications_text,
+      notificationsApp: db.notifications_app,
     },
-    health,
-    nutrition,
-    lifestyle,
-    fitness,
+    fitness: db.fitness_settings || {},
+    health: db.health_settings || {},
+    lifestyle: db.lifestyle_settings || {},
+    nutrition: db.nutrition_settings || {},
+  };
+}
+
+// Map canonical UserSettings (camelCase) to DB-ready snake_case
+function mapCanonicalToDbSettings(settings: any) {
+  const general = settings.general || {};
+  return {
+    height_unit: general.heightUnit,
+    weight_unit: general.weightUnit,
+    temperature_unit: general.temperatureUnit,
+    time_format: general.timeFormat,
+    date_format: general.dateFormat,
+    language: general.language,
+    notifications_email: general.notificationsEmail,
+    notifications_text: general.notificationsText,
+    notifications_app: general.notificationsApp,
+    fitness_settings: settings.fitness || {},
+    health_settings: settings.health || {},
+    lifestyle_settings: settings.lifestyle || {},
+    nutrition_settings: settings.nutrition || {},
   };
 }

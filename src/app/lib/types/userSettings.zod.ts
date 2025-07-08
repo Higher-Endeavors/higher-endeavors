@@ -44,9 +44,9 @@ export const GeneralSettingsSchema = z.object({
   timeFormat: z.enum(["12h", "24h"]),
   dateFormat: z.string(),
   language: z.string(),
-  notifications_email: z.boolean(),
-  notifications_text: z.boolean(),
-  notifications_app: z.boolean(),
+  notificationsEmail: z.boolean(),
+  notificationsText: z.boolean(),
+  notificationsApp: z.boolean(),
 });
 
 // Fitness Settings (strongly typed)
