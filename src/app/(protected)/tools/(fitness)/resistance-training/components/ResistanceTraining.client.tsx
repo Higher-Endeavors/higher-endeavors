@@ -7,7 +7,7 @@ import ProgramSettings from './ProgramSettings';
 import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 export default function ResistanceTrainingClient({

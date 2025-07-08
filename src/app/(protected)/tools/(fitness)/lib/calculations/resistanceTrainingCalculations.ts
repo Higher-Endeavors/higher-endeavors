@@ -1,4 +1,4 @@
-import { PlannedExercise } from '../../resistance-training/types/resistance-training.types';
+import { PlannedExercise } from '../../resistance-training/types/resistance-training.zod';
 
 /**
  * Calculates Time Under Tension (TUT) based on reps and tempo
@@ -39,9 +39,9 @@ export function calculateSessionDuration(exercises: PlannedExercise[]): number {
   let totalDuration = 0;
 
   exercises.forEach(exercise => {
-    if (!exercise.detail || exercise.detail.length === 0) return;
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return;
 
-    exercise.detail.forEach((set) => {
+    exercise.plannedSets.forEach((set) => {
       // Add TUT for this set
       const tut = calculateTimeUnderTension(set.reps || 0, set.tempo || '2010');
       // Add rest for this set (always included, even for last set)
@@ -79,8 +79,8 @@ export function calculateSessionTotalLoad(exercises: PlannedExercise[]): number 
   if (!exercises || exercises.length === 0) return 0;
   let totalLoad = 0;
   exercises.forEach(exercise => {
-    if (!exercise.detail || exercise.detail.length === 0) return;
-    exercise.detail.forEach(set => {
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return;
+    exercise.plannedSets.forEach(set => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
       totalLoad += reps * load;
@@ -98,9 +98,9 @@ export function calculateSessionTotalLoad(exercises: PlannedExercise[]): number 
 export function calculateSessionStats(exercises: PlannedExercise[]) {
   const totalDuration = calculateSessionDuration(exercises);
   const totalExercises = exercises.length;
-  const totalSets = exercises.reduce((sum, ex) => sum + (ex.detail?.length || 0), 0);
+  const totalSets = exercises.reduce((sum, ex) => sum + (ex.plannedSets?.length || 0), 0);
   const totalReps = exercises.reduce((sum, ex) => 
-    sum + (ex.detail?.reduce((setSum, set) => setSum + (set.reps || 0), 0) || 0), 0
+    sum + (ex.plannedSets?.reduce((setSum, set) => setSum + (set.reps || 0), 0) || 0), 0
   );
   const totalLoad = calculateSessionTotalLoad(exercises);
 

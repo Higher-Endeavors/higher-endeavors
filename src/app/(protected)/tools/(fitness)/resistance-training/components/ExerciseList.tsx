@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import ExerciseItem from './ExerciseItem';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
 
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;
@@ -44,14 +44,16 @@ export default function ExerciseList({
           </div>
         ) : (
           plannedExercises.map((exercise, index) => {
-            const isFirstInGroup = index === 0 || exercise.pairing[0] !== plannedExercises[index - 1].pairing[0];
+            const isFirstInGroup =
+              index === 0 ||
+              (exercise.pairing?.[0] ?? '') !== (plannedExercises[index - 1].pairing?.[0] ?? '');
             return (
-              <div key={`${exercise.exerciseLibraryId}-${exercise.pairing}`}>
+              <div key={`${exercise.exerciseLibraryId}-${exercise.pairing ?? ''}`}>
                 {isFirstInGroup && (
                   <div className="flex items-center gap-4 mb-2">
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                     <h3 className="text-lg font-semibold text-gray-700">
-                      Group {exercise.pairing[0]}
+                      Group {exercise.pairing?.[0] ?? ''}
                     </h3>
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                   </div>

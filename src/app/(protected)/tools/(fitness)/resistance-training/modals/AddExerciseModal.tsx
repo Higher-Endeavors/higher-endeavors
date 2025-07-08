@@ -13,7 +13,7 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.types';
+import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -81,48 +81,29 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   ];
 
   const sortedExercises = [...exercises].sort((a, b) => {
-    // 1. User exercises first
-    if (a.source === 'user' && b.source !== 'user') return -1;
-    if (a.source !== 'user' && b.source === 'user') return 1;
-
-    // 2. Within user exercises, sort alphabetically
-    if (a.source === 'user' && b.source === 'user') {
-      return (a.name || '').localeCompare(b.name || '');
-    }
-
-    // 3. Within library exercises, sort by difficulty, then name
-    if (a.source === 'library' && b.source === 'library') {
-      const diffA = DIFFICULTY_ORDER.indexOf(a.difficulty || '');
-      const diffB = DIFFICULTY_ORDER.indexOf(b.difficulty || '');
-      if (diffA !== diffB) return diffA - diffB;
-      return (a.name || '').localeCompare(b.name || '');
-    }
-
-    return 0;
+    return (a.name || '').localeCompare(b.name || '');
   });
 
-  // Convert exercises to options for the Select component
   const exerciseOptions: ExerciseOption[] = sortedExercises.map(exercise => ({
-    value: exercise.exercise_library_id,
+    value: exercise.exerciseLibraryId,
     label: exercise.name,
     exercise
   }));
 
-  // Helper function to get initial form values
   const getInitialValues = (): AddExerciseFormValues => {
     if (editingExercise) {
       const selectedExercise = exerciseOptions.find(opt => opt.value === editingExercise.exerciseLibraryId);
-      const firstSet = editingExercise.detail?.[0];
+      const firstSet = editingExercise.plannedSets?.[0];
       return {
         selectedExercise: selectedExercise || null,
         notes: editingExercise.notes || '',
-        setsCount: editingExercise.setCount,
+        setsCount: editingExercise.plannedSets?.length || 3,
         pairing: editingExercise.pairing || '',
         reps: firstSet?.reps?.toString() || '',
         load: firstSet?.load || '',
         rest: firstSet?.restSec?.toString() || '',
         tempo: firstSet?.tempo || '2010',
-        repUnit: firstSet?.repUnit || (selectedExercise?.exercise?.exercise_family === 'Carry' ? 'yards' : 'reps'),
+        repUnit: 'reps',
         rpe: firstSet?.rpe?.toString() || '',
         rir: firstSet?.rir?.toString() || '',
       };
@@ -142,36 +123,31 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     };
   };
 
-  // Initialize varied sets based on editing exercise
   const getInitialVariedSetsState = () => {
-    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
-      // Advanced Sets: if any set has a subSet property
-      if (editingExercise.detail.some((set: any) => set.subSet)) {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
         return true;
       }
-      // Varied Sets: if any set differs from the first set
-      return editingExercise.detail.some((set, index) => 
-        set.reps !== editingExercise.detail?.[0]?.reps || 
-        set.load !== editingExercise.detail?.[0]?.load ||
-        set.restSec !== editingExercise.detail?.[0]?.restSec
+      return editingExercise.plannedSets.some((set, index) => 
+        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
+        set.load !== editingExercise.plannedSets?.[0]?.load ||
+        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
       );
     }
     return false;
   };
 
   const getInitialAdvancedSetsState = () => {
-    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
-      return editingExercise.detail.some((set: any) => set.subSet);
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      return editingExercise.plannedSets.some((set: any) => set.subSet);
     }
     return false;
   };
 
   const getInitialVariedSets = () => {
-    if (editingExercise && editingExercise.detail && editingExercise.detail.length > 0) {
-      // Advanced Sets: group by parent set
-      if (editingExercise.detail.some((set: any) => set.subSet)) {
-        // Group by set number
-        const grouped = editingExercise.detail.reduce((acc: any[], curr: any) => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
+        const grouped = editingExercise.plannedSets.reduce((acc: any[], curr: any) => {
           const setIdx = curr.set - 1;
           if (!acc[setIdx]) {
             acc[setIdx] = {
@@ -194,9 +170,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         }, []);
         return grouped;
       }
-      // Varied Sets: as before
       if (getInitialVariedSetsState()) {
-        return editingExercise.detail.map(set => ({
+        return editingExercise.plannedSets.map(set => ({
           reps: set.reps?.toString() || '',
           load: set.load || '',
           rest: set.restSec?.toString() || '',
@@ -206,7 +181,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         }));
       }
     }
-    // Default
     return [
       { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
       { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
@@ -222,7 +196,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   });
 
   const selectedExercise = watch('selectedExercise');
-  const isCarry = selectedExercise?.exercise?.exercise_family === 'Carry';
 
   const resistanceSettings = fitnessSettings?.resistanceTraining;
   const showRPE = resistanceSettings?.trackRPE;
@@ -231,60 +204,49 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
-    const isCarry = data.selectedExercise.exercise.exercise_family === 'Carry';
-    const repUnit = isCarry ? data.repUnit || 'yards' : 'reps';
-    let detail;
+    let plannedSets;
     if (isVariedSets) {
       if (isAdvancedSets) {
-        // Flatten all sub-sets into detail array
-        detail = variedSets.flatMap((set, setIdx) => {
+        plannedSets = variedSets.flatMap((set, setIdx) => {
           if (set.subSets && set.subSets.length > 0) {
             return set.subSets.map((subSet, subSetIdx) => ({
               set: setIdx + 1,
-              subSet: subSetIdx + 1,
               reps: parseInt(subSet.reps) || 0,
               load: subSet.load,
               restSec: parseInt(subSet.rest) || 0,
               tempo: data.tempo || '2010',
-              repUnit,
-              rpe: ('rpe' in subSet && typeof subSet.rpe === 'string' && subSet.rpe) ? parseInt(subSet.rpe) : undefined,
-              rir: ('rir' in subSet && typeof subSet.rir === 'string' && subSet.rir) ? parseInt(subSet.rir) : undefined,
+              rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
+              rir: subSet.rir ? parseInt(subSet.rir) : undefined,
             }));
           } else {
-            // No sub-sets, use main set values
             return [{
               set: setIdx + 1,
               reps: parseInt(set.reps) || 0,
               load: set.load,
               restSec: parseInt(data.rest) || 0,
               tempo: data.tempo || '2010',
-              repUnit,
               rpe: set.rpe ? parseInt(set.rpe) : undefined,
               rir: set.rir ? parseInt(set.rir) : undefined,
             }];
           }
         });
       } else {
-        // Varied sets, not advanced
-        detail = variedSets.map((set, index) => ({
+        plannedSets = variedSets.map((set, index) => ({
           set: index + 1,
           reps: parseInt(set.reps) || 0,
           load: set.load,
           restSec: parseInt(data.rest) || 0,
           tempo: data.tempo || '2010',
-          repUnit,
           rpe: set.rpe ? parseInt(set.rpe) : undefined,
           rir: set.rir ? parseInt(set.rir) : undefined,
         }));
       }
     } else {
-      // Standard sets
-      detail = Array(data.setsCount).fill({
+      plannedSets = Array(data.setsCount).fill({
         reps: parseInt(data.reps) || 0,
         load: data.load || '0',
         restSec: parseInt(data.rest) || 0,
         tempo: data.tempo || '2010',
-        repUnit,
         rpe: data.rpe ? parseInt(data.rpe) : undefined,
         rir: data.rir ? parseInt(data.rir) : undefined,
       }).map((set, index) => ({
@@ -295,19 +257,17 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     const newExercise: PlannedExercise = {
       exerciseLibraryId: data.selectedExercise.value,
       exerciseSource: 'library',
-      weekNumber: 1, // These would come from the program context
-      dayNumber: 1,  // These would come from the program context
-      pairing: data.pairing || 'A1', // This should be determined based on existing exercises
-      setCount: data.setsCount,
+      weekNumber: 1,
+      dayNumber: 1,
+      pairing: data.pairing || 'A1',
+      plannedSets,
       notes: data.notes,
       createdAt: new Date().toISOString(),
-      detail,
     };
     onAdd(newExercise);
     reset();
   };
 
-  // Custom NoOptionsMessage for Select
   const NoOptionsMessage = (props: any) => {
     const inputValue = props.selectProps.inputValue;
     const handleCreateExercise = () => {
@@ -328,7 +288,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     );
   };
 
-  // Confirmation Dialog
   const ConfirmationDialog = ({
     isOpen,
     exerciseName,
@@ -373,7 +332,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       <Modal.Body>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Exercise Selection Section */}
             <div className="col-span-2">
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="exercise-select" className="block text-sm font-medium dark:text-white">
@@ -402,11 +360,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         value={field.value}
                         onChange={option => {
                           field.onChange(option);
-                          if (option?.exercise?.exercise_family === 'Carry') {
-                            setValue('repUnit', 'yards', { shouldValidate: true });
-                          } else {
-                            setValue('repUnit', 'reps', { shouldValidate: true });
-                          }
                         }}
                         components={{ NoOptionsMessage }}
                       />
@@ -416,7 +369,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             </div>
 
-            {/* Pairing Input */}
             <div>
               <label htmlFor="exercise-pairing" className="block text-sm font-medium dark:text-white">
                 Pairing
@@ -436,7 +388,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               />
             </div>
 
-            {/* Sets Input Section */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label htmlFor="exercise-sets" className="block text-sm font-medium dark:text-white">
@@ -451,7 +402,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       const checked = e.target.checked;
                       setIsVariedSets(checked);
                       if (checked) {
-                        // When enabling, sync variedSets to current setsCount
                         const setsCount = Number(watch('setsCount')) || 1;
                         setVariedSets(Array.from({ length: setsCount }, () => ({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] })));
                       }
@@ -477,7 +427,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     value={field.value === 0 ? '' : field.value}
                     onChange={e => {
                       const val = e.target.value;
-                      // Allow empty string for typing
                       if (val === '') {
                         field.onChange('');
                         if (isVariedSets) setVariedSets([]);
@@ -518,11 +467,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               />
             </div>
 
-            {/* Reps Input */}
             {!isVariedSets ? (
               <div>
                 <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
-                  {isCarry ? 'Distance/Time' : 'Reps'}
+                  Reps
                 </label>
                 <div className="flex items-center space-x-2">
                   <Controller
@@ -533,35 +481,17 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         {...field}
                         id="exercise-reps"
                         type="number"
-                        placeholder={isCarry ? 'Enter value' : 'Enter number of reps'}
+                        placeholder="Enter number of reps"
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                       />
                     )}
                   />
-                  {isCarry && (
-                    <Controller
-                      name="repUnit"
-                      control={control}
-                      defaultValue="yards"
-                      render={({ field }) => (
-                        <select
-                          {...field}
-                          className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                        >
-                          {CARRY_UNITS.map(unit => (
-                            <option key={unit.value} value={unit.value}>{unit.label}</option>
-                          ))}
-                        </select>
-                      )}
-                    />
-                  )}
                 </div>
               </div>
             ) : (
               <div />
             )}
 
-            {/* Load Input with Unit Toggle */}
             {!isVariedSets ? (
               <div>
                 <div className="flex items-center space-x-1">
@@ -616,7 +546,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {/* Tempo Input */}
             <div>
               <label htmlFor="exercise-tempo" className="block text-sm font-medium dark:text-white">
                 Tempo (4 digits, X for explosive)
@@ -636,7 +565,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               />
             </div>
 
-            {/* Rest Input */}
             {(!isVariedSets || !isAdvancedSets) && (
               <div>
                 <label htmlFor="exercise-rest" className="block text-sm font-medium dark:text-white">
@@ -658,7 +586,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {/* RPE Input */}
             {showRPE && (!isVariedSets || !isAdvancedSets) && (
               <div>
                 <label htmlFor="exercise-rpe" className="block text-sm font-medium dark:text-white">
@@ -682,7 +609,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {/* RIR Input */}
             {showRIR && (!isVariedSets || !isAdvancedSets) && (
               <div>
                 <label htmlFor="exercise-rir" className="block text-sm font-medium dark:text-white">
@@ -706,7 +632,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {/* Notes Field */}
             <div className="col-span-2">
               <label htmlFor="exercise-notes" className="block text-sm font-medium dark:text-white">
                 Notes
@@ -727,7 +652,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             </div>
           </div>
 
-          {/* Varied Sets Form */}
           {isVariedSets && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -751,8 +675,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                                 rpe: '',
                                 rir: '',
                                 subSets: [
-                                  { reps: set.reps, load: set.load, rest: '', rpe: set.rpe, rir: set.rir }, // 1.1
-                                  { reps: '', load: '', rest: '', rpe: '', rir: '' } // 1.2
+                                  { reps: set.reps, load: set.load, rest: '', rpe: set.rpe, rir: set.rir },
+                                  { reps: '', load: '', rest: '', rpe: '', rir: '' }
                                 ]
                               };
                             }
@@ -779,7 +703,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                           onClick={() => {
                             setVariedSets(prev => prev.map((s, i) => {
                               if (i !== idx) return s;
-                              // If no sub-sets, move main set values to first sub-set
                               if (!s.subSets || s.subSets.length === 0) {
                                 return {
                                   ...s,
@@ -788,12 +711,11 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                                   rpe: '',
                                   rir: '',
                                   subSets: [
-                                    { reps: s.reps, load: s.load, rest: '', }, // Set 1.1
-                                    { reps: '', load: '', rest: '', } // Set 1.2 (empty)
+                                    { reps: s.reps, load: s.load, rest: '', },
+                                    { reps: '', load: '', rest: '', }
                                   ]
                                 };
                               } else {
-                                // Add a new empty sub-set
                                 return {
                                   ...s,
                                   subSets: [
@@ -811,7 +733,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         </button>
                       )}
                     </div>
-                    {/* Main set inputs: only show if no sub-sets */}
                     {!(isAdvancedSets && set.subSets && set.subSets.length > 0) && (
                       <div className={`grid grid-cols-${isAdvancedSets ? '2' : '2'} gap-4`}>
                         <div>
@@ -876,7 +797,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         )}
                       </div>
                     )}
-                    {/* Sub-sets */}
                     {isAdvancedSets && set.subSets.map((subSet, subSetIdx) => (
                       <div key={subSetIdx} className="space-y-4 p-4 border rounded-lg mt-2">
                         <div className="flex items-center justify-between">
@@ -978,7 +898,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         isOpen={isAdvancedSearchOpen}
         onClose={() => setIsAdvancedSearchOpen(false)}
         onSelect={(exercise) => {
-          const option = exerciseOptions.find(opt => opt.value === exercise.exercise_library_id);
+          const option = exerciseOptions.find(opt => opt.value === exercise.exerciseLibraryId);
           if (option) {
             setValue('selectedExercise', option);
           }
@@ -993,7 +913,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         onConfirm={async (exerciseName) => {
           setCreationError(null);
           setIsCreatingExercise(true);
-          // Use FormData and server action
           const formData = new FormData();
           formData.append('exercise_name', exerciseName);
           formData.append('user_id', String(userId));
@@ -1003,22 +922,12 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             setIsCreatingExercise(false);
             return;
           }
-          // Add to options with custom color and (Custom) label
           const newOption: ExerciseOption = {
             value: result.id,
             label: `${result.exercise_name} (Custom)` ,
             exercise: {
-              exercise_library_id: result.id,
+              exerciseLibraryId: result.id,
               name: result.exercise_name,
-              source: 'user',
-              exercise_family: null,
-              body_region: null,
-              muscle_group: null,
-              movement_pattern: null,
-              movement_plane: null,
-              equipment: null,
-              laterality: null,
-              difficulty: null
             }
           };
           setValue('selectedExercise', newOption);

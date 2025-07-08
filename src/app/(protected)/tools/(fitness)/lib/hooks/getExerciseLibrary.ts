@@ -1,4 +1,4 @@
-import { ExerciseLibraryItem } from '../../resistance-training/types/resistance-training.types';
+import { ExerciseLibraryItem } from '../../resistance-training/types/resistance-training.zod';
 
 export async function getExerciseLibrary(): Promise<ExerciseLibraryItem[]> {
   const res = await fetch('http://localhost:3000/api/exercises', {
@@ -12,7 +12,7 @@ export async function getExerciseLibrary(): Promise<ExerciseLibraryItem[]> {
     throw new Error('Invalid response format: expected an array');
   }
   return data.map((exercise: any) => ({
-    exercise_library_id: exercise.id,
+    exerciseLibraryId: exercise.id,
     name: exercise.name,
     source: 'library',
     exercise_family: exercise.exercise_family || null,

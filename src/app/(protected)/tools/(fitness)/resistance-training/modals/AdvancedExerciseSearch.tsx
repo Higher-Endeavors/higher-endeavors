@@ -3,7 +3,7 @@
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import { useState, useMemo } from 'react';
-import { ExerciseLibraryItem } from '../types/resistance-training.types';
+import { ExerciseLibraryItem } from '../types/resistance-training.zod';
 
 interface AdvancedExerciseSearchProps {
   isOpen: boolean;
@@ -14,13 +14,9 @@ interface AdvancedExerciseSearchProps {
 
 export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exercises }: AdvancedExerciseSearchProps) {
   const [selectedFilters, setSelectedFilters] = useState<{
-    exerciseFamily?: string;
-    bodyRegion?: string;
+    difficulty?: string;
     muscleGroup?: string;
-    movementPattern?: string;
-    movementPlane?: string;
     equipment?: string;
-    laterality?: string;
   }>({});
 
   // Extract unique values for each filter from exercises
@@ -31,13 +27,9 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
         .map(value => ({ value, label: value }));
 
     return {
-      exerciseFamily: getUniqueValues('exercise_family'),
-      bodyRegion: getUniqueValues('body_region'),
-      muscleGroup: getUniqueValues('muscle_group'),
-      movementPattern: getUniqueValues('movement_pattern'),
-      movementPlane: getUniqueValues('movement_plane'),
+      difficulty: getUniqueValues('difficulty'),
+      muscleGroup: getUniqueValues('muscleGroup'),
       equipment: getUniqueValues('equipment'),
-      laterality: getUniqueValues('laterality'),
     };
   }, [exercises]);
 
@@ -46,16 +38,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
     return exercises.filter(exercise => {
       return Object.entries(selectedFilters).every(([key, value]) => {
         if (!value) return true;
-        const mappedKey = {
-          exerciseFamily: 'exercise_family',
-          bodyRegion: 'body_region',
-          muscleGroup: 'muscle_group',
-          movementPattern: 'movement_pattern',
-          movementPlane: 'movement_plane',
-          equipment: 'equipment',
-          laterality: 'laterality',
-        }[key as string];
-        return exercise[mappedKey as keyof ExerciseLibraryItem] === value;
+        return exercise[key as keyof ExerciseLibraryItem] === value;
       });
     });
   }, [exercises, selectedFilters]);
@@ -74,7 +57,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
             </label>
             <Select
               options={exercises.map(ex => ({
-                value: ex.exercise_library_id,
+                value: ex.exerciseLibraryId,
                 label: ex.name,
                 data: ex
               }))}
@@ -91,42 +74,23 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
 
           {/* Filters in a responsive grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Exercise Family */}
-            <div key="exerciseFamily" className="w-full">
+            {/* Difficulty */}
+            <div key="difficulty" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
-                Exercise Family
+                Difficulty
               </label>
               <Select
-                options={filters.exerciseFamily}
+                options={filters.difficulty}
                 isClearable
-                placeholder="Filter by exercise family"
+                placeholder="Filter by difficulty"
                 onChange={(option) =>
                   setSelectedFilters(prev => ({
                     ...prev,
-                    exerciseFamily: typeof option?.value === 'string' ? option.value : undefined
+                    difficulty: typeof option?.value === 'string' ? option.value : undefined
                   }))
                 }
               />
             </div>
-
-            {/* Body Region */}
-            <div key="bodyRegion" className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Body Region
-              </label>
-              <Select
-                options={filters.bodyRegion}
-                isClearable
-                placeholder="Filter by body region"
-                onChange={(option) =>
-                  setSelectedFilters(prev => ({
-                    ...prev,
-                    bodyRegion: typeof option?.value === 'string' ? option.value : undefined
-                  }))
-                }
-              />
-            </div>
-
             {/* Muscle Group */}
             <div key="muscleGroup" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
@@ -144,43 +108,6 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 }
               />
             </div>
-
-            {/* Movement Pattern */}
-            <div key="movementPattern" className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Movement Pattern
-              </label>
-              <Select
-                options={filters.movementPattern}
-                isClearable
-                placeholder="Filter by movement pattern"
-                onChange={(option) =>
-                  setSelectedFilters(prev => ({
-                    ...prev,
-                    movementPattern: typeof option?.value === 'string' ? option.value : undefined
-                  }))
-                }
-              />
-            </div>
-
-            {/* Movement Plane */}
-            <div key="movementPlane" className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Movement Plane
-              </label>
-              <Select
-                options={filters.movementPlane}
-                isClearable
-                placeholder="Filter by movement plane"
-                onChange={(option) =>
-                  setSelectedFilters(prev => ({
-                    ...prev,
-                    movementPlane: typeof option?.value === 'string' ? option.value : undefined
-                  }))
-                }
-              />
-            </div>
-
             {/* Equipment */}
             <div key="equipment" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
@@ -198,24 +125,6 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 }
               />
             </div>
-
-            {/* Laterality */}
-            <div key="laterality" className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Laterality
-              </label>
-              <Select
-                options={filters.laterality}
-                isClearable
-                placeholder="Filter by laterality"
-                onChange={(option) =>
-                  setSelectedFilters(prev => ({
-                    ...prev,
-                    laterality: typeof option?.value === 'string' ? option.value : undefined
-                  }))
-                }
-              />
-            </div>
           </div>
 
           {/* Exercise List */}
@@ -226,7 +135,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
             <div className="max-h-[calc(100vh-24rem)] overflow-y-auto">
               {filteredExercises.map((exercise) => (
                 <div
-                  key={`exercise-${exercise.exercise_library_id}`}
+                  key={`exercise-${exercise.exerciseLibraryId}`}
                   className="p-3 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer rounded transition-colors"
                   onClick={() => {
                     onSelect(exercise);
@@ -237,7 +146,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                     {exercise.name}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {exercise.muscle_group} • {exercise.equipment}
+                    {exercise.muscleGroup} • {exercise.equipment}
                     {exercise.difficulty && (
                       <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
                         {exercise.difficulty}

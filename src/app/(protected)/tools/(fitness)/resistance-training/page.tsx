@@ -6,7 +6,7 @@ import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
 import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
-import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.types';
+import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.zod';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import ResistanceTrainingClient from "./components/ResistanceTraining.client";

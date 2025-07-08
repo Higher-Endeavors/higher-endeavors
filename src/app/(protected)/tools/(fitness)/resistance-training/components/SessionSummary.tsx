@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { PlannedExercise } from '../types/resistance-training.types';
+import { PlannedExercise } from '../types/resistance-training.zod';
 import { calculateSessionStats } from '../../lib/calculations/resistanceTrainingCalculations';
 
 interface SessionSummaryProps {
