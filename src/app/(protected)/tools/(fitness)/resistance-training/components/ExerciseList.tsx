@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import ExerciseItem from './ExerciseItem';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;
   isLoading: boolean;
   userId: number;
-  plannedExercises: PlannedExercise[];
+  plannedExercises: ProgramExercisesPlanned[];
   onEditExercise: (id: number) => void;
   onDeleteExercise: (id: number) => void;
 }

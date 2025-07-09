@@ -2,11 +2,11 @@
 
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-import { PlannedExercise, PlannedSet, ExerciseLibraryItem } from '../types/resistance-training.zod';
+import { ProgramExercisesPlanned, ExerciseSet, ExerciseLibraryItem } from '../types/resistance-training.zod';
 import { calculateTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
 
 interface ExerciseItemProps {
-  exercise: PlannedExercise;
+  exercise: ProgramExercisesPlanned;
   exercises: ExerciseLibraryItem[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;

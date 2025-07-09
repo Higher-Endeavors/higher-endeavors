@@ -7,7 +7,7 @@ import ProgramSettings from './ProgramSettings';
 import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 export default function ResistanceTrainingClient({
@@ -22,11 +22,11 @@ export default function ResistanceTrainingClient({
   fitnessSettings?: FitnessSettings;
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
-  const [plannedExercises, setPlannedExercises] = useState<PlannedExercise[]>([]);
-  const [editingExercise, setEditingExercise] = useState<PlannedExercise | null>(null);
+  const [plannedExercises, setPlannedExercises] = useState<ProgramExercisesPlanned[]>([]);
+  const [editingExercise, setEditingExercise] = useState<ProgramExercisesPlanned | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleAddExercise = (exercise: PlannedExercise) => {
+  const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
     if (editingExercise) {
       setPlannedExercises(prev =>
         prev.map(ex =>

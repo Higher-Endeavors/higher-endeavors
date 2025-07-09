@@ -13,15 +13,15 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 // Components
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
-import { ExerciseLibraryItem, PlannedExercise } from '../types/resistance-training.zod';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 
 interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (exercise: PlannedExercise) => void;
+  onAdd: (exercise: ProgramExercisesPlanned) => void;
   exercises: ExerciseLibraryItem[];
   userId: number;
-  editingExercise?: PlannedExercise | null;
+  editingExercise?: ProgramExercisesPlanned | null;
   fitnessSettings?: FitnessSettings;
 }
 
@@ -254,11 +254,11 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         set: index + 1,
       }));
     }
-    const newExercise: PlannedExercise = {
+    const newExercise: ProgramExercisesPlanned = {
+      programExercisesPlannedId: 0,
+      resistanceProgramId: 0,
       exerciseLibraryId: data.selectedExercise.value,
       exerciseSource: 'library',
-      weekNumber: 1,
-      dayNumber: 1,
       pairing: data.pairing || 'A1',
       plannedSets,
       notes: data.notes,

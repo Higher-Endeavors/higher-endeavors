@@ -51,7 +51,7 @@ ALTER TABLE public.resist_resistance_program_templates
 -- ───────────────────────────────────────────────────────────────────
 -- 1) Planned exercises (hybrid defaults + JSONB detail)
 -- ───────────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS public.resist_program_exercises_planned (
+CREATE TABLE IF NOT EXISTS public.resist_resistance_program_exercises_planned (
   program_exercises_planned_id INTEGER NOT NULL 
                                          GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 )
                                          PRIMARY KEY,
@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.resist_program_exercises_planned (
   user_exercise_library_id    INTEGER      REFERENCES public.user_exercises(user_exercise_id)
                       ON UPDATE CASCADE ON DELETE SET NULL,
   pairing             VARCHAR(3),                -- e.g. 'A1','A2','WU','CD'
+  notes               TEXT,
 
   planned_sets JSON NOT NULL DEFAULT '[]',
   /* sets is an array of ExerciseSets objects
@@ -123,6 +124,9 @@ CREATE TABLE IF NOT EXISTS public.resist_program_exercises_actual (
       ON UPDATE CASCADE
       ON DELETE CASCADE,
   exercises_actual_date             TIMESTAMPTZ NOT NULL DEFAULT now(),
+  pairing             VARCHAR(3),                -- e.g. 'A1','A2','WU','CD'
+  notes                           TEXT,
+
 
   actual_sets JSON NOT NULL DEFAULT '[]',
   /* sets is an array of ExerciseSets objects

@@ -11,11 +11,15 @@ export const ResistanceProgramSchema = z.object({
   progressionRules: z.any().optional(),
   programDuration: z.number().int().min(1).max(52).optional(),
   notes: z.string().optional(),
-  templateId: z.number().int().optional(),
   startDate: z.string().optional(), // ISO date
+  endDate: z.string().optional(), // ISO date
+  rrule: z.string().optional(),
+  duration: z.number().int().min(1).max(52).optional(),
+  recurringEventPid: z.number().int().optional(),
+  originalStart: z.string().optional(), // ISO date
+  deleted: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
-  days: z.array(z.lazy(() => ProgramDaySchema)).optional(),
 }).strict();
 
 export const ResistanceProgramTemplateSchema = z.object({
@@ -29,15 +33,32 @@ export const ResistanceProgramTemplateSchema = z.object({
   updatedAt: z.string().optional(),
 }).strict();
 
-export const ProgramDaySchema = z.object({
-  weekNumber: z.number().int().min(1),
-  dayNumber: z.number().int().min(1),
-  exercises: z.array(z.lazy(() => PlannedExerciseSchema)),
+export const ProgramExercisesPlannedSchema = z.object({
+  programExercisesPlannedId: z.number().int(),
+  resistanceProgramId: z.number().int(),
+  exerciseSource: z.enum(['library', 'user']),
+  exerciseLibraryId: z.number().int().optional(),
+  userExerciseLibraryId: z.number().int().optional(),
+  pairing: z.string().optional(),
+  plannedSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+}).strict();
+
+export const ProgramExercisesActualSchema = z.object({
+  programExercisesActualId: z.number().int(),
+  programExercisesPlannedId: z.number().int(),
+  exercisesActualDate: z.string(),
+  actualSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
+  notes: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
 }).strict();
 
 // --- Exercise Schemas ---
 
-export interface PlannedSet {
+export type ExerciseSet = {
   set?: number;
   reps?: number;
   load?: string;
@@ -45,36 +66,27 @@ export interface PlannedSet {
   rpe?: number;
   rir?: number;
   tempo?: string;
-  subSets?: PlannedSet[];
+  subSets?: ExerciseSet[];
   type?: 'varied' | 'advanced';
-}
+  repUnit?: string;
+};
 
-export const PlannedSetSchema: z.ZodType<PlannedSet> = z.lazy(() => z.object({
-  set: z.number().int().min(1).optional(),
-  reps: z.number().int().min(0).optional(),
-  load: z.string().optional(),
-  restSec: z.number().int().min(0).optional(),
-  rpe: z.number().int().min(0).max(10).optional(),
-  rir: z.number().int().min(0).max(10).optional(),
-  tempo: z.string().optional(),
-  subSets: z.array(PlannedSetSchema).optional(),
-  type: z.enum(['varied', 'advanced']).optional(),
-}).strict());
+export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
+  z.object({
+    set: z.number().int().min(1).optional(),
+    reps: z.number().int().min(0).optional(),
+    load: z.string().optional(),
+    restSec: z.number().int().min(0).optional(),
+    rpe: z.number().int().min(0).max(20).optional(),
+    rir: z.number().int().min(0).max(10).optional(),
+    tempo: z.string().optional(),
+    subSets: z.array(ExerciseSetSchema).optional(),
+    type: z.enum(['varied', 'advanced']).optional(),
+    repUnit: z.string().optional(),
+    notes: z.string().optional(),
+  }).strict()
+);
 
-export const PlannedExerciseSchema = z.object({
-  programExercisesPlannedId: z.number().int().optional(),
-  resistanceProgramId: z.number().int().optional(),
-  weekNumber: z.number().int().min(1),
-  dayNumber: z.number().int().min(1),
-  exerciseSource: z.enum(['library', 'user']),
-  exerciseLibraryId: z.number().int().optional(),
-  userExerciseLibraryId: z.number().int().optional(),
-  pairing: z.string().optional(),
-  plannedSets: z.array(PlannedSetSchema).optional(),
-  notes: z.string().optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-}).strict();
 
 export const UserExerciseSchema = z.object({
   userExerciseLibraryId: z.number().int(),
@@ -93,46 +105,10 @@ export const ExerciseLibraryItemSchema = z.object({
   equipment: z.string().optional(),
 }).strict();
 
-// --- Performance Schemas ---
-
-export interface PerformanceSet {
-  set?: number;
-  reps?: number;
-  load?: string;
-  restSec?: number;
-  rpe?: number;
-  rir?: number;
-  tempo?: string;
-  subSets?: PerformanceSet[];
-  type?: 'varied' | 'advanced';
-}
-
-export const PerformanceSetSchema: z.ZodType<PerformanceSet> = z.lazy(() => z.object({
-  set: z.number().int().min(1).optional(),
-  reps: z.number().int().min(0).optional(),
-  load: z.string().optional(),
-  restSec: z.number().int().min(0).optional(),
-  rpe: z.number().int().min(0).max(10).optional(),
-  rir: z.number().int().min(0).max(10).optional(),
-  tempo: z.string().optional(),
-  subSets: z.array(PerformanceSetSchema).optional(),
-  type: z.enum(['varied', 'advanced']).optional(),
-}).strict());
-
-export const ExercisePerformanceSchema = z.object({
-  programExercisesActualId: z.number().int().optional(),
-  programExercisesPlannedId: z.number().int(),
-  performedAt: z.string(),
-  actualSets: z.array(PerformanceSetSchema).optional(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-}).strict();
-
 // --- Types ---
 export type ResistanceProgram = z.infer<typeof ResistanceProgramSchema>;
 export type ResistanceProgramTemplate = z.infer<typeof ResistanceProgramTemplateSchema>;
-export type ProgramDay = z.infer<typeof ProgramDaySchema>;
-export type PlannedExercise = z.infer<typeof PlannedExerciseSchema>;
+export type ProgramExercisesPlanned = z.infer<typeof ProgramExercisesPlannedSchema>;
+export type ProgramExercisesActual = z.infer<typeof ProgramExercisesActualSchema>;
 export type UserExercise = z.infer<typeof UserExerciseSchema>;
-export type ExerciseLibraryItem = z.infer<typeof ExerciseLibraryItemSchema>;
-export type ExercisePerformance = z.infer<typeof ExercisePerformanceSchema>; 
+export type ExerciseLibraryItem = z.infer<typeof ExerciseLibraryItemSchema>; 

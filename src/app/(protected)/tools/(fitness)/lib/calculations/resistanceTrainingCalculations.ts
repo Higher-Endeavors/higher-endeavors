@@ -1,4 +1,4 @@
-import { PlannedExercise } from '../../resistance-training/types/resistance-training.zod';
+import { ProgramExercisesPlanned } from '../../resistance-training/types/resistance-training.zod';
 
 /**
  * Calculates Time Under Tension (TUT) based on reps and tempo
@@ -33,7 +33,7 @@ export function calculateTimeUnderTension(reps: number = 0, tempo: string = '201
  * @param exercises - Array of planned exercises
  * @returns Total session duration in seconds
  */
-export function calculateSessionDuration(exercises: PlannedExercise[]): number {
+export function calculateSessionDuration(exercises: ProgramExercisesPlanned[]): number {
   if (!exercises || exercises.length === 0) return 0;
 
   let totalDuration = 0;
@@ -75,7 +75,7 @@ export function formatSessionDuration(durationInSeconds: number): string {
  * @param exercises - Array of planned exercises
  * @returns Total session load
  */
-export function calculateSessionTotalLoad(exercises: PlannedExercise[]): number {
+export function calculateSessionTotalLoad(exercises: ProgramExercisesPlanned[]): number {
   if (!exercises || exercises.length === 0) return 0;
   let totalLoad = 0;
   exercises.forEach(exercise => {
@@ -95,7 +95,7 @@ export function calculateSessionTotalLoad(exercises: PlannedExercise[]): number 
  * @param exercises - Array of planned exercises
  * @returns Object containing various session statistics
  */
-export function calculateSessionStats(exercises: PlannedExercise[]) {
+export function calculateSessionStats(exercises: ProgramExercisesPlanned[]) {
   const totalDuration = calculateSessionDuration(exercises);
   const totalExercises = exercises.length;
   const totalSets = exercises.reduce((sum, ex) => sum + (ex.plannedSets?.length || 0), 0);

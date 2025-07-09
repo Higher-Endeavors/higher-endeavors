@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { PlannedExercise } from '../types/resistance-training.zod';
+import { ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import { calculateSessionStats } from '../../lib/calculations/resistanceTrainingCalculations';
 
 interface SessionSummaryProps {
-  exercises: PlannedExercise[];
+  exercises: ProgramExercisesPlanned[];
 }
 
 function formatNumberWithCommas(x: number): string {
