@@ -191,6 +191,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
           <option value="lbs_oz">Pounds & Ounces</option>
           <option value="oz">Ounces</option>
         </select>
+        {/* Hidden input for FormData */}
+        <input type="hidden" name="nutrition.foodMeasurement" value={nutrition.foodMeasurement || ''} />
       </div>
       {/* Hydration Unit */}
       <div className="mt-4">
@@ -204,6 +206,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
           <option value="liters">Liters</option>
           <option value="grams">Grams</option>
         </select>
+        {/* Hidden input for FormData */}
+        <input type="hidden" name="nutrition.hydrationUnit" value={nutrition.hydrationUnit || ''} />
       </div>
       {/* Daily Nutrient Targets Collapsible Block */}
       <div className="mt-8 p-4 border rounded-lg bg-gray-50">
@@ -227,6 +231,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                 onChange={e => setValue('nutrition.calorieTarget', Number(e.target.value), { shouldDirty: true })}
                 className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
               />
+              {/* Hidden input for FormData */}
+              <input type="hidden" name="nutrition.calorieTarget" value={nutrition.calorieTarget || ''} />
             </div>
             {/* Macronutrient Target Mode */}
             <div className="mb-4">
@@ -251,6 +257,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                   Percentage Ratios
                 </label>
               </div>
+              {/* Hidden input for FormData */}
+              <input type="hidden" name="nutrition.macronutrientTargetMode" value={macroMode} />
             </div>
             {/* Macronutrient Inputs */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -266,6 +274,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                     onChange={e => setValue(`nutrition.macronutrientTargets.${macro}` as any, Number(e.target.value), { shouldDirty: true })}
                     className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
                   />
+                  {/* Hidden input for FormData */}
+                  <input type="hidden" name={`nutrition.macronutrientTargets.${macro}`} value={nutrition.macronutrientTargets?.[macro] || ''} />
                 </div>
               ))}
             </div>
@@ -488,6 +498,10 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                   {custom}
                 </label>
               ))}
+              {/* Hidden inputs for FormData */}
+              {foodAllergies.map((allergy) => (
+                <input key={allergy} type="hidden" name="nutrition.foodAllergies" value={allergy} />
+              ))}
             </div>
             {/* Add custom allergy */}
             <div className="flex gap-2 mt-2">
@@ -549,6 +563,8 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                 </option>
               ))}
             </select>
+            {/* Hidden input for FormData */}
+            <input type="hidden" name="nutrition.dietaryBase" value={nutrition.dietaryBase || ''} />
             <label className="block text-sm font-medium text-gray-700 mb-2">Select any diet styles:</label>
             <div className="flex flex-row gap-x-4">
               {['keto', 'paleo', 'mediterranean', 'other'].map((style) => (
@@ -569,6 +585,10 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                   />
                   {style.charAt(0).toUpperCase() + style.slice(1)}
                 </label>
+              ))}
+              {/* Hidden inputs for FormData */}
+              {(nutrition.dietaryStyles || []).map((style: string) => (
+                <input key={style} type="hidden" name="nutrition.dietaryStyles" value={style} />
               ))}
             </div>
           </div>

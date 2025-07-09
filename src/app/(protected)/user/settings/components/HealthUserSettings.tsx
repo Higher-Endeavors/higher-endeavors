@@ -47,6 +47,15 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
               <span className="ml-2 text-sm text-gray-600">{label}</span>
             </label>
           ))}
+          {/* Hidden inputs for FormData */}
+          {(health.bodyFatMethods ?? []).map((method: string) => (
+            <input
+              key={method}
+              type="hidden"
+              name="health.bodyFatMethods"
+              value={method}
+            />
+          ))}
         </div>
       </div>
       {/* Circumference Unit */}
@@ -60,6 +69,12 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
           <option value="in">Inches</option>
           <option value="cm">Centimeters</option>
         </select>
+        {/* Hidden input for FormData */}
+        <input
+          type="hidden"
+          name="health.circumferenceUnit"
+          value={health.circumferenceUnit || ''}
+        />
       </div>
       {/* Circumference Measurements */}
       <div>
@@ -75,6 +90,15 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
               />
               <span className="ml-2 text-sm text-gray-600 capitalize">{measurement}</span>
             </label>
+          ))}
+          {/* Hidden inputs for FormData */}
+          {(health.circumferenceMeasurements ?? []).map((measurement: string) => (
+            <input
+              key={measurement}
+              type="hidden"
+              name="health.circumferenceMeasurements"
+              value={measurement}
+            />
           ))}
         </div>
       </div>

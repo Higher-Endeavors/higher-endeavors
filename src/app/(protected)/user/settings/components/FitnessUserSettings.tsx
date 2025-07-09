@@ -63,6 +63,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
           <option value="lbs">Pounds (lbs)</option>
           <option value="kg">Kilograms (kg)</option>
         </select>
+        {/* Hidden input for FormData */}
+        <input
+          type="hidden"
+          name="fitness.resistanceTraining.loadUnit"
+          value={resistanceTraining.loadUnit || 'lbs'}
+        />
       </div>
       {/* CardioMetabolic */}
       <div className="mt-4">
@@ -77,6 +83,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
           <option value="min_mile">Minutes per Mile</option>
           <option value="min_km">Minutes per Kilometer</option>
         </select>
+        {/* Hidden input for FormData */}
+        <input
+          type="hidden"
+          name="fitness.cardioMetabolic.speedUnit"
+          value={cardioMetabolic.speedUnit || 'mph'}
+        />
       </div>
       {/* Tracking Preferences */}
       <div className="mt-4">
@@ -91,6 +103,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
             />
             <span className="ml-2 text-sm text-gray-600">Track RPE (Rate of Perceived Exertion)</span>
           </label>
+          {/* Hidden input for FormData */}
+          <input
+            type="hidden"
+            name="fitness.resistanceTraining.trackRPE"
+            value={resistanceTraining.trackRPE ? 'true' : 'false'}
+          />
           {resistanceTraining.trackRPE && (
             <div className="ml-6 mt-2">
               <label className="block text-xs font-medium text-gray-700 mb-1">RPE Scale</label>
@@ -102,6 +120,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
                 <option value="0-10">0-10</option>
                 <option value="6-20">6-20</option>
               </select>
+              {/* Hidden input for FormData */}
+              <input
+                type="hidden"
+                name="fitness.resistanceTraining.rpeScale"
+                value={resistanceTraining.rpeScale || '0-10'}
+              />
             </div>
           )}
           <label className="inline-flex items-center">
@@ -113,6 +137,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
             />
             <span className="ml-2 text-sm text-gray-600">Track RIR (Reps in Reserve)</span>
           </label>
+          {/* Hidden input for FormData */}
+          <input
+            type="hidden"
+            name="fitness.resistanceTraining.trackRIR"
+            value={resistanceTraining.trackRIR ? 'true' : 'false'}
+          />
         </div>
       </div>
       {/* Available Equipment - Collapsible Section */}
@@ -173,6 +203,15 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
                     />
                     <span className="ml-2 text-sm text-gray-600">{item.name}</span>
                   </label>
+                ))}
+                {/* Hidden inputs for FormData */}
+                {(resistanceTraining.availableEquipment || []).map((id: string) => (
+                  <input
+                    key={id}
+                    type="hidden"
+                    name="fitness.resistanceTraining.availableEquipment"
+                    value={id}
+                  />
                 ))}
               </div>
             )}

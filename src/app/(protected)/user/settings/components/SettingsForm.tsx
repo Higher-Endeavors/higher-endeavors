@@ -11,15 +11,14 @@ import LifestyleUserSettings from './LifestyleUserSettings';
 import HealthUserSettings from './HealthUserSettings';
 import NutritionUserSettings from './NutritionUserSettings';
 import FitnessUserSettings from './FitnessUserSettings';
+import { updateUserSettings, UpdateUserSettingsState } from '../actions/updateUserSettings';
+import { useActionState } from 'react';
 
 const SettingsForm = () => {
   const router = useRouter();
   const [dbSettings, setDbSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isMutating, setIsMutating] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Fetch user settings on mount
@@ -99,31 +98,7 @@ const SettingsForm = () => {
     setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[]);
   };
 
-  // Save handler
-  const onSubmit = async (data: UserSettings) => {
-    setIsMutating(true);
-    setShowErrorToast(false);
-    setShowSuccessToast(false);
-    try {
-      const res = await fetch('/api/user-settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error('Failed to update settings');
-      const updated = await res.json();
-      setDbSettings(updated);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-      // No need to call reset(updated) due to key remount
-    } catch (error) {
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
-      console.error('Error saving settings:', error);
-    } finally {
-      setIsMutating(false);
-    }
-  };
+  const [formState, formAction] = useActionState<UpdateUserSettingsState, FormData>(updateUserSettings, null);
 
   const tabs = [
     { id: 'general', label: 'General' },
@@ -145,11 +120,11 @@ const SettingsForm = () => {
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      action={formAction}
       className="bg-gray-50 rounded-lg shadow"
     >
       {/* Success Toast */}
-      {showSuccessToast && (
+      {formState?.success && (
         <div className="fixed top-4 right-4 z-50">
           <Toast>
             <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
@@ -160,7 +135,7 @@ const SettingsForm = () => {
         </div>
       )}
       {/* Error Toast */}
-      {showErrorToast && (
+      {formState?.error && (
         <div className="fixed top-4 right-4 z-50">
           <Toast>
             <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
@@ -208,35 +183,34 @@ const SettingsForm = () => {
       </div>
       {/* Settings Content */}
       <div className="p-6">
-        {activeTab === 'general' && (
+        {/* Render all sections, hide inactive ones with CSS */}
+        <div style={{ display: activeTab === 'general' ? 'block' : 'none' }}>
           <GeneralUserSettings register={register} control={control} />
-        )}
-        {activeTab === 'lifestyle' && (
+        </div>
+        <div style={{ display: activeTab === 'lifestyle' ? 'block' : 'none' }}>
           <LifestyleUserSettings register={register} setValue={setValue} watch={watch} />
-        )}
-        {activeTab === 'health' && (
+        </div>
+        <div style={{ display: activeTab === 'health' ? 'block' : 'none' }}>
           <HealthUserSettings setValue={setValue} watch={watch} health={health} />
-        )}
-        {activeTab === 'nutrition' && (
+        </div>
+        <div style={{ display: activeTab === 'nutrition' ? 'block' : 'none' }}>
           <NutritionUserSettings setValue={setValue} nutrition={nutrition} />
-        )}
-        {activeTab === 'fitness' && (
+        </div>
+        <div style={{ display: activeTab === 'fitness' ? 'block' : 'none' }}>
           <FitnessUserSettings setValue={setValue} fitness={fitness} />
-        )}
+        </div>
         {/* Save Button */}
         <div className="mt-6">
           <button
             type="submit"
-            disabled={isMutating || !isDirty}
+            disabled={!isDirty}
             className={`inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white ${
-              isMutating 
-                ? 'bg-purple-400' 
-                : !isDirty 
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-purple-600 hover:bg-purple-700'
+              !isDirty 
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-purple-600 hover:bg-purple-700'
             } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
           >
-            {isMutating ? 'Saving...' : isDirty ? 'Save Settings' : 'No Changes'}
+            {isDirty ? 'Save Settings' : 'No Changes'}
           </button>
         </div>
       </div>
