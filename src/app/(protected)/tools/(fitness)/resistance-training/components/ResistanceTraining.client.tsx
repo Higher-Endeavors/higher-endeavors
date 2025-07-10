@@ -7,8 +7,10 @@ import ProgramSettings from './ProgramSettings';
 import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
+import WeekTabs from './WeekTabs';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
+import type { ExerciseWithSource } from '../modals/AddExerciseModal';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -25,6 +27,10 @@ export default function ResistanceTrainingClient({
   const [plannedExercises, setPlannedExercises] = useState<ProgramExercisesPlanned[]>([]);
   const [editingExercise, setEditingExercise] = useState<ProgramExercisesPlanned | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Week tab state
+  const [activeWeek, setActiveWeek] = useState(1);
+  // TODO: Connect this to ProgramSettings
+  const [programLength, setProgramLength] = useState(4);
 
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
     if (editingExercise) {
@@ -63,7 +69,15 @@ export default function ResistanceTrainingClient({
         />
       </div>
       <ProgramBrowser />
-      <ProgramSettings />
+      <ProgramSettings
+        programLength={programLength}
+        setProgramLength={setProgramLength}
+      />
+      <WeekTabs
+        activeWeek={activeWeek}
+        programLength={programLength}
+        onWeekChange={setActiveWeek}
+      />
       <ExerciseList
         exercises={exercises}
         isLoading={false}
@@ -71,6 +85,7 @@ export default function ResistanceTrainingClient({
         plannedExercises={plannedExercises}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
+        activeWeek={activeWeek} // For future filtering
       />
       <button
         className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
@@ -89,7 +104,7 @@ export default function ResistanceTrainingClient({
           setEditingExercise(null);
         }}
         onAdd={handleAddExercise}
-        exercises={exercises}
+        exercises={exercises.map(e => ({ ...e, source: 'library' }))}
         userId={selectedUserId}
         editingExercise={editingExercise}
         fitnessSettings={fitnessSettings}

@@ -12,6 +12,7 @@ interface ExerciseListProps {
   plannedExercises: ProgramExercisesPlanned[];
   onEditExercise: (id: number) => void;
   onDeleteExercise: (id: number) => void;
+  activeWeek: number; // Added for week filtering
 }
 
 export default function ExerciseList({
@@ -20,7 +21,8 @@ export default function ExerciseList({
   userId,
   plannedExercises,
   onEditExercise,
-  onDeleteExercise
+  onDeleteExercise,
+  activeWeek // Added for week filtering
 }: ExerciseListProps) {
   if (isLoading) {
     return (
