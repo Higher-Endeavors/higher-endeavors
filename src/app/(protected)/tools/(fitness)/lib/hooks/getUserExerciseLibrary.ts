@@ -12,5 +12,6 @@ export async function getUserExerciseLibrary(userId: number): Promise<ExerciseLi
   return data.map((exercise: any) => ({
     exerciseLibraryId: exercise.exercise_library_id,
     name: exercise.name,
+    source: 'user',
   }));
 } 

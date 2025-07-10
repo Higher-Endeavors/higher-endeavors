@@ -15,11 +15,14 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 
+// Local type extension to allow for 'source' property for sorting
+export type ExerciseWithSource = ExerciseLibraryItem & { source: 'user' | 'library' };
+
 interface AddExerciseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (exercise: ProgramExercisesPlanned) => void;
-  exercises: ExerciseLibraryItem[];
+  exercises: ExerciseWithSource[];
   userId: number;
   editingExercise?: ProgramExercisesPlanned | null;
   fitnessSettings?: FitnessSettings;
@@ -81,6 +84,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   ];
 
   const sortedExercises = [...exercises].sort((a, b) => {
+    // 1. User exercises first
+    if (a.source === 'user' && b.source !== 'user') return -1;
+    if (a.source !== 'user' && b.source === 'user') return 1;
+
+    // 2. If both are user or both are library, sort by difficulty (for library)
+    if (a.source === 'library' && b.source === 'library') {
+      const diffA = DIFFICULTY_ORDER.indexOf(a.difficulty || '');
+      const diffB = DIFFICULTY_ORDER.indexOf(b.difficulty || '');
+      if (diffA !== diffB) return diffA - diffB;
+    }
+
+    // 3. Alphabetical by name
     return (a.name || '').localeCompare(b.name || '');
   });
 
