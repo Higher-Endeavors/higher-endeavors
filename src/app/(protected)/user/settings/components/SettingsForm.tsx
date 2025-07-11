@@ -11,6 +11,7 @@ import LifestyleUserSettings from './LifestyleUserSettings';
 import HealthUserSettings from './HealthUserSettings';
 import NutritionUserSettings from './NutritionUserSettings';
 import FitnessUserSettings from './FitnessUserSettings';
+import { useUserSettingsRefresh } from '../../../components/UserSettingsProviderWrapper';
 
 const SettingsForm = () => {
   const router = useRouter();
@@ -21,6 +22,7 @@ const SettingsForm = () => {
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const { refreshUserSettings } = useUserSettingsRefresh();
 
   // Fetch user settings on mount
   useEffect(() => {
@@ -115,6 +117,7 @@ const SettingsForm = () => {
       setDbSettings(updated);
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
+      await refreshUserSettings(); // Refresh context after save
       // No need to call reset(updated) due to key remount
     } catch (error) {
       setShowErrorToast(true);
