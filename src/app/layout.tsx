@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { ThemeModeScript } from "flowbite-react";
 import "./globals.css";
+import { UserSettingsProvider } from './context/UserSettingsContext';
+import { getUserSettings } from './lib/actions/userSettings';
 
 
 export const metadata: Metadata = {
@@ -8,11 +10,12 @@ export const metadata: Metadata = {
   description: "Facilitating your ideal life",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const userSettings = await getUserSettings();
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -20,7 +23,9 @@ export default function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
       <body className="">
-        {children}
+        <UserSettingsProvider userSettings={userSettings}>
+          {children}
+        </UserSettingsProvider>
       </body>
     </html>
   );

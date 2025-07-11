@@ -1,18 +1,29 @@
 'use client';
 
 import { useState } from 'react';
+import { ProgramExercisesPlanned } from '../types/resistance-training.zod';
+import { calculateSessionStats } from '../../lib/calculations/resistanceTrainingCalculations';
 
-export default function SessionSummary() {
+interface SessionSummaryProps {
+  exercises: ProgramExercisesPlanned[];
+}
+
+function formatNumberWithCommas(x: number): string {
+  return x.toLocaleString();
+}
+
+export default function SessionSummary({ exercises }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Placeholder data for UI demonstration
-  const placeholderSummary = {
-    total_load: '10,000 lbs',
-    total_sets: '24',
-    total_reps: '240',
-    total_exercises: '8',
-    estimated_duration: '60 min',
-    average_intensity: '75%'
+  // Calculate real session statistics
+  const sessionStats = calculateSessionStats(exercises);
+  
+  const summaryData = {
+    'Estimated Duration': sessionStats.estimatedDuration,
+    'Total Exercises': sessionStats.totalExercises.toString(),
+    'Total Sets': sessionStats.totalSets.toString(),
+    'Total Reps': sessionStats.totalReps.toString(),
+    'Total Load': sessionStats.totalLoad > 0 ? `${formatNumberWithCommas(sessionStats.totalLoad)} lbs` : '0 lbs',
   };
 
   return (
@@ -32,13 +43,13 @@ export default function SessionSummary() {
       {isOpen && (
         <div className="mt-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(placeholderSummary).map(([key, value]) => (
+            {Object.entries(summaryData).map(([key, value]) => (
               <div key={key} className="bg-white dark:bg-white p-4 rounded-lg shadow">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  {key}
                 </p>
                 <p className="text-lg font-semibold text-gray-900 dark:text-slate-900">
-                  {value}
+                  {value || '0'}
                 </p>
               </div>
             ))}

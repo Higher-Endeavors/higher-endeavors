@@ -4,8 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
-import type { UserSettings } from '@/app/lib/types/userSettings';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '@/app/lib/types/userSettings.zod';
 import { useRouter } from 'next/navigation';
 import GeneralUserSettings from './GeneralUserSettings';
 import LifestyleUserSettings from './LifestyleUserSettings';
@@ -15,54 +14,114 @@ import FitnessUserSettings from './FitnessUserSettings';
 
 const SettingsForm = () => {
   const router = useRouter();
-  const { settings: dbSettings, updateSettings, isMutating } = useUserSettings();
+  const [dbSettings, setDbSettings] = useState<UserSettings | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMutating, setIsMutating] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [showErrorToast, setShowErrorToast] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  // React Hook Form
+  // Fetch user settings on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchSettings() {
+      setIsLoading(true);
+      setFetchError(null);
+      try {
+        const res = await fetch('/api/user-settings');
+        if (!res.ok) throw new Error('Failed to fetch user settings');
+        const data = await res.json();
+        if (isMounted) {
+          // Ensure all fields have default values
+          const safeData = {
+            ...data,
+            health: {
+              ...data.health,
+              bodyFatMethods: Array.isArray(data.health?.bodyFatMethods) ? data.health.bodyFatMethods : [],
+              circumferenceMeasurements: Array.isArray(data.health?.circumferenceMeasurements) ? data.health.circumferenceMeasurements : [],
+            },
+          };
+          setDbSettings(safeData);
+        }
+      } catch (error: any) {
+        if (isMounted) setFetchError(error.message || 'Error fetching settings');
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    }
+    fetchSettings();
+    return () => { isMounted = false; };
+  }, []);
+
+  // Only initialize useForm when dbSettings is loaded
   const {
     register,
     handleSubmit,
     control,
-    reset,
     watch,
     setValue,
+    reset,
     formState: { isDirty, dirtyFields },
   } = useForm<UserSettings>({
     defaultValues: dbSettings || undefined,
     mode: 'onChange',
   });
 
-  // Update form values when dbSettings change
+  // Watch settings for dynamic fields
+  const general = watch('general') || {};
+  const lifestyle = watch('lifestyle') || {};
+  const health = watch('health') || {};
+  const nutrition = watch('nutrition') || {};
+  const fitness = watch('fitness') || {};
+
+  // Reset form when dbSettings changes
   useEffect(() => {
     if (dbSettings) {
       reset(dbSettings);
     }
   }, [dbSettings, reset]);
 
-  // Warn before leaving with unsaved changes
-  useEffect(() => {
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [isDirty]);
+  // Handler functions for health settings
+  const handleBodyFatMethodChange = (value: string, checked: boolean) => {
+    const current = Array.isArray(health.bodyFatMethods) ? health.bodyFatMethods : [];
+    const methods = checked
+      ? [...current, value]
+      : current.filter((method: string) => method !== value);
+    setValue('health.bodyFatMethods', methods as BodyFatMethod[]);
+  };
+
+  const handleCircumferenceChange = (measurement: string, checked: boolean) => {
+    const current = Array.isArray(health.circumferenceMeasurements) ? health.circumferenceMeasurements : [];
+    const measurements = checked
+      ? [...current, measurement]
+      : current.filter((m: string) => m !== measurement);
+    setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[]);
+  };
 
   // Save handler
   const onSubmit = async (data: UserSettings) => {
+    setIsMutating(true);
+    setShowErrorToast(false);
+    setShowSuccessToast(false);
     try {
-      await updateSettings(data);
+      const res = await fetch('/api/user-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error('Failed to update settings');
+      const updated = await res.json();
+      setDbSettings(updated);
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
+      // No need to call reset(updated) due to key remount
     } catch (error) {
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 3000);
       console.error('Error saving settings:', error);
+    } finally {
+      setIsMutating(false);
     }
   };
 
@@ -74,34 +133,21 @@ const SettingsForm = () => {
     { id: 'fitness', label: 'Fitness' },
   ];
 
-  if (!dbSettings) {
+  if (isLoading) {
     return <div>Loading settings...</div>;
   }
-
-  // Watch pillar_settings for dynamic fields
-  const pillarSettings = watch('pillar_settings') || {};
-  const lifestyle = pillarSettings.lifestyle || {};
-  const health = pillarSettings.health || {};
-  const nutrition = pillarSettings.nutrition || {};
-  const fitness = pillarSettings.fitness || {};
-
-  // Handler functions for health settings
-  const handleBodyFatMethodChange = (value: string, checked: boolean) => {
-    const methods = checked
-      ? [...(health.bodyFatMethods || []), value]
-      : (health.bodyFatMethods || []).filter((method: string) => method !== value);
-    setValue('pillar_settings.health.bodyFatMethods', methods);
-  };
-
-  const handleCircumferenceChange = (measurement: string, checked: boolean) => {
-    const measurements = checked
-      ? [...(health.circumferenceMeasurements || []), measurement]
-      : (health.circumferenceMeasurements || []).filter((m: string) => m !== measurement);
-    setValue('pillar_settings.health.circumferenceMeasurements', measurements);
-  };
+  if (fetchError) {
+    return <div className="text-red-600">{fetchError}</div>;
+  }
+  if (!dbSettings) {
+    return <div>No settings found.</div>;
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="bg-gray-50 rounded-lg shadow">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="bg-gray-50 rounded-lg shadow"
+    >
       {/* Success Toast */}
       {showSuccessToast && (
         <div className="fixed top-4 right-4 z-50">
@@ -163,7 +209,7 @@ const SettingsForm = () => {
       {/* Settings Content */}
       <div className="p-6">
         {activeTab === 'general' && (
-          <GeneralUserSettings register={register} />
+          <GeneralUserSettings register={register} control={control} />
         )}
         {activeTab === 'lifestyle' && (
           <LifestyleUserSettings register={register} setValue={setValue} watch={watch} />

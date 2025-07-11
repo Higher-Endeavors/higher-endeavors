@@ -10,7 +10,6 @@ import countries from 'world-countries';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import { bioFormSchema, type BioFormData, type CountryOption } from '../types/bio';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
 
 // Format country data for react-select
 let countryOptions = countries.map((country) => ({
@@ -26,11 +25,11 @@ if (usIndex > -1) {
 }
 
 export default function BioForm() {
-  const { settings } = useUserSettings();
   const [showSuccessToast, setShowSuccessToast] = React.useState(false);
   const [showErrorToast, setShowErrorToast] = React.useState(false);
   const [selectedGender, setSelectedGender] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
+  const [settings, setSettings] = React.useState<any>(null);
 
   const {
     register,
@@ -91,6 +90,22 @@ export default function BioForm() {
 
     loadBioData();
   }, [setValue]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/user-settings');
+        if (!res.ok) throw new Error('Failed to fetch user settings');
+        const data = await res.json();
+        if (isMounted) setSettings(data);
+      } catch (error) {
+        if (isMounted) setSettings(null);
+      }
+    }
+    fetchSettings();
+    return () => { isMounted = false; };
+  }, []);
 
   const onSubmit = async (data: BioFormData) => {
     try {

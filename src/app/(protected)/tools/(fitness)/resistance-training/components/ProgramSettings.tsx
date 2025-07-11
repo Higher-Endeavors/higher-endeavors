@@ -1,13 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
 
-export default function ProgramSettings() {
+interface ProgramSettingsProps {
+  programLength: number;
+  setProgramLength: (length: number) => void;
+}
+
+export default function ProgramSettings({ programLength, setProgramLength }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
+  const [inputValue, setInputValue] = useState(programLength.toString());
+  const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Keep inputValue in sync if programLength changes from outside
+  useEffect(() => {
+    setInputValue(programLength.toString());
+  }, [programLength]);
+
+  useEffect(() => {
+    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    debounceTimeout.current = setTimeout(() => {
+      const parsed = parseInt(inputValue, 10);
+      if (!isNaN(parsed) && parsed > 0) {
+        setProgramLength(parsed);
+      }
+    },200);
+    return () => {
+      if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+    };
+  }, [inputValue, setProgramLength]);
 
   const phaseFocusOptions = [
     { value: 'GPP', label: 'General Physical Preparedness (GPP)' },
@@ -30,7 +55,6 @@ export default function ProgramSettings() {
 
   // Local state for periodization type and program length
   const [periodizationType, setPeriodizationType] = useState('None');
-  const [programLength, setProgramLength] = useState(4);
   // State for progression settings
   const [volumeIncrement, setVolumeIncrement] = useState('');
   const [loadIncrement, setLoadIncrement] = useState('');
@@ -131,8 +155,8 @@ export default function ProgramSettings() {
               min="1"
               max="52"
               step="1"
-              value={programLength}
-              onChange={e => setProgramLength(Math.max(1, Number(e.target.value)))}
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
             />
             <p className="mt-1 text-sm text-gray-500">
               Set the duration of your training program

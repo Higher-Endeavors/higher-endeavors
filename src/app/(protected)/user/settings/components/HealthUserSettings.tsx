@@ -1,6 +1,7 @@
 import React from 'react';
 import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement, CircumferenceUnit } from '@/app/lib/types/userSettings.zod';
+// import type { UserSettings, CircumferenceUnit } from '../types/settings';
 
 interface HealthUserSettingsProps {
   setValue: UseFormSetValue<UserSettings>;
@@ -14,14 +15,14 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
     const methods = checked
       ? [...(health.bodyFatMethods || []), value]
       : (health.bodyFatMethods || []).filter((method: string) => method !== value);
-    setValue('pillar_settings.health.bodyFatMethods', methods);
+    setValue('health.bodyFatMethods', methods as BodyFatMethod[], { shouldDirty: true });
   };
 
   const handleCircumferenceChange = (measurement: string, checked: boolean) => {
     const measurements = checked
       ? [...(health.circumferenceMeasurements || []), measurement]
       : (health.circumferenceMeasurements || []).filter((m: string) => m !== measurement);
-    setValue('pillar_settings.health.circumferenceMeasurements', measurements);
+    setValue('health.circumferenceMeasurements', measurements as CircumferenceMeasurement[], { shouldDirty: true });
   };
 
   return (
@@ -39,7 +40,7 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
             <label key={value} className="inline-flex items-center mr-4">
               <input
                 type="checkbox"
-                checked={health.bodyFatMethods?.includes(value)}
+                checked={(health.bodyFatMethods ?? []).includes(value)}
                 onChange={(e) => handleBodyFatMethodChange(value, e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
@@ -53,7 +54,7 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
         <label className="block text-sm font-medium text-gray-700">Circumference Measurement Unit</label>
         <select
           value={health.circumferenceUnit}
-          onChange={(e) => setValue('pillar_settings.health.circumferenceUnit', e.target.value)}
+          onChange={(e) => setValue('health.circumferenceUnit', e.target.value as CircumferenceUnit)}
           className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600"
         >
           <option value="in">Inches</option>
@@ -68,7 +69,7 @@ const HealthUserSettings: React.FC<HealthUserSettingsProps> = ({ setValue, watch
             <label key={measurement} className="inline-flex items-center">
               <input
                 type="checkbox"
-                checked={health.circumferenceMeasurements?.includes(measurement)}
+                checked={(health.circumferenceMeasurements ?? []).includes(measurement)}
                 onChange={(e) => handleCircumferenceChange(measurement, e.target.checked)}
                 className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
