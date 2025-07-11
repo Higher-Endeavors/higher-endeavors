@@ -47,6 +47,7 @@ export const GeneralSettingsSchema = z.object({
   notificationsEmail: z.boolean(),
   notificationsText: z.boolean(),
   notificationsApp: z.boolean(),
+  sidebarExpandMode: z.enum(["hover", "click"]).default("hover"),
 });
 
 // Fitness Settings (strongly typed)

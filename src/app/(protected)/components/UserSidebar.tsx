@@ -12,6 +12,7 @@ import { useSession } from "next-auth/react";
 import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagram, FaChevronDown, FaChevronLeft, FaCog, FaIdBadge, FaChevronRight, FaHeartbeat, FaAppleAlt, FaTachometerAlt, FaListUl, FaUtensils, FaBars } from 'react-icons/fa';
 import { MdSelfImprovement, MdDashboard } from 'react-icons/md';
 import { GiMuscleUp } from 'react-icons/gi';
+import { useUserSettings } from '@/app/context/UserSettingsContext';
 
 function useClickAway(ref: React.RefObject<HTMLDivElement | null>, onClickAway: () => void) {
   useEffect(() => {
@@ -40,6 +41,8 @@ function useIsDesktop() {
 
 export default function UserSidebar() {
   const { data: session } = useSession();
+  const { userSettings } = useUserSettings();
+  const sidebarExpandMode = userSettings?.general?.sidebarExpandMode || 'hover';
   const firstName = session?.user?.first_name ?? null;
   const lastName = session?.user?.last_name ?? null;
   const fullName = session?.user?.name ?? "User name";
@@ -64,12 +67,16 @@ export default function UserSidebar() {
     if (!isDesktop) setExpanded(false);
   });
 
-  // Desktop: expand on hover, collapse on mouse leave
+  // Desktop: expand on hover, collapse on mouse leave (only if mode is 'hover')
   const handleMouseEnter = () => {
-    if (isDesktop) setExpanded(true);
+    if (isDesktop && sidebarExpandMode === 'hover') setExpanded(true);
   };
   const handleMouseLeave = () => {
-    if (isDesktop) setExpanded(false);
+    if (isDesktop && sidebarExpandMode === 'hover') setExpanded(false);
+  };
+  // Desktop: expand/collapse on click (only if mode is 'click')
+  const handleAvatarClick = () => {
+    if (isDesktop && sidebarExpandMode === 'click') setExpanded((prev) => !prev);
   };
 
   // Mobile: toggle on click
@@ -119,7 +126,20 @@ export default function UserSidebar() {
         </button>
         {/* Profile section */}
         <div className="flex flex-col items-center py-6">
-          <div className="w-12 h-12 rounded-full bg-slate-400 flex items-center justify-center text-white text-xl font-bold mb-2">
+          <div
+            className="w-12 h-12 rounded-full bg-slate-400 flex items-center justify-center text-white text-xl font-bold mb-2 cursor-pointer select-none"
+            onClick={handleAvatarClick}
+            tabIndex={sidebarExpandMode === 'click' && isDesktop ? 0 : -1}
+            aria-label={sidebarExpandMode === 'click' && isDesktop ? (expanded ? 'Collapse sidebar' : 'Expand sidebar') : undefined}
+            role={sidebarExpandMode === 'click' && isDesktop ? 'button' : undefined}
+            onKeyDown={e => {
+              if (sidebarExpandMode === 'click' && isDesktop && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                handleAvatarClick();
+              }
+            }}
+            style={{ outline: sidebarExpandMode === 'click' && isDesktop ? undefined : 'none' }}
+          >
             {initials || <FaUserCircle className="w-8 h-8" />}
           </div>
           {expanded && (

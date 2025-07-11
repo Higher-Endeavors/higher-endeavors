@@ -62,6 +62,7 @@ export async function PUT(request: NextRequest) {
         time_format,
         date_format,
         language,
+        sidebar_expand_mode,
         notifications_email,
         notifications_text,
         notifications_app,
@@ -71,7 +72,7 @@ export async function PUT(request: NextRequest) {
         nutrition_settings,
         updated_at
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, NOW())
       ON CONFLICT (user_id) 
       DO UPDATE SET
         height_unit = EXCLUDED.height_unit,
@@ -80,6 +81,7 @@ export async function PUT(request: NextRequest) {
         time_format = EXCLUDED.time_format,
         date_format = EXCLUDED.date_format,
         language = EXCLUDED.language,
+        sidebar_expand_mode = EXCLUDED.sidebar_expand_mode,
         notifications_email = EXCLUDED.notifications_email,
         notifications_text = EXCLUDED.notifications_text,
         notifications_app = EXCLUDED.notifications_app,
@@ -99,6 +101,7 @@ export async function PUT(request: NextRequest) {
       dbSettings.time_format || "12h",
       dbSettings.date_format || "MM/DD/YYYY",
       dbSettings.language || "en",
+      dbSettings.sidebar_expand_mode || "hover",
       dbSettings.notifications_email ?? true,
       dbSettings.notifications_text ?? false,
       dbSettings.notifications_app ?? false,
@@ -134,6 +137,7 @@ function mapDbSettingsToCanonical(db: any) {
       timeFormat: db.time_format,
       dateFormat: db.date_format,
       language: db.language,
+      sidebarExpandMode: db.sidebar_expand_mode || 'hover',
       notificationsEmail: db.notifications_email,
       notificationsText: db.notifications_text,
       notificationsApp: db.notifications_app,
@@ -155,6 +159,7 @@ function mapCanonicalToDbSettings(settings: any) {
     time_format: general.timeFormat,
     date_format: general.dateFormat,
     language: general.language,
+    sidebar_expand_mode: general.sidebarExpandMode || 'hover',
     notifications_email: general.notificationsEmail,
     notifications_text: general.notificationsText,
     notifications_app: general.notificationsApp,
