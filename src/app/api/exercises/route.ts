@@ -7,7 +7,7 @@ export async function GET(request: Request) {
 
   let query = `
     SELECT 
-      el.id,
+      el.exercise_library_id,
       el.exercise_name as name,
       'library' as source,
       ef.name as exercise_family,

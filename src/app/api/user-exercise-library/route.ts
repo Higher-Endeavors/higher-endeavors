@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
     // Check if exercise name already exists for this user
     const existing_exercise = await SingleQuery(
-      `SELECT id FROM resist_user_exercise_library WHERE user_id = $1 AND exercise_name = $2`,
+      `SELECT user_exercise_library_id FROM resist_user_exercise_library WHERE user_id = $1 AND exercise_name = $2`,
       [effectiveUserId, exercise_name]
     );
     if (existing_exercise.rows.length > 0) {
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const result = await SingleQuery(
       `INSERT INTO resist_user_exercise_library (user_id, exercise_name)
        VALUES ($1, $2)
-       RETURNING id, exercise_name`,
+       RETURNING user_exercise_library_id, exercise_name`,
       [effectiveUserId, exercise_name]
     );
 
@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     // Return as array of objects
     return NextResponse.json(
       result.rows.map((row: any) => ({
-        exercise_library_id: row.id,
+        exercise_library_id: row.user_exercise_library_id,
         name: row.exercise_name,
         source: 'user'
       }))
