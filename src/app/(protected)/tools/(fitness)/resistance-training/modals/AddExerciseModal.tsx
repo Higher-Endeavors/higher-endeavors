@@ -339,6 +339,13 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     );
   };
 
+  function multiWordFilter(option: { label: string }, inputValue: string) {
+    if (!inputValue) return true;
+    const words = inputValue.toLowerCase().split(/\s+/).filter(Boolean);
+    const label = option.label.toLowerCase();
+    return words.every(word => label.includes(word));
+  }
+
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
@@ -377,6 +384,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                           field.onChange(option);
                         }}
                         components={{ NoOptionsMessage }}
+                        filterOption={multiWordFilter}
                       />
                     )}
                   />

@@ -10,9 +10,10 @@ interface ExerciseItemProps {
   exercises: ExerciseLibraryItem[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
+  onChangeVariation?: (id: number) => void;
 }
 
-export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: ExerciseItemProps) {
+export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, onChangeVariation }: ExerciseItemProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: number]: boolean }>({});
 
   const toggleMenu = (id: number) => {
@@ -45,6 +46,34 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
       const load = Number(set.load) || 0;
       return sum + (reps * load);
     }, 0);
+  };
+
+  // Calculate average RPE and RIR for this exercise
+  const getAverageRPE = () => {
+    if (!exercise.plannedSets) return null;
+    const rpes = exercise.plannedSets.map(set => set.rpe).filter(rpe => typeof rpe === 'number');
+    if (rpes.length === 0) return null;
+    return (rpes.reduce((sum, r) => sum + (r || 0), 0) / rpes.length).toFixed(2);
+  };
+  const getAverageRIR = () => {
+    if (!exercise.plannedSets) return null;
+    const rirs = exercise.plannedSets.map(set => set.rir).filter(rir => typeof rir === 'number');
+    if (rirs.length === 0) return null;
+    return (rirs.reduce((sum, r) => sum + (r || 0), 0) / rirs.length).toFixed(2);
+  };
+
+  // Get RIR value from the first set (if available)
+  const getRIR = () => {
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
+    const rir = exercise.plannedSets[0].rir;
+    return typeof rir === 'number' ? rir : null;
+  };
+
+  // Get RPE value from the first set (if available)
+  const getRPE = () => {
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
+    const rpe = exercise.plannedSets[0].rpe;
+    return typeof rpe === 'number' ? rpe : null;
   };
 
   const formatNumberWithCommas = (x: number) => x.toLocaleString();
@@ -97,6 +126,18 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
                   >
                     Delete
                   </button>
+                  {onChangeVariation && (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        onChangeVariation(exercise.exerciseLibraryId || 0);
+                        closeMenu();
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+                      Change Exercise Variation
+                    </button>
+                  )}
                 </div>
               </div>
             </>
@@ -181,6 +222,18 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
                 {formatNumberWithCommas(getTotalLoad())}
               </span>
             </div>
+            {getRIR() !== null && (
+              <div>
+                <span className="mr-1">RIR:</span>
+                <span>{getRIR()}</span>
+              </div>
+            )}
+            {getRPE() !== null && (
+              <div>
+                <span className="mr-1">RPE:</span>
+                <span>{getRPE()}</span>
+              </div>
+            )}
           </div>
           {exercise.notes && (
             <div className="text-sm text-gray-600">

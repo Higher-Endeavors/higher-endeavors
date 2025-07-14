@@ -24,38 +24,105 @@ export default function ResistanceTrainingClient({
   fitnessSettings?: FitnessSettings;
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
-  const [plannedExercises, setPlannedExercises] = useState<ProgramExercisesPlanned[]>([]);
+  const [programLength, setProgramLength] = useState(4);
+  const [weeklyExercises, setWeeklyExercises] = useState<ProgramExercisesPlanned[][]>(
+    Array.from({ length: programLength }, () => [])
+  );
   const [editingExercise, setEditingExercise] = useState<ProgramExercisesPlanned | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   // Week tab state
   const [activeWeek, setActiveWeek] = useState(1);
   // TODO: Connect this to ProgramSettings
-  const [programLength, setProgramLength] = useState(4);
+  const [variationEditId, setVariationEditId] = useState<number | null>(null);
+ 
 
+  // Helper to update a specific week
+  const updateWeek = (weekIdx: number, updater: (arr: ProgramExercisesPlanned[]) => ProgramExercisesPlanned[]) => {
+    setWeeklyExercises(prev => prev.map((arr, idx) => idx === weekIdx ? updater(arr) : arr));
+  };
+
+  // Add Exercise
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
-    if (editingExercise) {
-      setPlannedExercises(prev =>
-        prev.map(ex =>
-          ex.exerciseLibraryId === editingExercise.exerciseLibraryId ? exercise : ex
-        )
-      );
+    if (activeWeek === 1) {
+      // Add to all weeks
+      setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
     } else {
-      setPlannedExercises(prev => [...prev, exercise]);
+      // Add only to current week
+      updateWeek(activeWeek - 1, arr => [...arr, exercise]);
     }
     setIsModalOpen(false);
     setEditingExercise(null);
   };
 
+  // Edit Exercise
   const handleEditExercise = (id: number) => {
-    const exerciseToEdit = plannedExercises.find(ex => ex.exerciseLibraryId === id);
+    const exerciseToEdit = weeklyExercises[activeWeek - 1].find(ex => ex.exerciseLibraryId === id);
     if (exerciseToEdit) {
       setEditingExercise(exerciseToEdit);
       setIsModalOpen(true);
     }
   };
 
+  const handleUpdateExercise = (updatedExercise: ProgramExercisesPlanned) => {
+    if (activeWeek === 1) {
+      // Edit in all weeks
+      setWeeklyExercises(prev => prev.map(arr =>
+        arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex)
+      ));
+    } else {
+      // Edit only in current week
+      updateWeek(activeWeek - 1, arr =>
+        arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex)
+      );
+    }
+    setIsModalOpen(false);
+    setEditingExercise(null);
+  };
+
+  // Delete Exercise
   const handleDeleteExercise = (id: number) => {
-    setPlannedExercises(prev => prev.filter(ex => ex.exerciseLibraryId !== id));
+    if (activeWeek === 1) {
+      // Delete from all weeks
+      setWeeklyExercises(prev => prev.map(arr => arr.filter(ex => ex.exerciseLibraryId !== id)));
+    } else {
+      // Delete only from current week
+      updateWeek(activeWeek - 1, arr => arr.filter(ex => ex.exerciseLibraryId !== id));
+    }
+  };
+
+  // Handler for changing exercise variation
+  const handleChangeVariation = (id: number) => {
+    setVariationEditId(id);
+    setEditingExercise(weeklyExercises[activeWeek - 1].find(ex => ex.exerciseLibraryId === id) || null);
+    setIsModalOpen(true);
+  };
+
+  // In AddExerciseModal onAdd, handle variation change
+  const handleAddOrUpdateExercise = (exercise: ProgramExercisesPlanned) => {
+    if (variationEditId !== null && editingExercise) {
+      // If exerciseLibraryId changed, replace old with new
+      if (exercise.exerciseLibraryId !== editingExercise.exerciseLibraryId) {
+        updateWeek(activeWeek - 1, arr => [
+          ...arr.filter(ex => ex.exerciseLibraryId !== editingExercise.exerciseLibraryId),
+          exercise
+        ]);
+      } else {
+        // Just update variables as normal
+        updateWeek(activeWeek - 1, arr =>
+          arr.map(ex => ex.exerciseLibraryId === exercise.exerciseLibraryId ? exercise : ex)
+        );
+      }
+      setVariationEditId(null);
+      setEditingExercise(null);
+      setIsModalOpen(false);
+      return;
+    }
+    // Normal add/edit logic
+    if (editingExercise) {
+      handleUpdateExercise(exercise);
+    } else {
+      handleAddExercise(exercise);
+    }
   };
 
   return (
@@ -82,10 +149,11 @@ export default function ResistanceTrainingClient({
         exercises={exercises}
         isLoading={false}
         userId={selectedUserId}
-        plannedExercises={plannedExercises}
+        plannedExercises={weeklyExercises[activeWeek - 1]}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
-        activeWeek={activeWeek} // For future filtering
+        activeWeek={activeWeek}
+        onChangeVariation={handleChangeVariation}
       />
       <button
         className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
@@ -102,16 +170,17 @@ export default function ResistanceTrainingClient({
         onClose={() => {
           setIsModalOpen(false);
           setEditingExercise(null);
+          setVariationEditId(null);
         }}
-        onAdd={handleAddExercise}
+        onAdd={handleAddOrUpdateExercise}
         exercises={exercises.map(e => ({ ...e, source: 'library' }))}
         userId={selectedUserId}
         editingExercise={editingExercise}
         fitnessSettings={fitnessSettings}
       />
-      {plannedExercises.length > 0 && (
+      {weeklyExercises[activeWeek - 1].length > 0 && (
         <div className="mt-6">
-          <SessionSummary exercises={plannedExercises} />
+          <SessionSummary exercises={weeklyExercises[activeWeek - 1]} />
         </div>
       )}
     </>
