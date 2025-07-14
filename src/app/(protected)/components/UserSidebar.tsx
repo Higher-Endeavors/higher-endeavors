@@ -53,7 +53,12 @@ function useIsDesktop() {
   return isDesktop;
 }
 
-export default function UserSidebar() {
+type UserSidebarProps = {
+  expanded: boolean;
+  setExpanded: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps) {
   const { data: session } = useSession();
   const { userSettings } = useUserSettings();
   const sidebarExpandMode = userSettings?.general?.sidebarExpandMode || 'hover';
@@ -67,7 +72,6 @@ export default function UserSidebar() {
   } else if (fullName) {
     initials = fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   }
-  const [expanded, setExpanded] = useState(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [lifestyleOpen, setLifestyleOpen] = useState(false);
   const [healthOpen, setHealthOpen] = useState(false);
@@ -120,11 +124,11 @@ export default function UserSidebar() {
       <div
         ref={sidebarRef}
         className={`
-          fixed z-30 top-0 left-0 h-screen bg-white dark:bg-[#232221] shadow-lg flex flex-col border-r border-slate-200 dark:border-slate-800
+          fixed z-30 top-0 left-0 h-screen overflow-y-auto
+          bg-white dark:bg-[#232221] shadow-lg flex flex-col border-r border-slate-200 dark:border-slate-800
           transition-transform duration-200
           ${expanded ? 'w-60' : 'w-60 md:w-16'}
           ${expanded ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-          md:static
         `}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
