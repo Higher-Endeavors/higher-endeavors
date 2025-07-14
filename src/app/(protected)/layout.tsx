@@ -14,7 +14,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       <UserSettingsProviderWrapper>
         <div className="flex min-h-screen">
           <UserSidebar expanded={sidebarExpanded} setExpanded={setSidebarExpanded} />
-          <main className={`flex-1 bg-background transition-all duration-200 ${sidebarExpanded ? 'ml-60' : 'ml-16'}`}>
+          <main className={`flex-1 bg-background transition-all duration-200 ${sidebarExpanded ? 'md:ml-60' : 'md:ml-16'}`}>
             {children}
           </main>
         </div>
