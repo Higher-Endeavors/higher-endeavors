@@ -29,14 +29,12 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
+  // Remove useEffect for syncing inputValue with programLength
+  // Manage inputValue locally
   const [inputValue, setInputValue] = useState(programLength.toString());
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Keep inputValue in sync if programLength changes from outside
-  useEffect(() => {
-    setInputValue(programLength.toString());
-  }, [programLength]);
-
+  // Only propagate up when user changes input
   useEffect(() => {
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
@@ -44,7 +42,7 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
       if (!isNaN(parsed) && parsed > 0) {
         setProgramLength(parsed);
       }
-    },200);
+    }, 200);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
@@ -127,7 +125,7 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
   }
 
   // Update weeklyVolumes array if programLength changes (for Undulating)
-  React.useEffect(() => {
+  useEffect(() => {
     setWeeklyVolumes(prev => {
       if (periodizationType === 'Undulating') {
         return getUndulatingPattern(programLength);
@@ -143,7 +141,7 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
   }, [programLength, periodizationType]);
 
   // When periodizationType changes to Undulating, set default pattern
-  React.useEffect(() => {
+  useEffect(() => {
     if (periodizationType === 'Undulating') {
       setWeeklyVolumes(getUndulatingPattern(programLength));
     }

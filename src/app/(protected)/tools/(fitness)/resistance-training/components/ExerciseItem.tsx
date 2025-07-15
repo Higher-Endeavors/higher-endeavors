@@ -112,18 +112,6 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, on
                   >
                     Delete
                   </button>
-                  {onChangeVariation && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onChangeVariation(exercise.exerciseLibraryId || 0);
-                        closeMenu();
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700"
-                    >
-                      Change Exercise Variation
-                    </button>
-                  )}
                 </div>
               </div>
             </>
