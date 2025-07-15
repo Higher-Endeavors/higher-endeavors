@@ -59,7 +59,7 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
       <h3 className="text-lg font-semibold text-gray-800 mb-2">Website Functionality</h3>
       {/* Sidebar Expansion Mode */}
       <div className="mb-4">
-        <label className="block text-sm font-medium text-gray-700">Sidebar Expansion</label>
+        <label className="block text-sm font-medium text-gray-700">Sidebar Expansion (Desktop Only)</label>
         <select {...register('general.sidebarExpandMode')} className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600">
           <option value="hover">Expand on Hover</option>
           <option value="click">Expand on Click</option>

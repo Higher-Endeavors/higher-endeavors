@@ -48,20 +48,6 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, on
     }, 0);
   };
 
-  // Calculate average RPE and RIR for this exercise
-  const getAverageRPE = () => {
-    if (!exercise.plannedSets) return null;
-    const rpes = exercise.plannedSets.map(set => set.rpe).filter(rpe => typeof rpe === 'number');
-    if (rpes.length === 0) return null;
-    return (rpes.reduce((sum, r) => sum + (r || 0), 0) / rpes.length).toFixed(2);
-  };
-  const getAverageRIR = () => {
-    if (!exercise.plannedSets) return null;
-    const rirs = exercise.plannedSets.map(set => set.rir).filter(rir => typeof rir === 'number');
-    if (rirs.length === 0) return null;
-    return (rirs.reduce((sum, r) => sum + (r || 0), 0) / rirs.length).toFixed(2);
-  };
-
   // Get RIR value from the first set (if available)
   const getRIR = () => {
     if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;

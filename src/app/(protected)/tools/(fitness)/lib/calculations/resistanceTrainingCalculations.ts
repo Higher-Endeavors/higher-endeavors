@@ -113,3 +113,101 @@ export function calculateSessionStats(exercises: ProgramExercisesPlanned[]) {
     durationInSeconds: totalDuration
   };
 } 
+
+/**
+ * Generates progressed exercises for each week based on progression rules and base week exercises.
+ * Supports Linear and Undulating periodization.
+ *
+ * @param baseWeekExercises - Array of ProgramExercisesPlanned for week 1 (template)
+ * @param programLength - Number of weeks in the program
+ * @param progressionRules - Object containing periodization type and settings
+ * @returns Mapping of week number to progressed ProgramExercisesPlanned[]
+ */
+export function generateProgressedWeeks(
+  baseWeekExercises: ProgramExercisesPlanned[],
+  programLength: number,
+  progressionRules: {
+    type: string;
+    settings?: {
+      volume_increment_percentage?: number;
+      load_increment_percentage?: number;
+      weekly_volume_percentages?: number[];
+    };
+  }
+): { [weekNumber: number]: ProgramExercisesPlanned[] } {
+  const {
+    type: periodizationType,
+    settings = {}
+  } = progressionRules || {};
+  const {
+    volume_increment_percentage = 0,
+    load_increment_percentage = 0,
+    weekly_volume_percentages = []
+  } = settings;
+
+  // Helper to deep clone an object
+  function deepClone<T>(obj: T): T {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
+  // Helper to check if a string is a numeric value
+  function isNumeric(val: string | undefined): boolean {
+    return val !== undefined && !isNaN(Number(val));
+  }
+
+  // Progress a single set (and its subSets if present)
+  function progressSet(
+    set: any,
+    week: number,
+    baseSets: any[]
+  ): any {
+    let newSet = { ...set };
+    if (periodizationType === 'Linear') {
+      // Progress load if numeric
+      if (isNumeric(set.load)) {
+        const baseLoad = Number(set.load);
+        newSet.load = (Math.round(baseLoad * (1 + (load_increment_percentage * (week - 1) / 100)) * 100) / 100).toString();
+      }
+      // Volume progression: distribute total reps across sets
+      if (typeof set.reps === 'number' && Array.isArray(baseSets)) {
+        // Calculate base total reps and number of sets
+        const numSets = baseSets.length;
+        const baseTotalReps = baseSets.reduce((sum, s) => sum + (typeof s.reps === 'number' ? s.reps : 0), 0);
+        // Cumulative progression
+        const progressedTotalReps = Math.round(baseTotalReps * Math.pow(1 + volume_increment_percentage / 100, week - 1));
+        // Distribute reps as evenly as possible
+        const baseRepsPerSet = Math.floor(progressedTotalReps / numSets);
+        const remainder = progressedTotalReps % numSets;
+        // Find this set's index in baseSets
+        const setIdx = baseSets.findIndex(s => s === set);
+        // First 'remainder' sets get +1 rep
+        newSet.reps = baseRepsPerSet + (setIdx < remainder ? 1 : 0);
+      }
+    } else if (periodizationType === 'Undulating') {
+      // Progress reps only, based on weekly percentage
+      const weekPct = weekly_volume_percentages[week - 1] ?? 100;
+      const volumePct = weekPct / 100;
+      if (typeof set.reps === 'number') {
+        newSet.reps = Math.max(1, Math.round(set.reps * volumePct));
+      }
+    }
+    // Progress subSets recursively
+    if (set.subSets && Array.isArray(set.subSets)) {
+      newSet.subSets = set.subSets.map((sub: any) => progressSet(sub, week, set.subSets));
+    }
+    return newSet;
+  }
+
+  const result: { [weekNumber: number]: ProgramExercisesPlanned[] } = {};
+  for (let week = 1; week <= programLength; week++) {
+    result[week] = deepClone(baseWeekExercises).map(ex => {
+      const baseSets = ex.plannedSets || [];
+      const progressedSets = baseSets.map(set => progressSet(set, week, baseSets));
+      return {
+        ...ex,
+        plannedSets: progressedSets
+      };
+    });
+  }
+  return result;
+} 

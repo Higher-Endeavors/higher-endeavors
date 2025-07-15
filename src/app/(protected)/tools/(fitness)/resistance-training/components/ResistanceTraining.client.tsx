@@ -11,6 +11,7 @@ import WeekTabs from './WeekTabs';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { ExerciseWithSource } from '../modals/AddExerciseModal';
+import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -25,30 +26,53 @@ export default function ResistanceTrainingClient({
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [programLength, setProgramLength] = useState(4);
+  // Progression settings state
+  const [progressionSettings, setProgressionSettings] = useState({
+    type: 'None',
+    settings: {
+      volume_increment_percentage: 0,
+      load_increment_percentage: 0,
+      weekly_volume_percentages: [100, 100, 100, 100],
+    },
+  });
+  // Week 1 (base) exercises
+  const [baseWeekExercises, setBaseWeekExercises] = useState<ProgramExercisesPlanned[]>([]);
+  // All weeks' exercises
   const [weeklyExercises, setWeeklyExercises] = useState<ProgramExercisesPlanned[][]>(
-    Array.from({ length: programLength }, () => [])
+    Array.from({ length: programLength }, (_, i) => (i === 0 ? baseWeekExercises : []))
   );
   const [editingExercise, setEditingExercise] = useState<ProgramExercisesPlanned | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  // Week tab state
   const [activeWeek, setActiveWeek] = useState(1);
-  // TODO: Connect this to ProgramSettings
   const [variationEditId, setVariationEditId] = useState<number | null>(null);
- 
 
-  // Helper to update a specific week
-  const updateWeek = (weekIdx: number, updater: (arr: ProgramExercisesPlanned[]) => ProgramExercisesPlanned[]) => {
-    setWeeklyExercises(prev => prev.map((arr, idx) => idx === weekIdx ? updater(arr) : arr));
+  // Helper to recalculate all weeks from base and progression settings
+  const recalculateAllWeeks = (newBaseWeek: ProgramExercisesPlanned[], newSettings = progressionSettings, newLength = programLength) => {
+    const allWeeksObj = generateProgressedWeeks(newBaseWeek, newLength, newSettings);
+    const allWeeksArr = Object.values(allWeeksObj);
+    setWeeklyExercises(allWeeksArr);
+  };
+
+  // When programLength changes, recalculate all weeks
+  const handleProgramLengthChange = (newLength: number) => {
+    setProgramLength(newLength);
+    recalculateAllWeeks(baseWeekExercises, progressionSettings, newLength);
+  };
+
+  // When progression settings change, recalculate all weeks
+  const handleProgressionSettingsChange = (newSettings: typeof progressionSettings) => {
+    setProgressionSettings(newSettings);
+    recalculateAllWeeks(baseWeekExercises, newSettings);
   };
 
   // Add Exercise
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
     if (activeWeek === 1) {
-      // Add to all weeks
-      setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
+      const newBase = [...baseWeekExercises, exercise];
+      setBaseWeekExercises(newBase);
+      recalculateAllWeeks(newBase);
     } else {
-      // Add only to current week
-      updateWeek(activeWeek - 1, arr => [...arr, exercise]);
+      setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? [...arr, exercise] : arr));
     }
     setIsModalOpen(false);
     setEditingExercise(null);
@@ -65,15 +89,11 @@ export default function ResistanceTrainingClient({
 
   const handleUpdateExercise = (updatedExercise: ProgramExercisesPlanned) => {
     if (activeWeek === 1) {
-      // Edit in all weeks
-      setWeeklyExercises(prev => prev.map(arr =>
-        arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex)
-      ));
+      const newBase = baseWeekExercises.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex);
+      setBaseWeekExercises(newBase);
+      recalculateAllWeeks(newBase);
     } else {
-      // Edit only in current week
-      updateWeek(activeWeek - 1, arr =>
-        arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex)
-      );
+      setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex) : arr));
     }
     setIsModalOpen(false);
     setEditingExercise(null);
@@ -82,11 +102,11 @@ export default function ResistanceTrainingClient({
   // Delete Exercise
   const handleDeleteExercise = (id: number) => {
     if (activeWeek === 1) {
-      // Delete from all weeks
-      setWeeklyExercises(prev => prev.map(arr => arr.filter(ex => ex.exerciseLibraryId !== id)));
+      const newBase = baseWeekExercises.filter(ex => ex.exerciseLibraryId !== id);
+      setBaseWeekExercises(newBase);
+      recalculateAllWeeks(newBase);
     } else {
-      // Delete only from current week
-      updateWeek(activeWeek - 1, arr => arr.filter(ex => ex.exerciseLibraryId !== id));
+      setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? arr.filter(ex => ex.exerciseLibraryId !== id) : arr));
     }
   };
 
@@ -100,30 +120,25 @@ export default function ResistanceTrainingClient({
   // In AddExerciseModal onAdd, handle variation change
   const handleAddOrUpdateExercise = (exercise: ProgramExercisesPlanned) => {
     if (variationEditId !== null && editingExercise) {
-      // If exerciseLibraryId changed, replace old with new
       if (exercise.exerciseLibraryId !== editingExercise.exerciseLibraryId) {
-        updateWeek(activeWeek - 1, arr => [
-          ...arr.filter(ex => ex.exerciseLibraryId !== editingExercise.exerciseLibraryId),
-          exercise
-        ]);
+        setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? [...arr.filter(ex => ex.exerciseLibraryId !== editingExercise.exerciseLibraryId), exercise] : arr));
       } else {
-        // Just update variables as normal
-        updateWeek(activeWeek - 1, arr =>
-          arr.map(ex => ex.exerciseLibraryId === exercise.exerciseLibraryId ? exercise : ex)
-        );
+        setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? arr.map(ex => ex.exerciseLibraryId === exercise.exerciseLibraryId ? exercise : ex) : arr));
       }
       setVariationEditId(null);
       setEditingExercise(null);
       setIsModalOpen(false);
       return;
     }
-    // Normal add/edit logic
     if (editingExercise) {
       handleUpdateExercise(exercise);
     } else {
       handleAddExercise(exercise);
     }
   };
+
+  // Pass progression settings and program length to ProgramSettings
+  // ProgramSettings should call setProgramLength and setProgressionSettings on change
 
   return (
     <>
@@ -138,7 +153,9 @@ export default function ResistanceTrainingClient({
       <ProgramBrowser />
       <ProgramSettings
         programLength={programLength}
-        setProgramLength={setProgramLength}
+        setProgramLength={handleProgramLengthChange}
+        progressionSettings={progressionSettings}
+        setProgressionSettings={handleProgressionSettingsChange}
       />
       <WeekTabs
         activeWeek={activeWeek}
@@ -149,7 +166,7 @@ export default function ResistanceTrainingClient({
         exercises={exercises}
         isLoading={false}
         userId={selectedUserId}
-        plannedExercises={weeklyExercises[activeWeek - 1]}
+        plannedExercises={weeklyExercises[activeWeek - 1] || []}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
         activeWeek={activeWeek}
@@ -178,7 +195,7 @@ export default function ResistanceTrainingClient({
         editingExercise={editingExercise}
         fitnessSettings={fitnessSettings}
       />
-      {weeklyExercises[activeWeek - 1].length > 0 && (
+      {weeklyExercises[activeWeek - 1]?.length > 0 && (
         <div className="mt-6">
           <SessionSummary exercises={weeklyExercises[activeWeek - 1]} />
         </div>
