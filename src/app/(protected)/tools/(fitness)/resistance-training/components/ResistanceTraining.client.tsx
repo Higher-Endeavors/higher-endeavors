@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './ProgramBrowser';
 import ProgramSettings from './ProgramSettings';
@@ -12,6 +12,7 @@ import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistanc
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { ExerciseWithSource } from '../modals/AddExerciseModal';
 import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
+import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -46,6 +47,21 @@ export default function ResistanceTrainingClient({
   const [activeWeek, setActiveWeek] = useState(1);
   // Track which weeks have been manually edited (locked)
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
+  // Add state for programName (to be set from ProgramSettings)
+  const [programName, setProgramName] = useState('');
+  const [saveWarning, setSaveWarning] = useState('');
+  // Add state for phaseFocus, periodizationType, progressionRules, programDuration, notes
+  const [phaseFocus, setPhaseFocus] = useState('');
+  const [periodizationType, setPeriodizationType] = useState('None');
+  const [progressionRulesState, setProgressionRulesState] = useState({});
+  const [programDuration, setProgramDuration] = useState(programLength);
+  const [notes, setNotes] = useState('');
+  const [saveResult, setSaveResult] = useState<string | null>(null);
+
+  // Update programDuration when programLength changes
+  useEffect(() => {
+    setProgramDuration(programLength);
+  }, [programLength]);
 
   // Add Exercise
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
@@ -111,6 +127,31 @@ export default function ResistanceTrainingClient({
     setIsModalOpen(false);
   };
 
+  // Save handler
+  const handleSaveProgram = async () => {
+    if (!programName.trim()) {
+      setSaveWarning('Please enter a Program Name before saving.');
+      return;
+    }
+    setSaveWarning('');
+    setSaveResult(null);
+    const result = await saveResistanceProgram({
+      userId: selectedUserId,
+      programName,
+      phaseFocus,
+      periodizationType,
+      progressionRules: progressionSettings,
+      programDuration,
+      notes,
+      weeklyExercises,
+    });
+    if (result.success) {
+      setSaveResult('Program saved successfully!');
+    } else {
+      setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
+    }
+  };
+
   // Pass progression settings and program length to ProgramSettings
   // ProgramSettings should call setProgramLength and setProgressionSettings on change
 
@@ -130,6 +171,14 @@ export default function ResistanceTrainingClient({
         setProgramLength={setProgramLength}
         progressionSettings={progressionSettings}
         setProgressionSettings={setProgressionSettings}
+        programName={programName}
+        setProgramName={setProgramName}
+        phaseFocus={phaseFocus}
+        setPhaseFocus={setPhaseFocus}
+        periodizationType={periodizationType}
+        setPeriodizationType={setPeriodizationType}
+        notes={notes}
+        setNotes={setNotes}
       />
       <WeekTabs
         activeWeek={activeWeek}
@@ -145,15 +194,32 @@ export default function ResistanceTrainingClient({
         onDeleteExercise={handleDeleteExercise}
         activeWeek={activeWeek}
       />
-      <button
-        className="mt-4 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-        onClick={() => {
-          setEditingExercise(null);
-          setIsModalOpen(true);
-        }}
-      >
-        Add Exercise
-      </button>
+      <div className="flex justify-between items-center mt-4">
+        <button
+          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+          onClick={() => {
+            setEditingExercise(null);
+            setIsModalOpen(true);
+          }}
+        >
+          Add Exercise
+        </button>
+        {weeklyExercises.some(week => week.length > 0) && (
+          <button
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            style={{ minWidth: '120px' }}
+            onClick={handleSaveProgram}
+          >
+            Save Program
+          </button>
+        )}
+      </div>
+      {saveWarning && (
+        <div className="text-red-600 text-right mt-2">{saveWarning}</div>
+      )}
+      {saveResult && (
+        <div className={`mt-2 text-right ${saveResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{saveResult}</div>
+      )}
       <AddExerciseModal
         key={editingExercise?.exerciseLibraryId || 'new'}
         isOpen={isModalOpen}

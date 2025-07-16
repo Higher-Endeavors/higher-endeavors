@@ -23,9 +23,17 @@ interface ProgramSettingsProps {
       weekly_volume_percentages: number[];
     };
   }) => void;
+  programName: string;
+  setProgramName: (name: string) => void;
+  phaseFocus: string;
+  setPhaseFocus: (focus: string) => void;
+  periodizationType: string;
+  setPeriodizationType: (type: string) => void;
+  notes: string;
+  setNotes: (notes: string) => void;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -68,8 +76,6 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
   ];
 
   // Local state for periodization type and program length
-  const [periodizationType, setPeriodizationType] = useState(progressionSettings.type || 'None');
-  // State for progression settings
   const [autoIncrement, setAutoIncrement] = useState(progressionSettings.type !== 'None' && progressionSettings.settings.volume_increment_percentage > 0 ? 'yes' : 'no');
   const [volumeIncrement, setVolumeIncrement] = useState(progressionSettings.settings.volume_increment_percentage?.toString() || '');
   const [loadIncrement, setLoadIncrement] = useState(progressionSettings.settings.load_increment_percentage?.toString() || '');
@@ -172,6 +178,8 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
               type="text"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program name"
+              value={programName}
+              onChange={e => setProgramName(e.target.value)}
             />
           </div>
 
@@ -182,7 +190,8 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
             </label>
             <Select
               options={phaseFocusOptions}
-              defaultValue={phaseFocusOptions[0]}
+              value={phaseFocusOptions.find(opt => opt.value === phaseFocus) || null}
+              onChange={opt => setPhaseFocus(opt?.value || '')}
               className="basic-single dark:text-slate-700"
               classNamePrefix="select"
             />
@@ -319,6 +328,8 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program notes (optional)"
               rows={4}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
             />
             <p className="mt-1 text-sm text-gray-500">
               Add any additional notes or comments about the program
