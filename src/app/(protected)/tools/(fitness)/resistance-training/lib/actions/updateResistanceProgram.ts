@@ -1,31 +1,14 @@
 "use server";
 
 import { getClient } from '@/app/lib/dbAdapter';
-import { ProgramExercisesPlanned } from '../../../resistance-training/types/resistance-training.zod';
+import { UpdateResistanceProgramSchema, UpdateResistanceProgramInput } from '../../types/resistance-training.zod';
 
-interface UpdateResistanceProgramInput {
-  programId: number;
-  userId: number;
-  programName: string;
-  phaseFocus?: string;
-  periodizationType?: string;
-  progressionRules: any;
-  programDuration: number;
-  notes?: string;
-  weeklyExercises: ProgramExercisesPlanned[][];
-}
-
-export async function updateResistanceProgram({
-  programId,
-  userId,
-  programName,
-  phaseFocus,
-  periodizationType,
-  progressionRules,
-  programDuration,
-  notes,
-  weeklyExercises,
-}: UpdateResistanceProgramInput) {
+export async function updateResistanceProgram(input: UpdateResistanceProgramInput) {
+  // Validate the input using the schema
+  const validatedInput = UpdateResistanceProgramSchema.parse(input);
+  
+  const { programId, userId, programName, phaseFocus, periodizationType, progressionRules, programDuration, notes, weeklyExercises } = validatedInput;
+  
   const client = await getClient();
   try {
     await client.query('BEGIN');

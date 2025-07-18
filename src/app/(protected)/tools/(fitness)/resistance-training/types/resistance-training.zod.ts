@@ -132,6 +132,36 @@ export const ProgramListItemSchema = z.object({
   }).optional(),
 }).strict();
 
+// --- Action Schemas ---
+
+export const UpdateResistanceProgramSchema = z.object({
+  programId: z.number().int(),
+  userId: z.number().int(),
+  programName: z.string().min(1),
+  phaseFocus: z.string().optional(),
+  periodizationType: z.string().optional(),
+  progressionRules: z.any().optional(),
+  programDuration: z.number().int().min(1).max(52),
+  notes: z.string().optional(),
+  weeklyExercises: z.array(z.array(z.object({
+    exerciseSource: z.enum(['library', 'user']),
+    exerciseLibraryId: z.number().int().optional(),
+    userExerciseLibraryId: z.number().int().optional(),
+    pairing: z.string().optional(),
+    plannedSets: z.array(z.any()).optional(),
+    notes: z.string().optional(),
+  })))
+});
+
+export const DuplicateResistanceProgramSchema = z.object({
+  programId: z.number().int(),
+  newProgramName: z.string().min(1),
+});
+
+export const DeleteResistanceProgramSchema = z.object({
+  programId: z.number().int(),
+});
+
 // --- Types ---
 export type ResistanceProgram = z.infer<typeof ResistanceProgramSchema>;
 export type ResistanceProgramTemplate = z.infer<typeof ResistanceProgramTemplateSchema>;
@@ -139,4 +169,7 @@ export type ProgramExercisesPlanned = z.infer<typeof ProgramExercisesPlannedSche
 export type ProgramExercisesActual = z.infer<typeof ProgramExercisesActualSchema>;
 export type UserExercise = z.infer<typeof UserExerciseSchema>;
 export type ExerciseLibraryItem = z.infer<typeof ExerciseLibraryItemSchema>;
-export type ProgramListItem = z.infer<typeof ProgramListItemSchema>; 
+export type ProgramListItem = z.infer<typeof ProgramListItemSchema>;
+export type UpdateResistanceProgramInput = z.infer<typeof UpdateResistanceProgramSchema>;
+export type DuplicateResistanceProgramInput = z.infer<typeof DuplicateResistanceProgramSchema>;
+export type DeleteResistanceProgramInput = z.infer<typeof DeleteResistanceProgramSchema>; 

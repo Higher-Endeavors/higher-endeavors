@@ -223,16 +223,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
   const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
 
-  // Update load unit when editing exercise changes
-  useEffect(() => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      const firstSet = editingExercise.plannedSets[0];
-      setUseAlternateUnit(firstSet.loadUnit === 'kg');
-    } else {
-      // Default to user's preferred unit from settings when not editing
-      setUseAlternateUnit(fitnessSettings?.resistanceTraining?.loadUnit === 'kg');
-    }
-  }, [editingExercise]);
+
 
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),

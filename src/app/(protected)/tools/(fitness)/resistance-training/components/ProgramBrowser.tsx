@@ -6,6 +6,8 @@ import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate } from 'react-icons/hi';
 import { ProgramListItem } from '../types/resistance-training.zod';
 import { getResistancePrograms } from '../lib/hooks/getResistancePrograms';
+import { deleteResistanceProgram } from '../lib/actions/deleteResistanceProgram';
+import { duplicateResistanceProgram } from '../lib/actions/duplicateResistanceProgram';
 
 // How many programs to show per page
 const ITEMS_PER_PAGE = 5;
@@ -213,14 +215,13 @@ export default function ProgramBrowser({
     try {
       setIsLoading(prev => ({ ...prev, delete: true }));
       
-      const response = await fetch(`/api/resistance-training/programs?id=${programToDelete.resistanceProgramId}`, {
-        method: 'DELETE',
-        credentials: 'include'
-      });
+      const result = await deleteResistanceProgram(
+        { programId: programToDelete.resistanceProgramId }, 
+        currentUserId
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to delete program');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to delete program');
       }
 
       const updatedPrograms = programs.filter(p => p.resistanceProgramId !== programToDelete.resistanceProgramId);
@@ -246,21 +247,16 @@ export default function ProgramBrowser({
     try {
       setIsLoading(prev => ({ ...prev, duplicate: true }));
       
-      const response = await fetch('/api/resistance-training/programs', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
+      const result = await duplicateResistanceProgram(
+        {
           programId: programToDuplicate.resistanceProgramId,
           newProgramName: newProgramName.trim()
-        })
-      });
+        },
+        currentUserId
+      );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to duplicate program');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to duplicate program');
       }
 
       // Refresh the programs list to show the new duplicated program
