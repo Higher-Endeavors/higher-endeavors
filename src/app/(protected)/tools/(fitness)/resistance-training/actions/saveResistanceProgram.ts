@@ -64,7 +64,7 @@ export async function saveResistanceProgram({
     return { success: true, programId };
   } catch (error) {
     await client.query('ROLLBACK');
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     client.release();
   }

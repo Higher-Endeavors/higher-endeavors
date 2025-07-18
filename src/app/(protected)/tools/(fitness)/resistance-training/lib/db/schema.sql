@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS public.resist_program_exercises (
       set?: number;
       reps?: number;
       load?: string;
+      loadUnit?: string;
       restSec?: number;
       rpe?: number;
       rir?: number;

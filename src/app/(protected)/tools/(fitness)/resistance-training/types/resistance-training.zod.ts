@@ -62,6 +62,7 @@ export type ExerciseSet = {
   set?: number;
   reps?: number;
   load?: string;
+  loadUnit?: string;
   restSec?: number;
   rpe?: number;
   rir?: number;
@@ -76,6 +77,7 @@ export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
     set: z.number().int().min(1).optional(),
     reps: z.number().int().min(0).optional(),
     load: z.string().optional(),
+    loadUnit: z.string().optional(),
     restSec: z.number().int().min(0).optional(),
     rpe: z.number().int().min(0).max(20).optional(),
     rir: z.number().int().min(0).max(10).optional(),
@@ -98,11 +100,13 @@ export const UserExerciseSchema = z.object({
 }).strict();
 
 export const ExerciseLibraryItemSchema = z.object({
-  exerciseLibraryId: z.number().int(),
+  exerciseLibraryId: z.number().int().optional(),
+  userExerciseLibraryId: z.number().int().optional(),
   name: z.string().min(1),
   difficulty: z.string().optional(),
   muscleGroup: z.string().optional(),
   equipment: z.string().optional(),
+  source: z.enum(['library', 'user']),
 }).strict();
 
 // --- Types ---

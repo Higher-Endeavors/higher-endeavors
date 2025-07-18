@@ -70,12 +70,26 @@ export function formatSessionDuration(durationInSeconds: number): string {
 }
 
 /**
- * Calculates session total load
- * 
- * @param exercises - Array of planned exercises
- * @returns Total session load
+ * Converts a load value between lbs and kg
+ * @param value - the numeric value
+ * @param fromUnit - 'lbs' or 'kg'
+ * @param toUnit - 'lbs' or 'kg'
+ * @returns converted value
  */
-export function calculateSessionTotalLoad(exercises: ProgramExercisesPlanned[]): number {
+function convertLoad(value: number, fromUnit: string, toUnit: string): number {
+  if (fromUnit === toUnit) return value;
+  if (fromUnit === 'kg' && toUnit === 'lbs') return value * 2.2;
+  if (fromUnit === 'lbs' && toUnit === 'kg') return value / 2.2;
+  return value;
+}
+
+/**
+ * Calculates session total load in the preferred unit
+ * @param exercises - Array of planned exercises
+ * @param preferredUnit - 'lbs' or 'kg'
+ * @returns Total session load in preferred unit
+ */
+export function calculateSessionTotalLoad(exercises: ProgramExercisesPlanned[], preferredUnit: string): number {
   if (!exercises || exercises.length === 0) return 0;
   let totalLoad = 0;
   exercises.forEach(exercise => {
@@ -83,26 +97,28 @@ export function calculateSessionTotalLoad(exercises: ProgramExercisesPlanned[]):
     exercise.plannedSets.forEach(set => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
-      totalLoad += reps * load;
+      // Only convert if load is a number and unit is present
+      let setUnit = (set.loadUnit === 'kg' || set.loadUnit === 'lbs') ? set.loadUnit : 'lbs';
+      totalLoad += convertLoad(reps * load, setUnit, preferredUnit);
     });
   });
-  return totalLoad;
+  return Math.round(totalLoad * 100) / 100;
 }
 
 /**
- * Calculates session statistics
- * 
+ * Calculates session statistics (unit-aware)
  * @param exercises - Array of planned exercises
+ * @param preferredUnit - 'lbs' or 'kg'
  * @returns Object containing various session statistics
  */
-export function calculateSessionStats(exercises: ProgramExercisesPlanned[]) {
+export function calculateSessionStats(exercises: ProgramExercisesPlanned[], preferredUnit: string) {
   const totalDuration = calculateSessionDuration(exercises);
   const totalExercises = exercises.length;
   const totalSets = exercises.reduce((sum, ex) => sum + (ex.plannedSets?.length || 0), 0);
   const totalReps = exercises.reduce((sum, ex) => 
     sum + (ex.plannedSets?.reduce((setSum, set) => setSum + (set.reps || 0), 0) || 0), 0
   );
-  const totalLoad = calculateSessionTotalLoad(exercises);
+  const totalLoad = calculateSessionTotalLoad(exercises, preferredUnit);
 
   return {
     estimatedDuration: formatSessionDuration(totalDuration),

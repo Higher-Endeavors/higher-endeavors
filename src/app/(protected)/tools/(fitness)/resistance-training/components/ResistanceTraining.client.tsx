@@ -63,54 +63,49 @@ export default function ResistanceTrainingClient({
     setProgramDuration(programLength);
   }, [programLength]);
 
-  // Add Exercise
+  // Add new exercise to all weeks
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
     setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
     setIsModalOpen(false);
     setEditingExercise(null);
   };
 
-  // Edit Exercise
+  // Open edit modal for existing exercise
   const handleEditExercise = (id: number) => {
-    const exerciseToEdit = weeklyExercises[activeWeek - 1].find(ex => ex.exerciseLibraryId === id);
+    const exerciseToEdit = weeklyExercises[activeWeek - 1].find(ex => 
+      ex.exerciseLibraryId === id || ex.userExerciseLibraryId === id
+    );
     if (exerciseToEdit) {
       setEditingExercise(exerciseToEdit);
       setIsModalOpen(true);
     }
   };
 
-  const handleUpdateExercise = (updatedExercise: ProgramExercisesPlanned) => {
-    if (activeWeek === 1) {
-      setWeeklyExercises(prev => prev.map((arr, idx) => idx === 0 ? arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex) : arr));
-    } else {
-      setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? arr.map(ex => ex.exerciseLibraryId === updatedExercise.exerciseLibraryId ? updatedExercise : ex) : arr));
-      setLockedWeeks(prev => new Set(prev).add(activeWeek - 1));
-    }
-    setIsModalOpen(false);
-    setEditingExercise(null);
-  };
 
-  // Delete Exercise
+
+  // Delete exercise from all weeks
   const handleDeleteExercise = (id: number) => {
-    if (activeWeek === 1) {
-      const newBase = baseWeekExercises.filter(ex => ex.exerciseLibraryId !== id);
-      setBaseWeekExercises(newBase);
-      // recalculateAllWeeks(newBase); // This line is removed
-    } else {
-      setWeeklyExercises(prev => prev.map((arr, idx) => idx === activeWeek - 1 ? arr.filter(ex => ex.exerciseLibraryId !== id) : arr));
+    setWeeklyExercises(prev => prev.map(weekExercises => 
+      weekExercises.filter(ex => (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id))
+    ));
+    
+    // Also update baseWeekExercises if it exists
+    if (baseWeekExercises.length > 0) {
+      setBaseWeekExercises(prev => prev.filter(ex => (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id)));
     }
   };
 
-  // Simplified handleAddOrUpdateExercise
-  const handleAddOrUpdateExercise = (exercise: ProgramExercisesPlanned) => {
+  // Save exercise (add new or update existing)
+  const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
     if (editingExercise) {
+      const editingId = editingExercise.exerciseLibraryId || editingExercise.userExerciseLibraryId;
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
           idx === activeWeek - 1
-            ? [
-                ...arr.filter(ex => ex.exerciseLibraryId !== editingExercise.exerciseLibraryId),
-                exercise
-              ]
+            ? arr.map(ex => {
+                const exId = ex.exerciseLibraryId || ex.userExerciseLibraryId;
+                return exId === editingId ? exercise : ex;
+              })
             : arr
         )
       );
@@ -221,21 +216,21 @@ export default function ResistanceTrainingClient({
         <div className={`mt-2 text-right ${saveResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{saveResult}</div>
       )}
       <AddExerciseModal
-        key={editingExercise?.exerciseLibraryId || 'new'}
+        key={editingExercise?.exerciseLibraryId || editingExercise?.userExerciseLibraryId || 'new'}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);
           setEditingExercise(null);
         }}
-        onAdd={handleAddOrUpdateExercise}
-        exercises={exercises.map(e => ({ ...e, source: 'library' }))}
+        onAdd={handleSaveExercise}
+        exercises={exercises}
         userId={selectedUserId}
         editingExercise={editingExercise}
         fitnessSettings={fitnessSettings}
       />
       {weeklyExercises[activeWeek - 1]?.length > 0 && (
         <div className="mt-6">
-          <SessionSummary exercises={weeklyExercises[activeWeek - 1]} />
+          <SessionSummary exercises={weeklyExercises[activeWeek - 1]} preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')} />
         </div>
       )}
     </>

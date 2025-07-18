@@ -15,8 +15,8 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 
-// Local type extension to allow for 'source' property for sorting
-export type ExerciseWithSource = ExerciseLibraryItem & { source: 'user' | 'library' };
+// Alias for ExerciseLibraryItem since it now includes the source property
+export type ExerciseWithSource = ExerciseLibraryItem;
 
 interface AddExerciseModalProps {
   isOpen: boolean;
@@ -32,6 +32,7 @@ interface ExerciseOption {
   value: number;
   label: string;
   exercise: ExerciseLibraryItem;
+  source: 'library' | 'user';
 }
 
 const CARRY_UNITS = [
@@ -61,7 +62,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const [newExerciseName, setNewExerciseName] = useState('');
   const [creationError, setCreationError] = useState<string | null>(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
-  const [useAlternateUnit, setUseAlternateUnit] = useState(false);
+  const [useAlternateUnit, setUseAlternateUnit] = useState(() => {
+    // Initialize based on editing exercise's load unit, or user's preferred unit
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      const firstSet = editingExercise.plannedSets[0];
+      return firstSet.loadUnit === 'kg';
+    }
+    // Default to user's preferred unit from settings
+    return fitnessSettings?.resistanceTraining?.loadUnit === 'kg';
+  });
   const [variedSets, setVariedSets] = useState<{
     reps: string;
     load: string;
@@ -90,8 +99,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
     // 2. If both are user or both are library, sort by difficulty (for library)
     if (a.source === 'library' && b.source === 'library') {
-      const diffA = DIFFICULTY_ORDER.indexOf(a.difficulty || '');
-      const diffB = DIFFICULTY_ORDER.indexOf(b.difficulty || '');
+      // Handle null difficulties by putting them at the end
+      const diffA = a.difficulty ? DIFFICULTY_ORDER.indexOf(a.difficulty) : DIFFICULTY_ORDER.length;
+      const diffB = b.difficulty ? DIFFICULTY_ORDER.indexOf(b.difficulty) : DIFFICULTY_ORDER.length;
       if (diffA !== diffB) return diffA - diffB;
     }
 
@@ -100,14 +110,21 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   });
 
   const exerciseOptions: ExerciseOption[] = sortedExercises.map(exercise => ({
-    value: exercise.exerciseLibraryId,
+    value: exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0,
     label: exercise.name,
-    exercise
+    exercise,
+    source: exercise.source || 'library'
   }));
 
   const getInitialValues = (): AddExerciseFormValues => {
     if (editingExercise) {
-      const selectedExercise = exerciseOptions.find(opt => opt.value === editingExercise.exerciseLibraryId);
+      const selectedExercise = exerciseOptions.find(opt => {
+        if (editingExercise.exerciseSource === 'user') {
+          return opt.value === editingExercise.userExerciseLibraryId;
+        } else {
+          return opt.value === editingExercise.exerciseLibraryId;
+        }
+      });
       const firstSet = editingExercise.plannedSets?.[0];
       return {
         selectedExercise: selectedExercise || null,
@@ -206,6 +223,17 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
   const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
 
+  // Update load unit when editing exercise changes
+  useEffect(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      const firstSet = editingExercise.plannedSets[0];
+      setUseAlternateUnit(firstSet.loadUnit === 'kg');
+    } else {
+      // Default to user's preferred unit from settings when not editing
+      setUseAlternateUnit(fitnessSettings?.resistanceTraining?.loadUnit === 'kg');
+    }
+  }, [editingExercise]);
+
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),
   });
@@ -219,6 +247,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
+    // Use existing load unit if editing, otherwise use current toggle state
+    let currentLoadUnit = useAlternateUnit ? alternateUnit : defaultUnit;
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      const firstSet = editingExercise.plannedSets[0];
+      if (firstSet.loadUnit) {
+        currentLoadUnit = firstSet.loadUnit;
+      }
+    }
     let plannedSets;
     if (isVariedSets) {
       if (isAdvancedSets) {
@@ -228,6 +264,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               set: setIdx + 1,
               reps: parseInt(subSet.reps) || 0,
               load: subSet.load,
+              loadUnit: currentLoadUnit,
               restSec: parseInt(subSet.rest) || 0,
               tempo: data.tempo || '2010',
               rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
@@ -238,6 +275,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               set: setIdx + 1,
               reps: parseInt(set.reps) || 0,
               load: set.load,
+              loadUnit: currentLoadUnit,
               restSec: parseInt(data.rest) || 0,
               tempo: data.tempo || '2010',
               rpe: set.rpe ? parseInt(set.rpe) : undefined,
@@ -250,6 +288,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
           set: index + 1,
           reps: parseInt(set.reps) || 0,
           load: set.load,
+          loadUnit: currentLoadUnit,
           restSec: parseInt(data.rest) || 0,
           tempo: data.tempo || '2010',
           rpe: set.rpe ? parseInt(set.rpe) : undefined,
@@ -260,6 +299,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       plannedSets = Array(data.setsCount).fill({
         reps: parseInt(data.reps) || 0,
         load: data.load || '0',
+        loadUnit: currentLoadUnit,
         restSec: parseInt(data.rest) || 0,
         tempo: data.tempo || '2010',
         rpe: data.rpe ? parseInt(data.rpe) : undefined,
@@ -269,11 +309,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         set: index + 1,
       }));
     }
+    const selectedExerciseData = data.selectedExercise.exercise;
+    const isUserExercise = data.selectedExercise.source === 'user';
+    
     const newExercise: ProgramExercisesPlanned = {
       programExercisesPlannedId: 0,
       resistanceProgramId: 0,
-      exerciseLibraryId: data.selectedExercise.value,
-      exerciseSource: 'library',
+      exerciseLibraryId: isUserExercise ? undefined : selectedExerciseData.exerciseLibraryId,
+      userExerciseLibraryId: isUserExercise ? selectedExerciseData.userExerciseLibraryId : undefined,
+      exerciseSource: isUserExercise ? 'user' : 'library',
       pairing: data.pairing || 'A1',
       plannedSets,
       notes: data.notes,
@@ -946,12 +990,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             return;
           }
           const newOption: ExerciseOption = {
-            value: result.id,
+            value: result.user_exercise_library_id,
             label: `${result.exercise_name} (Custom)` ,
             exercise: {
-              exerciseLibraryId: result.id,
+              userExerciseLibraryId: result.user_exercise_library_id,
               name: result.exercise_name,
-            }
+              source: 'user',
+            },
+            source: 'user'
           };
           setValue('selectedExercise', newOption);
           setIsCreatingExercise(false);
