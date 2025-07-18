@@ -109,10 +109,34 @@ export const ExerciseLibraryItemSchema = z.object({
   source: z.enum(['library', 'user']),
 }).strict();
 
+// Program list item for browser display
+export const ProgramListItemSchema = z.object({
+  resistanceProgramId: z.number().int(),
+  userId: z.number().int(),
+  programName: z.string().min(1),
+  phaseFocus: z.string().optional(),
+  periodizationType: z.string().optional(),
+  progressionRules: z.any().optional(),
+  programDuration: z.number().int().optional(),
+  notes: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string().optional(),
+  exerciseCount: z.number().int(),
+  exerciseSummary: z.object({
+    totalExercises: z.number().int(),
+    exercises: z.array(z.object({
+      name: z.string()
+    }))
+  }).optional(),
+}).strict();
+
 // --- Types ---
 export type ResistanceProgram = z.infer<typeof ResistanceProgramSchema>;
 export type ResistanceProgramTemplate = z.infer<typeof ResistanceProgramTemplateSchema>;
 export type ProgramExercisesPlanned = z.infer<typeof ProgramExercisesPlannedSchema>;
 export type ProgramExercisesActual = z.infer<typeof ProgramExercisesActualSchema>;
 export type UserExercise = z.infer<typeof UserExerciseSchema>;
-export type ExerciseLibraryItem = z.infer<typeof ExerciseLibraryItemSchema>; 
+export type ExerciseLibraryItem = z.infer<typeof ExerciseLibraryItemSchema>;
+export type ProgramListItem = z.infer<typeof ProgramListItemSchema>; 

@@ -13,6 +13,7 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { ExerciseWithSource } from '../modals/AddExerciseModal';
 import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
 import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
+import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -57,11 +58,64 @@ export default function ResistanceTrainingClient({
   const [programDuration, setProgramDuration] = useState(programLength);
   const [notes, setNotes] = useState('');
   const [saveResult, setSaveResult] = useState<string | null>(null);
+  const [isLoadingProgram, setIsLoadingProgram] = useState(false);
 
   // Update programDuration when programLength changes
   useEffect(() => {
     setProgramDuration(programLength);
   }, [programLength]);
+
+  // Load program handler
+  const handleLoadProgram = async (program: any) => {
+    try {
+      setIsLoadingProgram(true);
+      const { program: loadedProgram, exercises } = await getResistanceProgram(program.resistanceProgramId, selectedUserId);
+      
+      // Type assertion for exercises with programInstance
+      const exercisesWithWeek = exercises as (ProgramExercisesPlanned & { programInstance?: number })[];
+      
+      // Update program settings
+      setProgramName(loadedProgram.programName);
+      setPhaseFocus(loadedProgram.phaseFocus || '');
+      setPeriodizationType(loadedProgram.periodizationType || 'None');
+      setProgressionRulesState(loadedProgram.progressionRules || {});
+      setProgramDuration(loadedProgram.programDuration || 4);
+      setNotes(loadedProgram.notes || '');
+      
+      // Update program length if needed
+      if (loadedProgram.programDuration && loadedProgram.programDuration !== programLength) {
+        setProgramLength(loadedProgram.programDuration);
+      }
+      
+      // Group exercises by week (program_instance)
+      const exercisesByWeek: ProgramExercisesPlanned[][] = [];
+      const maxWeek = Math.max(...exercisesWithWeek.map(ex => ex.programInstance || 1), 1);
+      
+      for (let week = 1; week <= maxWeek; week++) {
+        const weekExercises = exercisesWithWeek.filter(ex => (ex.programInstance || 1) === week);
+        exercisesByWeek.push(weekExercises);
+      }
+      
+      // Fill any missing weeks with empty arrays
+      while (exercisesByWeek.length < maxWeek) {
+        exercisesByWeek.push([]);
+      }
+      
+      setWeeklyExercises(exercisesByWeek);
+      setBaseWeekExercises(exercisesByWeek[0] || []);
+      setActiveWeek(1);
+      
+      // Clear any locked weeks since we're loading a new program
+      setLockedWeeks(new Set());
+      
+      console.log('Program loaded successfully:', loadedProgram.programName);
+    } catch (error) {
+      console.error('Error loading program:', error);
+      // You could add a toast notification here
+    } finally {
+      setIsLoadingProgram(false);
+    }
+  };
 
   // Add new exercise to all weeks
   const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
@@ -160,7 +214,14 @@ export default function ResistanceTrainingClient({
           currentUserId={selectedUserId}
         />
       </div>
-      <ProgramBrowser />
+      <ProgramBrowser 
+        currentUserId={selectedUserId}
+        onProgramSelect={handleLoadProgram}
+        onProgramDelete={(programId) => {
+          // TODO: Handle program deletion
+          console.log('Program deleted:', programId);
+        }}
+      />
       <ProgramSettings
         programLength={programLength}
         setProgramLength={setProgramLength}
@@ -174,6 +235,7 @@ export default function ResistanceTrainingClient({
         setPeriodizationType={setPeriodizationType}
         notes={notes}
         setNotes={setNotes}
+        isLoading={isLoadingProgram}
       />
       <WeekTabs
         activeWeek={activeWeek}

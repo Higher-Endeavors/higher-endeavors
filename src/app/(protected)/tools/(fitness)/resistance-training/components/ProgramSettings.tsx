@@ -31,9 +31,10 @@ interface ProgramSettingsProps {
   setPeriodizationType: (type: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
+  isLoading?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, isLoading = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -169,6 +170,12 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
 
       {isOpen && (
         <form className="space-y-6 mt-4">
+          {isLoading && (
+            <div className="flex items-center justify-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              <span className="text-blue-600 dark:text-blue-400">Loading program...</span>
+            </div>
+          )}
           {/* Program Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
