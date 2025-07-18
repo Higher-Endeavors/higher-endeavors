@@ -40,6 +40,9 @@ export default function ProgramBrowser({
   const [menuState, setMenuState] = useState<MenuState>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [programToDelete, setProgramToDelete] = useState<ProgramListItem | null>(null);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [programToDuplicate, setProgramToDuplicate] = useState<ProgramListItem | null>(null);
+  const [newProgramName, setNewProgramName] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState({
     programs: true,
@@ -84,8 +87,22 @@ export default function ProgramBrowser({
   // Filter logic - simplified to avoid dependency issues
   const filteredPrograms = useMemo(() => {
     return programs.filter(program => {
-      if (filters.search && !program.programName.toLowerCase().includes(filters.search.toLowerCase())) {
-        return false;
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase();
+        const programNameMatch = program.programName.toLowerCase().includes(searchTerm);
+        
+        // Check if any exercise names match the search term
+        let exerciseMatch = false;
+        if (program.exerciseSummary && program.exerciseSummary.exercises && Array.isArray(program.exerciseSummary.exercises)) {
+          exerciseMatch = program.exerciseSummary.exercises.some((ex: { name: string }) => 
+            ex.name.toLowerCase().includes(searchTerm)
+          );
+        }
+        
+        // Return false if neither program name nor exercises match
+        if (!programNameMatch && !exerciseMatch) {
+          return false;
+        }
       }
 
       if (filters.phaseFocus && program.phaseFocus !== filters.phaseFocus) {
@@ -175,17 +192,12 @@ export default function ProgramBrowser({
     setMenuState(prev => ({ ...prev, [program.resistanceProgramId]: false }));
   }, [onProgramSelect]);
 
-  const handleDuplicateClick = useCallback(async (e: React.MouseEvent, program: ProgramListItem) => {
+  const handleDuplicateClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
     e.stopPropagation();
-    try {
-      setIsLoading(prev => ({ ...prev, duplicate: true }));
-      // TODO: Implement duplicate functionality
-      console.log('Duplicate program:', program);
-    } catch (error) {
-      console.error('Error duplicating program:', error);
-    } finally {
-      setIsLoading(prev => ({ ...prev, duplicate: false }));
-    }
+    setProgramToDuplicate(program);
+    setNewProgramName(`${program.programName} (Copy)`);
+    setShowDuplicateModal(true);
+    setMenuState(prev => ({ ...prev, [program.resistanceProgramId]: false }));
   }, []);
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
@@ -228,6 +240,43 @@ export default function ProgramBrowser({
     }
   };
 
+  const handleDuplicateConfirm = async () => {
+    if (!programToDuplicate || !newProgramName.trim()) return;
+
+    try {
+      setIsLoading(prev => ({ ...prev, duplicate: true }));
+      
+      const response = await fetch('/api/resistance-training/programs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          programId: programToDuplicate.resistanceProgramId,
+          newProgramName: newProgramName.trim()
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to duplicate program');
+      }
+
+      // Refresh the programs list to show the new duplicated program
+      await fetchPrograms();
+      
+      setShowDuplicateModal(false);
+      setProgramToDuplicate(null);
+      setNewProgramName('');
+    } catch (error) {
+      console.error('Error duplicating program:', error);
+      setError(error instanceof Error ? error.message : 'Failed to duplicate program');
+    } finally {
+      setIsLoading(prev => ({ ...prev, duplicate: false }));
+    }
+  };
+
   const handlePageChange = useCallback((pageNumber: number) => {
     setCurrentPage(pageNumber);
   }, []);
@@ -258,7 +307,7 @@ export default function ProgramBrowser({
           <div className="space-y-4 mb-6">
             <input
               type="text"
-              placeholder="Search programs..."
+              placeholder="Search programs or exercises..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -480,6 +529,55 @@ export default function ProgramBrowser({
                 className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
               >
                 {isLoading.delete ? 'Deleting...' : 'Delete Program'}
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Duplicate Program Modal */}
+      <Modal
+        show={showDuplicateModal}
+        onClose={() => {
+          setShowDuplicateModal(false);
+          setProgramToDuplicate(null);
+          setNewProgramName('');
+        }}
+        size="md"
+      >
+        <Modal.Header className="dark:text-slate-900">
+          Duplicate Program
+        </Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-100">
+              Enter a name for the duplicated program:
+            </p>
+            <input
+              type="text"
+              value={newProgramName}
+              onChange={(e) => setNewProgramName(e.target.value)}
+              placeholder="Enter program name..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
+              autoFocus
+            />
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowDuplicateModal(false);
+                  setProgramToDuplicate(null);
+                  setNewProgramName('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-900 bg-gray-100 dark:bg-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDuplicateConfirm}
+                disabled={isLoading.duplicate || !newProgramName.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {isLoading.duplicate ? 'Duplicating...' : 'Duplicate Program'}
               </button>
             </div>
           </div>

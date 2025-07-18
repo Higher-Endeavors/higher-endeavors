@@ -13,6 +13,7 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { ExerciseWithSource } from '../modals/AddExerciseModal';
 import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
 import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
+import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
 
 export default function ResistanceTrainingClient({
@@ -59,6 +60,7 @@ export default function ResistanceTrainingClient({
   const [notes, setNotes] = useState('');
   const [saveResult, setSaveResult] = useState<string | null>(null);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
+  const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -107,6 +109,9 @@ export default function ResistanceTrainingClient({
       
       // Clear any locked weeks since we're loading a new program
       setLockedWeeks(new Set());
+      
+      // Set the program ID we're editing
+      setEditingProgramId(loadedProgram.resistanceProgramId);
       
       console.log('Program loaded successfully:', loadedProgram.programName);
     } catch (error) {
@@ -184,18 +189,38 @@ export default function ResistanceTrainingClient({
     }
     setSaveWarning('');
     setSaveResult(null);
-    const result = await saveResistanceProgram({
-      userId: selectedUserId,
-      programName,
-      phaseFocus,
-      periodizationType,
-      progressionRules: progressionSettings,
-      programDuration,
-      notes,
-      weeklyExercises,
-    });
+    
+    let result;
+    
+    if (editingProgramId) {
+      // Update existing program
+      result = await updateResistanceProgram({
+        programId: editingProgramId,
+        userId: selectedUserId,
+        programName,
+        phaseFocus,
+        periodizationType,
+        progressionRules: progressionSettings,
+        programDuration,
+        notes,
+        weeklyExercises,
+      });
+    } else {
+      // Create new program
+      result = await saveResistanceProgram({
+        userId: selectedUserId,
+        programName,
+        phaseFocus,
+        periodizationType,
+        progressionRules: progressionSettings,
+        programDuration,
+        notes,
+        weeklyExercises,
+      });
+    }
+    
     if (result.success) {
-      setSaveResult('Program saved successfully!');
+      setSaveResult(editingProgramId ? 'Program updated successfully!' : 'Program saved successfully!');
     } else {
       setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
     }
@@ -252,22 +277,45 @@ export default function ResistanceTrainingClient({
         activeWeek={activeWeek}
       />
       <div className="flex justify-between items-center mt-4">
-        <button
-          className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
-          onClick={() => {
-            setEditingExercise(null);
-            setIsModalOpen(true);
-          }}
-        >
-          Add Exercise
-        </button>
+        <div className="flex space-x-2">
+          <button
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            onClick={() => {
+              setEditingExercise(null);
+              setIsModalOpen(true);
+            }}
+          >
+            Add Exercise
+          </button>
+          {editingProgramId && (
+            <button
+              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              onClick={() => {
+                setEditingProgramId(null);
+                setProgramName('');
+                setPhaseFocus('');
+                setPeriodizationType('None');
+                setProgressionRulesState({});
+                setProgramDuration(4);
+                setNotes('');
+                setWeeklyExercises([[]]);
+                setBaseWeekExercises([]);
+                setActiveWeek(1);
+                setLockedWeeks(new Set());
+                setSaveResult(null);
+              }}
+            >
+              New Program
+            </button>
+          )}
+        </div>
         {weeklyExercises.some(week => week.length > 0) && (
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             style={{ minWidth: '120px' }}
             onClick={handleSaveProgram}
           >
-            Save Program
+            {editingProgramId ? 'Update Program' : 'Save Program'}
           </button>
         )}
       </div>
