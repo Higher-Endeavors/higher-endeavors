@@ -7,20 +7,43 @@ import React from 'react';
 interface ProgramSettingsProps {
   programLength: number;
   setProgramLength: (length: number) => void;
+  progressionSettings: {
+    type: string;
+    settings: {
+      volume_increment_percentage: number;
+      load_increment_percentage: number;
+      weekly_volume_percentages: number[];
+    };
+  };
+  setProgressionSettings: (settings: {
+    type: string;
+    settings: {
+      volume_increment_percentage: number;
+      load_increment_percentage: number;
+      weekly_volume_percentages: number[];
+    };
+  }) => void;
+  programName: string;
+  setProgramName: (name: string) => void;
+  phaseFocus: string;
+  setPhaseFocus: (focus: string) => void;
+  periodizationType: string;
+  setPeriodizationType: (type: string) => void;
+  notes: string;
+  setNotes: (notes: string) => void;
+  isLoading?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, isLoading = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
+  // Remove useEffect for syncing inputValue with programLength
+  // Manage inputValue locally
   const [inputValue, setInputValue] = useState(programLength.toString());
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  // Keep inputValue in sync if programLength changes from outside
-  useEffect(() => {
-    setInputValue(programLength.toString());
-  }, [programLength]);
-
+  // Only propagate up when user changes input
   useEffect(() => {
     if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     debounceTimeout.current = setTimeout(() => {
@@ -28,7 +51,7 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
       if (!isNaN(parsed) && parsed > 0) {
         setProgramLength(parsed);
       }
-    },200);
+    }, 200);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
@@ -54,15 +77,66 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
   ];
 
   // Local state for periodization type and program length
-  const [periodizationType, setPeriodizationType] = useState('None');
-  // State for progression settings
-  const [volumeIncrement, setVolumeIncrement] = useState('');
-  const [loadIncrement, setLoadIncrement] = useState('');
-  const [weeklyVolumes, setWeeklyVolumes] = useState(['100', '80', '90', '60']);
+  const [autoIncrement, setAutoIncrement] = useState(progressionSettings.type !== 'None' && progressionSettings.settings.volume_increment_percentage > 0 ? 'yes' : 'no');
+  const [volumeIncrement, setVolumeIncrement] = useState(progressionSettings.settings.volume_increment_percentage?.toString() || '');
+  const [loadIncrement, setLoadIncrement] = useState(progressionSettings.settings.load_increment_percentage?.toString() || '');
+  const [weeklyVolumes, setWeeklyVolumes] = useState((progressionSettings.settings.weekly_volume_percentages || ['100', '80', '90', '60']).map(String));
+
+  // Update parent when progression settings change
+  useEffect(() => {
+    if (periodizationType === 'None' || autoIncrement === 'no') {
+      setProgressionSettings({
+        type: periodizationType,
+        settings: {
+          volume_increment_percentage: 0,
+          load_increment_percentage: 0,
+          weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+        },
+      });
+    } else if (periodizationType === 'Linear') {
+      setProgressionSettings({
+        type: periodizationType,
+        settings: {
+          volume_increment_percentage: Number(volumeIncrement) || 0,
+          load_increment_percentage: Number(loadIncrement) || 0,
+          weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+        },
+      });
+    } else if (periodizationType === 'Undulating') {
+      setProgressionSettings({
+        type: periodizationType,
+        settings: {
+          volume_increment_percentage: 0,
+          load_increment_percentage: 0,
+          weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+        },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodizationType, autoIncrement, volumeIncrement, loadIncrement, weeklyVolumes]);
+
+  // Helper to generate undulating pattern
+  function getUndulatingPattern(length: number): string[] {
+    if (length === 1) return ['100'];
+    if (length === 2) return ['100', '70'];
+    if (length === 3) return ['100', '70', '50'];
+    if (length === 4) return ['100', '70', '90', '50'];
+    const pattern: number[] = [100];
+    let toggle = true;
+    for (let i = 1; i < length - 1; i++) {
+      pattern.push(toggle ? 70 : 90);
+      toggle = !toggle;
+    }
+    pattern.push(50);
+    return pattern.map(String);
+  }
 
   // Update weeklyVolumes array if programLength changes (for Undulating)
-  React.useEffect(() => {
+  useEffect(() => {
     setWeeklyVolumes(prev => {
+      if (periodizationType === 'Undulating') {
+        return getUndulatingPattern(programLength);
+      }
       const arr = [...prev];
       if (programLength > arr.length) {
         for (let i = arr.length; i < programLength; i++) arr.push('100');
@@ -71,7 +145,14 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
       }
       return arr;
     });
-  }, [programLength]);
+  }, [programLength, periodizationType]);
+
+  // When periodizationType changes to Undulating, set default pattern
+  useEffect(() => {
+    if (periodizationType === 'Undulating') {
+      setWeeklyVolumes(getUndulatingPattern(programLength));
+    }
+  }, [periodizationType, programLength]);
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -89,6 +170,12 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
 
       {isOpen && (
         <form className="space-y-6 mt-4">
+          {isLoading && (
+            <div className="flex items-center justify-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-md">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+              <span className="text-blue-600 dark:text-blue-400">Loading program...</span>
+            </div>
+          )}
           {/* Program Name */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -98,6 +185,8 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
               type="text"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program name"
+              value={programName}
+              onChange={e => setProgramName(e.target.value)}
             />
           </div>
 
@@ -108,7 +197,8 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
             </label>
             <Select
               options={phaseFocusOptions}
-              defaultValue={phaseFocusOptions[0]}
+              value={phaseFocusOptions.find(opt => opt.value === phaseFocus) || null}
+              onChange={opt => setPhaseFocus(opt?.value || '')}
               className="basic-single dark:text-slate-700"
               classNamePrefix="select"
             />
@@ -143,6 +233,23 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
             </p>
           </div>
 
+          {/* Auto-increment Progressions? */}
+          {periodizationType !== 'None' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Auto-increment Progressions?
+              </label>
+              <select
+                className="mt-1 block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                value={autoIncrement}
+                onChange={e => setAutoIncrement(e.target.value)}
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+          )}
+
           {/* Program Length */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -164,7 +271,7 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
           </div>
 
           {/* Progression Settings */}
-          {(periodizationType === 'Linear' || periodizationType === 'Undulating') && (
+          {(periodizationType !== 'None' && autoIncrement === 'yes') && (
             <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-sm font-medium text-gray-700">Progression Settings</h3>
               {periodizationType === 'Linear' && (
@@ -228,6 +335,8 @@ export default function ProgramSettings({ programLength, setProgramLength }: Pro
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program notes (optional)"
               rows={4}
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
             />
             <p className="mt-1 text-sm text-gray-500">
               Add any additional notes or comments about the program

@@ -10,7 +10,7 @@ export async function getUserExerciseLibrary(userId: number): Promise<ExerciseLi
     throw new Error('Invalid response format: expected an array');
   }
   return data.map((exercise: any) => ({
-    exerciseLibraryId: exercise.exercise_library_id,
+    userExerciseLibraryId: exercise.user_exercise_library_id,
     name: exercise.name,
     source: 'user',
   }));
