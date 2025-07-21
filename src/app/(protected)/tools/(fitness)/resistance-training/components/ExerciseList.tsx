@@ -46,7 +46,7 @@ export default function ExerciseList({
   // NEW: Confirmation dialog state
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [summary, setSummary] = useState<{ plannedReps: number; actualReps: number; plannedLoad: number; actualLoad: number } | null>(null);
+  // Removed summary modal state
 
   if (isLoading) {
     return (
@@ -139,7 +139,6 @@ export default function ExerciseList({
     } else {
       result.error = 'No program selected.';
     }
-    setSummary(calculateSummary());
     setSaving(false);
     setShowConfirm(false);
     if (!result.success) {
@@ -292,29 +291,6 @@ export default function ExerciseList({
                 className="px-4 py-2 text-sm font-medium text-white bg-purple-700 rounded-md hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Complete Session'}
-              </button>
-            </div>
-          </div>
-        </Modal.Body>
-      </Modal>
-      {/* Summary Modal */}
-      <Modal show={!!summary} onClose={() => setSummary(null)} size="md">
-        <Modal.Header className="dark:text-slate-900">Session Summary</Modal.Header>
-        <Modal.Body>
-          <div className="space-y-4">
-            <div className="text-lg font-semibold">Planned vs. Actual</div>
-            <div className="flex flex-col gap-2">
-              <div>Planned Reps: <span className="font-bold">{summary?.plannedReps}</span></div>
-              <div>Actual Reps: <span className="font-bold">{summary?.actualReps}</span></div>
-              <div>Planned Load: <span className="font-bold">{summary?.plannedLoad}</span></div>
-              <div>Actual Load: <span className="font-bold">{summary?.actualLoad}</span></div>
-            </div>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setSummary(null)}
-                className="px-4 py-2 text-sm font-medium text-white bg-purple-700 rounded-md hover:bg-purple-800"
-              >
-                Close
               </button>
             </div>
           </div>
