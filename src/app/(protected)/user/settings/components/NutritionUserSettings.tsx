@@ -1,5 +1,5 @@
 import React from 'react';
-import { UseFormSetValue } from 'react-hook-form';
+import { UseFormSetValue, useFormContext } from 'react-hook-form';
 import type {
   UserSettings,
   FoodAllergy,
@@ -27,6 +27,9 @@ const CALORIES_PER_GRAM = {
 };
 
 const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue, nutrition }) => {
+  const { watch } = useFormContext<UserSettings>();
+  const watchedCalorieTarget = watch('nutrition.calorieTarget');
+  const watchedMacronutrientTargets = watch('nutrition.macronutrientTargets');
   const [macroMode, setMacroMode] = React.useState<MacronutrientTargetMode>(nutrition.macronutrientTargetMode || 'grams');
   const [nutrientOpen, setNutrientOpen] = React.useState(true);
   const [mealOpen, setMealOpen] = React.useState(true);
@@ -442,11 +445,12 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
             </div>
             {/* Nutrient Distribution Section for selected schedule */}
             <NutrientDistribution
-              calorieTarget={nutrition.calorieTarget}
-              macronutrientTargets={nutrition.macronutrientTargets}
-              macroMode={nutrition.macronutrientTargetMode}
+              calorieTarget={watchedCalorieTarget as number}
+              macronutrientTargets={watchedMacronutrientTargets as MacronutrientTargets}
+              macroMode={macroMode} // Pass the local state instead of nutrition.macronutrientTargetMode
               meals={selectedSchedule.meals}
-              // TODO: Pass and update selectedSchedule.nutrientDistribution
+              nutrientDistribution={selectedSchedule.nutrientDistribution}
+              setValue={setValue}
             />
           </div>
         )}
@@ -584,6 +588,8 @@ interface NutrientDistributionProps {
   macronutrientTargets?: MacronutrientTargets;
   macroMode: MacronutrientTargetMode;
   meals: MealScheduleEntry[];
+  nutrientDistribution?: any; // Accept the persisted distribution from form state
+  setValue?: UseFormSetValue<UserSettings>; // Allow updating form state
 }
 
 const CALORIES_PER_GRAM_DIST = {
@@ -597,13 +603,25 @@ const NutrientDistribution: React.FC<NutrientDistributionProps> = ({
   macronutrientTargets,
   macroMode,
   meals,
+  nutrientDistribution,
+  setValue,
 }) => {
   type DistributionMode = 'even' | 'custom-percent' | 'custom-macros';
-  const [distributionMode, setDistributionMode] = React.useState<DistributionMode>('even');
-  const [customPercents, setCustomPercents] = React.useState<number[]>(meals.map(() => Math.round(100 / (meals.length || 1))));
-  const [customMacros, setCustomMacros] = React.useState<{ protein: number; carbs: number; fat: number }[]>(
-    meals.map(() => ({ protein: 0, carbs: 0, fat: 0 }))
-  );
+  // Initialize from form state if present, else fallback
+  const [distributionMode, setDistributionMode] = React.useState<DistributionMode>(nutrientDistribution?.mode || 'even');
+  const [customPercents, setCustomPercents] = React.useState<number[]>(nutrientDistribution?.customPercents || meals.map(() => Math.round(100 / (meals.length || 1))));
+  const [customMacros, setCustomMacros] = React.useState<{ protein: number; carbs: number; fat: number }[]>(nutrientDistribution?.customMacros || meals.map(() => ({ protein: 0, carbs: 0, fat: 0 })));
+
+  // Sync local state to form state on change
+  React.useEffect(() => {
+    if (setValue) {
+      setValue('nutrition.defaultMealSchedule.nutrientDistribution', {
+        mode: distributionMode,
+        customPercents,
+        customMacros,
+      } as any, { shouldDirty: true });
+    }
+  }, [distributionMode, customPercents, customMacros, setValue]);
 
   // Keep customPercents and customMacros in sync with meals
   React.useEffect(() => {
