@@ -63,6 +63,8 @@ export default function ResistanceTrainingClient({
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   // Add mode state
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
+  // Add actuals state for SessionSummary
+  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -279,6 +281,8 @@ export default function ResistanceTrainingClient({
         activeWeek={activeWeek}
         mode={mode}
         setMode={setMode}
+        resistanceProgramId={editingProgramId ?? undefined}
+        onActualsChange={setActuals}
       />
       <div className="flex justify-between items-center mt-4">
         <div className="flex space-x-2">
@@ -345,7 +349,20 @@ export default function ResistanceTrainingClient({
       />
       {weeklyExercises[activeWeek - 1]?.length > 0 && (
         <div className="mt-6">
-          <SessionSummary exercises={weeklyExercises[activeWeek - 1]} preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')} />
+          <SessionSummary 
+            exercises={weeklyExercises[activeWeek - 1]} 
+            preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')}
+            mode={mode}
+            actuals={weeklyExercises[activeWeek - 1].map((exercise, exerciseIdx) => 
+              (exercise.plannedSets || []).map((set, setIdx) => {
+                const actual = actuals[exerciseIdx]?.[setIdx] || {};
+                return {
+                  reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
+                  load: actual.load === undefined || actual.load === '' ? null : actual.load
+                };
+              })
+            )}
+          />
         </div>
       )}
     </>

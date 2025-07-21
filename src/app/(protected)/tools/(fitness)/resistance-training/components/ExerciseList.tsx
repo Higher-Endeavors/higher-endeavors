@@ -9,6 +9,7 @@ import { FiCalendar } from 'react-icons/fi';
 
 // NEW: Import for modal/dialog
 import { Modal } from 'flowbite-react';
+import { saveResistanceSession } from '../lib/actions/saveResistanceSession';
 
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;
@@ -21,6 +22,8 @@ interface ExerciseListProps {
   onChangeVariation?: (id: number) => void;
   mode: 'plan' | 'act';
   setMode: (mode: 'plan' | 'act') => void;
+  resistanceProgramId?: number;
+  onActualsChange?: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }) => void;
 }
 
 export default function ExerciseList({
@@ -33,7 +36,9 @@ export default function ExerciseList({
   activeWeek,
   onChangeVariation,
   mode,
-  setMode
+  setMode,
+  resistanceProgramId,
+  onActualsChange
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   // NEW: Actuals state (array of arrays: [exerciseIdx][setIdx])
@@ -56,16 +61,21 @@ export default function ExerciseList({
 
   // NEW: Helper to handle actuals input
   const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
-    setActuals(prev => ({
-      ...prev,
-      [exerciseIdx]: {
-        ...(prev[exerciseIdx] || {}),
-        [setIdx]: {
-          ...(prev[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
-          [field]: value
+    setActuals(prev => {
+      const newActuals = {
+        ...prev,
+        [exerciseIdx]: {
+          ...(prev[exerciseIdx] || {}),
+          [setIdx]: {
+            ...(prev[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
+            [field]: value
+          }
         }
-      }
-    }));
+      };
+      // Call the callback to notify parent of actuals change
+      onActualsChange?.(newActuals);
+      return newActuals;
+    });
   };
 
   // NEW: Gather actuals for saving
@@ -88,11 +98,16 @@ export default function ExerciseList({
     let plannedReps = 0, actualReps = 0, plannedLoad = 0, actualLoad = 0;
     plannedExercises.forEach((exercise, exerciseIdx) => {
       (exercise.plannedSets || []).forEach((set, setIdx) => {
-        plannedReps += set.reps || 0;
-        plannedLoad += Number(set.load) || 0;
+        const plannedRepsVal = set.reps || 0;
+        const plannedLoadVal = Number(set.load) || 0;
+        plannedReps += plannedRepsVal;
+        plannedLoad += plannedRepsVal * plannedLoadVal;
+
         const actual = actuals[exerciseIdx]?.[setIdx] || {};
-        actualReps += actual.reps ? Number(actual.reps) : 0;
-        actualLoad += actual.load ? Number(actual.load) : 0;
+        const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
+        const actualLoadVal = actual.load ? Number(actual.load) : 0;
+        actualReps += actualRepsVal;
+        actualLoad += actualRepsVal * actualLoadVal;
       });
     });
     return { plannedReps, actualReps, plannedLoad, actualLoad };
@@ -101,17 +116,70 @@ export default function ExerciseList({
   // NEW: Save actuals handler (calls server action, to be implemented)
   const handleSaveActuals = async () => {
     setSaving(true);
-    // const actualSets = gatherActualSets();
-    // await saveActualSets({ ... }); // To be implemented
+    const exercisesToSave = plannedExercises.map((exercise, exerciseIdx) => ({
+      programExercisesId: exercise.programExercisesPlannedId,
+      actualSets: (exercise.plannedSets || []).map((set, setIdx) => {
+        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        return {
+          ...set,
+          reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
+          load: actual.load === undefined || actual.load === '' ? null : actual.load
+        };
+      })
+    }));
+    let result: any = { success: false, error: '' };
+    if (resistanceProgramId) {
+      result = await saveResistanceSession({
+        userId,
+        resistanceProgramId,
+        week: activeWeek,
+        date: '', // Not used for now
+        exercises: exercisesToSave
+      });
+    } else {
+      result.error = 'No program selected.';
+    }
     setSummary(calculateSummary());
     setSaving(false);
     setShowConfirm(false);
+    if (!result.success) {
+      alert('Error saving session: ' + (result.error || 'Unknown error'));
+    }
   };
 
   // NEW: Background color for Act mode
   const containerClass = mode === 'act'
     ? 'bg-purple-50 dark:bg-purple-100 rounded-lg shadow p-6 mb-4 relative'
     : 'bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4 relative';
+
+  // Helper to calculate running actual load tally
+  const calculateActualLoadTally = () => {
+    let actualLoad = 0;
+    plannedExercises.forEach((exercise, exerciseIdx) => {
+      (exercise.plannedSets || []).forEach((set, setIdx) => {
+        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
+        const actualLoadVal = actual.load ? Number(actual.load) : 0;
+        if (actual.reps && actual.load) {
+          actualLoad += actualRepsVal * actualLoadVal;
+        }
+      });
+    });
+    return actualLoad;
+  };
+
+  // Helper to calculate planned load tally
+  const calculatePlannedLoadTally = () => {
+    let plannedLoad = 0;
+    plannedExercises.forEach((exercise) => {
+      (exercise.plannedSets || []).forEach((set) => {
+        const plannedRepsVal = set.reps || 0;
+        const plannedLoadVal = Number(set.load) || 0;
+        plannedLoad += plannedRepsVal * plannedLoadVal;
+      });
+    });
+    return plannedLoad;
+  };
 
   return (
     <div className={containerClass}>

@@ -56,6 +56,87 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return typeof rpe === 'number' ? rpe : null;
   };
 
+  // Helper to calculate time under tension
+  const calculateTimeUnderTension = (reps: number | undefined, tempo: string | undefined) => {
+    if (!reps || !tempo) return 0;
+    const [eccentric, pause1, concentric, pause2] = tempo.split('').map(Number);
+    return reps * (eccentric + pause1 + concentric + pause2);
+  };
+
+  // Helper to calculate planned and actual load for this exercise
+  const calculatePlannedLoadTally = () => {
+    let plannedLoad = 0;
+    (exercise.plannedSets || []).forEach((set) => {
+      const plannedRepsVal = set.reps || 0;
+      const plannedLoadVal = Number(set.load) || 0;
+      plannedLoad += plannedRepsVal * plannedLoadVal;
+    });
+    return plannedLoad;
+  };
+  const calculateActualLoadTally = () => {
+    let actualLoad = 0;
+    (exercise.plannedSets || []).forEach((set, setIdx) => {
+      const actual = actuals[setIdx] || {};
+      const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
+      const actualLoadVal = actual.load ? Number(actual.load) : 0;
+      if (actual.reps && actual.load) {
+        actualLoad += actualRepsVal * actualLoadVal;
+      }
+    });
+    return actualLoad;
+  };
+
+  // Helper to calculate actual reps for this exercise
+  const calculateActualRepsTally = () => {
+    let actualReps = 0;
+    (exercise.plannedSets || []).forEach((set, setIdx) => {
+      const actual = actuals[setIdx] || {};
+      const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
+      if (actual.reps) {
+        actualReps += actualRepsVal;
+      }
+    });
+    return actualReps;
+  };
+
+  // Helper to calculate percentage difference and determine color class
+  const getDeviationColor = (actual: number, planned: number): string => {
+    if (planned === 0) return '';
+    const percentageDiff = ((actual - planned) / planned) * 100;
+    
+    if (percentageDiff === 0) return ''; // No color for exact matches
+    if (percentageDiff > 0) return 'bg-green-100 border-green-300 text-green-800'; // Green for exceeding planned
+    if (percentageDiff >= -19) return 'bg-yellow-100 border-yellow-300 text-yellow-800'; // Yellow for 1-19% less
+    return 'bg-red-100 border-red-300 text-red-800'; // Red for ≤20% less
+  };
+
+  // Helper to get color class for individual set values
+  const getSetDeviationColor = (setIdx: number, type: 'reps' | 'load'): string => {
+    const set = exercise.plannedSets?.[setIdx];
+    const actual = actuals[setIdx];
+    
+    if (!set || !actual || !actual[type]) return '';
+    
+    const planned = type === 'reps' ? (set.reps || 0) : Number(set.load) || 0;
+    const actualVal = Number(actual[type]);
+    
+    return getDeviationColor(actualVal, planned);
+  };
+
+  // Helper to get color class for summary values
+  const getSummaryDeviationColor = (type: 'reps' | 'load'): string => {
+    const plannedReps = exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0) || 0;
+    const actualReps = calculateActualRepsTally();
+    const plannedLoad = getTotalLoad().value;
+    const actualLoad = calculateActualLoadTally();
+    
+    if (type === 'reps') {
+      return getDeviationColor(actualReps, plannedReps);
+    } else {
+      return getDeviationColor(actualLoad, plannedLoad);
+    }
+  };
+
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
   const getExerciseId = () => exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
   const toggleMenu = (id: number) => {
@@ -127,7 +208,7 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 <input
                   type="number"
                   min={0}
-                  className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${actualReps !== '' && Number(actualReps) !== plannedReps ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                  className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
                   placeholder="Actual"
                   value={actualReps}
                   onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
@@ -137,7 +218,7 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 <span>{formatLoad(plannedLoad, plannedUnit)}</span>
                 <input
                   type="text"
-                  className={`w-16 px-1 py-0.5 border rounded ml-1 ${actualLoad !== '' && actualLoad !== plannedLoad ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+                  className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
                   placeholder="Actual"
                   value={actualLoad}
                   onChange={e => onActualChange(setIdx, 'load', e.target.value)}
@@ -155,13 +236,15 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-6 text-sm font-medium text-purple-700">
             <div>
-              <span className="mr-1">Total Reps:</span>
-              <span>{exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)}</span>
+              <span className="mr-1">Total Reps (Planned/Actual):</span>
+              <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>
+                {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)} / {calculateActualRepsTally()}
+              </span>
             </div>
             <div>
-              <span className="mr-1">Total Load:</span>
-              <span>
-                {formatNumberWithCommas(getTotalLoad().value)} {getTotalLoad().unit}
+              <span className="mr-1">Total Load (Planned/Actual):</span>
+              <span className={`${getSummaryDeviationColor('load')} px-2 py-0.5 rounded-full`}>
+                {formatNumberWithCommas(getTotalLoad().value)} / {formatNumberWithCommas(calculateActualLoadTally())} {getTotalLoad().unit}
               </span>
             </div>
             {getRIR() !== null && (
