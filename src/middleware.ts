@@ -1,6 +1,7 @@
 // import { auth } from "@/app/auth"
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { nanoid } from "nanoid";
 
 export function middleware(request: NextRequest) {
   const publicGuideContent = [
@@ -9,35 +10,53 @@ export function middleware(request: NextRequest) {
     "/guide/lifestyle-overview",
     "/guide/nutrition-overview",
   ];
+  const protectedContent = [
+    "/admin/",
+    "/guide/",
+    "/sales/",
+    "/tools/",
+    "/user/",
+  ];
+
+  const requestId = request.headers.get("x-request-id") || nanoid();
+
+  const response = NextResponse.next();
+  response.headers.set("x-request-id", requestId);
 
   if (publicGuideContent.includes(request.nextUrl.pathname)) {
-    return NextResponse.next();
+    return response;
   }
-  let sessionTokenName = "";
-  if (process.env.RUNTIME_ENV == "dev") {
-    sessionTokenName = "authjs.session-token"
-  } else {
-    sessionTokenName = "__Secure-authjs.session-token"
-  }
+  if (publicGuideContent.includes(request.nextUrl.pathname)) {
+    let sessionTokenName = "";
+    if (process.env.RUNTIME_ENV == "dev") {
+      sessionTokenName = "authjs.session-token";
+    } else {
+      sessionTokenName = "__Secure-authjs.session-token";
+    }
 
-  if (request.cookies.has(`${sessionTokenName}`)) {
-    return NextResponse.next();
-  } else {
-    return NextResponse.redirect(
-      new URL(
-        `/access-redirect?redirect=${request.nextUrl.pathname}`,
-        request.url
-      )
-    );
+    if (request.cookies.has(`${sessionTokenName}`)) {
+      return NextResponse.next();
+    } else {
+      const redirect = NextResponse.redirect(
+        new URL(
+          `/access-redirect?redirect=${request.nextUrl.pathname}`,
+          request.url
+        )
+      );
+      redirect.headers.set("x-request-id", requestId);
+      return redirect;
+    }
   }
 }
 
 export const config = {
   matcher: [
-    "/admin/:path*",
-    "/guide/:path*",
-    "/sales/:path*",
-    "/tools/:path*",
-    "/user/:path*",
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
