@@ -2,9 +2,13 @@
 
 import { useState } from 'react';
 import AddExerciseModal from '../modals/AddExerciseModal';
-import ExerciseItem from './ExerciseItem';
+import ExerciseItemPlan from './ExerciseItemPlan';
+import ExerciseItemAct from './ExerciseItemAct';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import { FiCalendar } from 'react-icons/fi';
+
+// NEW: Import for modal/dialog
+import { Modal } from 'flowbite-react';
 
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;
@@ -15,6 +19,8 @@ interface ExerciseListProps {
   onDeleteExercise: (id: number) => void;
   activeWeek: number; // Added for week filtering
   onChangeVariation?: (id: number) => void;
+  mode: 'plan' | 'act';
+  setMode: (mode: 'plan' | 'act') => void;
 }
 
 export default function ExerciseList({
@@ -25,9 +31,17 @@ export default function ExerciseList({
   onEditExercise,
   onDeleteExercise,
   activeWeek,
-  onChangeVariation
+  onChangeVariation,
+  mode,
+  setMode
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
+  // NEW: Actuals state (array of arrays: [exerciseIdx][setIdx])
+  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
+  // NEW: Confirmation dialog state
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [summary, setSummary] = useState<{ plannedReps: number; actualReps: number; plannedLoad: number; actualLoad: number } | null>(null);
 
   if (isLoading) {
     return (
@@ -40,24 +54,93 @@ export default function ExerciseList({
     );
   }
 
+  // NEW: Helper to handle actuals input
+  const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
+    setActuals(prev => ({
+      ...prev,
+      [exerciseIdx]: {
+        ...(prev[exerciseIdx] || {}),
+        [setIdx]: {
+          ...(prev[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
+          [field]: value
+        }
+      }
+    }));
+  };
+
+  // NEW: Gather actuals for saving
+  const gatherActualSets = () => {
+    return plannedExercises.map((exercise, exerciseIdx) => {
+      const sets = exercise.plannedSets || [];
+      return sets.map((set, setIdx) => {
+        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        return {
+          ...set,
+          reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
+          load: actual.load === undefined || actual.load === '' ? null : actual.load
+        };
+      });
+    });
+  };
+
+  // NEW: Calculate summary
+  const calculateSummary = () => {
+    let plannedReps = 0, actualReps = 0, plannedLoad = 0, actualLoad = 0;
+    plannedExercises.forEach((exercise, exerciseIdx) => {
+      (exercise.plannedSets || []).forEach((set, setIdx) => {
+        plannedReps += set.reps || 0;
+        plannedLoad += Number(set.load) || 0;
+        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        actualReps += actual.reps ? Number(actual.reps) : 0;
+        actualLoad += actual.load ? Number(actual.load) : 0;
+      });
+    });
+    return { plannedReps, actualReps, plannedLoad, actualLoad };
+  };
+
+  // NEW: Save actuals handler (calls server action, to be implemented)
+  const handleSaveActuals = async () => {
+    setSaving(true);
+    // const actualSets = gatherActualSets();
+    // await saveActualSets({ ... }); // To be implemented
+    setSummary(calculateSummary());
+    setSaving(false);
+    setShowConfirm(false);
+  };
+
+  // NEW: Background color for Act mode
+  const containerClass = mode === 'act'
+    ? 'bg-purple-50 dark:bg-purple-100 rounded-lg shadow p-6 mb-4 relative'
+    : 'bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4 relative';
+
   return (
-    <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4 relative">
+    <div className={containerClass}>
+      {/* Plan/Act Toggle */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
-        <span
-          className="text-gray-600 hover:text-gray-800 cursor-pointer relative"
-          aria-label="Open calendar (coming soon)"
-          tabIndex={0}
-          onClick={() => setShowCalendar((prev) => !prev)}
-          onBlur={() => setShowCalendar(false)}
-        >
-          <FiCalendar size={24} />
-          {showCalendar && (
-            <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-4" style={{ minWidth: '16rem' }}>
-              <CalendarGrid />
-            </div>
-          )}
-        </span>
+        <div className="flex items-center gap-4">
+          <span className={mode === 'plan' ? 'font-bold text-purple-700' : 'text-gray-500'}>Plan</span>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" className="sr-only peer" checked={mode === 'act'} onChange={() => setMode(mode === 'plan' ? 'act' : 'plan')} />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer dark:bg-gray-300 peer-checked:bg-purple-600 transition-all"></div>
+            <span className="absolute left-1 top-1 w-4 h-4 bg-white border border-gray-300 rounded-full transition-all peer-checked:translate-x-5"></span>
+          </label>
+          <span className={mode === 'act' ? 'font-bold text-purple-700' : 'text-gray-500'}>Act</span>
+          <span
+            className="text-gray-600 hover:text-gray-800 cursor-pointer relative"
+            aria-label="Open calendar (coming soon)"
+            tabIndex={0}
+            onClick={() => setShowCalendar((prev) => !prev)}
+            onBlur={() => setShowCalendar(false)}
+          >
+            <FiCalendar size={24} />
+            {showCalendar && (
+              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-4" style={{ minWidth: '16rem' }}>
+                <CalendarGrid />
+              </div>
+            )}
+          </span>
+        </div>
       </div>
       {/* Exercise List */}
       <div className="space-y-4">
@@ -66,12 +149,14 @@ export default function ExerciseList({
             No exercises added yet. Click the button below to add exercises to your workout.
           </div>
         ) : (
-          plannedExercises.map((exercise, index) => {
+          plannedExercises.map((exercise, exerciseIdx) => {
             const isFirstInGroup =
-              index === 0 ||
-              (exercise.pairing?.[0] ?? '') !== (plannedExercises[index - 1].pairing?.[0] ?? '');
+              exerciseIdx === 0 ||
+              (exercise.pairing?.[0] ?? '') !== (plannedExercises[exerciseIdx - 1].pairing?.[0] ?? '');
             return (
-              <div key={`${exercise.exerciseLibraryId}-${exercise.pairing ?? ''}`}>
+              <div key={`${exercise.exerciseLibraryId}-${exercise.pairing ?? ''}`}
+                className="relative"
+              >
                 {isFirstInGroup && (
                   <div className="flex items-center gap-4 mb-2">
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
@@ -81,18 +166,92 @@ export default function ExerciseList({
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                   </div>
                 )}
-                <ExerciseItem
-                  exercise={exercise}
-                  exercises={exercises || []}
-                  onEdit={onEditExercise}
-                  onDelete={onDeleteExercise}
-                  onChangeVariation={onChangeVariation}
-                />
+                {/* Plan Mode: show ExerciseItem as before */}
+                {mode === 'plan' ? (
+                  <ExerciseItemPlan
+                    exercise={exercise}
+                    exercises={exercises || []}
+                    onEdit={onEditExercise}
+                    onDelete={onDeleteExercise}
+                    onChangeVariation={onChangeVariation}
+                  />
+                ) : (
+                  <ExerciseItemAct
+                    exercise={exercise}
+                    exercises={exercises || []}
+                    onEdit={onEditExercise}
+                    onDelete={onDeleteExercise}
+                    onChangeVariation={onChangeVariation}
+                    actuals={actuals[exerciseIdx] || {}}
+                    onActualChange={(setIdx, field, value) => handleActualChange(exerciseIdx, setIdx, field, value)}
+                  />
+                )}
               </div>
             );
           })
         )}
       </div>
+      {/* Complete Session button in Act mode */}
+      {mode === 'act' && plannedExercises.length > 0 && (
+        <div className="flex justify-end mt-6">
+          <button
+            className="px-6 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition"
+            onClick={() => setShowConfirm(true)}
+            disabled={saving}
+          >
+            Complete Session
+          </button>
+        </div>
+      )}
+      {/* Confirmation Dialog */}
+      <Modal show={showConfirm} onClose={() => setShowConfirm(false)} size="md">
+        <Modal.Header className="dark:text-slate-900">Complete Session</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p className="text-gray-700 dark:text-gray-100">
+              Are you sure you want to complete and save this Training Session? This will record your actuals for all sets.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-slate-900 bg-gray-100 dark:bg-gray-200 rounded-md hover:bg-gray-200 dark:hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveActuals}
+                disabled={saving}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-700 rounded-md hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Complete Session'}
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+      {/* Summary Modal */}
+      <Modal show={!!summary} onClose={() => setSummary(null)} size="md">
+        <Modal.Header className="dark:text-slate-900">Session Summary</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <div className="text-lg font-semibold">Planned vs. Actual</div>
+            <div className="flex flex-col gap-2">
+              <div>Planned Reps: <span className="font-bold">{summary?.plannedReps}</span></div>
+              <div>Actual Reps: <span className="font-bold">{summary?.actualReps}</span></div>
+              <div>Planned Load: <span className="font-bold">{summary?.plannedLoad}</span></div>
+              <div>Actual Load: <span className="font-bold">{summary?.actualLoad}</span></div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setSummary(null)}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-700 rounded-md hover:bg-purple-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }

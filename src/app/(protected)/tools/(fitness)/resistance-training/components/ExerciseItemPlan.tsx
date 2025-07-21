@@ -5,7 +5,7 @@ import { HiOutlineDotsVertical } from 'react-icons/hi';
 import { ProgramExercisesPlanned, ExerciseSet, ExerciseLibraryItem } from '../types/resistance-training.zod';
 import { calculateTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
 
-interface ExerciseItemProps {
+interface ExerciseItemPlanProps {
   exercise: ProgramExercisesPlanned;
   exercises: ExerciseLibraryItem[];
   onEdit: (id: number) => void;
@@ -13,7 +13,7 @@ interface ExerciseItemProps {
   onChangeVariation?: (id: number) => void;
 }
 
-export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, onChangeVariation }: ExerciseItemProps) {
+export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete, onChangeVariation }: ExerciseItemPlanProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: number]: boolean }>({});
 
   const toggleMenu = (id: number) => {
@@ -148,6 +148,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, on
         </div>
       </div>
 
+      {/* Table header */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
         <div>
           <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
@@ -211,7 +212,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, on
           </div>
         </div>
       </div>
-
+      {/* Summary row and notes, as in Plan mode */}
       <div className="mt-3 border-t pt-3">
         <div className="flex justify-between items-center">
           <div className="flex items-center space-x-6 text-sm font-medium text-purple-700">

@@ -61,6 +61,8 @@ export default function ResistanceTrainingClient({
   const [saveResult, setSaveResult] = useState<string | null>(null);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
+  // Add mode state
+  const [mode, setMode] = useState<'plan' | 'act'>('plan');
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -275,6 +277,8 @@ export default function ResistanceTrainingClient({
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
         activeWeek={activeWeek}
+        mode={mode}
+        setMode={setMode}
       />
       <div className="flex justify-between items-center mt-4">
         <div className="flex space-x-2">
@@ -284,10 +288,11 @@ export default function ResistanceTrainingClient({
               setEditingExercise(null);
               setIsModalOpen(true);
             }}
+            disabled={mode === 'act'}
           >
             Add Exercise
           </button>
-          {editingProgramId && (
+          {editingProgramId && mode === 'plan' && (
             <button
               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               onClick={() => {
@@ -309,7 +314,7 @@ export default function ResistanceTrainingClient({
             </button>
           )}
         </div>
-        {weeklyExercises.some(week => week.length > 0) && (
+        {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             style={{ minWidth: '120px' }}
