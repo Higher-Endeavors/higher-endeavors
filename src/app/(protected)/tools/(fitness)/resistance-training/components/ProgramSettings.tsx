@@ -253,58 +253,59 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
             </div>
           )}
 
-          {/* Program Length */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Program Length (weeks)
-            </label>
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
-              placeholder="4"
-              min="1"
-              max="52"
-              step="1"
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Set the duration of your training program
-            </p>
-          </div>
+          {/* Program Length and Sessions Per Week */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Program Length (weeks)
+              </label>
+              <input
+                type="number"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="4"
+                min="1"
+                max="52"
+                step="1"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Set the duration of your training program
+              </p>
+            </div>
 
-          {/* Sessions Per Week */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Sessions Per Week
-            </label>
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
-              placeholder="3"
-              min="0.5"
-              max="7"
-              step="0.5"
-              value={sessionsInputValue}
-              onChange={e => {
-                const value = e.target.value;
-                setSessionsInputValue(value);
-                const parsed = parseFloat(value);
-                if (!isNaN(parsed) && parsed > 0) {
-                  setSessionsPerWeek(parsed);
-                }
-              }}
-              onBlur={e => {
-                let val = e.target.value;
-                if (val === '' || Number(val) < 0.5) {
-                  setSessionsInputValue('3');
-                  setSessionsPerWeek(3);
-                }
-              }}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              How many times each week are you planning to do this program? Use 1.5 for alternating A/B programs.
-            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sessions Per Week
+              </label>
+              <input
+                type="number"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="1"
+                min="0.5"
+                max="7"
+                step="0.5"
+                value={sessionsInputValue}
+                onChange={e => {
+                  const value = e.target.value;
+                  setSessionsInputValue(value);
+                  const parsed = parseFloat(value);
+                  if (!isNaN(parsed) && parsed > 0) {
+                    setSessionsPerWeek(parsed);
+                  }
+                }}
+                onBlur={e => {
+                  let val = e.target.value;
+                  if (val === '' || Number(val) < 0.5) {
+                    setSessionsInputValue('1');
+                    setSessionsPerWeek(1);
+                  }
+                }}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                How many times each week are you planning to do this program?
+              </p>
+            </div>
           </div>
 
           {/* Progression Settings */}

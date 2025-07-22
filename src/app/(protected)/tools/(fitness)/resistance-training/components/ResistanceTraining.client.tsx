@@ -29,7 +29,7 @@ export default function ResistanceTrainingClient({
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [programLength, setProgramLength] = useState(4);
-  const [sessionsPerWeek, setSessionsPerWeek] = useState(3);
+  const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
   // Progression settings state
   const [progressionSettings, setProgressionSettings] = useState({
     type: 'None',
@@ -288,6 +288,7 @@ export default function ResistanceTrainingClient({
         mode={mode}
         setMode={setMode}
         resistanceProgramId={editingProgramId ?? undefined}
+        actuals={actuals}
         onActualsChange={setActuals}
       />
       <div className="flex justify-between items-center mt-4">

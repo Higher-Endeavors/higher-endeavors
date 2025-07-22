@@ -23,7 +23,8 @@ interface ExerciseListProps {
   mode: 'plan' | 'act';
   setMode: (mode: 'plan' | 'act') => void;
   resistanceProgramId?: number;
-  onActualsChange?: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }) => void;
+  actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } };
+  onActualsChange: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }) => void;
 }
 
 export default function ExerciseList({
@@ -38,11 +39,11 @@ export default function ExerciseList({
   mode,
   setMode,
   resistanceProgramId,
+  actuals,
   onActualsChange
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
-  // NEW: Actuals state (array of arrays: [exerciseIdx][setIdx])
-  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
+  // Remove local actuals state - use parent state directly
   // NEW: Confirmation dialog state
   const [showConfirm, setShowConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,21 +79,17 @@ export default function ExerciseList({
 
   // NEW: Helper to handle actuals input
   const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
-    setActuals(prev => {
-      const newActuals = {
-        ...prev,
-        [exerciseIdx]: {
-          ...(prev[exerciseIdx] || {}),
-          [setIdx]: {
-            ...(prev[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
-            [field]: value
-          }
+    const newActuals = {
+      ...actuals,
+      [exerciseIdx]: {
+        ...(actuals[exerciseIdx] || {}),
+        [setIdx]: {
+          ...(actuals[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
+          [field]: value
         }
-      };
-      // Call the callback to notify parent of actuals change
-      onActualsChange?.(newActuals);
-      return newActuals;
-    });
+      }
+    };
+    onActualsChange(newActuals);
   };
 
   // NEW: Gather actuals for saving
