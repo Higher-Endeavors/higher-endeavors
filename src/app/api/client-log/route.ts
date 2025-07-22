@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverLogger } from '@/app/lib/logging/server-logger';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { ClientLogEntrySchema, ClientLogEntry } from '@/app/lib/types/logging';
 import { z } from 'zod';
 

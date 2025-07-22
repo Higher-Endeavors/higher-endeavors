@@ -22,10 +22,10 @@ class ClientLogger {
     
     // Use sendBeacon for reliable delivery
     if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/logs', blob);
+      navigator.sendBeacon('/api/client-log', blob);
     } else {
       // Fallback for older browsers
-      fetch('/api/logs', {
+      fetch('/api/client-log', {
         method: 'POST',
         body: blob,
         keepalive: true,
