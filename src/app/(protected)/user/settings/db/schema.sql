@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS public.user_settings
     time_format character varying(5) COLLATE pg_catalog."default" DEFAULT '12h'::character varying,
     date_format character varying(10) COLLATE pg_catalog."default" DEFAULT 'MM/DD/YYYY'::character varying,
     language character varying(10) COLLATE pg_catalog."default" DEFAULT 'en'::character varying,
+    sidebar_expand_mode character varying(10) COLLATE pg_catalog."default" DEFAULT 'hover'::character varying,
     notifications_email boolean DEFAULT true,
     notifications_text boolean DEFAULT false,
     notifications_app boolean DEFAULT false,

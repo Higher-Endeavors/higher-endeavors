@@ -10,9 +10,10 @@ interface ExerciseItemProps {
   exercises: ExerciseLibraryItem[];
   onEdit: (id: number) => void;
   onDelete: (id: number) => void;
+  onChangeVariation?: (id: number) => void;
 }
 
-export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: ExerciseItemProps) {
+export default function ExerciseItem({ exercise, exercises, onEdit, onDelete, onChangeVariation }: ExerciseItemProps) {
   const [menuOpen, setMenuOpen] = useState<{ [key: number]: boolean }>({});
 
   const toggleMenu = (id: number) => {
@@ -22,29 +23,72 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
     }));
   };
 
+  // Get the correct exercise ID for this exercise
+  const getExerciseId = () => {
+    return exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
+  };
+
   const closeMenu = () => {
     setMenuOpen({});
   };
 
-  // Simplified helper functions
-  const formatLoad = (load: string) => {
-    return load; // Load is already formatted with unit in the PlannedSet
+  // Helper function to get load unit from a set
+  const getLoadUnit = (set: any) => {
+    return set.loadUnit || 'lbs'; // Default to lbs if no unit specified
+  };
+
+  // Helper function to format load with unit
+  const formatLoad = (load: string, unit?: string) => {
+    if (!load || load === '0') return '0';
+    // If the load already contains a unit (like "BW" or "Red Band"), return as is
+    if (load.toLowerCase().includes('bw') || load.toLowerCase().includes('band') || load.toLowerCase().includes('kg') || load.toLowerCase().includes('lbs')) {
+      return load;
+    }
+    // Otherwise, append the unit
+    return `${load} ${unit || 'lbs'}`;
   };
 
   // Get exercise name by looking up the ID in the exercises array
   const getExerciseName = () => {
-    const exerciseData = exercises.find(ex => ex.exerciseLibraryId === exercise.exerciseLibraryId);
-    return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId}`;
+    const exerciseData = exercises.find(ex => {
+      if (exercise.exerciseSource === 'user') {
+        return ex.userExerciseLibraryId === exercise.userExerciseLibraryId;
+      } else {
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId;
+      }
+    });
+    return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
   };
 
   // Calculate total load for this exercise
   const getTotalLoad = () => {
-    if (!exercise.plannedSets) return 0;
-    return exercise.plannedSets.reduce((sum, set) => {
+    if (!exercise.plannedSets) return { value: 0, unit: 'lbs' };
+    
+    // Get the most common unit from all sets, defaulting to lbs
+    const units = exercise.plannedSets.map(set => getLoadUnit(set));
+    const mostCommonUnit = units.length > 0 ? units[0] : 'lbs';
+    
+    const totalValue = exercise.plannedSets.reduce((sum, set) => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
       return sum + (reps * load);
     }, 0);
+    
+    return { value: totalValue, unit: mostCommonUnit };
+  };
+
+  // Get RIR value from the first set (if available)
+  const getRIR = () => {
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
+    const rir = exercise.plannedSets[0].rir;
+    return typeof rir === 'number' ? rir : null;
+  };
+
+  // Get RPE value from the first set (if available)
+  const getRPE = () => {
+    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
+    const rpe = exercise.plannedSets[0].rpe;
+    return typeof rpe === 'number' ? rpe : null;
   };
 
   const formatNumberWithCommas = (x: number) => x.toLocaleString();
@@ -60,16 +104,16 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
           <button
             onClick={(e) => {
               e.preventDefault();
-              toggleMenu(exercise.exerciseLibraryId || 0);
+              toggleMenu(getExerciseId());
             }}
             aria-label="Exercise options"
-            aria-expanded={!!menuOpen[exercise.exerciseLibraryId || 0]}
+            aria-expanded={!!menuOpen[getExerciseId()]}
             className="p-1 hover:bg-gray-100 rounded-full"
           >
             <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" aria-hidden="true" />
           </button>
           
-          {menuOpen[exercise.exerciseLibraryId || 0] && (
+          {menuOpen[getExerciseId()] && (
             <>
               <div 
                 className="fixed inset-0 z-10" 
@@ -80,7 +124,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      onEdit(exercise.exerciseLibraryId || 0);
+                      onEdit(getExerciseId());
                       closeMenu();
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -90,7 +134,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
                   <button
                     onClick={(e) => {
                       e.preventDefault();
-                      onDelete(exercise.exerciseLibraryId || 0);
+                      onDelete(getExerciseId());
                       closeMenu();
                     }}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -124,7 +168,7 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
             {exercise.plannedSets?.map((set, idx) => (
               <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
                 <span className="font-medium dark:text-slate-900">
-                  {set.load || '0'}
+                  {formatLoad(set.load || '0', getLoadUnit(set))}
                 </span>
               </div>
             ))}
@@ -178,9 +222,21 @@ export default function ExerciseItem({ exercise, exercises, onEdit, onDelete }: 
             <div>
               <span className="mr-1">Total Load:</span>
               <span>
-                {formatNumberWithCommas(getTotalLoad())}
+                {formatNumberWithCommas(getTotalLoad().value)} {getTotalLoad().unit}
               </span>
             </div>
+            {getRIR() !== null && (
+              <div>
+                <span className="mr-1">RIR:</span>
+                <span>{getRIR()}</span>
+              </div>
+            )}
+            {getRPE() !== null && (
+              <div>
+                <span className="mr-1">RPE:</span>
+                <span>{getRPE()}</span>
+              </div>
+            )}
           </div>
           {exercise.notes && (
             <div className="text-sm text-gray-600">
