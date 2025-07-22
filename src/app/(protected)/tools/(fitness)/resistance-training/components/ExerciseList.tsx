@@ -59,6 +59,23 @@ export default function ExerciseList({
     );
   }
 
+  const sortExercisesByPairing = (exercises: ProgramExercisesPlanned[]): ProgramExercisesPlanned[] => {
+    return [...exercises].sort((a, b) => {
+      const pairingA = a.pairing || '';
+      const pairingB = b.pairing || '';
+      const letterA = pairingA.charAt(0).toUpperCase();
+      const letterB = pairingB.charAt(0).toUpperCase();
+      const numberA = parseInt(pairingA.slice(1)) || 0;
+      const numberB = parseInt(pairingB.slice(1)) || 0;
+      if (letterA !== letterB) {
+        return letterA.localeCompare(letterB);
+      }
+      return numberA - numberB;
+    });
+  };
+
+  const sortedExercises = sortExercisesByPairing(plannedExercises);
+
   // NEW: Helper to handle actuals input
   const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
     setActuals(prev => {
@@ -211,15 +228,15 @@ export default function ExerciseList({
       </div>
       {/* Exercise List */}
       <div className="space-y-4">
-        {plannedExercises.length === 0 ? (
+        {sortedExercises.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             No exercises added yet. Click the button below to add exercises to your workout.
           </div>
         ) : (
-          plannedExercises.map((exercise, exerciseIdx) => {
+          sortedExercises.map((exercise, exerciseIdx) => {
             const isFirstInGroup =
               exerciseIdx === 0 ||
-              (exercise.pairing?.[0] ?? '') !== (plannedExercises[exerciseIdx - 1].pairing?.[0] ?? '');
+              (exercise.pairing?.[0] ?? '') !== (sortedExercises[exerciseIdx - 1].pairing?.[0] ?? '');
             return (
               <div key={`${exercise.exerciseLibraryId}-${exercise.pairing ?? ''}`}
                 className="relative"
