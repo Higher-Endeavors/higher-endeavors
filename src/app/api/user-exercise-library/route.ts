@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     // Return as array of objects
     return NextResponse.json(
       result.rows.map((row: any) => ({
-        exercise_library_id: row.user_exercise_library_id,
+        user_exercise_library_id: row.user_exercise_library_id,
         name: row.exercise_name,
         source: 'user'
       }))

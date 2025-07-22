@@ -14,6 +14,7 @@ interface ExerciseListProps {
   onEditExercise: (id: number) => void;
   onDeleteExercise: (id: number) => void;
   activeWeek: number; // Added for week filtering
+  onChangeVariation?: (id: number) => void;
 }
 
 export default function ExerciseList({
@@ -23,7 +24,8 @@ export default function ExerciseList({
   plannedExercises,
   onEditExercise,
   onDeleteExercise,
-  activeWeek // Added for week filtering
+  activeWeek,
+  onChangeVariation
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
 
@@ -84,6 +86,7 @@ export default function ExerciseList({
                   exercises={exercises || []}
                   onEdit={onEditExercise}
                   onDelete={onDeleteExercise}
+                  onChangeVariation={onChangeVariation}
                 />
               </div>
             );

@@ -12,7 +12,7 @@ export async function addCustomExercise(formData: FormData) {
 
   // Check for duplicate
   const existing = await SingleQuery(
-    'SELECT id FROM user_exercises WHERE user_id = $1 AND exercise_name = $2',
+    'SELECT user_exercise_library_id FROM resist_user_exercise_library WHERE user_id = $1 AND exercise_name = $2',
     [userId, exerciseName]
   );
   if (existing.rows.length > 0) {
@@ -21,7 +21,7 @@ export async function addCustomExercise(formData: FormData) {
 
   // Insert new exercise
   const result = await SingleQuery(
-    'INSERT INTO user_exercises (user_id, exercise_name) VALUES ($1, $2) RETURNING id, exercise_name',
+    'INSERT INTO resist_user_exercise_library (user_id, exercise_name) VALUES ($1, $2) RETURNING user_exercise_library_id, exercise_name',
     [userId, exerciseName]
   );
 

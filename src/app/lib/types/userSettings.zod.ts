@@ -11,16 +11,19 @@ export const NotificationTypeSchema = z.enum(["email", "text", "app"]);
 export const CircumferenceUnitSchema = z.enum(["in", "cm"]);
 export const BodyFatMethodSchema = z.enum(["manual", "bioelectrical", "skinfold"]);
 export const MacronutrientTargetModeSchema = z.enum(["grams", "percent"]);
-export const FoodAllergySchema = z.enum([
-  "gluten",
-  "peanut",
-  "dairy",
-  "soy",
-  "egg",
-  "tree_nut",
-  "fish",
-  "shellfish",
-  "sesame"
+export const FoodAllergySchema = z.union([
+  z.enum([
+    "gluten",
+    "peanut",
+    "dairy",
+    "soy",
+    "egg",
+    "tree_nut",
+    "fish",
+    "shellfish",
+    "sesame"
+  ]),
+  z.string()
 ]);
 export const CircumferenceMeasurementSchema = z.enum([
   "neck",
@@ -71,21 +74,17 @@ export const FitnessSettingsSchema = z.object({
 // Health, Lifestyle, Nutrition: pass-through objects (JSON, can be strengthened later)
 export const HealthSettingsSchema = z.record(z.unknown());
 export const LifestyleSettingsSchema = z.record(z.unknown());
-export const NutritionSettingsSchema = z.record(z.unknown());
-
 // Macronutrient Targets
 export const MacronutrientTargetsSchema = z.object({
   protein: z.number(),
   carbs: z.number(),
   fat: z.number(),
 });
-
 // Meal Schedule Entry
 export const MealScheduleEntrySchema = z.object({
   name: z.string(),
   time: z.string().optional(),
 });
-
 // Nutrient Distribution
 export const NutrientDistributionSchema = z.object({
   mode: z.enum(["even", "custom-percent", "custom-macros"]),
@@ -94,7 +93,6 @@ export const NutrientDistributionSchema = z.object({
     z.object({ protein: z.number(), carbs: z.number(), fat: z.number() })
   ).optional(),
 });
-
 // Custom Meal Schedule
 export const CustomMealScheduleSchema = z.object({
   id: z.string(),
@@ -102,7 +100,6 @@ export const CustomMealScheduleSchema = z.object({
   meals: z.array(MealScheduleEntrySchema),
   nutrientDistribution: NutrientDistributionSchema,
 });
-
 // Schedule Assignments
 export const ScheduleAssignmentsSchema = z.record(
   z.enum([
@@ -116,6 +113,20 @@ export const ScheduleAssignmentsSchema = z.record(
   ]),
   z.string()
 );
+// Nutrition Settings (strongly typed for form)
+export const NutritionSettingsSchema = z.object({
+  defaultMealSchedule: CustomMealScheduleSchema,
+  customMealSchedules: z.array(CustomMealScheduleSchema).optional(),
+  scheduleAssignments: ScheduleAssignmentsSchema.optional(),
+  calorieTarget: z.number().optional(),
+  macronutrientTargets: MacronutrientTargetsSchema.optional(),
+  macronutrientTargetMode: MacronutrientTargetModeSchema.optional(),
+  foodMeasurement: FoodMeasurementUnitSchema.optional(),
+  hydrationUnit: HydrationUnitSchema.optional(),
+  dietaryBase: DietaryBaseSchema.optional(),
+  dietaryStyles: z.array(DietaryStyleSchema).optional(),
+  foodAllergies: z.array(FoodAllergySchema).optional(),
+});
 
 // Top-level UserSettings
 export const UserSettingsSchema = z.object({

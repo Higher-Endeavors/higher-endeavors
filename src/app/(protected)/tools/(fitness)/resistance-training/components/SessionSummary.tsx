@@ -6,24 +6,28 @@ import { calculateSessionStats } from '../../lib/calculations/resistanceTraining
 
 interface SessionSummaryProps {
   exercises: ProgramExercisesPlanned[];
+  preferredLoadUnit?: 'lbs' | 'kg';
 }
 
 function formatNumberWithCommas(x: number): string {
   return x.toLocaleString();
 }
 
-export default function SessionSummary({ exercises }: SessionSummaryProps) {
+export default function SessionSummary({ exercises, preferredLoadUnit }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
 
+  // Use preferredLoadUnit or default to 'lbs'
+  const loadUnit = preferredLoadUnit || 'lbs';
+
   // Calculate real session statistics
-  const sessionStats = calculateSessionStats(exercises);
+  const sessionStats = calculateSessionStats(exercises, loadUnit);
   
   const summaryData = {
     'Estimated Duration': sessionStats.estimatedDuration,
     'Total Exercises': sessionStats.totalExercises.toString(),
     'Total Sets': sessionStats.totalSets.toString(),
     'Total Reps': sessionStats.totalReps.toString(),
-    'Total Load': sessionStats.totalLoad > 0 ? `${formatNumberWithCommas(sessionStats.totalLoad)} lbs` : '0 lbs',
+    'Total Load': sessionStats.totalLoad > 0 ? `${formatNumberWithCommas(Math.round(sessionStats.totalLoad))} ${loadUnit}` : `0 ${loadUnit}`,
   };
 
   return (
