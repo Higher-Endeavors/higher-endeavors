@@ -34,22 +34,22 @@ const PerformanceTherapyIcon = () => (
       {
         icon: <PerformanceTherapyIcon />,
         title: 'Performance Therapy',
-        description: 'A comprehensive and individualized approach that combines a variety of modalities in the realms of lifestyle, healthcare, nutrition, and fitness to help you achieve your ideal self.',
+        description: "A fully personalized blend of lifestyle, health, nutrition, and fitness strategies—designed to help you overcome what's holding you back and become the best version of yourself.",
         link: '/services/PerformanceTherapy',
       },
-    {
-      icon: <GuideIcon />,
-      title: 'A Guide to Your Ideal Self',
-      description: 'Our comprehensive guide integrates four key pillars: Lifestyle, Health, Nutrition, and Fitness, designed to support a holistic approach to living well, and achieving your ideal self. The information is concise and highly-actionable with the intent of providing you the information and tools necessary to make positive change in your life.',
-      link: '/guide-overview',
-    },
-    {
-      icon: <ToolsIcon />,
-      title: 'HighEnd Tools',
-      description: 'Higher Endeavors’ Tools are web-based apps and functionality that act as an extension of the “Guide to Your Ideal Self” which makes it easier and more effective for you to integrate the information learned into your daily life.',
-      link: '/tools',
-    },
-  ];
+      {
+        icon: <GuideIcon />,
+        title: 'A Guide to Your Ideal Self',
+        description: "A clear, practical guide that helps you understand what matters, take aligned action, and build momentum in every area of your life—starting now.",
+        link: '/guide-overview',
+      },
+      {
+        icon: <ToolsIcon />,
+        title: 'HighEnd Tools',
+        description: "Interactive tools that turn insight into action—so it's easier to apply what you've learned and stay on track toward your goals every day.",
+        link: '/tools',
+      },
+    ];
 
   return (
     <section className="py-12">
