@@ -199,21 +199,9 @@ export default function ExerciseList({
   return (
     <div className={containerClass}>
       {/* Plan/Act Toggle and Session Completed Badge */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
+      <div className="flex flex-row items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-4">
-          {sessionCompleted && (
-            <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full border border-green-300 mr-2">
-              Session Completed
-            </span>
-          )}
-          <span className={mode === 'plan' ? 'font-bold text-purple-700' : 'text-gray-500'}>Plan</span>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" className="sr-only peer" checked={mode === 'act'} onChange={() => setMode(mode === 'plan' ? 'act' : 'plan')} />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer dark:bg-gray-300 peer-checked:bg-purple-600 transition-all"></div>
-            <span className="absolute left-1 top-1 w-4 h-4 bg-white border border-gray-300 rounded-full transition-all peer-checked:translate-x-5"></span>
-          </label>
-          <span className={mode === 'act' ? 'font-bold text-purple-700' : 'text-gray-500'}>Act</span>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
           <span
             className="text-gray-600 hover:text-gray-800 cursor-pointer relative"
             aria-label="Open calendar (coming soon)"
@@ -223,11 +211,27 @@ export default function ExerciseList({
           >
             <FiCalendar size={24} />
             {showCalendar && (
-              <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-4" style={{ minWidth: '16rem' }}>
+              <div className="absolute left-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-20 p-4" style={{ minWidth: '16rem' }}>
                 <CalendarGrid />
               </div>
             )}
           </span>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-3">
+            <span className={mode === 'plan' ? 'font-bold text-purple-700' : 'text-gray-500'}>Plan</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" className="sr-only peer" checked={mode === 'act'} onChange={() => setMode(mode === 'plan' ? 'act' : 'plan')} />
+              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer dark:bg-gray-300 peer-checked:bg-purple-600 transition-all"></div>
+              <span className="absolute left-1 top-1 w-4 h-4 bg-white border border-gray-300 rounded-full transition-all peer-checked:translate-x-5"></span>
+            </label>
+            <span className={mode === 'act' ? 'font-bold text-purple-700' : 'text-gray-500'}>Act</span>
+          </div>
+          {sessionCompleted && (
+            <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full border border-green-300">
+              Session Completed
+            </span>
+          )}
         </div>
       </div>
       {/* Exercise List */}

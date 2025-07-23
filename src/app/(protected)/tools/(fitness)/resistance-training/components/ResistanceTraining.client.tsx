@@ -331,10 +331,10 @@ export default function ResistanceTrainingClient({
         onActualsChange={setActuals}
         sessionCompleted={sessionCompleted}
       />
-      <div className="flex justify-between items-center mt-4">
-        <div className="flex space-x-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={() => {
               setEditingExercise(null);
               setIsModalOpen(true);
@@ -346,7 +346,7 @@ export default function ResistanceTrainingClient({
         </div>
         {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
             style={{ minWidth: '120px' }}
             onClick={handleSaveProgram}
           >

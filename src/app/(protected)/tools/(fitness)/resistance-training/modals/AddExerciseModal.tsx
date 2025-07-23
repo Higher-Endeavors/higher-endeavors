@@ -382,22 +382,22 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   }
 
   return (
-    <Modal show={isOpen} onClose={onClose} size="xl">
+    <Modal show={isOpen} onClose={onClose} size="xl" className="max-h-screen overflow-y-auto">
       <Modal.Header className="dark:text-white">
         {editingExercise ? 'Edit Exercise' : 'Add Exercise'}
       </Modal.Header>
-      <Modal.Body>
+      <Modal.Body className="max-h-[80vh] overflow-y-auto">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <div className="flex items-center justify-between mb-1">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="col-span-1 lg:col-span-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
                 <label htmlFor="exercise-select" className="block text-sm font-medium dark:text-white">
                   Exercise Name
                 </label>
                 <button
                   type="button"
                   onClick={() => setIsAdvancedSearchOpen(true)}
-                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 self-start sm:self-auto"
                 >
                   Advanced Search
                 </button>
@@ -447,7 +447,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
                 <label htmlFor="exercise-sets" className="block text-sm font-medium dark:text-white">
                   Sets
                 </label>
@@ -562,7 +562,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     </svg>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                   <Controller
                     name="load"
                     control={control}
@@ -579,7 +579,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                   <button
                     type="button"
                     onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                    className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                    className="mt-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center space-x-1 text-gray-700 min-w-[60px]"
                   >
                     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -589,11 +589,11 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                 </div>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                  className="mt-1 px-2 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center space-x-1 text-gray-700"
+                  className="mt-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center space-x-1 text-gray-700 min-w-[60px]"
                 >
                   <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
@@ -690,7 +690,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            <div className="col-span-2">
+            <div className="col-span-1 lg:col-span-2">
               <label htmlFor="exercise-notes" className="block text-sm font-medium dark:text-white">
                 Notes
               </label>
@@ -712,7 +712,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
           {isVariedSets && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <h3 className="text-lg font-medium dark:text-white">Set Details</h3>
                 <div className="flex items-center space-x-4">
                   <div className="flex items-center space-x-2">
@@ -792,7 +792,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       )}
                     </div>
                     {!(isAdvancedSets && set.subSets && set.subSets.length > 0) && (
-                      <div className={`grid grid-cols-${isAdvancedSets ? '2' : '2'} gap-4`}>
+                      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4`}>
                         <div>
                           <label className="block text-sm dark:text-white">Reps</label>
                           <input
@@ -875,7 +875,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                             <BsDash className="w-5 h-5" aria-hidden="true" />
                           </button>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
                             <label className="block text-sm dark:text-white">Reps</label>
                             <input
@@ -933,18 +933,18 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             </div>
           )}
 
-          <div className="flex justify-end space-x-3">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-white"
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 dark:text-white w-full sm:w-auto"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!watch('selectedExercise')}
-              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             >
               {editingExercise ? 'Update Exercise' : 'Add Exercise'}
             </button>
