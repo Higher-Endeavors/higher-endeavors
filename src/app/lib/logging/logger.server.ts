@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  ...(process.env.NODE_ENV === 'development' && {
+  ...(process.env.RUNTIME_ENV === 'dev' && {
     transport: {
       target: 'pino-pretty',
       options: {
@@ -15,9 +15,9 @@ const logger = pino({
   }),
 });
 
-function getLogContext() {
+async function getLogContext() {
   try {
-    const headersList = headers() as unknown as Headers;
+    const headersList = await headers();
     const requestId = headersList.get('x-request-id');
     const userId = headersList.get('x-user-id');
     const forwarded = headersList.get('x-forwarded-for');
@@ -35,8 +35,8 @@ function getLogContext() {
   }
 }
 
-function createContextualLogger() {
-  const context = getLogContext();
+async function createContextualLogger() {
+  const context = await getLogContext();
   
   if (context.requestId || context.userId) {
     return logger.child(context);
@@ -46,13 +46,13 @@ function createContextualLogger() {
 }
 
 export const serverLogger = {
-  info: (message: string, metadata?: Record<string, any>) => {
-    createContextualLogger().info(metadata || {}, message);
+  info: async (message: string, metadata?: Record<string, any>) => {
+    (await createContextualLogger()).info(metadata || {}, message);
   },
-  warn: (message: string, metadata?: Record<string, any>) => {
-    createContextualLogger().warn(metadata || {}, message);
+  warn: async (message: string, metadata?: Record<string, any>) => {
+    (await createContextualLogger()).warn(metadata || {}, message);
   },
-  error: (message: string, error?: Error | unknown, metadata?: Record<string, any>) => {
+  error: async (message: string, error?: Error | unknown, metadata?: Record<string, any>) => {
     const logData = {
       ...metadata,
       ...(error instanceof Error && {
@@ -63,10 +63,10 @@ export const serverLogger = {
         },
       }),
     };
-    createContextualLogger().error(logData, message);
+    (await createContextualLogger()).error(logData, message);
   },
-  debug: (message: string, metadata?: Record<string, any>) => {
-    createContextualLogger().debug(metadata || {}, message);
+  debug: async (message: string, metadata?: Record<string, any>) => {
+    (await createContextualLogger()).debug(metadata || {}, message);
   },
 };
 
