@@ -37,12 +37,12 @@ function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actu
       let load = 0;
       if (actuals && actuals[exerciseIdx] && actuals[exerciseIdx][setIdx]) {
         const actual = actuals[exerciseIdx][setIdx];
-        reps = (actual.reps !== null && actual.reps !== undefined && actual.reps !== '') ? actual.reps : 0;
+        reps = (actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
         load = (actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
       } else if ((exercise as any).actualSets && (exercise as any).actualSets[setIdx]) {
         // Fallback to actualSets on exercise if present
         const actual = (exercise as any).actualSets[setIdx];
-        reps = (actual && actual.reps !== null && actual.reps !== undefined && actual.reps !== '') ? actual.reps : 0;
+        reps = (actual && actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
         load = (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
       }
       totalReps += reps || 0;
