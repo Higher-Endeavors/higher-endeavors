@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
-import { HiOutlineDotsVertical } from 'react-icons/hi';
-import { ProgramExercisesPlanned, ExerciseSet, ExerciseLibraryItem } from '../types/resistance-training.zod';
+import React from 'react';
+import { ProgramExercisesPlanned, ExerciseLibraryItem } from '../types/resistance-training.zod';
 import { calculateTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
+import { HiOutlineDotsVertical } from 'react-icons/hi';
 
 interface ExerciseItemPlanProps {
   exercise: ProgramExercisesPlanned;
@@ -14,41 +14,15 @@ interface ExerciseItemPlanProps {
 }
 
 export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete, onChangeVariation }: ExerciseItemPlanProps) {
-  const [menuOpen, setMenuOpen] = useState<{ [key: number]: boolean }>({});
-
-  const toggleMenu = (id: number) => {
-    setMenuOpen(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  // Get the correct exercise ID for this exercise
-  const getExerciseId = () => {
-    return exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
-  };
-
-  const closeMenu = () => {
-    setMenuOpen({});
-  };
-
-  // Helper function to get load unit from a set
-  const getLoadUnit = (set: any) => {
-    return set.loadUnit || 'lbs'; // Default to lbs if no unit specified
-  };
-
-  // Helper function to format load with unit
+  // Helper functions
+  const getLoadUnit = (set: any) => set.loadUnit || 'lbs';
   const formatLoad = (load: string, unit?: string) => {
     if (!load || load === '0') return '0';
-    // If the load already contains a unit (like "BW" or "Red Band"), return as is
     if (load.toLowerCase().includes('bw') || load.toLowerCase().includes('band') || load.toLowerCase().includes('kg') || load.toLowerCase().includes('lbs')) {
       return load;
     }
-    // Otherwise, append the unit
     return `${load} ${unit || 'lbs'}`;
   };
-
-  // Get exercise name by looking up the ID in the exercises array
   const getExerciseName = () => {
     const exerciseData = exercises.find(ex => {
       if (exercise.exerciseSource === 'user') {
@@ -59,39 +33,35 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
     });
     return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
   };
-
-  // Calculate total load for this exercise
+  const formatNumberWithCommas = (x: number) => x.toLocaleString();
   const getTotalLoad = () => {
     if (!exercise.plannedSets) return { value: 0, unit: 'lbs' };
-    
-    // Get the most common unit from all sets, defaulting to lbs
     const units = exercise.plannedSets.map(set => getLoadUnit(set));
     const mostCommonUnit = units.length > 0 ? units[0] : 'lbs';
-    
     const totalValue = exercise.plannedSets.reduce((sum, set) => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
       return sum + (reps * load);
     }, 0);
-    
     return { value: totalValue, unit: mostCommonUnit };
   };
-
-  // Get RIR value from the first set (if available)
   const getRIR = () => {
     if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
     const rir = exercise.plannedSets[0].rir;
     return typeof rir === 'number' ? rir : null;
   };
-
-  // Get RPE value from the first set (if available)
   const getRPE = () => {
     if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
     const rpe = exercise.plannedSets[0].rpe;
     return typeof rpe === 'number' ? rpe : null;
   };
 
-  const formatNumberWithCommas = (x: number) => x.toLocaleString();
+  const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
+  const getExerciseId = () => exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
+  const toggleMenu = (id: number) => {
+    setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+  const closeMenu = () => setMenuOpen({});
 
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
@@ -112,13 +82,9 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
           >
             <HiOutlineDotsVertical className="h-5 w-5 text-gray-600 dark:text-slate-900" aria-hidden="true" />
           </button>
-          
           {menuOpen[getExerciseId()] && (
             <>
-              <div 
-                className="fixed inset-0 z-10" 
-                onClick={closeMenu}
-              />
+              <div className="fixed inset-0 z-10" onClick={closeMenu} />
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-20">
                 <div className="py-1">
                   <button
@@ -147,43 +113,87 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
           )}
         </div>
       </div>
-
-      {/* Table header */}
-      <div className="grid grid-cols-6 gap-2 mt-3 text-sm font-semibold text-gray-500 dark:text-slate-600">
-        <div>Set</div>
-        <div>Reps</div>
-        <div>Load</div>
-        <div>Tempo</div>
-        <div>Rest</div>
-        <div>Time Under Tension</div>
+      
+      {/* Mobile-friendly table layout */}
+      <div className="mt-3">
+        {/* Desktop table header - hidden on mobile */}
+        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600">
+          <div>Set</div>
+          <div>Reps</div>
+          <div>Load</div>
+          <div>Tempo</div>
+          <div>Rest</div>
+          <div>Time Under Tension</div>
+        </div>
+        
+        {/* Desktop table rows - hidden on mobile */}
+        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm dark:text-slate-600">
+          {(exercise.plannedSets || []).flatMap((set, setIdx) => {
+            const plannedReps = set.reps || 0;
+            const plannedLoad = set.load || '';
+            const plannedUnit = getLoadUnit(set);
+            return [
+              <div key={`${setIdx}-set`} className="flex items-center">{set.set || setIdx + 1}</div>,
+              <div key={`${setIdx}-reps`} className="flex items-center">{plannedReps}</div>,
+              <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
+              <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
+              <div key={`${setIdx}-rest`} className="flex items-center">{set.restSec || 0}s</div>,
+              <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+            ];
+          })}
+        </div>
+        
+        {/* Mobile-friendly card layout - shown on mobile */}
+        <div className="md:hidden space-y-3">
+          {(exercise.plannedSets || []).map((set, setIdx) => {
+            const plannedReps = set.reps || 0;
+            const plannedLoad = set.load || '';
+            const plannedUnit = getLoadUnit(set);
+            return (
+              <div key={setIdx} className="bg-gray-50 rounded-lg p-3 border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold text-gray-700">Set {set.set || setIdx + 1}</span>
+                  <span className="text-sm text-gray-500">{set.restSec || 0}s rest</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Reps</div>
+                    <span className="text-gray-800">{plannedReps}</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Load</div>
+                    <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Tempo</div>
+                    <span className="text-gray-800">{set.tempo || '2010'}</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">TUT</div>
+                    <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
-      {/* Table rows */}
-      <div className="grid grid-cols-6 gap-2 text-sm dark:text-slate-600">
-        {(exercise.plannedSets || []).flatMap((set, setIdx) => {
-          const plannedReps = set.reps || 0;
-          const plannedLoad = set.load || '';
-          const plannedUnit = getLoadUnit(set);
-          return [
-            <div key={`${setIdx}-set`} className="flex items-center">{set.set || setIdx + 1}</div>,
-            <div key={`${setIdx}-reps`} className="flex items-center">{plannedReps}</div>,
-            <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
-            <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
-            <div key={`${setIdx}-rest`} className="flex items-center">{set.restSec || 0}s</div>,
-            <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
-          ];
-        })}
-      </div>
+      
       {/* Summary row and notes, as in Plan mode */}
       <div className="mt-3 border-t pt-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-6 text-sm font-medium text-purple-700">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm font-medium text-purple-700">
             <div>
               <span className="mr-1">Total Reps:</span>
-              <span>{exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)}</span>
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)}
+              </span>
             </div>
             <div>
               <span className="mr-1">Total Load:</span>
-              <span>
+              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
                 {formatNumberWithCommas(getTotalLoad().value)} {getTotalLoad().unit}
               </span>
             </div>

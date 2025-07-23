@@ -106,13 +106,13 @@ export default function SessionSummary({ exercises, preferredLoadUnit, mode = 'p
       </div>
       {isOpen && (
         <div className="mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {Object.entries(summaryData).map(([key, data]) => (
-              <div key={key} className="bg-white dark:bg-white p-4 rounded-lg shadow">
+              <div key={key} className="bg-white dark:bg-white p-3 sm:p-4 rounded-lg shadow">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {key}
                 </p>
-                <p className={`text-lg font-semibold ${data.color ? `${data.color} px-2 py-1 rounded-full inline-block` : 'text-gray-900 dark:text-slate-900'}`}>
+                <p className={`text-base sm:text-lg font-semibold ${data.color ? `${data.color} px-2 py-1 rounded-full inline-block` : 'text-gray-900 dark:text-slate-900'}`}>
                   {data.value || '0'}
                 </p>
               </div>

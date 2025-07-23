@@ -184,70 +184,148 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
           )}
         </div>
       </div>
-      {/* Table header */}
-      <div className="grid grid-cols-6 gap-2 mt-3 text-sm font-semibold text-gray-500 dark:text-slate-600">
-        <div>Set</div>
-        <div>Reps (Planned/Actual)</div>
-        <div>Load (Planned/Actual)</div>
-        <div>Tempo</div>
-        <div>Rest</div>
-        <div>Time Under Tension</div>
-      </div>
-      {/* Table rows */}
-      <div className="grid grid-cols-6 gap-2 text-sm dark:text-slate-600">
-        {(exercise.plannedSets || []).map((set, setIdx) => {
-          const plannedReps = set.reps || 0;
-          const plannedLoad = set.load || '';
-          const plannedUnit = getLoadUnit(set);
-          const actualReps = actuals[setIdx]?.reps ?? '';
-          const actualLoad = actuals[setIdx]?.load ?? '';
-          return (
-            <React.Fragment key={setIdx}>
-              <div className="flex items-center">{set.set || setIdx + 1}</div>
-              <div className="flex items-center gap-2">
-                <span>{plannedReps}</span>
-                {readOnly ? (
-                  <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
-                    {actualReps || '-'}
-                  </span>
-                ) : (
-                  <input
-                    type="number"
-                    min={0}
-                    className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
-                    placeholder="Actual"
-                    value={actualReps}
-                    onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
-                  />
-                )}
+      
+      {/* Mobile-friendly table layout */}
+      <div className="mt-3">
+        {/* Desktop table header - hidden on mobile */}
+        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600">
+          <div>Set</div>
+          <div>Reps (Planned/Actual)</div>
+          <div>Load (Planned/Actual)</div>
+          <div>Tempo</div>
+          <div>Rest</div>
+          <div>Time Under Tension</div>
+        </div>
+        
+        {/* Desktop table rows - hidden on mobile */}
+        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm dark:text-slate-600">
+          {(exercise.plannedSets || []).map((set, setIdx) => {
+            const plannedReps = set.reps || 0;
+            const plannedLoad = set.load || '';
+            const plannedUnit = getLoadUnit(set);
+            const actualReps = actuals[setIdx]?.reps ?? '';
+            const actualLoad = actuals[setIdx]?.load ?? '';
+            return (
+              <React.Fragment key={setIdx}>
+                <div className="flex items-center">{set.set || setIdx + 1}</div>
+                <div className="flex items-center gap-2">
+                  <span>{plannedReps}</span>
+                  {readOnly ? (
+                    <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
+                      {actualReps || '-'}
+                    </span>
+                  ) : (
+                    <input
+                      type="number"
+                      min={0}
+                      className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                      placeholder="Actual"
+                      value={actualReps}
+                      onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>{formatLoad(plannedLoad, plannedUnit)}</span>
+                  {readOnly ? (
+                    <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
+                      {actualLoad || '-'}
+                    </span>
+                  ) : (
+                    <input
+                      type="text"
+                      className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                      placeholder="Actual"
+                      value={actualLoad}
+                      onChange={e => onActualChange(setIdx, 'load', e.target.value)}
+                    />
+                  )}
+                </div>
+                <div className="flex items-center">{set.tempo || '2010'}</div>
+                <div className="flex items-center">{set.restSec || 0}s</div>
+                <div className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+              </React.Fragment>
+            );
+          })}
+        </div>
+        
+        {/* Mobile-friendly card layout - shown on mobile */}
+        <div className="md:hidden space-y-3">
+          {(exercise.plannedSets || []).map((set, setIdx) => {
+            const plannedReps = set.reps || 0;
+            const plannedLoad = set.load || '';
+            const plannedUnit = getLoadUnit(set);
+            const actualReps = actuals[setIdx]?.reps ?? '';
+            const actualLoad = actuals[setIdx]?.load ?? '';
+            return (
+              <div key={setIdx} className="bg-gray-50 rounded-lg p-3 border">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-semibold text-gray-700">Set {set.set || setIdx + 1}</span>
+                  <span className="text-sm text-gray-500">{set.restSec || 0}s rest</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Reps</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-800">{plannedReps}</span>
+                      <span className="text-gray-400">/</span>
+                      {readOnly ? (
+                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
+                          {actualReps || '-'}
+                        </span>
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                          placeholder="Actual"
+                          value={actualReps}
+                          onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Load</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
+                      <span className="text-gray-400">/</span>
+                      {readOnly ? (
+                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
+                          {actualLoad || '-'}
+                        </span>
+                      ) : (
+                        <input
+                          type="text"
+                          className={`w-20 px-2 py-1 border rounded ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                          placeholder="Actual"
+                          value={actualLoad}
+                          onChange={e => onActualChange(setIdx, 'load', e.target.value)}
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">Tempo</div>
+                    <span className="text-gray-800">{set.tempo || '2010'}</span>
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-600 mb-1">TUT</div>
+                    <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                <span>{formatLoad(plannedLoad, plannedUnit)}</span>
-                {readOnly ? (
-                  <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
-                    {actualLoad || '-'}
-                  </span>
-                ) : (
-                  <input
-                    type="text"
-                    className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
-                    placeholder="Actual"
-                    value={actualLoad}
-                    onChange={e => onActualChange(setIdx, 'load', e.target.value)}
-                  />
-                )}
-              </div>
-              <div className="flex items-center">{set.tempo || '2010'}</div>
-              <div className="flex items-center">{set.restSec || 0}s</div>
-              <div className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
-            </React.Fragment>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
+      
       {/* Summary row and notes, as in Plan mode */}
       <div className="mt-3 border-t pt-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-6 text-sm font-medium text-purple-700">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm font-medium text-purple-700">
             <div>
               <span className="mr-1">Total Reps (Planned/Actual):</span>
               <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>

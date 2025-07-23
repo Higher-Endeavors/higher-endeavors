@@ -254,7 +254,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
           )}
 
           {/* Program Length and Sessions Per Week */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Program Length (weeks)
@@ -267,13 +267,28 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                 max="52"
                 step="1"
                 value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
+                onChange={e => {
+                  const value = parseInt(e.target.value);
+                  if (!isNaN(value) && value >= 1 && value <= 52) {
+                    setInputValue(value.toString());
+                    setProgramLength(value);
+                  }
+                }}
+                onBlur={() => {
+                  const value = parseInt(inputValue);
+                  if (isNaN(value) || value < 1) {
+                    setInputValue('1');
+                    setProgramLength(1);
+                  } else if (value > 52) {
+                    setInputValue('52');
+                    setProgramLength(52);
+                  }
+                }}
               />
               <p className="mt-1 text-sm text-gray-500">
                 Set the duration of your training program
               </p>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Sessions Per Week
@@ -285,25 +300,16 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                 min="0.5"
                 max="7"
                 step="0.5"
-                value={sessionsInputValue}
+                value={sessionsPerWeek}
                 onChange={e => {
-                  const value = e.target.value;
-                  setSessionsInputValue(value);
-                  const parsed = parseFloat(value);
-                  if (!isNaN(parsed) && parsed > 0) {
-                    setSessionsPerWeek(parsed);
-                  }
-                }}
-                onBlur={e => {
-                  let val = e.target.value;
-                  if (val === '' || Number(val) < 0.5) {
-                    setSessionsInputValue('1');
-                    setSessionsPerWeek(1);
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value >= 0.5 && value <= 7) {
+                    setSessionsPerWeek(value);
                   }
                 }}
               />
               <p className="mt-1 text-sm text-gray-500">
-                How many times each week are you planning to do this program?
+                How many times each week are you planning to do the program?
               </p>
             </div>
           </div>
