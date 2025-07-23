@@ -32,17 +32,18 @@ function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actu
     const sets = exercise.plannedSets || [];
     sets.forEach((set, setIdx) => {
       totalSets++;
-      let reps = set.reps || 0;
-      let load = Number(set.load) || 0;
+      // Always use planned for planned, but for actuals, only use if valid
+      let reps = 0;
+      let load = 0;
       if (actuals && actuals[exerciseIdx] && actuals[exerciseIdx][setIdx]) {
         const actual = actuals[exerciseIdx][setIdx];
-        if (actual.reps !== null && actual.reps !== undefined) reps = actual.reps;
-        if (actual.load !== null && actual.load !== undefined && actual.load !== '') load = Number(actual.load);
+        reps = (actual.reps !== null && actual.reps !== undefined && actual.reps !== '') ? actual.reps : 0;
+        load = (actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
       } else if ((exercise as any).actualSets && (exercise as any).actualSets[setIdx]) {
         // Fallback to actualSets on exercise if present
         const actual = (exercise as any).actualSets[setIdx];
-        if (actual && actual.reps !== null && actual.reps !== undefined) reps = actual.reps;
-        if (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') load = Number(actual.load);
+        reps = (actual && actual.reps !== null && actual.reps !== undefined && actual.reps !== '') ? actual.reps : 0;
+        load = (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
       }
       totalReps += reps || 0;
       totalLoad += (reps || 0) * (load || 0);

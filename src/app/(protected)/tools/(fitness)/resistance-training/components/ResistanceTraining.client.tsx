@@ -236,6 +236,30 @@ export default function ResistanceTrainingClient({
   // Pass progression settings and program length to ProgramSettings
   // ProgramSettings should call setProgramLength and setProgressionSettings on change
 
+  // Determine if the current session is completed
+  const currentSessionIdx = Math.ceil(activeDay / sessionsPerWeek) - 1;
+  const currentSessionExercises = weeklyExercises[currentSessionIdx] || [];
+  const sessionCompleted = currentSessionExercises.some(ex => Array.isArray((ex as any).actualSets) && (ex as any).actualSets.length > 0 && (ex as any).actualSets.some((set: any) => set && (set.reps !== undefined || set.load !== undefined)));
+
+  // If completed, build actuals from actualSets; else use local actuals
+  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } } = {};
+  if (sessionCompleted) {
+    actualsForSession = {};
+    currentSessionExercises.forEach((ex, exerciseIdx) => {
+      const actualSets = (ex as any).actualSets || [];
+      actualsForSession[exerciseIdx] = {};
+      (ex.plannedSets || []).forEach((set, setIdx) => {
+        const actual = actualSets[setIdx] || {};
+        actualsForSession[exerciseIdx][setIdx] = {
+          reps: actual.reps !== undefined && actual.reps !== null ? String(actual.reps) : '',
+          load: actual.load !== undefined && actual.load !== null ? String(actual.load) : '',
+        };
+      });
+    });
+  } else {
+    actualsForSession = actuals;
+  }
+
   return (
     <>
       <div className="max-w-md">
@@ -288,8 +312,9 @@ export default function ResistanceTrainingClient({
         mode={mode}
         setMode={setMode}
         resistanceProgramId={editingProgramId ?? undefined}
-        actuals={actuals}
+        actuals={actualsForSession}
         onActualsChange={setActuals}
+        sessionCompleted={sessionCompleted}
       />
       <div className="flex justify-between items-center mt-4">
         <div className="flex space-x-2">
@@ -360,9 +385,9 @@ export default function ResistanceTrainingClient({
             exercises={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1]} 
             preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')}
             mode={mode}
-            actuals={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1].map((exercise, exerciseIdx) => 
+            actuals={currentSessionExercises.map((exercise, exerciseIdx) =>
               (exercise.plannedSets || []).map((set, setIdx) => {
-                const actual = actuals[exerciseIdx]?.[setIdx] || {};
+                const actual = actualsForSession[exerciseIdx]?.[setIdx] || {};
                 return {
                   reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
                   load: actual.load === undefined || actual.load === '' ? null : actual.load

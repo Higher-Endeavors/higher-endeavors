@@ -11,9 +11,10 @@ interface ExerciseItemActProps {
   onChangeVariation?: (id: number) => void;
   actuals: { [setIdx: number]: { reps: string; load: string } };
   onActualChange: (setIdx: number, field: 'reps' | 'load', value: string) => void;
+  readOnly?: boolean;
 }
 
-export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete, onChangeVariation, actuals = {}, onActualChange }: ExerciseItemActProps) {
+export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete, onChangeVariation, actuals = {}, onActualChange, readOnly = false }: ExerciseItemActProps) {
   // Helper functions copied from ExerciseItemPlan
   const getLoadUnit = (set: any) => set.loadUnit || 'lbs';
   const formatLoad = (load: string, unit?: string) => {
@@ -205,24 +206,36 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
               <div className="flex items-center">{set.set || setIdx + 1}</div>
               <div className="flex items-center gap-2">
                 <span>{plannedReps}</span>
-                <input
-                  type="number"
-                  min={0}
-                  className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
-                  placeholder="Actual"
-                  value={actualReps}
-                  onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
-                />
+                {readOnly ? (
+                  <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
+                    {actualReps || '-'}
+                  </span>
+                ) : (
+                  <input
+                    type="number"
+                    min={0}
+                    className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                    placeholder="Actual"
+                    value={actualReps}
+                    onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                  />
+                )}
               </div>
               <div className="flex items-center gap-2">
                 <span>{formatLoad(plannedLoad, plannedUnit)}</span>
-                <input
-                  type="text"
-                  className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
-                  placeholder="Actual"
-                  value={actualLoad}
-                  onChange={e => onActualChange(setIdx, 'load', e.target.value)}
-                />
+                {readOnly ? (
+                  <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
+                    {actualLoad || '-'}
+                  </span>
+                ) : (
+                  <input
+                    type="text"
+                    className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                    placeholder="Actual"
+                    value={actualLoad}
+                    onChange={e => onActualChange(setIdx, 'load', e.target.value)}
+                  />
+                )}
               </div>
               <div className="flex items-center">{set.tempo || '2010'}</div>
               <div className="flex items-center">{set.restSec || 0}s</div>

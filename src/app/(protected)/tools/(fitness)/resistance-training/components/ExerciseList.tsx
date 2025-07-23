@@ -25,6 +25,7 @@ interface ExerciseListProps {
   resistanceProgramId?: number;
   actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } };
   onActualsChange: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }) => void;
+  sessionCompleted?: boolean;
 }
 
 export default function ExerciseList({
@@ -40,7 +41,8 @@ export default function ExerciseList({
   setMode,
   resistanceProgramId,
   actuals,
-  onActualsChange
+  onActualsChange,
+  sessionCompleted = false
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   // Remove local actuals state - use parent state directly
@@ -196,10 +198,15 @@ export default function ExerciseList({
 
   return (
     <div className={containerClass}>
-      {/* Plan/Act Toggle */}
+      {/* Plan/Act Toggle and Session Completed Badge */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
         <div className="flex items-center gap-4">
+          {sessionCompleted && (
+            <span className="inline-block bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full border border-green-300 mr-2">
+              Session Completed
+            </span>
+          )}
           <span className={mode === 'plan' ? 'font-bold text-purple-700' : 'text-gray-500'}>Plan</span>
           <label className="relative inline-flex items-center cursor-pointer">
             <input type="checkbox" className="sr-only peer" checked={mode === 'act'} onChange={() => setMode(mode === 'plan' ? 'act' : 'plan')} />
@@ -265,6 +272,7 @@ export default function ExerciseList({
                     onChangeVariation={onChangeVariation}
                     actuals={actuals[exerciseIdx] || {}}
                     onActualChange={(setIdx, field, value) => handleActualChange(exerciseIdx, setIdx, field, value)}
+                    readOnly={sessionCompleted}
                   />
                 )}
               </div>
@@ -273,7 +281,7 @@ export default function ExerciseList({
         )}
       </div>
       {/* Complete Session button in Act mode */}
-      {mode === 'act' && plannedExercises.length > 0 && (
+      {mode === 'act' && plannedExercises.length > 0 && !sessionCompleted && (
         <div className="flex justify-end mt-6">
           <button
             className="px-6 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition"

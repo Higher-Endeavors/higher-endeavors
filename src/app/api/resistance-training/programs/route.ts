@@ -52,6 +52,7 @@ export async function GET(request: Request) {
           user_exercise_library_id,
           pairing,
           planned_sets,
+          actual_sets,
           notes,
           created_at,
           updated_at
@@ -73,6 +74,7 @@ export async function GET(request: Request) {
         userExerciseLibraryId: ex.user_exercise_library_id,
         pairing: ex.pairing,
         plannedSets: ex.planned_sets,
+        actualSets: ex.actual_sets, // <-- add this line
         notes: ex.notes,
         createdAt: ex.created_at,
         updatedAt: ex.updated_at
