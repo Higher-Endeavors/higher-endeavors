@@ -3,6 +3,7 @@ import { ThemeModeScript } from "flowbite-react";
 import "./globals.css";
 import { UserSettingsProvider } from './context/UserSettingsContext';
 import { getUserSettings } from './lib/actions/userSettings';
+import { ErrorBoundary } from '@/app/components/error-boundary.client'
 
 
 export const metadata: Metadata = {
@@ -23,9 +24,11 @@ export default async function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
       <body className="">
-        <UserSettingsProvider userSettings={userSettings}>
-          {children}
-        </UserSettingsProvider>
+        <ErrorBoundary>
+          <UserSettingsProvider userSettings={userSettings}>
+            {children}
+          </UserSettingsProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );
