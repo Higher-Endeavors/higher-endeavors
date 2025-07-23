@@ -7,7 +7,7 @@ import ProgramSettings from './ProgramSettings';
 import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
-import WeekTabs from './WeekTabs';
+import DayTabs from './DayTabs';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { ExerciseWithSource } from '../modals/AddExerciseModal';
@@ -29,6 +29,7 @@ export default function ResistanceTrainingClient({
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [programLength, setProgramLength] = useState(4);
+  const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
   // Progression settings state
   const [progressionSettings, setProgressionSettings] = useState({
     type: 'None',
@@ -46,7 +47,7 @@ export default function ResistanceTrainingClient({
   );
   const [editingExercise, setEditingExercise] = useState<ProgramExercisesPlanned | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeWeek, setActiveWeek] = useState(1);
+  const [activeDay, setActiveDay] = useState(1);
   // Track which weeks have been manually edited (locked)
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
   // Add state for programName (to be set from ProgramSettings)
@@ -61,6 +62,10 @@ export default function ResistanceTrainingClient({
   const [saveResult, setSaveResult] = useState<string | null>(null);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
+  // Add mode state
+  const [mode, setMode] = useState<'plan' | 'act'>('plan');
+  // Add actuals state for SessionSummary
+  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -105,7 +110,7 @@ export default function ResistanceTrainingClient({
       
       setWeeklyExercises(exercisesByWeek);
       setBaseWeekExercises(exercisesByWeek[0] || []);
-      setActiveWeek(1);
+      setActiveDay(1);
       
       // Clear any locked weeks since we're loading a new program
       setLockedWeeks(new Set());
@@ -131,7 +136,8 @@ export default function ResistanceTrainingClient({
 
   // Open edit modal for existing exercise
   const handleEditExercise = (id: number) => {
-    const exerciseToEdit = weeklyExercises[activeWeek - 1].find(ex => 
+    const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
+    const exerciseToEdit = weeklyExercises[currentWeek - 1].find(ex => 
       ex.exerciseLibraryId === id || ex.userExerciseLibraryId === id
     );
     if (exerciseToEdit) {
@@ -156,11 +162,12 @@ export default function ResistanceTrainingClient({
 
   // Save exercise (add new or update existing)
   const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
+    const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
     if (editingExercise) {
       const editingId = editingExercise.exerciseLibraryId || editingExercise.userExerciseLibraryId;
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
-          idx === activeWeek - 1
+          idx === currentWeek - 1
             ? arr.map(ex => {
                 const exId = ex.exerciseLibraryId || ex.userExerciseLibraryId;
                 return exId === editingId ? exercise : ex;
@@ -168,13 +175,13 @@ export default function ResistanceTrainingClient({
             : arr
         )
       );
-      if (activeWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(activeWeek - 1));
+      if (currentWeek !== 1) {
+        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
     } else {
       handleAddExercise(exercise);
-      if (activeWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(activeWeek - 1));
+      if (currentWeek !== 1) {
+        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
     }
     setEditingExercise(null);
@@ -229,6 +236,30 @@ export default function ResistanceTrainingClient({
   // Pass progression settings and program length to ProgramSettings
   // ProgramSettings should call setProgramLength and setProgressionSettings on change
 
+  // Determine if the current session is completed
+  const currentSessionIdx = Math.ceil(activeDay / sessionsPerWeek) - 1;
+  const currentSessionExercises = weeklyExercises[currentSessionIdx] || [];
+  const sessionCompleted = currentSessionExercises.some(ex => Array.isArray((ex as any).actualSets) && (ex as any).actualSets.length > 0 && (ex as any).actualSets.some((set: any) => set && (set.reps !== undefined || set.load !== undefined)));
+
+  // If completed, build actuals from actualSets; else use local actuals
+  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } } = {};
+  if (sessionCompleted) {
+    actualsForSession = {};
+    currentSessionExercises.forEach((ex, exerciseIdx) => {
+      const actualSets = (ex as any).actualSets || [];
+      actualsForSession[exerciseIdx] = {};
+      (ex.plannedSets || []).forEach((set, setIdx) => {
+        const actual = actualSets[setIdx] || {};
+        actualsForSession[exerciseIdx][setIdx] = {
+          reps: actual.reps !== undefined && actual.reps !== null ? String(actual.reps) : '',
+          load: actual.load !== undefined && actual.load !== null ? String(actual.load) : '',
+        };
+      });
+    });
+  } else {
+    actualsForSession = actuals;
+  }
+
   return (
     <>
       <div className="max-w-md">
@@ -250,6 +281,8 @@ export default function ResistanceTrainingClient({
       <ProgramSettings
         programLength={programLength}
         setProgramLength={setProgramLength}
+        sessionsPerWeek={sessionsPerWeek}
+        setSessionsPerWeek={setSessionsPerWeek}
         progressionSettings={progressionSettings}
         setProgressionSettings={setProgressionSettings}
         programName={programName}
@@ -262,19 +295,26 @@ export default function ResistanceTrainingClient({
         setNotes={setNotes}
         isLoading={isLoadingProgram}
       />
-      <WeekTabs
-        activeWeek={activeWeek}
+      <DayTabs
+        activeDay={activeDay}
         programLength={programLength}
-        onWeekChange={setActiveWeek}
+        sessionsPerWeek={sessionsPerWeek}
+        onDayChange={setActiveDay}
       />
       <ExerciseList
         exercises={exercises}
         isLoading={false}
         userId={selectedUserId}
-        plannedExercises={weeklyExercises[activeWeek - 1] || []}
+        plannedExercises={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || []}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
-        activeWeek={activeWeek}
+        activeWeek={Math.ceil(activeDay / sessionsPerWeek)}
+        mode={mode}
+        setMode={setMode}
+        resistanceProgramId={editingProgramId ?? undefined}
+        actuals={actualsForSession}
+        onActualsChange={setActuals}
+        sessionCompleted={sessionCompleted}
       />
       <div className="flex justify-between items-center mt-4">
         <div className="flex space-x-2">
@@ -284,10 +324,11 @@ export default function ResistanceTrainingClient({
               setEditingExercise(null);
               setIsModalOpen(true);
             }}
+            disabled={mode === 'act'}
           >
             Add Exercise
           </button>
-          {editingProgramId && (
+          {editingProgramId && mode === 'plan' && (
             <button
               className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
               onClick={() => {
@@ -300,7 +341,7 @@ export default function ResistanceTrainingClient({
                 setNotes('');
                 setWeeklyExercises([[]]);
                 setBaseWeekExercises([]);
-                setActiveWeek(1);
+                setActiveDay(1);
                 setLockedWeeks(new Set());
                 setSaveResult(null);
               }}
@@ -309,7 +350,7 @@ export default function ResistanceTrainingClient({
             </button>
           )}
         </div>
-        {weeklyExercises.some(week => week.length > 0) && (
+        {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
             style={{ minWidth: '120px' }}
@@ -338,9 +379,22 @@ export default function ResistanceTrainingClient({
         editingExercise={editingExercise}
         fitnessSettings={fitnessSettings}
       />
-      {weeklyExercises[activeWeek - 1]?.length > 0 && (
+      {weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1]?.length > 0 && (
         <div className="mt-6">
-          <SessionSummary exercises={weeklyExercises[activeWeek - 1]} preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')} />
+          <SessionSummary 
+            exercises={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1]} 
+            preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')}
+            mode={mode}
+            actuals={currentSessionExercises.map((exercise, exerciseIdx) =>
+              (exercise.plannedSets || []).map((set, setIdx) => {
+                const actual = actualsForSession[exerciseIdx]?.[setIdx] || {};
+                return {
+                  reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
+                  load: actual.load === undefined || actual.load === '' ? null : actual.load
+                };
+              })
+            )}
+          />
         </div>
       )}
     </>

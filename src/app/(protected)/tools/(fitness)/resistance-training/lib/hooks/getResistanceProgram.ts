@@ -35,7 +35,7 @@ export async function getResistanceProgram(programId: number, userId: number): P
   };
   
   // Transform exercises from the API response
-  const exercises: (ProgramExercisesPlanned & { programInstance?: number })[] = (data.exercises || []).map((ex: any) => ({
+  const exercises: (ProgramExercisesPlanned & { programInstance?: number, actualSets?: any })[] = (data.exercises || []).map((ex: any) => ({
     programExercisesPlannedId: ex.programExercisesPlannedId,
     resistanceProgramId: ex.resistanceProgramId,
     exerciseSource: ex.exerciseSource,
@@ -43,6 +43,7 @@ export async function getResistanceProgram(programId: number, userId: number): P
     userExerciseLibraryId: ex.userExerciseLibraryId,
     pairing: ex.pairing,
     plannedSets: ex.plannedSets || [],
+    actualSets: ex.actualSets || [], // <-- add this line
     notes: ex.notes,
     createdAt: ex.createdAt,
     updatedAt: ex.updatedAt,

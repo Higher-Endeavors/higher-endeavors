@@ -8,7 +8,7 @@ import Select from 'react-select';
 import React from 'react';
 import { BsPlus, BsDash } from 'react-icons/bs';
 import { useForm, Controller } from 'react-hook-form';
-import { addCustomExercise } from '../actions/exerciseActions';
+import { addCustomExercise } from '../lib/actions/exerciseActions';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 
 // Components

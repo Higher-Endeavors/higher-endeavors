@@ -7,27 +7,88 @@ import { calculateSessionStats } from '../../lib/calculations/resistanceTraining
 interface SessionSummaryProps {
   exercises: ProgramExercisesPlanned[];
   preferredLoadUnit?: 'lbs' | 'kg';
+  mode?: 'plan' | 'act';
+  actuals?: { reps: number | null; load: string | null; }[][]; // [exerciseIdx][setIdx]
 }
 
 function formatNumberWithCommas(x: number): string {
   return x.toLocaleString();
 }
 
-export default function SessionSummary({ exercises, preferredLoadUnit }: SessionSummaryProps) {
-  const [isOpen, setIsOpen] = useState(true);
-
-  // Use preferredLoadUnit or default to 'lbs'
-  const loadUnit = preferredLoadUnit || 'lbs';
-
-  // Calculate real session statistics
-  const sessionStats = calculateSessionStats(exercises, loadUnit);
+// Helper to calculate percentage difference and determine color class
+function getDeviationColor(actual: number, planned: number): string {
+  if (planned === 0) return '';
+  const percentageDiff = ((actual - planned) / planned) * 100;
   
-  const summaryData = {
-    'Estimated Duration': sessionStats.estimatedDuration,
-    'Total Exercises': sessionStats.totalExercises.toString(),
-    'Total Sets': sessionStats.totalSets.toString(),
-    'Total Reps': sessionStats.totalReps.toString(),
-    'Total Load': sessionStats.totalLoad > 0 ? `${formatNumberWithCommas(Math.round(sessionStats.totalLoad))} ${loadUnit}` : `0 ${loadUnit}`,
+  if (percentageDiff === 0) return ''; // No color for exact matches
+  if (percentageDiff > 0) return 'bg-green-100 border-green-300 text-green-800'; // Green for exceeding planned
+  if (percentageDiff >= -19) return 'bg-yellow-100 border-yellow-300 text-yellow-800'; // Yellow for 1-19% less
+  return 'bg-red-100 border-red-300 text-red-800'; // Red for ≤20% less
+}
+
+function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actuals?: { reps: number | null; load: string | null; }[][]) {
+  let totalSets = 0, totalReps = 0, totalLoad = 0;
+  exercises.forEach((exercise, exerciseIdx) => {
+    const sets = exercise.plannedSets || [];
+    sets.forEach((set, setIdx) => {
+      totalSets++;
+      // Always use planned for planned, but for actuals, only use if valid
+      let reps = 0;
+      let load = 0;
+      if (actuals && actuals[exerciseIdx] && actuals[exerciseIdx][setIdx]) {
+        const actual = actuals[exerciseIdx][setIdx];
+        reps = (actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
+        load = (actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
+      } else if ((exercise as any).actualSets && (exercise as any).actualSets[setIdx]) {
+        // Fallback to actualSets on exercise if present
+        const actual = (exercise as any).actualSets[setIdx];
+        reps = (actual && actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
+        load = (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
+      }
+      totalReps += reps || 0;
+      totalLoad += (reps || 0) * (load || 0);
+    });
+  });
+  return { totalSets, totalReps, totalLoad };
+}
+
+export default function SessionSummary({ exercises, preferredLoadUnit, mode = 'plan', actuals }: SessionSummaryProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const loadUnit = preferredLoadUnit || 'lbs';
+  const sessionStats = calculateSessionStats(exercises, loadUnit);
+  const planned = {
+    totalExercises: sessionStats.totalExercises,
+    totalSets: sessionStats.totalSets,
+    totalReps: sessionStats.totalReps,
+    totalLoad: sessionStats.totalLoad,
+    estimatedDuration: sessionStats.estimatedDuration,
+  };
+  const actual = mode === 'act' ? sumActuals(exercises, loadUnit, actuals) : null;
+
+  const summaryData = mode === 'act' ? {
+    'Estimated Duration': { value: planned.estimatedDuration, color: '' },
+    'Total Exercises': { value: planned.totalExercises.toString(), color: '' },
+    'Total Sets': { 
+      value: `${planned.totalSets} / ${actual?.totalSets ?? 0}`, 
+      color: getDeviationColor(actual?.totalSets ?? 0, planned.totalSets)
+    },
+    'Total Reps': { 
+      value: `${planned.totalReps} / ${actual?.totalReps ?? 0}`, 
+      color: getDeviationColor(actual?.totalReps ?? 0, planned.totalReps)
+    },
+    'Total Load': { 
+      value: `${formatNumberWithCommas(Math.round(planned.totalLoad))} / ${formatNumberWithCommas(Math.round(actual?.totalLoad ?? 0))} ${loadUnit}`, 
+      color: getDeviationColor(actual?.totalLoad ?? 0, planned.totalLoad)
+    },
+  } : {
+    'Estimated Duration': { value: planned.estimatedDuration, color: '' },
+    'Total Exercises': { value: planned.totalExercises.toString(), color: '' },
+    'Total Sets': { value: planned.totalSets.toString(), color: '' },
+    'Total Reps': { value: planned.totalReps.toString(), color: '' },
+    'Total Load': { 
+      value: planned.totalLoad > 0 ? `${formatNumberWithCommas(Math.round(planned.totalLoad))} ${loadUnit}` : `0 ${loadUnit}`, 
+      color: '' 
+    },
   };
 
   return (
@@ -43,17 +104,16 @@ export default function SessionSummary({ exercises, preferredLoadUnit }: Session
           </svg>
         </button>
       </div>
-
       {isOpen && (
         <div className="mt-4">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(summaryData).map(([key, value]) => (
+            {Object.entries(summaryData).map(([key, data]) => (
               <div key={key} className="bg-white dark:bg-white p-4 rounded-lg shadow">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
                   {key}
                 </p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-slate-900">
-                  {value || '0'}
+                <p className={`text-lg font-semibold ${data.color ? `${data.color} px-2 py-1 rounded-full inline-block` : 'text-gray-900 dark:text-slate-900'}`}>
+                  {data.value || '0'}
                 </p>
               </div>
             ))}

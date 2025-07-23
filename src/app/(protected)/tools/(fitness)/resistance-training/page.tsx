@@ -60,7 +60,7 @@ export default async function ResistanceTrainingPage() {
     <SessionProvider>
       <div className="container mx-auto px-4 py-8">
         <Header />
-        <h1 className="text-3xl font-bold my-8">Resistance Training Program Planning</h1>
+        <h1 className="text-3xl font-bold my-8">Resistance Training Program</h1>
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="flex-grow space-y-4">
             <ResistanceTrainingClient
