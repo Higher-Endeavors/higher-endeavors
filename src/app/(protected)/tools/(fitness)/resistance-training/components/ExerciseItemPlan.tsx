@@ -149,68 +149,29 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
       </div>
 
       {/* Table header */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-3">
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Sets x Reps</span>
-          <div className="font-medium dark:text-slate-900">
-            {exercise.plannedSets?.map((set, idx) => (
-              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
-                <span className="font-medium dark:text-slate-900">
-                  {(set as any).subSet ? `Set ${set.set}.${(set as any).subSet}` : `Set ${set.set || idx + 1}`}:
-                  {" "}{set.reps || 0} reps
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Load</span>
-          <div className="font-medium dark:text-slate-900">
-            {exercise.plannedSets?.map((set, idx) => (
-              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
-                <span className="font-medium dark:text-slate-900">
-                  {formatLoad(set.load || '0', getLoadUnit(set))}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Tempo</span>
-          <div className="font-medium dark:text-slate-900">
-            {exercise.plannedSets?.map((set, idx) => (
-              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
-                <span className="font-medium dark:text-slate-900">
-                  {set.tempo || '2010'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Rest</span>
-          <div className="font-medium dark:text-slate-900">
-            {exercise.plannedSets?.map((set, idx) => (
-              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
-                <span className="font-medium dark:text-slate-900">
-                  {set.restSec || 0}s
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div>
-          <span className="text-sm text-gray-500 dark:text-slate-600">Time Under Tension</span>
-          <div className="font-medium dark:text-slate-900">
-            {exercise.plannedSets?.map((set, idx) => (
-              <div key={idx} className={(set as any).subSet ? 'ml-4 text-sm text-gray-600' : ''}>
-                <span className="font-medium dark:text-slate-900">
-                  {calculateTimeUnderTension(set.reps, set.tempo)} sec.
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
+      <div className="grid grid-cols-6 gap-2 mt-3 text-sm font-semibold text-gray-500 dark:text-slate-600">
+        <div>Set</div>
+        <div>Reps</div>
+        <div>Load</div>
+        <div>Tempo</div>
+        <div>Rest</div>
+        <div>Time Under Tension</div>
+      </div>
+      {/* Table rows */}
+      <div className="grid grid-cols-6 gap-2 text-sm dark:text-slate-600">
+        {(exercise.plannedSets || []).flatMap((set, setIdx) => {
+          const plannedReps = set.reps || 0;
+          const plannedLoad = set.load || '';
+          const plannedUnit = getLoadUnit(set);
+          return [
+            <div key={`${setIdx}-set`} className="flex items-center">{set.set || setIdx + 1}</div>,
+            <div key={`${setIdx}-reps`} className="flex items-center">{plannedReps}</div>,
+            <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
+            <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
+            <div key={`${setIdx}-rest`} className="flex items-center">{set.restSec || 0}s</div>,
+            <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+          ];
+        })}
       </div>
       {/* Summary row and notes, as in Plan mode */}
       <div className="mt-3 border-t pt-3">

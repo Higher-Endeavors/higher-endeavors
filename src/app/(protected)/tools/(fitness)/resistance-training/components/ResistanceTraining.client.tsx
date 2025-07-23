@@ -277,6 +277,21 @@ export default function ResistanceTrainingClient({
           // TODO: Handle program deletion
           console.log('Program deleted:', programId);
         }}
+        newProgramHandler={() => {
+          setEditingProgramId(null);
+          setProgramName('');
+          setPhaseFocus('');
+          setPeriodizationType('None');
+          setProgressionRulesState({});
+          setProgramDuration(4);
+          setNotes('');
+          setWeeklyExercises([[]]);
+          setBaseWeekExercises([]);
+          setActiveDay(1);
+          setLockedWeeks(new Set());
+          setSaveResult(null);
+        }}
+        isProgramLoaded={!!editingProgramId}
       />
       <ProgramSettings
         programLength={programLength}
@@ -328,27 +343,6 @@ export default function ResistanceTrainingClient({
           >
             Add Exercise
           </button>
-          {editingProgramId && mode === 'plan' && (
-            <button
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
-              onClick={() => {
-                setEditingProgramId(null);
-                setProgramName('');
-                setPhaseFocus('');
-                setPeriodizationType('None');
-                setProgressionRulesState({});
-                setProgramDuration(4);
-                setNotes('');
-                setWeeklyExercises([[]]);
-                setBaseWeekExercises([]);
-                setActiveDay(1);
-                setLockedWeeks(new Set());
-                setSaveResult(null);
-              }}
-            >
-              New Program
-            </button>
-          )}
         </div>
         {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
           <button
