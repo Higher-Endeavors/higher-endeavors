@@ -190,11 +190,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         {/* Desktop table header - hidden on mobile */}
         <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600">
           <div>Set</div>
-          <div>Reps (Planned/Actual)</div>
-          <div>Load (Planned/Actual)</div>
-          <div>Tempo</div>
-          <div>Rest</div>
-          <div>Time Under Tension</div>
+          <div className="font-bold">Reps (Planned/Actual)</div>
+          <div className="font-bold">Load (Planned/Actual)</div>
+          <div className="font-bold">Tempo</div>
+          <div className="font-bold">Rest</div>
+          <div className="font-bold">Time Under Tension</div>
         </div>
         
         {/* Desktop table rows - hidden on mobile */}
@@ -261,11 +261,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
               <div key={setIdx} className="bg-gray-50 rounded-lg p-3 border">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold text-gray-700">Set {set.set || setIdx + 1}</span>
-                  <span className="text-sm text-gray-500">{set.restSec || 0}s rest</span>
+                  <span className="text-sm font-bold text-gray-500">{set.restSec || 0}s Rest</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="font-medium text-gray-600 mb-1">Reps</div>
+                    <div className="font-bold text-gray-600 mb-1">Reps</div>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-800">{plannedReps}</span>
                       <span className="text-gray-400">/</span>
@@ -286,7 +286,7 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                     </div>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-600 mb-1">Load</div>
+                    <div className="font-bold text-gray-600 mb-1">Load</div>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
                       <span className="text-gray-400">/</span>
@@ -308,11 +308,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
                   <div>
-                    <div className="font-medium text-gray-600 mb-1">Tempo</div>
+                    <div className="font-bold text-gray-600 mb-1">Tempo</div>
                     <span className="text-gray-800">{set.tempo || '2010'}</span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-600 mb-1">TUT</div>
+                    <div className="font-bold text-gray-600 mb-1">TUT</div>
                     <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
                   </div>
                 </div>
