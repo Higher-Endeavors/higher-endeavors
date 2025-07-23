@@ -109,8 +109,6 @@ const SettingsForm = () => {
     setShowErrorToast(false);
     setShowSuccessToast(false);
     try {
-      // TODO: Get userId from session or props
-      const userId = 1; // Replace with actual user ID logic
       const result = await saveUserSettings({ settings: data });
       if (!result.success) throw new Error(result.error || 'Failed to update settings');
       setDbSettings(data);
