@@ -66,10 +66,32 @@ export default function ExerciseList({
     return [...exercises].sort((a, b) => {
       const pairingA = a.pairing || '';
       const pairingB = b.pairing || '';
+      
+      // Custom sorting logic for WU and CD
+      const isWU_A = pairingA.toUpperCase() === 'WU';
+      const isWU_B = pairingB.toUpperCase() === 'WU';
+      const isCD_A = pairingA.toUpperCase() === 'CD';
+      const isCD_B = pairingB.toUpperCase() === 'CD';
+      
+      // WU (Warm-Up) should always be first
+      if (isWU_A && !isWU_B) return -1;
+      if (!isWU_A && isWU_B) return 1;
+      
+      // CD (Cool Down) should always be last
+      if (isCD_A && !isCD_B) return 1;
+      if (!isCD_A && isCD_B) return -1;
+      
+      // If both are WU or both are CD, sort by the full pairing string
+      if ((isWU_A && isWU_B) || (isCD_A && isCD_B)) {
+        return pairingA.localeCompare(pairingB);
+      }
+      
+      // For regular pairings (A1, B2, etc.), use the original logic
       const letterA = pairingA.charAt(0).toUpperCase();
       const letterB = pairingB.charAt(0).toUpperCase();
       const numberA = parseInt(pairingA.slice(1)) || 0;
       const numberB = parseInt(pairingB.slice(1)) || 0;
+      
       if (letterA !== letterB) {
         return letterA.localeCompare(letterB);
       }
@@ -78,6 +100,18 @@ export default function ExerciseList({
   };
 
   const sortedExercises = sortExercisesByPairing(plannedExercises);
+
+  // Helper function to get display name for pairing groups
+  const getGroupDisplayName = (pairing: string | undefined): string => {
+    if (!pairing) return '';
+    
+    const upperPairing = pairing.toUpperCase();
+    if (upperPairing === 'WU') return 'Warm-Up';
+    if (upperPairing === 'CD') return 'Cool Down';
+    
+    // For regular pairings (A1, B2, etc.), show "Group" + first letter
+    return `Group ${pairing.charAt(0).toUpperCase()}`;
+  };
 
   // NEW: Helper to handle actuals input
   const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
@@ -253,7 +287,7 @@ export default function ExerciseList({
                   <div className="flex items-center gap-4 mb-2">
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                     <h3 className="text-lg font-semibold text-gray-700">
-                      Group {exercise.pairing?.[0] ?? ''}
+                      {getGroupDisplayName(exercise.pairing)}
                     </h3>
                     <div className="flex-grow h-px bg-gray-200 dark:bg-gray-700" />
                   </div>
