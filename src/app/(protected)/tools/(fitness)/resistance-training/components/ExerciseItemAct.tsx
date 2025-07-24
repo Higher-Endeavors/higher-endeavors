@@ -260,24 +260,24 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
             return (
               <div key={setIdx} className="bg-gray-50 rounded-lg p-3 border">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="font-semibold text-gray-700">Set {set.set || setIdx + 1}</span>
-                  <span className="text-sm font-bold text-gray-500">{set.restSec || 0}s Rest</span>
+                  <span className="font-semibold text-gray-700 dark:text-gray-900">Set {set.set || setIdx + 1}</span>
+                  <span className="text-sm font-bold text-gray-500 dark:text-gray-700">{set.restSec || 0}s Rest</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">Reps</div>
+                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Reps</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-800">{plannedReps}</span>
-                      <span className="text-gray-400">/</span>
+                      <span className="text-gray-800 dark:text-gray-900">{plannedReps}</span>
+                      <span className="text-gray-400 dark:text-gray-600">/</span>
                       {readOnly ? (
-                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>
                           {actualReps || '-'}
                         </span>
                       ) : (
                         <input
                           type="number"
                           min={0}
-                          className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                          className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
                           placeholder="Actual"
                           value={actualReps}
                           onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
@@ -286,18 +286,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                     </div>
                   </div>
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">Load</div>
+                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Load</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
-                      <span className="text-gray-400">/</span>
+                      <span className="text-gray-800 dark:text-gray-900">{formatLoad(plannedLoad, plannedUnit)}</span>
+                      <span className="text-gray-400 dark:text-gray-600">/</span>
                       {readOnly ? (
-                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
+                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>
                           {actualLoad || '-'}
                         </span>
                       ) : (
                         <input
                           type="text"
-                          className={`w-20 px-2 py-1 border rounded ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                          className={`w-20 px-2 py-1 border rounded text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
                           placeholder="Actual"
                           value={actualLoad}
                           onChange={e => onActualChange(setIdx, 'load', e.target.value)}
@@ -308,12 +308,12 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 </div>
                 <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">Tempo</div>
-                    <span className="text-gray-800">{set.tempo || '2010'}</span>
+                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Tempo</div>
+                    <span className="text-gray-800 dark:text-gray-900">{set.tempo || '2010'}</span>
                   </div>
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">TUT</div>
-                    <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
+                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">TUT</div>
+                    <span className="text-gray-800 dark:text-gray-900">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
                   </div>
                 </div>
               </div>
