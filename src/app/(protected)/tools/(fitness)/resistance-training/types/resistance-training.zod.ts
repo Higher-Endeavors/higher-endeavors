@@ -145,8 +145,8 @@ export const UpdateResistanceProgramSchema = z.object({
   notes: z.string().optional(),
   weeklyExercises: z.array(z.array(z.object({
     exerciseSource: z.enum(['library', 'user']),
-    exerciseLibraryId: z.number().int().optional(),
-    userExerciseLibraryId: z.number().int().optional(),
+    exerciseLibraryId: z.number().int().nullable().optional(),
+    userExerciseLibraryId: z.number().int().nullable().optional(),
     pairing: z.string().optional(),
     plannedSets: z.array(z.any()).optional(),
     notes: z.string().optional(),

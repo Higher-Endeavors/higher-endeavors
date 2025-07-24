@@ -192,44 +192,72 @@ export default function ResistanceTrainingClient({
   const handleSaveProgram = async () => {
     if (!programName.trim()) {
       setSaveWarning('Please enter a Program Name before saving.');
+      // Focus the program name input on mobile
+      const programNameInput = document.getElementById('program-name-input');
+      if (programNameInput) {
+        programNameInput.focus();
+        programNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
       return;
     }
     setSaveWarning('');
     setSaveResult(null);
     
-    let result;
-    
-    if (editingProgramId) {
-      // Update existing program
-      result = await updateResistanceProgram({
-        programId: editingProgramId,
-        userId: selectedUserId,
-        programName,
-        phaseFocus,
-        periodizationType,
-        progressionRules: progressionSettings,
-        programDuration,
-        notes,
-        weeklyExercises,
-      });
-    } else {
-      // Create new program
-      result = await saveResistanceProgram({
-        userId: selectedUserId,
-        programName,
-        phaseFocus,
-        periodizationType,
-        progressionRules: progressionSettings,
-        programDuration,
-        notes,
-        weeklyExercises,
-      });
+    // Show loading state
+    const saveButton = document.querySelector('[data-save-button]');
+    if (saveButton) {
+      saveButton.textContent = 'Saving...';
+      saveButton.setAttribute('disabled', 'true');
     }
     
-    if (result.success) {
-      setSaveResult(editingProgramId ? 'Program updated successfully!' : 'Program saved successfully!');
-    } else {
-      setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
+    try {
+      let result;
+      
+      if (editingProgramId) {
+        // Update existing program
+        result = await updateResistanceProgram({
+          programId: editingProgramId,
+          userId: selectedUserId,
+          programName,
+          phaseFocus,
+          periodizationType,
+          progressionRules: progressionSettings,
+          programDuration,
+          notes,
+          weeklyExercises,
+        });
+      } else {
+        // Create new program
+        result = await saveResistanceProgram({
+          userId: selectedUserId,
+          programName,
+          phaseFocus,
+          periodizationType,
+          progressionRules: progressionSettings,
+          programDuration,
+          notes,
+          weeklyExercises,
+        });
+      }
+      
+      if (result.success) {
+        setSaveResult(editingProgramId ? 'Program updated successfully!' : 'Program saved successfully!');
+        // Update editingProgramId if this was a new program
+        if (!editingProgramId && result.programId) {
+          setEditingProgramId(result.programId);
+        }
+      } else {
+        setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      setSaveResult('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      // Reset button state
+      if (saveButton) {
+        saveButton.textContent = editingProgramId ? 'Update Program' : 'Save Program';
+        saveButton.removeAttribute('disabled');
+      }
     }
   };
 
@@ -331,14 +359,16 @@ export default function ResistanceTrainingClient({
         onActualsChange={setActuals}
         sessionCompleted={sessionCompleted}
       />
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4 touch-manipulation">
         <div className="flex flex-col sm:flex-row gap-2">
           <button
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+            style={{ minHeight: '44px' }}
             onClick={() => {
               setEditingExercise(null);
               setIsModalOpen(true);
             }}
+            onTouchStart={(e) => e.preventDefault()}
             disabled={mode === 'act'}
           >
             Add Exercise
@@ -346,19 +376,29 @@ export default function ResistanceTrainingClient({
         </div>
         {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
           <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto"
-            style={{ minWidth: '120px' }}
+            data-save-button
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto touch-manipulation"
+            style={{ minWidth: '120px', minHeight: '44px' }}
             onClick={handleSaveProgram}
+            onTouchStart={(e) => e.preventDefault()}
           >
             {editingProgramId ? 'Update Program' : 'Save Program'}
           </button>
         )}
       </div>
       {saveWarning && (
-        <div className="text-red-600 text-right mt-2">{saveWarning}</div>
+        <div className="text-red-600 text-center sm:text-right mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800">
+          {saveWarning}
+        </div>
       )}
       {saveResult && (
-        <div className={`mt-2 text-right ${saveResult.startsWith('Error') ? 'text-red-600' : 'text-green-600'}`}>{saveResult}</div>
+        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
+          saveResult.startsWith('Error') 
+            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+        }`}>
+          {saveResult}
+        </div>
       )}
       <AddExerciseModal
         key={editingExercise?.exerciseLibraryId || editingExercise?.userExerciseLibraryId || 'new'}

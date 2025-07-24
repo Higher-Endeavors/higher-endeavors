@@ -185,6 +185,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
               Program Name
             </label>
             <input
+              id="program-name-input"
               type="text"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program name"
