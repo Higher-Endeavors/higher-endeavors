@@ -36,7 +36,7 @@ export const ResistanceProgramTemplateSchema = z.object({
 export const ProgramExercisesPlannedSchema = z.object({
   programExercisesPlannedId: z.number().int(),
   resistanceProgramId: z.number().int(),
-  exerciseSource: z.enum(['library', 'user']),
+  exerciseSource: z.enum(['library', 'user', 'cme_library']),
   exerciseLibraryId: z.number().int().optional(),
   userExerciseLibraryId: z.number().int().optional(),
   pairing: z.string().optional(),
@@ -72,7 +72,13 @@ export type ExerciseSet = {
   repUnit?: string;
   distance?: number;
   distanceUnit?: string;
+  duration?: number;
   notes?: string;
+  // Cycling-specific fields
+  speed?: number | null;
+  rpm?: number | null;
+  watts?: number | null;
+  resistance?: number | null;
 };
 
 export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
@@ -90,7 +96,13 @@ export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
     repUnit: z.string().optional(),
     distance: z.number().int().min(0).optional(),
     distanceUnit: z.string().optional(),
+    duration: z.number().int().min(0).optional(),
     notes: z.string().optional(),
+    // Cycling-specific fields
+    speed: z.number().int().min(0).nullable().optional(),
+    rpm: z.number().int().min(0).nullable().optional(),
+    watts: z.number().int().min(0).nullable().optional(),
+    resistance: z.number().int().min(0).nullable().optional(),
   }).strict()
 );
 
@@ -111,7 +123,7 @@ export const ExerciseLibraryItemSchema = z.object({
   difficulty: z.string().optional(),
   muscleGroup: z.string().optional(),
   equipment: z.string().optional(),
-  source: z.enum(['library', 'user']),
+  source: z.enum(['library', 'user', 'cme_library']),
   exercise_family: z.string().optional(),
   exercise_family_id: z.number().int().optional(),
 }).strict();
@@ -151,7 +163,7 @@ export const UpdateResistanceProgramSchema = z.object({
   programDuration: z.number().int().min(1).max(52),
   notes: z.string().optional(),
   weeklyExercises: z.array(z.array(z.object({
-    exerciseSource: z.enum(['library', 'user']),
+    exerciseSource: z.enum(['library', 'user', 'cme_library']),
     exerciseLibraryId: z.number().int().nullable().optional(),
     userExerciseLibraryId: z.number().int().nullable().optional(),
     pairing: z.string().optional(),

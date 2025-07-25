@@ -65,7 +65,7 @@ export default function ResistanceTrainingClient({
   // Add mode state
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
   // Add actuals state for SessionSummary
-  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
+  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -270,7 +270,7 @@ export default function ResistanceTrainingClient({
   const sessionCompleted = currentSessionExercises.some(ex => Array.isArray((ex as any).actualSets) && (ex as any).actualSets.length > 0 && (ex as any).actualSets.some((set: any) => set && (set.reps !== undefined || set.load !== undefined)));
 
   // If completed, build actuals from actualSets; else use local actuals
-  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } } = {};
+  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } } = {};
   if (sessionCompleted) {
     actualsForSession = {};
     currentSessionExercises.forEach((ex, exerciseIdx) => {

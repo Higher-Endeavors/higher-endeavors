@@ -33,7 +33,7 @@ interface ExerciseOption {
   value: number;
   label: string;
   exercise: ExerciseLibraryItem;
-  source: 'library' | 'user';
+  source: 'library' | 'user' | 'cme_library';
 }
 
 const CARRY_UNITS = [
@@ -57,6 +57,7 @@ type AddExerciseFormValues = {
   rir?: string;
   distance?: string;
   distanceUnit?: string;
+  duration?: string;
   // Bike exercise fields
   speed?: string;
   resistance?: string;
@@ -163,12 +164,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         rpe: firstSet?.rpe?.toString() || '',
         rir: isCarry || isBike ? '' : (firstSet?.rir?.toString() || ''),
         distance: isCarry ? (firstSet?.distance?.toString() || '') : 
-                  isBike ? ((firstSet as any)?.duration?.toString() || '') : '',
-        distanceUnit: isCarry ? (firstSet?.distanceUnit || 'yards') : 'yards',
-        speed: isBike ? ((firstSet as any)?.speed?.toString() || '') : '',
-        resistance: isBike ? ((firstSet as any)?.resistance?.toString() || '') : '',
-        rpm: isBike ? ((firstSet as any)?.rpm?.toString() || '') : '',
-        watts: isBike ? ((firstSet as any)?.watts?.toString() || '') : '',
+                  isBike ? (firstSet?.distance?.toString() || '') : '',
+        distanceUnit: isCarry ? (firstSet?.distanceUnit || 'yards') : 
+                     isBike ? (firstSet?.distanceUnit || 'miles') : 'yards',
+        duration: isBike ? (firstSet?.duration?.toString() || '') : '',
+        speed: isBike ? (firstSet?.speed?.toString() || '') : '',
+        resistance: isBike ? (firstSet?.resistance?.toString() || '') : '',
+        rpm: isBike ? (firstSet?.rpm?.toString() || '') : '',
+        watts: isBike ? (firstSet?.watts?.toString() || '') : '',
       };
     }
     return {
@@ -185,6 +188,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       rir: '',
       distance: '',
       distanceUnit: 'yards',
+      duration: '',
       speed: '',
       resistance: '',
       rpm: '',
@@ -349,13 +353,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         tempo: isCarry || isBike ? undefined : (data.tempo || '2010'),
         rpe: data.rpe ? parseInt(data.rpe) : undefined,
         rir: isCarry || isBike ? undefined : (data.rir ? parseInt(data.rir) : undefined),
-        distance: isCarry ? (parseInt(data.distance || '0') || 0) : undefined,
-        distanceUnit: isCarry ? (data.distanceUnit || 'yards') : undefined,
-        duration: isBike ? (parseInt(data.distance || '0') || 0) : undefined,
-        speed: isBike ? (parseInt(data.speed || '0') || 0) : undefined,
-        resistance: isBike ? (parseInt(data.resistance || '0') || 0) : undefined,
-        rpm: isBike ? (parseInt(data.rpm || '0') || 0) : undefined,
-        watts: isBike ? (parseInt(data.watts || '0') || 0) : undefined,
+        distance: isCarry ? (parseInt(data.distance || '0') || 0) : 
+                  isBike ? (parseFloat(data.distance || '0') || 0) : undefined,
+        distanceUnit: isCarry ? (data.distanceUnit || 'yards') : 
+                     isBike ? 'miles' : undefined,
+        duration: isBike ? (parseInt(data.duration || '0') || 0) : undefined,
+        speed: isBike ? (data.speed && data.speed.trim() ? parseInt(data.speed) : null) : undefined,
+        resistance: isBike ? (data.resistance && data.resistance.trim() ? parseInt(data.resistance) : null) : undefined,
+        rpm: isBike ? (data.rpm && data.rpm.trim() ? parseInt(data.rpm) : null) : undefined,
+        watts: isBike ? (data.watts && data.watts.trim() ? parseInt(data.watts) : null) : undefined,
       }).map((set, index) => ({
         ...set,
         set: index + 1,
@@ -363,13 +369,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     }
     const selectedExerciseData = data.selectedExercise.exercise;
     const isUserExercise = data.selectedExercise.source === 'user';
+    const isCMEExercise = data.selectedExercise.source === 'cme_library';
     
     const newExercise: ProgramExercisesPlanned = {
       programExercisesPlannedId: 0,
       resistanceProgramId: 0,
       exerciseLibraryId: isUserExercise ? undefined : selectedExerciseData.exerciseLibraryId,
       userExerciseLibraryId: isUserExercise ? selectedExerciseData.userExerciseLibraryId : undefined,
-      exerciseSource: isUserExercise ? 'user' : 'library',
+      exerciseSource: isUserExercise ? 'user' : isCMEExercise ? 'cme_library' : 'library',
       pairing: data.pairing || 'A1',
       plannedSets,
       notes: data.notes,
@@ -597,7 +604,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                 <div className="flex items-center space-x-2">
                   <Controller
                     name={isCarryExercise(selectedExercise?.exercise || null) ? "distance" : 
-                          isBikeExercise(selectedExercise?.exercise || null) ? "distance" : "reps"}
+                          isBikeExercise(selectedExercise?.exercise || null) ? "duration" : "reps"}
                     control={control}
                     render={({ field }) => (
                       <input
@@ -716,6 +723,28 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             {/* Bike-specific fields */}
             {isBikeExercise(selectedExercise?.exercise || null) && (
               <>
+                <div>
+                  <label htmlFor="exercise-distance" className="block text-sm font-medium dark:text-white">
+                    Distance (miles)
+                  </label>
+                  <Controller
+                    name="distance"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-distance"
+                        type="number"
+                        min="0.1"
+                        max="100"
+                        step="0.1"
+                        placeholder="Enter distance in miles"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                </div>
+
                 <div>
                   <label htmlFor="exercise-speed" className="block text-sm font-medium dark:text-white">
                     Speed (mph)

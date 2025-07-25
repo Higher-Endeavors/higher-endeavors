@@ -11,7 +11,7 @@ export function transformCMEActivitiesToExerciseLibrary(
   return cmeActivities.map(activity => ({
     exerciseLibraryId: activity.cme_activity_library_id,
     name: activity.name,
-    source: 'library' as const, // Map cme_library to library for compatibility
+    source: 'cme_library' as const, // Use cme_library to distinguish from regular library exercises
     exercise_family: activity.activity_family || undefined,
     // Add equipment information for enhanced matching
     equipment: activity.equipment || undefined,

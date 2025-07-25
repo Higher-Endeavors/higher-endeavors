@@ -23,8 +23,8 @@ interface ExerciseListProps {
   mode: 'plan' | 'act';
   setMode: (mode: 'plan' | 'act') => void;
   resistanceProgramId?: number;
-  actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } };
-  onActualsChange: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }) => void;
+  actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } };
+  onActualsChange: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }) => void;
   sessionCompleted?: boolean;
 }
 
@@ -114,13 +114,13 @@ export default function ExerciseList({
   };
 
   // NEW: Helper to handle actuals input
-  const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load', value: string) => {
+  const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => {
     const newActuals = {
       ...actuals,
       [exerciseIdx]: {
         ...(actuals[exerciseIdx] || {}),
         [setIdx]: {
-          ...(actuals[exerciseIdx]?.[setIdx] || { reps: '', load: '' }),
+          ...(actuals[exerciseIdx]?.[setIdx] || { reps: '', load: '', duration: '' }),
           [field]: value
         }
       }
@@ -137,7 +137,8 @@ export default function ExerciseList({
         return {
           ...set,
           reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
-          load: actual.load === undefined || actual.load === '' ? null : actual.load
+          load: actual.load === undefined || actual.load === '' ? null : actual.load,
+          duration: actual.duration === undefined || actual.duration === '' ? null : Number(actual.duration)
         };
       });
     });
@@ -173,7 +174,8 @@ export default function ExerciseList({
         return {
           ...set,
           reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
-          load: actual.load === undefined || actual.load === '' ? null : actual.load
+          load: actual.load === undefined || actual.load === '' ? null : actual.load,
+          duration: actual.duration === undefined || actual.duration === '' ? null : Number(actual.duration)
         };
       })
     }));
