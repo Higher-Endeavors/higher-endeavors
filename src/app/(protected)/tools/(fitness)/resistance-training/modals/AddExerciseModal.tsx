@@ -15,6 +15,7 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import AdvancedExerciseSearch from './AdvancedExerciseSearch';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
 
+
 // Alias for ExerciseLibraryItem since it now includes the source property
 export type ExerciseWithSource = ExerciseLibraryItem;
 
@@ -56,6 +57,11 @@ type AddExerciseFormValues = {
   rir?: string;
   distance?: string;
   distanceUnit?: string;
+  // Bike exercise fields
+  speed?: string;
+  resistance?: string;
+  rpm?: string;
+  watts?: string;
 };
 
 export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise, fitnessSettings }: AddExerciseModalProps) {
@@ -95,6 +101,13 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const isCarryExercise = (exercise: ExerciseWithSource | null) => {
     return exercise?.exercise_family === 'Carry';
   };
+
+  // Helper function to check if exercise is a Bike exercise
+  const isBikeExercise = (exercise: ExerciseWithSource | null) => {
+    return exercise?.exercise_family === 'Cycling';
+  };
+
+
 
   const DIFFICULTY_ORDER = [
     'Basic', 'Beginner', 'Novice', 'Intermediate', 'Advanced',
@@ -136,20 +149,26 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       });
       const firstSet = editingExercise.plannedSets?.[0];
       const isCarry = isCarryExercise(selectedExercise?.exercise || null);
+      const isBike = isBikeExercise(selectedExercise?.exercise || null);
       return {
         selectedExercise: selectedExercise || null,
         notes: editingExercise.notes || '',
         setsCount: editingExercise.plannedSets?.length || 3,
         pairing: editingExercise.pairing || '',
-        reps: isCarry ? '' : (firstSet?.reps?.toString() || ''),
+        reps: isCarry || isBike ? '' : (firstSet?.reps?.toString() || ''),
         load: firstSet?.load || '',
         rest: firstSet?.restSec?.toString() || '',
-        tempo: isCarry ? '' : (firstSet?.tempo || '2010'),
+        tempo: isCarry || isBike ? '' : (firstSet?.tempo || '2010'),
         repUnit: 'reps',
         rpe: firstSet?.rpe?.toString() || '',
-        rir: isCarry ? '' : (firstSet?.rir?.toString() || ''),
-        distance: isCarry ? (firstSet?.distance?.toString() || '') : '',
+        rir: isCarry || isBike ? '' : (firstSet?.rir?.toString() || ''),
+        distance: isCarry ? (firstSet?.distance?.toString() || '') : 
+                  isBike ? ((firstSet as any)?.duration?.toString() || '') : '',
         distanceUnit: isCarry ? (firstSet?.distanceUnit || 'yards') : 'yards',
+        speed: isBike ? ((firstSet as any)?.speed?.toString() || '') : '',
+        resistance: isBike ? ((firstSet as any)?.resistance?.toString() || '') : '',
+        rpm: isBike ? ((firstSet as any)?.rpm?.toString() || '') : '',
+        watts: isBike ? ((firstSet as any)?.watts?.toString() || '') : '',
       };
     }
     return {
@@ -166,6 +185,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       rir: '',
       distance: '',
       distanceUnit: 'yards',
+      speed: '',
+      resistance: '',
+      rpm: '',
+      watts: '',
     };
   };
 
@@ -260,6 +283,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     if (!data.selectedExercise) return;
     
     const isCarry = isCarryExercise(data.selectedExercise.exercise);
+    const isBike = isBikeExercise(data.selectedExercise.exercise);
     
     // Use existing load unit if editing, otherwise use current toggle state
     let currentLoadUnit = useAlternateUnit ? alternateUnit : defaultUnit;
@@ -290,10 +314,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
           } else {
             return [{
               set: setIdx + 1,
-              reps: isCarry ? undefined : (parseInt(set.reps) || 0),
+              reps: isCarry ? undefined : (parseInt(set.reps || '0') || 0),
               load: set.load,
               loadUnit: currentLoadUnit,
-              restSec: parseInt(data.rest) || 0,
+              restSec: parseInt(data.rest || '0') || 0,
               tempo: isCarry ? undefined : (data.tempo || '2010'),
               rpe: set.rpe ? parseInt(set.rpe) : undefined,
               rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
@@ -305,10 +329,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       } else {
         plannedSets = variedSets.map((set, index) => ({
           set: index + 1,
-          reps: isCarry ? undefined : (parseInt(set.reps) || 0),
+          reps: isCarry ? undefined : (parseInt(set.reps || '0') || 0),
           load: set.load,
           loadUnit: currentLoadUnit,
-          restSec: parseInt(data.rest) || 0,
+          restSec: parseInt(data.rest || '0') || 0,
           tempo: isCarry ? undefined : (data.tempo || '2010'),
           rpe: set.rpe ? parseInt(set.rpe) : undefined,
           rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
@@ -318,15 +342,20 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       }
     } else {
       plannedSets = Array(data.setsCount).fill({
-        reps: isCarry ? undefined : (parseInt(data.reps) || 0),
+        reps: isCarry || isBike ? undefined : (parseInt(data.reps || '0') || 0),
         load: data.load || '0',
         loadUnit: currentLoadUnit,
-        restSec: parseInt(data.rest) || 0,
-        tempo: isCarry ? undefined : (data.tempo || '2010'),
+        restSec: parseInt(data.rest || '0') || 0,
+        tempo: isCarry || isBike ? undefined : (data.tempo || '2010'),
         rpe: data.rpe ? parseInt(data.rpe) : undefined,
-        rir: isCarry ? undefined : (data.rir ? parseInt(data.rir) : undefined),
+        rir: isCarry || isBike ? undefined : (data.rir ? parseInt(data.rir) : undefined),
         distance: isCarry ? (parseInt(data.distance || '0') || 0) : undefined,
         distanceUnit: isCarry ? (data.distanceUnit || 'yards') : undefined,
+        duration: isBike ? (parseInt(data.distance || '0') || 0) : undefined,
+        speed: isBike ? (parseInt(data.speed || '0') || 0) : undefined,
+        resistance: isBike ? (parseInt(data.resistance || '0') || 0) : undefined,
+        rpm: isBike ? (parseInt(data.rpm || '0') || 0) : undefined,
+        watts: isBike ? (parseInt(data.watts || '0') || 0) : undefined,
       }).map((set, index) => ({
         ...set,
         set: index + 1,
@@ -412,6 +441,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     const label = option.label.toLowerCase();
     return words.every(word => label.includes(word));
   }
+
+
 
   return (
     <Modal show={isOpen} onClose={onClose} size="xl" className="max-h-screen overflow-y-auto">
@@ -560,18 +591,22 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             {!isVariedSets ? (
               <div>
                 <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
-                  {isCarryExercise(selectedExercise?.exercise || null) ? 'Distance' : 'Reps'}
+                  {isCarryExercise(selectedExercise?.exercise || null) ? 'Distance' : 
+                   isBikeExercise(selectedExercise?.exercise || null) ? 'Duration (minutes)' : 'Reps'}
                 </label>
                 <div className="flex items-center space-x-2">
                   <Controller
-                    name={isCarryExercise(selectedExercise?.exercise || null) ? "distance" : "reps"}
+                    name={isCarryExercise(selectedExercise?.exercise || null) ? "distance" : 
+                          isBikeExercise(selectedExercise?.exercise || null) ? "distance" : "reps"}
                     control={control}
                     render={({ field }) => (
                       <input
                         {...field}
-                        id={isCarryExercise(selectedExercise?.exercise || null) ? "exercise-distance" : "exercise-reps"}
+                        id={isCarryExercise(selectedExercise?.exercise || null) ? "exercise-distance" : 
+                            isBikeExercise(selectedExercise?.exercise || null) ? "exercise-duration" : "exercise-reps"}
                         type="number"
-                        placeholder={isCarryExercise(selectedExercise?.exercise || null) ? "Enter distance" : "Enter number of reps"}
+                        placeholder={isCarryExercise(selectedExercise?.exercise || null) ? "Enter distance" : 
+                                     isBikeExercise(selectedExercise?.exercise || null) ? "Enter duration" : "Enter number of reps"}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                       />
                     )}
@@ -600,7 +635,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               <div />
             )}
 
-            {!isVariedSets ? (
+            {!isVariedSets && !isBikeExercise(selectedExercise?.exercise || null) ? (
               <div>
                 <div className="flex items-center space-x-1">
                   <label htmlFor="exercise-load" className="block text-sm font-medium dark:text-white">
@@ -639,23 +674,25 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setUseAlternateUnit(!useAlternateUnit)}
-                  className="mt-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center space-x-1 text-gray-700 min-w-[60px]"
-                >
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-                  </svg>
-                  <span>{useAlternateUnit ? 'kg' : 'lbs'}</span>
-                </button>
-                <span className="text-sm text-gray-500 dark:text-gray-400">Load unit applies to all sets</span>
-              </div>
+              !isBikeExercise(selectedExercise?.exercise || null) && (
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setUseAlternateUnit(!useAlternateUnit)}
+                    className="mt-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center space-x-1 text-gray-700 min-w-[60px]"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    <span>{useAlternateUnit ? 'kg' : 'lbs'}</span>
+                  </button>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Load unit applies to all sets</span>
+                </div>
+              )
             )}
 
-            {/* Tempo input should only show for non-Carry exercises */}
-            {!isCarryExercise(selectedExercise?.exercise || null) && (
+            {/* Tempo input should only show for non-Carry and non-Bike exercises */}
+            {!isCarryExercise(selectedExercise?.exercise || null) && !isBikeExercise(selectedExercise?.exercise || null) && (
               <div>
                 <label htmlFor="exercise-tempo" className="block text-sm font-medium dark:text-white">
                   Tempo (4 digits, X for explosive)
@@ -674,6 +711,95 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                   )}
                 />
               </div>
+            )}
+
+            {/* Bike-specific fields */}
+            {isBikeExercise(selectedExercise?.exercise || null) && (
+              <>
+                <div>
+                  <label htmlFor="exercise-speed" className="block text-sm font-medium dark:text-white">
+                    Speed (mph)
+                  </label>
+                  <Controller
+                    name="speed"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-speed"
+                        type="number"
+                        min="0.1"
+                        max="30"
+                        step="0.1"
+                        placeholder="Enter speed in mph"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="exercise-rpm" className="block text-sm font-medium dark:text-white">
+                    RPM
+                  </label>
+                  <Controller
+                    name="rpm"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-rpm"
+                        type="number"
+                        min="40"
+                        max="120"
+                        placeholder="Revolutions per minute"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="exercise-watts" className="block text-sm font-medium dark:text-white">
+                    Watts
+                  </label>
+                  <Controller
+                    name="watts"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-watts"
+                        type="number"
+                        min="100"
+                        placeholder="Enter watts"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="exercise-resistance" className="block text-sm font-medium dark:text-white">
+                    Resistance Level
+                  </label>
+                  <Controller
+                    name="resistance"
+                    control={control}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        id="exercise-resistance"
+                        type="number"
+                        min="1"
+                        max="20"
+                        placeholder="Enter resistance level"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                      />
+                    )}
+                  />
+                </div>
+              </>
             )}
 
             {(!isVariedSets || !isAdvancedSets) && (
@@ -720,7 +846,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {showRIR && (!isVariedSets || !isAdvancedSets) && !isCarryExercise(selectedExercise?.exercise || null) && (
+            {showRIR && (!isVariedSets || !isAdvancedSets) && !isCarryExercise(selectedExercise?.exercise || null) && !isBikeExercise(selectedExercise?.exercise || null) && (
               <div>
                 <label htmlFor="exercise-rir" className="block text-sm font-medium dark:text-white">
                   RIR (0-10)
