@@ -70,6 +70,9 @@ export type ExerciseSet = {
   subSets?: ExerciseSet[];
   type?: 'varied' | 'advanced';
   repUnit?: string;
+  distance?: number;
+  distanceUnit?: string;
+  notes?: string;
 };
 
 export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
@@ -85,6 +88,8 @@ export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
     subSets: z.array(ExerciseSetSchema).optional(),
     type: z.enum(['varied', 'advanced']).optional(),
     repUnit: z.string().optional(),
+    distance: z.number().int().min(0).optional(),
+    distanceUnit: z.string().optional(),
     notes: z.string().optional(),
   }).strict()
 );
@@ -107,6 +112,8 @@ export const ExerciseLibraryItemSchema = z.object({
   muscleGroup: z.string().optional(),
   equipment: z.string().optional(),
   source: z.enum(['library', 'user']),
+  exercise_family: z.string().optional(),
+  exercise_family_id: z.number().int().optional(),
 }).strict();
 
 // Program list item for browser display

@@ -236,7 +236,7 @@ export default function ExerciseList({
       <div className="flex flex-row items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-4">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
-          <span
+          {/* <span
             className="text-gray-600 hover:text-gray-800 cursor-pointer relative"
             aria-label="Open calendar (coming soon)"
             tabIndex={0}
@@ -249,7 +249,7 @@ export default function ExerciseList({
                 <CalendarGrid />
               </div>
             )}
-          </span>
+          </span> */}
         </div>
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-3">
