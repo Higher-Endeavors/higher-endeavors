@@ -36,25 +36,25 @@ class ClientLogger {
     }
   }
   
-  info(message: string, metadata?: Record<string, any>, context?: string): void {
+  info(message: string, metadata?: Record<string, any>, logContext?: string): void {
     this.sendLog({
       level: 'info',
       message,
       metadata,
-      context,
+      context: logContext, // Renamed parameter for clarity
     });
   }
   
-  warn(message: string, metadata?: Record<string, any>, context?: string): void {
+  warn(message: string, metadata?: Record<string, any>, logContext?: string): void {
     this.sendLog({
       level: 'warn',
       message,
       metadata,
-      context,
+      context: logContext,
     });
   }
   
-  error(message: string, error?: Error | unknown, metadata?: Record<string, any>, context?: string): void {
+  error(message: string, error?: Error | unknown, metadata?: Record<string, any>, logContext?: string): void {
     const errorData = error instanceof Error ? {
       name: error.name,
       message: error.message,
@@ -68,16 +68,16 @@ class ClientLogger {
         ...metadata,
         error: errorData,
       },
-      context,
+      context: logContext,
     });
   }
   
-  debug(message: string, metadata?: Record<string, any>, context?: string): void {
+  debug(message: string, metadata?: Record<string, any>, logContext?: string): void {
     this.sendLog({
       level: 'debug',
       message,
       metadata,
-      context,
+      context: logContext,
     });
   }
 }

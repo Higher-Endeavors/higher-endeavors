@@ -3,7 +3,11 @@ import { headers } from 'next/headers';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
-  ...(process.env.RUNTIME_ENV === 'dev' && {
+  base: null,
+  formatters: {
+    level: (label) => ({ level: label.toUpperCase() }),
+  },
+  ...(process.env.RUNTIME_ENV === 'devel' && {
     transport: {
       target: 'pino-pretty',
       options: {
@@ -19,13 +23,11 @@ async function getLogContext() {
   try {
     const headersList = await headers();
     const requestId = headersList.get('x-request-id');
-    const userId = headersList.get('x-user-id');
     const forwarded = headersList.get('x-forwarded-for');
     const userAgent = headersList.get('user-agent');
     
     return {
       requestId: requestId || undefined,
-      userId: userId || undefined,
       ip: forwarded || undefined,
       userAgent: userAgent || undefined,
     };
@@ -38,7 +40,7 @@ async function getLogContext() {
 async function createContextualLogger() {
   const context = await getLogContext();
   
-  if (context.requestId || context.userId) {
+  if (context.requestId || context.ip || context.userAgent) {
     return logger.child(context);
   }
   

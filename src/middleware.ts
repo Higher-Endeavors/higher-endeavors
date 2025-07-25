@@ -19,14 +19,18 @@ export function middleware(request: NextRequest) {
   ];
 
   const requestId = request.headers.get("x-request-id") || nanoid();
+  const ip = request.headers.get('x-forwarded-for') || 'unknown';
+  const userAgent = request.headers.get('user-agent') || 'unknown';
 
   const response = NextResponse.next();
   response.headers.set("x-request-id", requestId);
+  response.headers.set("x-forwarded-for", ip);
+  response.headers.set("user-agent", userAgent);
 
   if (publicGuideContent.includes(request.nextUrl.pathname)) {
     return response;
   }
-  if (publicGuideContent.includes(request.nextUrl.pathname)) {
+  if (protectedContent.includes(request.nextUrl.pathname)) {
     let sessionTokenName = "";
     if (process.env.RUNTIME_ENV == "dev") {
       sessionTokenName = "authjs.session-token";
@@ -35,7 +39,7 @@ export function middleware(request: NextRequest) {
     }
 
     if (request.cookies.has(`${sessionTokenName}`)) {
-      return NextResponse.next();
+      return response;
     } else {
       const redirect = NextResponse.redirect(
         new URL(
@@ -46,6 +50,8 @@ export function middleware(request: NextRequest) {
       redirect.headers.set("x-request-id", requestId);
       return redirect;
     }
+  } else {
+    return response;
   }
 }
 

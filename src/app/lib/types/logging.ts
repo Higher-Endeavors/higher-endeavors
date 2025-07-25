@@ -4,7 +4,7 @@ import { z } from 'zod';
 export const ClientLogEntrySchema = z.object({
   level: z.enum(['info', 'warn', 'error', 'debug']),
   message: z.string().min(1).max(1000),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   timestamp: z.string().datetime().optional(),
   context: z.string().max(100).optional(),
   source: z.literal('client').optional(),
@@ -12,16 +12,6 @@ export const ClientLogEntrySchema = z.object({
 
 // TypeScript types derived from Zod schemas
 export type ClientLogEntry = z.infer<typeof ClientLogEntrySchema>;
-
-// Legacy interface for compatibility
-export interface LogEntry {
-  level: 'info' | 'warn' | 'error' | 'debug';
-  message: string;
-  requestId?: string;
-  metadata?: Record<string, any>;
-  timestamp?: string;
-  context?: string;
-}
 
 export interface RequestContext {
   requestId: string;
