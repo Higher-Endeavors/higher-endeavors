@@ -138,12 +138,44 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     }
   };
 
+  // Helper to check if exercise is a Carry
+  const isCarryExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.exercise_family === 'Carry';
+
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
   const getExerciseId = () => exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const closeMenu = () => setMenuOpen({});
+
+  const isCarry = isCarryExercise(getExerciseNameData());
+  const gridColsClass = isCarry ? "md:grid-cols-4" : "md:grid-cols-6";
+
+  // Helper to get total distance for Carry exercises
+  const getTotalDistance = () => {
+    if (!exercise.plannedSets) return { value: 0, unit: 'yards' };
+    const units = exercise.plannedSets.map(set => set.distanceUnit || 'yards');
+    const mostCommonUnit = units.length > 0 ? units[0] : 'yards';
+    const totalValue = exercise.plannedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+    return { value: totalValue, unit: mostCommonUnit };
+  };
+
+  // Helper to get the ExerciseLibraryItem for the current exercise
+  function getExerciseNameData() {
+    return exercises.find(ex => {
+      if (exercise.exerciseSource === 'user') {
+        return ex.userExerciseLibraryId === exercise.userExerciseLibraryId;
+      } else {
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId;
+      }
+    });
+  }
+
+  // Helper to determine if Total Load should be shown
+  function shouldShowTotalLoad() {
+    if (!exercise.plannedSets) return false;
+    return exercise.plannedSets.every(set => set.load && !isNaN(Number(set.load)));
+  }
 
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
@@ -188,49 +220,60 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
       {/* Mobile-friendly table layout */}
       <div className="mt-3">
         {/* Desktop table header - hidden on mobile */}
-        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600">
+        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600`}>
           <div>Set</div>
-          <div className="font-bold">Reps (Planned/Actual)</div>
+          <div className="font-bold">{isCarry ? 'Distance' : 'Reps (Planned/Actual)'}</div>
           <div className="font-bold">Load (Planned/Actual)</div>
-          <div className="font-bold">Tempo</div>
+          {!isCarry && <div className="font-bold">Tempo</div>}
           <div className="font-bold">Rest</div>
-          <div className="font-bold">Time Under Tension</div>
+          {!isCarry && <div className="font-bold">Time Under Tension</div>}
         </div>
         
         {/* Desktop table rows - hidden on mobile */}
-        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm dark:text-slate-600">
+        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm dark:text-slate-600`}>
           {(exercise.plannedSets || []).map((set, setIdx) => {
+            const exerciseData = getExerciseNameData();
+            const isCarry = isCarryExercise(exerciseData);
             const plannedReps = set.reps || 0;
+            const plannedDistance = set.distance || 0;
+            const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
             const actualReps = actuals[setIdx]?.reps ?? '';
+            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
             const actualLoad = actuals[setIdx]?.load ?? '';
             return (
               <React.Fragment key={setIdx}>
                 <div className="flex items-center">{set.set || setIdx + 1}</div>
                 <div className="flex items-center gap-2">
-                  <span>{plannedReps}</span>
-                  {readOnly ? (
-                    <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>
-                      {actualReps || '-'}
-                    </span>
+                  {isCarry ? (
+                    <>
+                      <span>{plannedDistance} {plannedDistanceUnit}</span>
+                      <span className="text-gray-400 dark:text-gray-600">/</span>
+                      <span>{actualReps ? `${actualReps} ${plannedDistanceUnit}` : '-'}</span>
+                    </>
                   ) : (
-                    <input
-                      type="number"
-                      min={0}
-                      className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
-                      placeholder="Actual"
-                      value={actualReps}
-                      onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
-                    />
+                    <>
+                      <span>{plannedReps}</span>
+                      {readOnly ? (
+                        <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700'}`}>{actualReps || '-'}</span>
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                          placeholder="Actual"
+                          value={actualReps}
+                          onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span>{formatLoad(plannedLoad, plannedUnit)}</span>
                   {readOnly ? (
-                    <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>
-                      {actualLoad || '-'}
-                    </span>
+                        <span className={`ml-1 px-2 py-0.5 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700'}`}>{actualLoad || '-'}</span>
                   ) : (
                     <input
                       type="text"
@@ -241,9 +284,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                     />
                   )}
                 </div>
-                <div className="flex items-center">{set.tempo || '2010'}</div>
+                {!isCarry && <div className="flex items-center">{set.tempo || '2010'}</div>}
                 <div className="flex items-center">{set.restSec || 0}s</div>
-                <div className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+                {!isCarry && <div className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>}
               </React.Fragment>
             );
           })}
@@ -252,10 +295,15 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         {/* Mobile-friendly card layout - shown on mobile */}
         <div className="md:hidden space-y-3">
           {(exercise.plannedSets || []).map((set, setIdx) => {
+            const exerciseData = getExerciseNameData();
+            const isCarry = isCarryExercise(exerciseData);
             const plannedReps = set.reps || 0;
+            const plannedDistance = set.distance || 0;
+            const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
             const actualReps = actuals[setIdx]?.reps ?? '';
+            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
             const actualLoad = actuals[setIdx]?.load ?? '';
             return (
               <div key={setIdx} className="bg-gray-50 rounded-lg p-3 border">
@@ -265,23 +313,31 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Reps</div>
+                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">{isCarry ? 'Distance' : 'Reps'}</div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-800 dark:text-gray-900">{plannedReps}</span>
-                      <span className="text-gray-400 dark:text-gray-600">/</span>
-                      {readOnly ? (
-                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>
-                          {actualReps || '-'}
-                        </span>
+                      {isCarry ? (
+                        <>
+                          <span className="text-gray-800 dark:text-gray-900">{plannedDistance} {plannedDistanceUnit}</span>
+                          <span className="text-gray-400 dark:text-gray-600">/</span>
+                          <span className="text-gray-800 dark:text-gray-900">{actualReps ? `${actualReps} ${plannedDistanceUnit}` : '-'}</span>
+                        </>
                       ) : (
-                        <input
-                          type="number"
-                          min={0}
-                          className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
-                          placeholder="Actual"
-                          value={actualReps}
-                          onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
-                        />
+                        <>
+                          <span className="text-gray-800 dark:text-gray-900">{plannedReps}</span>
+                          <span className="text-gray-400 dark:text-gray-600">/</span>
+                          {readOnly ? (
+                            <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'reps') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>{actualReps || '-'}</span>
+                          ) : (
+                            <input
+                              type="number"
+                              min={0}
+                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              placeholder="Actual"
+                              value={actualReps}
+                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                            />
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
@@ -291,9 +347,7 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                       <span className="text-gray-800 dark:text-gray-900">{formatLoad(plannedLoad, plannedUnit)}</span>
                       <span className="text-gray-400 dark:text-gray-600">/</span>
                       {readOnly ? (
-                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>
-                          {actualLoad || '-'}
-                        </span>
+                        <span className={`px-2 py-1 rounded ${getSetDeviationColor(setIdx, 'load') || 'bg-gray-100 text-gray-700 dark:text-gray-900'}`}>{actualLoad || '-'}</span>
                       ) : (
                         <input
                           type="text"
@@ -306,16 +360,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
-                  <div>
-                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Tempo</div>
-                    <span className="text-gray-800 dark:text-gray-900">{set.tempo || '2010'}</span>
+                {!isCarry && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                    <div>
+                      <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">Tempo</div>
+                      <span className="text-gray-800 dark:text-gray-900">{set.tempo || '2010'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">TUT</div>
+                      <span className="text-gray-800 dark:text-gray-900">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-gray-600 dark:text-gray-800 mb-1">TUT</div>
-                    <span className="text-gray-800 dark:text-gray-900">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
-                  </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -326,18 +382,31 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
       <div className="mt-3 border-t pt-3">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm font-medium text-purple-700">
-            <div>
-              <span className="mr-1">Total Reps (Planned/Actual):</span>
-              <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>
-                {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)} / {calculateActualRepsTally()}
-              </span>
-            </div>
-            <div>
-              <span className="mr-1">Total Load (Planned/Actual):</span>
-              <span className={`${getSummaryDeviationColor('load')} px-2 py-0.5 rounded-full`}>
-                {formatNumberWithCommas(getTotalLoad().value)} / {formatNumberWithCommas(calculateActualLoadTally())} {getTotalLoad().unit}
-              </span>
-            </div>
+            {isCarry ? (
+              <div>
+                <span className="mr-1">Total Distance:</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {getTotalDistance().value} {getTotalDistance().unit}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <span className="mr-1">Total Reps (Planned/Actual):</span>
+                  <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>
+                    {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)} / {calculateActualRepsTally()}
+                  </span>
+                </div>
+                {shouldShowTotalLoad() && (
+                  <div>
+                    <span className="mr-1">Total Load (Planned/Actual):</span>
+                    <span className={`${getSummaryDeviationColor('load')} px-2 py-0.5 rounded-full`}>
+                      {formatNumberWithCommas(getTotalLoad().value)} / {formatNumberWithCommas(calculateActualLoadTally())} {getTotalLoad().unit}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
             {getRIR() !== null && (
               <div>
                 <span className="mr-1">RIR:</span>

@@ -54,6 +54,8 @@ type AddExerciseFormValues = {
   repUnit?: string;
   rpe?: string;
   rir?: string;
+  distance?: string;
+  distanceUnit?: string;
 };
 
 export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, userId, editingExercise, fitnessSettings }: AddExerciseModalProps) {
@@ -77,15 +79,22 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     rest: string;
     rpe: string;
     rir: string;
-    subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
+    distance: string;
+    distanceUnit: string;
+    subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string; distance?: string; distanceUnit?: string }[];
   }[]>([
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+    { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
+    { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
+    { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
   ]);
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
+
+  // Helper function to check if exercise is a Carry exercise
+  const isCarryExercise = (exercise: ExerciseWithSource | null) => {
+    return exercise?.exercise_family === 'Carry';
+  };
 
   const DIFFICULTY_ORDER = [
     'Basic', 'Beginner', 'Novice', 'Intermediate', 'Advanced',
@@ -126,18 +135,21 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         }
       });
       const firstSet = editingExercise.plannedSets?.[0];
+      const isCarry = isCarryExercise(selectedExercise?.exercise || null);
       return {
         selectedExercise: selectedExercise || null,
         notes: editingExercise.notes || '',
         setsCount: editingExercise.plannedSets?.length || 3,
         pairing: editingExercise.pairing || '',
-        reps: firstSet?.reps?.toString() || '',
+        reps: isCarry ? '' : (firstSet?.reps?.toString() || ''),
         load: firstSet?.load || '',
         rest: firstSet?.restSec?.toString() || '',
-        tempo: firstSet?.tempo || '2010',
+        tempo: isCarry ? '' : (firstSet?.tempo || '2010'),
         repUnit: 'reps',
         rpe: firstSet?.rpe?.toString() || '',
-        rir: firstSet?.rir?.toString() || '',
+        rir: isCarry ? '' : (firstSet?.rir?.toString() || ''),
+        distance: isCarry ? (firstSet?.distance?.toString() || '') : '',
+        distanceUnit: isCarry ? (firstSet?.distanceUnit || 'yards') : 'yards',
       };
     }
     return {
@@ -152,6 +164,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       repUnit: 'reps',
       rpe: '',
       rir: '',
+      distance: '',
+      distanceUnit: 'yards',
     };
   };
 
@@ -188,6 +202,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               rest: '',
               rpe: '',
               rir: '',
+              distance: '',
+              distanceUnit: 'yards',
               subSets: []
             };
           }
@@ -196,7 +212,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             load: curr.load || '',
             rest: curr.restSec?.toString() || '',
             rpe: curr.rpe?.toString() || '',
-            rir: curr.rir?.toString() || ''
+            rir: curr.rir?.toString() || '',
+            distance: curr.distance?.toString() || '',
+            distanceUnit: curr.distanceUnit || 'yards'
           });
           return acc;
         }, []);
@@ -209,14 +227,16 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
           rest: set.restSec?.toString() || '',
           rpe: set.rpe?.toString() || '',
           rir: set.rir?.toString() || '',
+          distance: set.distance?.toString() || '',
+          distanceUnit: set.distanceUnit || 'yards',
           subSets: []
         }));
       }
     }
     return [
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] },
     ];
   };
 
@@ -238,6 +258,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
 
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
+    
+    const isCarry = isCarryExercise(data.selectedExercise.exercise);
+    
     // Use existing load unit if editing, otherwise use current toggle state
     let currentLoadUnit = useAlternateUnit ? alternateUnit : defaultUnit;
     if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
@@ -246,6 +269,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         currentLoadUnit = firstSet.loadUnit;
       }
     }
+    
     let plannedSets;
     if (isVariedSets) {
       if (isAdvancedSets) {
@@ -253,48 +277,56 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
           if (set.subSets && set.subSets.length > 0) {
             return set.subSets.map((subSet, subSetIdx) => ({
               set: setIdx + 1,
-              reps: parseInt(subSet.reps) || 0,
+              reps: isCarry ? undefined : (parseInt(subSet.reps) || 0),
               load: subSet.load,
               loadUnit: currentLoadUnit,
               restSec: parseInt(subSet.rest) || 0,
-              tempo: data.tempo || '2010',
+              tempo: isCarry ? undefined : (data.tempo || '2010'),
               rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
-              rir: subSet.rir ? parseInt(subSet.rir) : undefined,
+              rir: isCarry ? undefined : (subSet.rir ? parseInt(subSet.rir) : undefined),
+              distance: isCarry ? (parseInt(subSet.distance || '0') || 0) : undefined,
+              distanceUnit: isCarry ? (subSet.distanceUnit || 'yards') : undefined,
             }));
           } else {
             return [{
               set: setIdx + 1,
-              reps: parseInt(set.reps) || 0,
+              reps: isCarry ? undefined : (parseInt(set.reps) || 0),
               load: set.load,
               loadUnit: currentLoadUnit,
               restSec: parseInt(data.rest) || 0,
-              tempo: data.tempo || '2010',
+              tempo: isCarry ? undefined : (data.tempo || '2010'),
               rpe: set.rpe ? parseInt(set.rpe) : undefined,
-              rir: set.rir ? parseInt(set.rir) : undefined,
+              rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
+              distance: isCarry ? (parseInt(set.distance || '0') || 0) : undefined,
+              distanceUnit: isCarry ? (set.distanceUnit || 'yards') : undefined,
             }];
           }
         });
       } else {
         plannedSets = variedSets.map((set, index) => ({
           set: index + 1,
-          reps: parseInt(set.reps) || 0,
+          reps: isCarry ? undefined : (parseInt(set.reps) || 0),
           load: set.load,
           loadUnit: currentLoadUnit,
           restSec: parseInt(data.rest) || 0,
-          tempo: data.tempo || '2010',
+          tempo: isCarry ? undefined : (data.tempo || '2010'),
           rpe: set.rpe ? parseInt(set.rpe) : undefined,
-          rir: set.rir ? parseInt(set.rir) : undefined,
+          rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
+          distance: isCarry ? (parseInt(set.distance || '0') || 0) : undefined,
+          distanceUnit: isCarry ? (set.distanceUnit || 'yards') : undefined,
         }));
       }
     } else {
       plannedSets = Array(data.setsCount).fill({
-        reps: parseInt(data.reps) || 0,
+        reps: isCarry ? undefined : (parseInt(data.reps) || 0),
         load: data.load || '0',
         loadUnit: currentLoadUnit,
         restSec: parseInt(data.rest) || 0,
-        tempo: data.tempo || '2010',
+        tempo: isCarry ? undefined : (data.tempo || '2010'),
         rpe: data.rpe ? parseInt(data.rpe) : undefined,
-        rir: data.rir ? parseInt(data.rir) : undefined,
+        rir: isCarry ? undefined : (data.rir ? parseInt(data.rir) : undefined),
+        distance: isCarry ? (parseInt(data.distance || '0') || 0) : undefined,
+        distanceUnit: isCarry ? (data.distanceUnit || 'yards') : undefined,
       }).map((set, index) => ({
         ...set,
         set: index + 1,
@@ -461,7 +493,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                       setIsVariedSets(checked);
                       if (checked) {
                         const setsCount = Number(watch('setsCount')) || 1;
-                        setVariedSets(Array.from({ length: setsCount }, () => ({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] })));
+                        setVariedSets(Array.from({ length: setsCount }, () => ({ reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] })));
                       }
                     }}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
@@ -496,7 +528,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                             const newArr = [...prev];
                             if (numVal > prev.length) {
                               for (let i = prev.length; i < numVal; i++) {
-                                newArr.push({ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] });
+                                newArr.push({ reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] });
                               }
                             } else if (numVal < prev.length) {
                               newArr.length = numVal;
@@ -513,7 +545,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         if (isVariedSets) {
                           setVariedSets(prev => {
                             if (prev.length !== 1) {
-                              return [{ reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] }];
+                              return [{ reps: '', load: '', rest: '', rpe: '', rir: '', distance: '', distanceUnit: 'yards', subSets: [] }];
                             }
                             return prev;
                           });
@@ -528,22 +560,40 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
             {!isVariedSets ? (
               <div>
                 <label htmlFor="exercise-reps" className="block text-sm font-medium dark:text-white">
-                  Reps
+                  {isCarryExercise(selectedExercise?.exercise || null) ? 'Distance' : 'Reps'}
                 </label>
                 <div className="flex items-center space-x-2">
                   <Controller
-                    name="reps"
+                    name={isCarryExercise(selectedExercise?.exercise || null) ? "distance" : "reps"}
                     control={control}
                     render={({ field }) => (
                       <input
                         {...field}
-                        id="exercise-reps"
+                        id={isCarryExercise(selectedExercise?.exercise || null) ? "exercise-distance" : "exercise-reps"}
                         type="number"
-                        placeholder="Enter number of reps"
+                        placeholder={isCarryExercise(selectedExercise?.exercise || null) ? "Enter distance" : "Enter number of reps"}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                       />
                     )}
                   />
+                  {isCarryExercise(selectedExercise?.exercise || null) && (
+                    <Controller
+                      name="distanceUnit"
+                      control={control}
+                      render={({ field }) => (
+                        <select
+                          {...field}
+                          className="mt-1 block rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                        >
+                          {CARRY_UNITS.map(unit => (
+                            <option key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    />
+                  )}
                 </div>
               </div>
             ) : (
@@ -604,24 +654,27 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            <div>
-              <label htmlFor="exercise-tempo" className="block text-sm font-medium dark:text-white">
-                Tempo (4 digits, X for explosive)
-              </label>
-              <Controller
-                name="tempo"
-                control={control}
-                render={({ field }) => (
-                  <input
-                    {...field}
-                    id="exercise-tempo"
-                    type="text"
-                    placeholder="e.g., 2010"
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-                  />
-                )}
-              />
-            </div>
+            {/* Tempo input should only show for non-Carry exercises */}
+            {!isCarryExercise(selectedExercise?.exercise || null) && (
+              <div>
+                <label htmlFor="exercise-tempo" className="block text-sm font-medium dark:text-white">
+                  Tempo (4 digits, X for explosive)
+                </label>
+                <Controller
+                  name="tempo"
+                  control={control}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      id="exercise-tempo"
+                      type="text"
+                      placeholder="e.g., 2010"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    />
+                  )}
+                />
+              </div>
+            )}
 
             {(!isVariedSets || !isAdvancedSets) && (
               <div>
@@ -667,7 +720,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
               </div>
             )}
 
-            {showRIR && (!isVariedSets || !isAdvancedSets) && (
+            {showRIR && (!isVariedSets || !isAdvancedSets) && !isCarryExercise(selectedExercise?.exercise || null) && (
               <div>
                 <label htmlFor="exercise-rir" className="block text-sm font-medium dark:text-white">
                   RIR (0-10)
@@ -794,15 +847,20 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     {!(isAdvancedSets && set.subSets && set.subSets.length > 0) && (
                       <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4`}>
                         <div>
-                          <label className="block text-sm dark:text-white">Reps</label>
+                          <label className="block text-sm dark:text-white">
+                            {isCarryExercise(selectedExercise?.exercise || null) ? 'Distance' : 'Reps'}
+                          </label>
                           <input
                             type="number"
-                            placeholder="Enter reps"
+                            placeholder={isCarryExercise(selectedExercise?.exercise || null) ? "Enter distance" : "Enter reps"}
                             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                            value={set.reps}
+                            value={isCarryExercise(selectedExercise?.exercise || null) ? set.distance : set.reps}
                             onChange={e => {
                               const newVal = e.target.value;
-                              setVariedSets(prev => prev.map((s, i) => i === idx ? { ...s, reps: newVal } : s));
+                              setVariedSets(prev => prev.map((s, i) => i === idx ? { 
+                                ...s, 
+                                [isCarryExercise(selectedExercise?.exercise || null) ? 'distance' : 'reps']: newVal 
+                              } : s));
                             }}
                           />
                         </div>
@@ -836,7 +894,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                             />
                           </div>
                         )}
-                        {showRIR && (
+                        {showRIR && !isCarryExercise(selectedExercise?.exercise || null) && (
                           <div>
                             <label className="block text-sm dark:text-white">RIR</label>
                             <input
@@ -877,17 +935,22 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <div>
-                            <label className="block text-sm dark:text-white">Reps</label>
+                            <label className="block text-sm dark:text-white">
+                              {isCarryExercise(selectedExercise?.exercise || null) ? 'Distance' : 'Reps'}
+                            </label>
                             <input
                               type="number"
-                              placeholder="Enter reps"
+                              placeholder={isCarryExercise(selectedExercise?.exercise || null) ? "Enter distance" : "Enter reps"}
                               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black"
-                              value={subSet.reps}
+                              value={isCarryExercise(selectedExercise?.exercise || null) ? subSet.distance || '' : subSet.reps}
                               onChange={e => {
                                 const newVal = e.target.value;
                                 setVariedSets(prev => prev.map((s, i) => i === idx ? {
                                   ...s,
-                                  subSets: s.subSets.map((ss, j) => j === subSetIdx ? { ...ss, reps: newVal } : ss)
+                                  subSets: s.subSets.map((ss, j) => j === subSetIdx ? { 
+                                    ...ss, 
+                                    [isCarryExercise(selectedExercise?.exercise || null) ? 'distance' : 'reps']: newVal 
+                                  } : ss)
                                 } : s));
                               }}
                             />

@@ -56,12 +56,44 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
     return typeof rpe === 'number' ? rpe : null;
   };
 
+  // Helper to check if exercise is a Carry
+  const isCarryExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.exercise_family === 'Carry';
+
+  // Helper to get total distance for Carry exercises
+  const getTotalDistance = () => {
+    if (!exercise.plannedSets) return { value: 0, unit: 'yards' };
+    const units = exercise.plannedSets.map(set => set.distanceUnit || 'yards');
+    const mostCommonUnit = units.length > 0 ? units[0] : 'yards';
+    const totalValue = exercise.plannedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+    return { value: totalValue, unit: mostCommonUnit };
+  };
+
+  // Helper to determine if Total Load should be shown
+  function shouldShowTotalLoad() {
+    if (!exercise.plannedSets) return false;
+    return exercise.plannedSets.every(set => set.load && !isNaN(Number(set.load)));
+  }
+
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
   const getExerciseId = () => exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const closeMenu = () => setMenuOpen({});
+
+  const isCarry = isCarryExercise(getExerciseNameData());
+  const gridColsClass = isCarry ? "md:grid-cols-4" : "md:grid-cols-6";
+
+  // Helper to get the ExerciseLibraryItem for the current exercise
+  function getExerciseNameData() {
+    return exercises.find(ex => {
+      if (exercise.exerciseSource === 'user') {
+        return ex.userExerciseLibraryId === exercise.userExerciseLibraryId;
+      } else {
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId;
+      }
+    });
+  }
 
   return (
     <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
@@ -117,28 +149,32 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
       {/* Mobile-friendly table layout */}
       <div className="mt-3">
         {/* Desktop table header - hidden on mobile */}
-        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600">
+        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600`}>
           <div>Set</div>
-          <div className="font-bold">Reps</div>
+          <div className="font-bold">{isCarry ? 'Distance' : 'Reps'}</div>
           <div className="font-bold">Load</div>
-          <div className="font-bold">Tempo</div>
+          {!isCarry && <div className="font-bold">Tempo</div>}
           <div className="font-bold">Rest</div>
-          <div className="font-bold">Time Under Tension</div>
+          {!isCarry && <div className="font-bold">Time Under Tension</div>}
         </div>
         
         {/* Desktop table rows - hidden on mobile */}
-        <div className="hidden md:grid md:grid-cols-6 gap-2 text-sm dark:text-slate-600">
+        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm dark:text-slate-600`}>
           {(exercise.plannedSets || []).flatMap((set, setIdx) => {
+            const exerciseData = getExerciseNameData();
+            const isCarry = isCarryExercise(exerciseData);
             const plannedReps = set.reps || 0;
+            const plannedDistance = set.distance || 0;
+            const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
             return [
               <div key={`${setIdx}-set`} className="flex items-center">{set.set || setIdx + 1}</div>,
-              <div key={`${setIdx}-reps`} className="flex items-center">{plannedReps}</div>,
+              <div key={`${setIdx}-reps`} className="flex items-center">{isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : plannedReps}</div>,
               <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
-              <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
+              !isCarry && <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
               <div key={`${setIdx}-rest`} className="flex items-center">{set.restSec || 0}s</div>,
-              <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+              !isCarry && <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
             ];
           })}
         </div>
@@ -146,7 +182,11 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
         {/* Mobile-friendly card layout - shown on mobile */}
         <div className="md:hidden space-y-3">
           {(exercise.plannedSets || []).map((set, setIdx) => {
+            const exerciseData = getExerciseNameData();
+            const isCarry = isCarryExercise(exerciseData);
             const plannedReps = set.reps || 0;
+            const plannedDistance = set.distance || 0;
+            const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
             return (
@@ -157,24 +197,26 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">Reps</div>
-                    <span className="text-gray-800">{plannedReps}</span>
+                    <div className="font-bold text-gray-600 mb-1">{isCarry ? 'Distance' : 'Reps'}</div>
+                    <span className="text-gray-800">{isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : plannedReps}</span>
                   </div>
                   <div>
                     <div className="font-bold text-gray-600 mb-1">Load</div>
                     <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
-                  <div>
-                    <div className="font-bold text-gray-600 mb-1">Tempo</div>
-                    <span className="text-gray-800">{set.tempo || '2010'}</span>
+                {!isCarry && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Tempo</div>
+                      <span className="text-gray-800">{set.tempo || '2010'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">TUT</div>
+                      <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-gray-600 mb-1">TUT</div>
-                    <span className="text-gray-800">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</span>
-                  </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -185,18 +227,31 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
       <div className="mt-3 border-t pt-3">
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 text-sm font-medium text-purple-700">
-            <div>
-              <span className="mr-1">Total Reps:</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)}
-              </span>
-            </div>
-            <div>
-              <span className="mr-1">Total Load:</span>
-              <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
-                {formatNumberWithCommas(getTotalLoad().value)} {getTotalLoad().unit}
-              </span>
-            </div>
+            {isCarry ? (
+              <div>
+                <span className="mr-1">Total Distance:</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {getTotalDistance().value} {getTotalDistance().unit}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <span className="mr-1">Total Reps:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                    {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)}
+                  </span>
+                </div>
+                {shouldShowTotalLoad() && (
+                  <div>
+                    <span className="mr-1">Total Load:</span>
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                      {formatNumberWithCommas(getTotalLoad().value)} {getTotalLoad().unit}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
             {getRIR() !== null && (
               <div>
                 <span className="mr-1">RIR:</span>
