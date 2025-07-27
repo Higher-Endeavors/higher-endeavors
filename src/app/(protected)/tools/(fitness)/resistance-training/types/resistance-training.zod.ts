@@ -73,12 +73,17 @@ export type ExerciseSet = {
   distance?: number;
   distanceUnit?: string;
   duration?: number;
+  durationUnit?: string;
   notes?: string;
   // Cycling-specific fields
   speed?: number | null;
   rpm?: number | null;
   watts?: number | null;
   resistance?: number | null;
+  // Running-specific fields
+  pace?: string;
+  // Treadmill-specific fields
+  incline?: number;
 };
 
 export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
@@ -97,12 +102,17 @@ export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
     distance: z.number().int().min(0).optional(),
     distanceUnit: z.string().optional(),
     duration: z.number().int().min(0).optional(),
+    durationUnit: z.string().optional(),
     notes: z.string().optional(),
     // Cycling-specific fields
     speed: z.number().int().min(0).nullable().optional(),
     rpm: z.number().int().min(0).nullable().optional(),
     watts: z.number().int().min(0).nullable().optional(),
     resistance: z.number().int().min(0).nullable().optional(),
+    // Running-specific fields
+    pace: z.string().optional(),
+    // Treadmill-specific fields
+    incline: z.number().int().min(0).max(15).optional(),
   }).strict()
 );
 
