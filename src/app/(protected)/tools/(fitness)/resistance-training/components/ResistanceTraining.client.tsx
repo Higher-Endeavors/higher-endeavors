@@ -65,7 +65,7 @@ export default function ResistanceTrainingClient({
   // Add mode state
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
   // Add actuals state for SessionSummary
-  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } }>({});
+  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -137,9 +137,25 @@ export default function ResistanceTrainingClient({
   // Open edit modal for existing exercise
   const handleEditExercise = (id: number) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
-    const exerciseToEdit = weeklyExercises[currentWeek - 1].find(ex => 
-      ex.exerciseLibraryId === id || ex.userExerciseLibraryId === id
-    );
+    
+    const exerciseToEdit = weeklyExercises[currentWeek - 1].find(ex => {
+      // For user exercises, match by userExerciseLibraryId
+      if (ex.exerciseSource === 'user') {
+        return ex.userExerciseLibraryId === id;
+      }
+      // For CME exercises, match by exerciseLibraryId (with offset removed)
+      if (ex.exerciseSource === 'cme_library') {
+        const actualId = id - 1000000;
+        return ex.exerciseLibraryId === actualId;
+      }
+      // For regular library exercises, match by exerciseLibraryId
+      if (ex.exerciseSource === 'library') {
+        return ex.exerciseLibraryId === id;
+      }
+      // Fallback for backward compatibility
+      return ex.exerciseLibraryId === id || ex.userExerciseLibraryId === id;
+    });
+    
     if (exerciseToEdit) {
       setEditingExercise(exerciseToEdit);
       setIsModalOpen(true);
@@ -151,12 +167,42 @@ export default function ResistanceTrainingClient({
   // Delete exercise from all weeks
   const handleDeleteExercise = (id: number) => {
     setWeeklyExercises(prev => prev.map(weekExercises => 
-      weekExercises.filter(ex => (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id))
+      weekExercises.filter(ex => {
+        // For user exercises, match by userExerciseLibraryId
+        if (ex.exerciseSource === 'user') {
+          return ex.userExerciseLibraryId !== id;
+        }
+        // For CME exercises, match by exerciseLibraryId (with offset removed)
+        if (ex.exerciseSource === 'cme_library') {
+          return ex.exerciseLibraryId !== (id - 1000000);
+        }
+        // For regular library exercises, match by exerciseLibraryId
+        if (ex.exerciseSource === 'library') {
+          return ex.exerciseLibraryId !== id;
+        }
+        // Fallback for backward compatibility
+        return (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id);
+      })
     ));
     
     // Also update baseWeekExercises if it exists
     if (baseWeekExercises.length > 0) {
-      setBaseWeekExercises(prev => prev.filter(ex => (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id)));
+      setBaseWeekExercises(prev => prev.filter(ex => {
+        // For user exercises, match by userExerciseLibraryId
+        if (ex.exerciseSource === 'user') {
+          return ex.userExerciseLibraryId !== id;
+        }
+        // For CME exercises, match by exerciseLibraryId (with offset removed)
+        if (ex.exerciseSource === 'cme_library') {
+          return ex.exerciseLibraryId !== (id - 1000000);
+        }
+        // For regular library exercises, match by exerciseLibraryId
+        if (ex.exerciseSource === 'library') {
+          return ex.exerciseLibraryId !== id;
+        }
+        // Fallback for backward compatibility
+        return (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id);
+      }));
     }
   };
 
@@ -164,12 +210,25 @@ export default function ResistanceTrainingClient({
   const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
     if (editingExercise) {
-      const editingId = editingExercise.exerciseLibraryId || editingExercise.userExerciseLibraryId;
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
           idx === currentWeek - 1
             ? arr.map(ex => {
+                // For user exercises, match by userExerciseLibraryId
+                if (ex.exerciseSource === 'user' && editingExercise.exerciseSource === 'user') {
+                  return ex.userExerciseLibraryId === editingExercise.userExerciseLibraryId ? exercise : ex;
+                }
+                // For CME exercises, match by exerciseLibraryId and source
+                if (ex.exerciseSource === 'cme_library' && editingExercise.exerciseSource === 'cme_library') {
+                  return ex.exerciseLibraryId === editingExercise.exerciseLibraryId ? exercise : ex;
+                }
+                // For regular library exercises, match by exerciseLibraryId and source
+                if (ex.exerciseSource === 'library' && editingExercise.exerciseSource === 'library') {
+                  return ex.exerciseLibraryId === editingExercise.exerciseLibraryId ? exercise : ex;
+                }
+                // Fallback for backward compatibility
                 const exId = ex.exerciseLibraryId || ex.userExerciseLibraryId;
+                const editingId = editingExercise.exerciseLibraryId || editingExercise.userExerciseLibraryId;
                 return exId === editingId ? exercise : ex;
               })
             : arr
@@ -270,7 +329,7 @@ export default function ResistanceTrainingClient({
   const sessionCompleted = currentSessionExercises.some(ex => Array.isArray((ex as any).actualSets) && (ex as any).actualSets.length > 0 && (ex as any).actualSets.some((set: any) => set && (set.reps !== undefined || set.load !== undefined)));
 
   // If completed, build actuals from actualSets; else use local actuals
-  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string } } } = {};
+  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } } = {};
   if (sessionCompleted) {
     actualsForSession = {};
     currentSessionExercises.forEach((ex, exerciseIdx) => {

@@ -27,8 +27,12 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
     const exerciseData = exercises.find(ex => {
       if (exercise.exerciseSource === 'user') {
         return ex.userExerciseLibraryId === exercise.userExerciseLibraryId;
+      } else if (exercise.exerciseSource === 'cme_library') {
+        // For CME activities, match by exerciseLibraryId and source
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId && ex.source === 'cme_library';
       } else {
-        return ex.exerciseLibraryId === exercise.exerciseLibraryId;
+        // For regular library exercises, match by exerciseLibraryId and source
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId && ex.source === 'library';
       }
     });
     return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
@@ -59,6 +63,67 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
   // Helper to check if exercise is a Carry
   const isCarryExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.exercise_family === 'Carry';
 
+  // Helper to check if exercise is a Cycling exercise
+  const isCyclingExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.exercise_family === 'Cycling';
+
+  // Helper to check if exercise is a Running exercise (but not Treadmill)
+  const isRunningExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.exercise_family === 'Running' && !exerciseData?.name?.toLowerCase().includes('treadmill');
+
+  // Helper to check if exercise is a Treadmill exercise
+  const isTreadmillExercise = (exerciseData?: ExerciseLibraryItem) => exerciseData?.name?.toLowerCase().includes('treadmill');
+
+  // Helper to get total duration for CME exercises
+  const getTotalDuration = () => {
+    if (!exercise.plannedSets) return { value: 0, unit: 'minutes' };
+    
+    // Convert all durations and rest periods to seconds for accurate calculation
+    const totalSeconds = exercise.plannedSets.reduce((sum, set) => {
+      const restSec = set.restSec || 0;
+      
+      let durationInSeconds = 0;
+      
+      // Check if duration is explicitly set
+      if (set.duration !== undefined && set.duration !== null) {
+        const duration = set.duration;
+        const unit = set.durationUnit || 'minutes';
+        
+        if (unit === 'seconds') {
+          durationInSeconds = duration;
+        } else {
+          // Convert minutes to seconds
+          durationInSeconds = duration * 60;
+        }
+      } else {
+        // Calculate duration from pace and distance if available
+        if (set.pace && set.distance) {
+          const pace = set.pace;
+          const distance = set.distance;
+          
+          // Parse pace (e.g., "6:00" = 6 minutes per mile)
+          const paceMatch = pace.match(/^(\d+):(\d+)$/);
+          if (paceMatch) {
+            const paceMinutes = parseInt(paceMatch[1]);
+            const paceSeconds = parseInt(paceMatch[2]);
+            const totalPaceSeconds = (paceMinutes * 60) + paceSeconds;
+            
+            // Calculate duration: distance × pace
+            durationInSeconds = distance * totalPaceSeconds;
+          }
+        }
+      }
+      
+      // Add both exercise duration and rest period
+      return sum + durationInSeconds + restSec;
+    }, 0);
+    
+    // Convert back to appropriate unit for display
+    if (totalSeconds >= 60) {
+      return { value: Math.round(totalSeconds / 60), unit: 'minutes' };
+    } else {
+      return { value: totalSeconds, unit: 'seconds' };
+    }
+  };
+
   // Helper to get total distance for Carry exercises
   const getTotalDistance = () => {
     if (!exercise.plannedSets) return { value: 0, unit: 'yards' };
@@ -75,22 +140,40 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
   }
 
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
-  const getExerciseId = () => exercise.exerciseLibraryId || exercise.userExerciseLibraryId || 0;
+  const getExerciseId = () => {
+    // Create a unique identifier that includes both ID and source
+    if (exercise.exerciseSource === 'user') {
+      return exercise.userExerciseLibraryId || 0;
+    } else if (exercise.exerciseSource === 'cme_library') {
+      // Use a large offset to avoid conflicts with regular library IDs
+      return (exercise.exerciseLibraryId || 0) + 1000000;
+    } else {
+      return exercise.exerciseLibraryId || 0;
+    }
+  };
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));
   };
   const closeMenu = () => setMenuOpen({});
 
-  const isCarry = isCarryExercise(getExerciseNameData());
-  const gridColsClass = isCarry ? "md:grid-cols-4" : "md:grid-cols-6";
+  const exerciseData = getExerciseNameData();
+  const isCarry = isCarryExercise(exerciseData);
+  const isCycling = isCyclingExercise(exerciseData);
+  const isRunning = isRunningExercise(exerciseData);
+  const isTreadmill = isTreadmillExercise(exerciseData);
+  const gridColsClass = isCarry ? "md:grid-cols-4" : isCycling ? "md:grid-cols-7" : isRunning ? "md:grid-cols-5" : isTreadmill ? "md:grid-cols-6" : "md:grid-cols-6";
 
   // Helper to get the ExerciseLibraryItem for the current exercise
   function getExerciseNameData() {
     return exercises.find(ex => {
       if (exercise.exerciseSource === 'user') {
         return ex.userExerciseLibraryId === exercise.userExerciseLibraryId;
+      } else if (exercise.exerciseSource === 'cme_library') {
+        // For CME activities, match by exerciseLibraryId and source
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId && ex.source === 'cme_library';
       } else {
-        return ex.exerciseLibraryId === exercise.exerciseLibraryId;
+        // For regular library exercises, match by exerciseLibraryId and source
+        return ex.exerciseLibraryId === exercise.exerciseLibraryId && ex.source === 'library';
       }
     });
   }
@@ -149,32 +232,65 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
       {/* Mobile-friendly table layout */}
       <div className="mt-3">
         {/* Desktop table header - hidden on mobile */}
-        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600`}>
+        <div className={`hidden md:grid ${isCarry ? "md:grid-cols-4" : isCycling ? "md:grid-cols-8" : isRunning ? "md:grid-cols-5" : isTreadmill ? "md:grid-cols-6" : "md:grid-cols-6"} gap-2 text-sm font-semibold text-gray-500 dark:text-slate-600`}>
           <div>Set</div>
-          <div className="font-bold">{isCarry ? 'Distance' : 'Reps'}</div>
-          <div className="font-bold">Load</div>
-          {!isCarry && <div className="font-bold">Tempo</div>}
+          <div className="font-bold">
+            {isCarry ? 'Distance' : isCycling ? 'Duration (min)' : isRunning ? 'Duration (min)' : isTreadmill ? 'Duration (min)' : 'Reps'}
+          </div>
+          {isCycling && <div className="font-bold">Distance (mi)</div>}
+          {isRunning && <div className="font-bold">Distance</div>}
+          {isTreadmill && <div className="font-bold">Distance</div>}
+          {!isCycling && !isRunning && !isTreadmill && <div className="font-bold">Load</div>}
+          {isCycling && <div className="font-bold">Speed (mph)</div>}
+          {isCycling && <div className="font-bold">RPM</div>}
+          {isCycling && <div className="font-bold">Watts</div>}
+          {isCycling && <div className="font-bold">Resistance</div>}
+          {isRunning && <div className="font-bold">Pace</div>}
+          {isTreadmill && <div className="font-bold">Pace</div>}
+          {isTreadmill && <div className="font-bold">Incline (%)</div>}
+          {!isCarry && !isCycling && !isRunning && !isTreadmill && <div className="font-bold">Tempo</div>}
           <div className="font-bold">Rest</div>
-          {!isCarry && <div className="font-bold">Time Under Tension</div>}
+          {!isCarry && !isCycling && !isRunning && !isTreadmill && <div className="font-bold">Time Under Tension</div>}
         </div>
         
         {/* Desktop table rows - hidden on mobile */}
-        <div className={`hidden md:grid ${gridColsClass} gap-2 text-sm dark:text-slate-600`}>
+        <div className={`hidden md:grid ${isCarry ? "md:grid-cols-4" : isCycling ? "md:grid-cols-8" : isRunning ? "md:grid-cols-5" : isTreadmill ? "md:grid-cols-6" : "md:grid-cols-6"} gap-2 text-sm dark:text-slate-600`}>
           {(exercise.plannedSets || []).flatMap((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
+            const isCycling = isCyclingExercise(exerciseData);
+            const isRunning = isRunningExercise(exerciseData);
+            const isTreadmill = isTreadmillExercise(exerciseData);
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
+            // For Cycling exercises, get the additional fields from the set
+            const speed = set.speed ?? 0;
+            const rpm = set.rpm ?? 0;
+            const watts = set.watts ?? 0;
+            const resistance = set.resistance ?? 0;
+            
             return [
               <div key={`${setIdx}-set`} className="flex items-center">{set.set || setIdx + 1}</div>,
-              <div key={`${setIdx}-reps`} className="flex items-center">{isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : plannedReps}</div>,
-              <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
-              !isCarry && <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
+              <div key={`${setIdx}-reps`} className="flex items-center">
+                {isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : isCycling ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : isRunning ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : isTreadmill ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : plannedReps}
+              </div>,
+              isCycling && <div key={`${setIdx}-distance`} className="flex items-center">{set.distance || '-'}</div>,
+              isRunning && <div key={`${setIdx}-distance`} className="flex items-center">{set.distance || '-'} {set.distanceUnit || 'miles'}</div>,
+              isTreadmill && <div key={`${setIdx}-distance`} className="flex items-center">{set.distance || '-'} {set.distanceUnit || 'miles'}</div>,
+              !isCycling && !isRunning && !isTreadmill && <div key={`${setIdx}-load`} className="flex items-center">{formatLoad(plannedLoad, plannedUnit)}</div>,
+              isCycling && <div key={`${setIdx}-speed`} className="flex items-center">{speed || '-'}</div>,
+              isCycling && <div key={`${setIdx}-rpm`} className="flex items-center">{rpm || '-'}</div>,
+              isCycling && <div key={`${setIdx}-watts`} className="flex items-center">{watts || '-'}</div>,
+              isCycling && <div key={`${setIdx}-resistance`} className="flex items-center">{resistance || '-'}</div>,
+              isRunning && <div key={`${setIdx}-pace`} className="flex items-center">{set.pace || '-'}</div>,
+              isTreadmill && <div key={`${setIdx}-pace`} className="flex items-center">{set.pace || '-'}</div>,
+              isTreadmill && <div key={`${setIdx}-incline`} className="flex items-center">{set.incline || '-'}%</div>,
+              !isCarry && !isCycling && !isRunning && !isTreadmill && <div key={`${setIdx}-tempo`} className="flex items-center">{set.tempo || '2010'}</div>,
               <div key={`${setIdx}-rest`} className="flex items-center">{set.restSec || 0}s</div>,
-              !isCarry && <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
+                              !isCarry && !isCycling && !isRunning && !isTreadmill && <div key={`${setIdx}-tut`} className="flex items-center">{calculateTimeUnderTension(set.reps, set.tempo)} sec.</div>
             ];
           })}
         </div>
@@ -184,6 +300,9 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
           {(exercise.plannedSets || []).map((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
+            const isCycling = isCyclingExercise(exerciseData);
+            const isRunning = isRunningExercise(exerciseData);
+            const isTreadmill = isTreadmillExercise(exerciseData);
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
@@ -197,15 +316,73 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <div className="font-bold text-gray-600 mb-1">{isCarry ? 'Distance' : 'Reps'}</div>
-                    <span className="text-gray-800">{isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : plannedReps}</span>
+                    <div className="font-bold text-gray-600 mb-1">
+                      {isCarry ? 'Distance' : isCycling ? 'Duration (min)' : isRunning ? 'Duration (min)' : isTreadmill ? 'Duration (min)' : 'Reps'}
+                    </div>
+                                          <span className="text-gray-800">
+                        {isCarry ? `${plannedDistance} ${plannedDistanceUnit}` : isCycling ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : isRunning ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : isTreadmill ? `${set.duration !== undefined && set.duration !== null ? set.duration : '-'} ${set.durationUnit || 'minutes'}` : plannedReps}
+                      </span>
                   </div>
-                  <div>
-                    <div className="font-bold text-gray-600 mb-1">Load</div>
-                    <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
-                  </div>
+                                      {!isCycling && !isRunning && !isTreadmill && (
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Load</div>
+                      <span className="text-gray-800">{formatLoad(plannedLoad, plannedUnit)}</span>
+                    </div>
+                  )}
                 </div>
-                {!isCarry && (
+                {isTreadmill && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Distance</div>
+                      <span className="text-gray-800">{set.distance ?? '-'} {set.distanceUnit || 'miles'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Pace</div>
+                      <span className="text-gray-800">{set.pace ?? '-'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Incline (%)</div>
+                      <span className="text-gray-800">{set.incline ?? '-'}%</span>
+                    </div>
+                  </div>
+                )}
+                {isRunning && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Distance</div>
+                      <span className="text-gray-800">{set.distance ?? '-'} {set.distanceUnit || 'miles'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Pace</div>
+                      <span className="text-gray-800">{set.pace ?? '-'}</span>
+                    </div>
+                  </div>
+                )}
+                {isCycling && (
+                  <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Distance (mi)</div>
+                      <span className="text-gray-800">{set.distance ?? '-'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Speed (mph)</div>
+                      <span className="text-gray-800">{set.speed ?? '-'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">RPM</div>
+                      <span className="text-gray-800">{set.rpm ?? '-'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Watts</div>
+                      <span className="text-gray-800">{set.watts ?? '-'}</span>
+                    </div>
+                    <div>
+                      <div className="font-bold text-gray-600 mb-1">Resistance</div>
+                      <span className="text-gray-800">{set.resistance ?? '-'}</span>
+                    </div>
+                  </div>
+                )}
+                {!isCarry && !isCycling && !isRunning && !isTreadmill && (
                   <div className="grid grid-cols-2 gap-3 mt-2 text-sm">
                     <div>
                       <div className="font-bold text-gray-600 mb-1">Tempo</div>
@@ -232,6 +409,27 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
                 <span className="mr-1">Total Distance:</span>
                 <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
                   {getTotalDistance().value} {getTotalDistance().unit}
+                </span>
+              </div>
+            ) : isCycling ? (
+              <div>
+                <span className="mr-1">Total Duration:</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {getTotalDuration().value} {getTotalDuration().unit}
+                </span>
+              </div>
+            ) : isRunning ? (
+              <div>
+                <span className="mr-1">Total Duration:</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {getTotalDuration().value} {getTotalDuration().unit}
+                </span>
+              </div>
+            ) : isTreadmill ? (
+              <div>
+                <span className="mr-1">Total Duration:</span>
+                <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                  {getTotalDuration().value} {getTotalDuration().unit}
                 </span>
               </div>
             ) : (

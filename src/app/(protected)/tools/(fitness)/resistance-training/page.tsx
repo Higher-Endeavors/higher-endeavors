@@ -6,7 +6,10 @@ import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
 import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
+import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from './lib/actions/cmeTransformations';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.zod';
+import { CMEActivityLibraryItem } from '../cardiometabolic-training/types/cme-training.zod';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import ResistanceTrainingClient from "./components/ResistanceTraining.client";
@@ -27,18 +30,24 @@ export default async function ResistanceTrainingPage() {
 
   let libraryExercises: ExerciseLibraryItem[] = [];
   let userExercises: ExerciseLibraryItem[] = [];
+  let cmeActivities: CMEActivityLibraryItem[] = [];
   let error: Error | null = null;
   let fitnessSettings: FitnessSettings | undefined = undefined;
   try {
     libraryExercises = await getExerciseLibrary();
     userExercises = await getUserExerciseLibrary(loggedInUserId);
+    cmeActivities = await getCMEActivityLibrary();
     const userSettings = await getUserSettings();
     fitnessSettings = userSettings?.fitness;
   } catch (err: any) {
     error = err;
   }
 
-  const allExercises = [...userExercises, ...libraryExercises];
+  // Transform CME activities to match ExerciseLibraryItem format for compatibility
+  const transformedCMEActivities: ExerciseLibraryItem[] = transformCMEActivitiesToExerciseLibrary(cmeActivities);
+
+  // Combine all exercises and activities for the AddExerciseModal
+  const allExercises: ExerciseLibraryItem[] = [...userExercises, ...libraryExercises, ...transformedCMEActivities];
 
   const resistanceTrainingArticles = [
     {

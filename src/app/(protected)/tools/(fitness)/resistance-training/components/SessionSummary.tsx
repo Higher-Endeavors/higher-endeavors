@@ -8,7 +8,7 @@ interface SessionSummaryProps {
   exercises: ProgramExercisesPlanned[];
   preferredLoadUnit?: 'lbs' | 'kg';
   mode?: 'plan' | 'act';
-  actuals?: { reps: number | null; load: string | null; }[][]; // [exerciseIdx][setIdx]
+  actuals?: { reps: number | null; load: string | null; duration?: number | null; }[][]; // [exerciseIdx][setIdx]
 }
 
 function formatNumberWithCommas(x: number): string {
@@ -26,7 +26,7 @@ function getDeviationColor(actual: number, planned: number): string {
   return 'bg-red-100 border-red-300 text-red-800'; // Red for ≤20% less
 }
 
-function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actuals?: { reps: number | null; load: string | null; }[][]) {
+function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actuals?: { reps: number | null; load: string | null; duration?: number | null; }[][]) {
   let totalSets = 0, totalReps = 0, totalLoad = 0;
   exercises.forEach((exercise, exerciseIdx) => {
     const sets = exercise.plannedSets || [];
