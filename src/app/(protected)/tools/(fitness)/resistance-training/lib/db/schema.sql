@@ -88,3 +88,30 @@ CREATE TABLE IF NOT EXISTS public.resist_program_exercises (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE TABLE IF NOT EXISTS public.resist_program_template_categories (
+    resist_program_template_categories_id INTEGER NOT NULL 
+        GENERATED ALWAYS AS IDENTITY (INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1)
+        PRIMARY KEY,
+    category_name VARCHAR(100) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMPTZ DEFAULT now(),
+    updated_at TIMESTAMPTZ
+);
+
+ALTER TABLE public.resist_program_template_categories
+    OWNER TO postgres;
+
+CREATE TABLE IF NOT EXISTS public.resist_program_template_category_links (
+    program_template_id INTEGER NOT NULL
+        REFERENCES public.resist_program_templates(program_template_id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    resist_program_template_categories_id INTEGER NOT NULL
+        REFERENCES public.resist_program_template_categories(resist_program_template_categories_id)
+        ON UPDATE CASCADE ON DELETE CASCADE,
+    PRIMARY KEY (program_template_id, resist_program_template_categories_id),
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+ALTER TABLE public.resist_program_template_category_links
+    OWNER TO postgres;

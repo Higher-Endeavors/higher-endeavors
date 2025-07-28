@@ -14,6 +14,7 @@ import type { ExerciseWithSource } from '../modals/AddExerciseModal';
 import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
 import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
 import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
+import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
 
 export default function ResistanceTrainingClient({
@@ -66,6 +67,11 @@ export default function ResistanceTrainingClient({
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
   // Add actuals state for SessionSummary
   const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
+  // Add admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
+  const [difficultyLevel, setDifficultyLevel] = useState<string>('');
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -88,6 +94,7 @@ export default function ResistanceTrainingClient({
       setProgressionRulesState(loadedProgram.progressionRules || {});
       setProgramDuration(loadedProgram.programDuration || 4);
       setNotes(loadedProgram.notes || '');
+      // Note: difficultyLevel is only for templates, not regular programs
       
       // Update program length if needed
       if (loadedProgram.programDuration && loadedProgram.programDuration !== programLength) {
@@ -320,6 +327,63 @@ export default function ResistanceTrainingClient({
     }
   };
 
+  // Save template handler
+  const handleSaveTemplate = async () => {
+    if (!programName.trim()) {
+      setSaveWarning('Please enter a Program Name before saving as template.');
+      const programNameInput = document.getElementById('program-name-input');
+      if (programNameInput) {
+        programNameInput.focus();
+        programNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    
+    if (!weeklyExercises.some(week => week.length > 0)) {
+      setSaveWarning('Please add at least one exercise before saving as template.');
+      return;
+    }
+    
+    setSaveWarning('');
+    setTemplateSaveResult(null);
+    
+    // Show loading state
+    const templateButton = document.querySelector('[data-template-button]');
+    if (templateButton) {
+      templateButton.textContent = 'Saving Template...';
+      templateButton.setAttribute('disabled', 'true');
+    }
+    
+    try {
+      const result = await saveResistanceTemplate({
+        userId: selectedUserId,
+        templateName: programName,
+        phaseFocus,
+        periodizationType,
+        progressionRules: progressionSettings,
+        difficultyLevel: difficultyLevel || 'BeFit', // Use selected difficulty or default to BeFit
+        notes,
+        selectedCategories,
+        weeklyExercises,
+      });
+      
+      if (result.success) {
+        setTemplateSaveResult('Template saved successfully!');
+      } else {
+        setTemplateSaveResult('Error saving template: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Template save error:', error);
+      setTemplateSaveResult('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      // Reset button state
+      if (templateButton) {
+        templateButton.textContent = 'Save Template';
+        templateButton.removeAttribute('disabled');
+      }
+    }
+  };
+
   // Pass progression settings and program length to ProgramSettings
   // ProgramSettings should call setProgramLength and setProgressionSettings on change
 
@@ -355,6 +419,8 @@ export default function ResistanceTrainingClient({
             if (userId !== null) setSelectedUserId(userId);
           }}
           currentUserId={selectedUserId}
+          showAdminFeatures={true}
+          onAdminStatusChange={setIsAdmin}
         />
       </div>
       <ProgramBrowser 
@@ -372,6 +438,8 @@ export default function ResistanceTrainingClient({
           setProgressionRulesState({});
           setProgramDuration(4);
           setNotes('');
+          setDifficultyLevel('');
+          setSelectedCategories([]);
           setWeeklyExercises([[]]);
           setBaseWeekExercises([]);
           setActiveDay(1);
@@ -395,6 +463,11 @@ export default function ResistanceTrainingClient({
         setPeriodizationType={setPeriodizationType}
         notes={notes}
         setNotes={setNotes}
+        difficultyLevel={difficultyLevel}
+        setDifficultyLevel={setDifficultyLevel}
+        selectedCategories={selectedCategories}
+        setSelectedCategories={setSelectedCategories}
+        isAdmin={isAdmin}
         isLoading={isLoadingProgram}
       />
       <DayTabs
@@ -433,17 +506,30 @@ export default function ResistanceTrainingClient({
             Add Exercise
           </button>
         </div>
-        {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
-          <button
-            data-save-button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto touch-manipulation"
-            style={{ minWidth: '120px', minHeight: '44px' }}
-            onClick={handleSaveProgram}
-            onTouchStart={(e) => e.preventDefault()}
-          >
-            {editingProgramId ? 'Update Program' : 'Save Program'}
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row gap-2">
+          {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
+            <button
+              data-save-button
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-full sm:w-auto touch-manipulation"
+              style={{ minWidth: '120px', minHeight: '44px' }}
+              onClick={handleSaveProgram}
+              onTouchStart={(e) => e.preventDefault()}
+            >
+              {editingProgramId ? 'Update Program' : 'Save Program'}
+            </button>
+          )}
+          {isAdmin && weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
+            <button
+              data-template-button
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 w-full sm:w-auto touch-manipulation"
+              style={{ minWidth: '120px', minHeight: '44px' }}
+              onClick={handleSaveTemplate}
+              onTouchStart={(e) => e.preventDefault()}
+            >
+              Save Template
+            </button>
+          )}
+        </div>
       </div>
       {saveWarning && (
         <div className="text-red-600 text-center sm:text-right mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800">
@@ -457,6 +543,15 @@ export default function ResistanceTrainingClient({
             : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
         }`}>
           {saveResult}
+        </div>
+      )}
+      {templateSaveResult && (
+        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
+          templateSaveResult.startsWith('Error') 
+            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
+            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+        }`}>
+          {templateSaveResult}
         </div>
       )}
       <AddExerciseModal

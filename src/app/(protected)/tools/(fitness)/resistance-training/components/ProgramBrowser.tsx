@@ -290,10 +290,22 @@ export default function ProgramBrowser({
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6">
       <div className="flex justify-between items-center">
-        <div className="flex items-center cursor-pointer" onClick={() => setIsOpen(!isOpen)}>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Saved Programs</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Saved Programs</h2>
+        <div className="flex items-center space-x-2">
+          {isProgramLoaded && newProgramHandler && (
+            <button
+              className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                newProgramHandler();
+              }}
+            >
+              New Program
+            </button>
+          )}
           <button
-            className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200 ml-2"
+            className="text-gray-500 hover:text-gray-700 focus:outline-none transition-transform duration-200 cursor-pointer"
+            onClick={() => setIsOpen(!isOpen)}
             style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -301,17 +313,6 @@ export default function ProgramBrowser({
             </svg>
           </button>
         </div>
-        {isProgramLoaded && newProgramHandler && (
-          <button
-            className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              newProgramHandler();
-            }}
-          >
-            New Program
-          </button>
-        )}
       </div>
 
       {isOpen && (
