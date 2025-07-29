@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
+import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
 
 interface ProgramSettingsProps {
   programLength: number;
@@ -33,10 +34,16 @@ interface ProgramSettingsProps {
   setPeriodizationType: (type: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
+  difficultyLevel?: string;
+  setDifficultyLevel?: (level: string) => void;
+  selectedCategories?: number[];
+  setSelectedCategories?: (categories: number[]) => void;
+  isAdmin?: boolean;
   isLoading?: boolean;
+  isTemplateProgram?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, isLoading = false }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, difficultyLevel, setDifficultyLevel, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false, isTemplateProgram = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -45,6 +52,9 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
   const [inputValue, setInputValue] = useState(programLength.toString());
   const [sessionsInputValue, setSessionsInputValue] = useState(sessionsPerWeek.toString());
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Template categories using custom hook
+  const { categories: templateCategories, isLoading: categoriesLoading, error: categoriesError } = useTemplateCategories(isAdmin);
 
   // Only propagate up when user changes input
   useEffect(() => {
@@ -59,6 +69,8 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
   }, [inputValue, setProgramLength]);
+
+
 
   const phaseFocusOptions = [
     { value: 'GPP', label: 'General Physical Preparedness (GPP)' },
@@ -77,6 +89,13 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
     { value: 'None', label: 'None' },
     { value: 'Linear', label: 'Linear' },
     { value: 'Undulating', label: 'Undulating' }
+  ];
+
+  // Difficulty options for admin users
+  const difficultyOptions = [
+    { value: 'Healthy', label: 'Healthy' },
+    { value: 'Fit', label: 'Fit' },
+    { value: 'HighEnd', label: 'HighEnd' }
   ];
 
   // Local state for periodization type and program length
@@ -387,6 +406,79 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
               Add any additional notes or comments about the program
             </p>
           </div>
+
+          {/* Difficulty Level - Admin Only */}
+          {isAdmin && setDifficultyLevel && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Difficulty Level
+              </label>
+              <Select
+                options={difficultyOptions}
+                value={difficultyOptions.find(opt => opt.value === difficultyLevel) || null}
+                onChange={opt => setDifficultyLevel(opt?.value || '')}
+                className="basic-single dark:text-slate-700"
+                classNamePrefix="select"
+                placeholder="Select difficulty level..."
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Set the difficulty level for this program template
+              </p>
+            </div>
+          )}
+
+          {/* Template Categories - Admin Only */}
+          {isAdmin && setSelectedCategories && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Template Categories
+              </label>
+              {categoriesLoading ? (
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Loading categories...</span>
+                </div>
+              ) : categoriesError ? (
+                <div className="text-sm text-red-500">
+                  Error loading categories: {categoriesError}
+                </div>
+              ) : templateCategories.length > 0 ? (
+                <div className="space-y-2">
+                  {templateCategories.map((category) => (
+                    <label key={category.resist_program_template_categories_id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories?.includes(category.resist_program_template_categories_id) || false}
+                        onChange={(e) => {
+                          if (setSelectedCategories) {
+                            if (e.target.checked) {
+                              setSelectedCategories([...(selectedCategories || []), category.resist_program_template_categories_id]);
+                            } else {
+                              setSelectedCategories((selectedCategories || []).filter(id => id !== category.resist_program_template_categories_id));
+                            }
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-700">
+                        {category.category_name}
+                        {category.description && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            - {category.description}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No categories available</p>
+              )}
+              <p className="mt-1 text-sm text-gray-500">
+                Select the categories this template belongs to
+              </p>
+            </div>
+          )}
         </form>
       )}
     </div>
