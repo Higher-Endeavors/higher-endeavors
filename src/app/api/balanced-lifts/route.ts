@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const query = `
     SELECT b.*, r.struct_bal_ref_lift_load, e.exercise_name
     FROM struct_balanced_lifts b
-    JOIN struct_bal_ref_lifts r ON b.struct_balanced_reference_lift_id = r.id
+    JOIN struct_bal_ref_lifts r ON b.struct_balanced_reference_lift_id = r.web_vitals_ratings_id
     JOIN resist_train_exercise_library e ON r.exercise_library_id = e.id
     WHERE b.struct_balanced_user_id = $1
   `;

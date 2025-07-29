@@ -68,6 +68,31 @@ export function getRatingName(ratingId: number): string | null {
   return RATING_NAME_MAP[ratingId as keyof typeof RATING_NAME_MAP] || null;
 }
 
+// Helper function to parse timeframe and convert to days
+function parseTimeframeToDays(timeframe: string): number {
+  const match = timeframe.match(/^(\d+)\s+(days?|hours?|minutes?)$/);
+  if (!match) {
+    throw new Error(`Invalid timeframe format: ${timeframe}. Expected format like "7 days" or "24 hours"`);
+  }
+  
+  const value = parseInt(match[1], 10);
+  const unit = match[2];
+  
+  switch (unit) {
+    case 'day':
+    case 'days':
+      return value;
+    case 'hour':
+    case 'hours':
+      return Math.ceil(value / 24);
+    case 'minute':
+    case 'minutes':
+      return Math.ceil(value / (24 * 60));
+    default:
+      throw new Error(`Unsupported time unit: ${unit}`);
+  }
+}
+
 // Database query functions with Zod validation
 export async function getMetricsByTimeframe(
   timeframe: string = '7 days',
@@ -94,11 +119,13 @@ export async function getMetricsByTimeframe(
   }
 
   try {
+    const days = parseTimeframeToDays(timeframe);
+    
     let query = `
       SELECT * FROM web_vitals_with_ratings
-      WHERE timestamp >= NOW() - INTERVAL $1
+      WHERE timestamp >= NOW() - (INTERVAL '1 day' * $1)
     `;
-    const params: any[] = [timeframe];
+    const params: any[] = [days];
     
     if (metricName) {
       query += ' AND metric_name = $2';
@@ -128,22 +155,24 @@ export async function getRatingStatistics(
   }
 
   try {
+    const days = parseTimeframeToDays(timeframe);
+    
     const query = `
       SELECT 
         m.metric_name,
         r.rating_name,
         COUNT(*) as count,
-        ROUND(AVG(m.value), 3) as avg_value,
-        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value), 3) as p75_value,
-        ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY m.value), 3) as p95_value
+        ROUND(AVG(m.value)::numeric, 3) as avg_value,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value)::numeric, 3) as p75_value,
+        ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY m.value)::numeric, 3) as p95_value
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.rating_id = r.id
-      WHERE m.timestamp >= NOW() - INTERVAL $1
-      GROUP BY m.metric_name, r.rating_name, r.id
-      ORDER BY m.metric_name, r.id
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
+      WHERE m.timestamp >= NOW() - (INTERVAL '1 day' * $1)
+      GROUP BY m.metric_name, r.rating_name, r.web_vitals_ratings_id
+      ORDER BY m.metric_name, r.web_vitals_ratings_id
     `;
     
-    const result = await SingleQuery(query, [timeframe]);
+    const result = await SingleQuery(query, [days]);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving rating statistics:', error);
@@ -165,17 +194,17 @@ export async function getDailyMetrics(
         DATE_TRUNC('day', m.timestamp) as date,
         m.metric_name,
         COUNT(*) as total_metrics,
-        ROUND(AVG(m.value), 3) as avg_value,
-        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value), 3) as p75_value,
-        ROUND(COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100, 2) as good_percentage
+        ROUND(AVG(m.value)::numeric, 3) as avg_value,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value)::numeric, 3) as p75_value,
+        ROUND((COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100)::numeric, 2) as good_percentage
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.rating_id = r.id
-      WHERE m.timestamp >= NOW() - INTERVAL $1
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
+      WHERE m.timestamp >= NOW() - (INTERVAL '1 day' * $1)
       GROUP BY DATE_TRUNC('day', m.timestamp), m.metric_name
       ORDER BY date DESC, m.metric_name
     `;
     
-    const result = await SingleQuery(query, [`${days} days`]);
+    const result = await SingleQuery(query, [days]);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving daily metrics:', error);
@@ -211,16 +240,18 @@ export async function getTopPoorPerformingPages(
   }
 
   try {
+    const days = parseTimeframeToDays(timeframe);
+    
     const query = `
       SELECT 
         m.page_path,
         COUNT(CASE WHEN r.rating_name = 'poor' THEN 1 END) as poor_count,
         COUNT(*) as total_count,
-        ROUND(COUNT(CASE WHEN r.rating_name = 'poor' THEN 1 END)::FLOAT / COUNT(*) * 100, 2) as poor_percentage,
-        ROUND(AVG(m.value), 3) as avg_value
+        ROUND((COUNT(CASE WHEN r.rating_name = 'poor' THEN 1 END)::FLOAT / COUNT(*) * 100)::numeric, 2) as poor_percentage,
+        ROUND(AVG(m.value)::numeric, 3) as avg_value
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.rating_id = r.id
-      WHERE m.timestamp >= NOW() - INTERVAL $1
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
+      WHERE m.timestamp >= NOW() - (INTERVAL '1 day' * $1)
         AND m.metric_name = $2
         AND m.page_path IS NOT NULL
       GROUP BY m.page_path
@@ -229,7 +260,7 @@ export async function getTopPoorPerformingPages(
       LIMIT $3
     `;
     
-    const result = await SingleQuery(query, [timeframe, metricName, limit]);
+    const result = await SingleQuery(query, [days, metricName, limit]);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving top poor performing pages:', error);
@@ -285,23 +316,25 @@ export async function getUserMetricsSummary(
   }
 
   try {
+    const days = parseTimeframeToDays(timeframe);
+    
     const query = `
       SELECT 
         m.metric_name,
         COUNT(DISTINCT m.session_id) as total_sessions,
-        ROUND(AVG(m.value), 3) as avg_value,
-        ROUND(MIN(m.value), 3) as best_value,
-        ROUND(MAX(m.value), 3) as worst_value,
-        ROUND(COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100, 2) as good_percentage
+        ROUND(AVG(m.value)::numeric, 3) as avg_value,
+        ROUND(MIN(m.value)::numeric, 3) as best_value,
+        ROUND(MAX(m.value)::numeric, 3) as worst_value,
+        ROUND((COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100)::numeric, 2) as good_percentage
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.rating_id = r.id
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
       WHERE m.user_id = $1
-        AND m.timestamp >= NOW() - INTERVAL $2
+        AND m.timestamp >= NOW() - (INTERVAL '1 day' * $2)
       GROUP BY m.metric_name
       ORDER BY m.metric_name
     `;
     
-    const result = await SingleQuery(query, [userId, timeframe]);
+    const result = await SingleQuery(query, [userId, days]);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving user metrics summary:', error);
@@ -338,24 +371,26 @@ export async function getMetricPercentiles(
   }
 
   try {
+    const days = parseTimeframeToDays(timeframe);
+    
     const query = `
       SELECT 
         $2 as metric_name,
         COUNT(*) as count,
-        ROUND(MIN(value), 3) as min,
-        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY value), 3) as p25,
-        ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY value), 3) as p50,
-        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value), 3) as p75,
-        ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY value), 3) as p90,
-        ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value), 3) as p95,
-        ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY value), 3) as p99,
-        ROUND(MAX(value), 3) as max
+        ROUND(MIN(value)::numeric, 3) as min,
+        ROUND(PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY value)::numeric, 3) as p25,
+        ROUND(PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY value)::numeric, 3) as p50,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value)::numeric, 3) as p75,
+        ROUND(PERCENTILE_CONT(0.90) WITHIN GROUP (ORDER BY value)::numeric, 3) as p90,
+        ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value)::numeric, 3) as p95,
+        ROUND(PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY value)::numeric, 3) as p99,
+        ROUND(MAX(value)::numeric, 3) as max
       FROM web_vitals_metrics
-      WHERE timestamp >= NOW() - INTERVAL $1
+      WHERE timestamp >= NOW() - (INTERVAL '1 day' * $1)
         AND metric_name = $2
     `;
     
-    const result = await SingleQuery(query, [timeframe, metricName]);
+    const result = await SingleQuery(query, [days, metricName]);
     return result.rows[0];
   } catch (error) {
     console.error('Error retrieving metric percentiles:', error);
@@ -393,18 +428,18 @@ export async function getMetricsTrends(
       SELECT 
         DATE_TRUNC($3, m.timestamp) as period,
         COUNT(*) as count,
-        ROUND(AVG(m.value), 3) as avg_value,
-        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value), 3) as p75_value,
-        ROUND(COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100, 2) as good_percentage
+        ROUND(AVG(m.value)::numeric, 3) as avg_value,
+        ROUND(PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY m.value)::numeric, 3) as p75_value,
+        ROUND((COUNT(CASE WHEN r.rating_name = 'good' THEN 1 END)::FLOAT / COUNT(*) * 100)::numeric, 2) as good_percentage
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.rating_id = r.id
-      WHERE m.timestamp >= NOW() - INTERVAL $1
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
+      WHERE m.timestamp >= NOW() - (INTERVAL '1 day' * $1)
         AND m.metric_name = $2
       GROUP BY DATE_TRUNC($3, m.timestamp)
       ORDER BY period ASC
     `;
     
-    const result = await SingleQuery(query, [`${days} days`, metricName, groupBy]);
+    const result = await SingleQuery(query, [days, metricName, groupBy]);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving metrics trends:', error);
@@ -423,10 +458,10 @@ export async function cleanupOldMetrics(
   try {
     const query = `
       DELETE FROM web_vitals_metrics
-      WHERE timestamp < NOW() - INTERVAL $1
+      WHERE timestamp < NOW() - (INTERVAL '1 day' * $1)
     `;
     
-    const result = await SingleQuery(query, [`${retentionDays} days`]);
+    const result = await SingleQuery(query, [retentionDays]);
     return result.rowCount || 0;
   } catch (error) {
     console.error('Error cleaning up old metrics:', error);

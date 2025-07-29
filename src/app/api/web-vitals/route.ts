@@ -168,22 +168,23 @@ async function getMetricsByTimeframe(
         r.rating_name,
         r.description as rating_description
       FROM web_vitals_metrics m
-      JOIN web_vitals_ratings r ON m.metric_rating_id = r.web_vitals_rating_id
-      WHERE m.timestamp >= NOW() - INTERVAL $1
+      JOIN web_vitals_ratings r ON m.metric_ratings_id = r.web_vitals_ratings_id
+      WHERE m.timestamp >= NOW() - INTERVAL '7 days'
+      ORDER BY m.timestamp DESC LIMIT 100 OFFSET 0
     `;
-    const params: any[] = [timeframe];
+    // const params: any[] = [];
     
-    if (metricName) {
-      query += ' AND m.metric_name = $2';
-      params.push(metricName);
-      query += ' ORDER BY m.timestamp DESC LIMIT $3 OFFSET $4';
-      params.push(limit, offset);
-    } else {
-      query += ' ORDER BY m.timestamp DESC LIMIT $2 OFFSET $3';
-      params.push(limit, offset);
-    }
+    // if (metricName) {
+    //   query += ' AND m.metric_name = $1';
+    //   params.push(metricName);
+    //   query += ' ORDER BY m.timestamp DESC LIMIT $3 OFFSET $3';
+    //   params.push(limit, offset);
+    // } else {
+    //   query += ' ORDER BY m.timestamp DESC LIMIT $2 OFFSET $2';
+    //   params.push(limit, offset);
+    // }
     
-    const result = await SingleQuery(query, params);
+    const result = await SingleQuery(query);
     return result.rows;
   } catch (error) {
     console.error('Error retrieving metrics:', error);
