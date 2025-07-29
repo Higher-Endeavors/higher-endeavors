@@ -19,6 +19,7 @@ export default function DropdownMenu() {
     const lastName = session?.user?.last_name ?? null;
     const fullName = session?.user?.name ?? "User name";
     const emailAddress = session?.user?.email ?? "Email address";
+    const isAdmin = session?.user?.role === 'admin';
     var initials = "";
     if (firstName && lastName) {
         initials = (firstName.charAt(0) + lastName.charAt(0)).toLowerCase();
@@ -58,6 +59,13 @@ export default function DropdownMenu() {
                 <>
                     <Dropdown.Item as={Link} href="/user/dashboard">
                         Dashboard
+                    </Dropdown.Item>
+                </>
+            )}
+            {isAdmin && (
+                <>
+                    <Dropdown.Item as={Link} href="/admin/web-vitals">
+                        Web Vitals
                     </Dropdown.Item>
                 </>
             )}
