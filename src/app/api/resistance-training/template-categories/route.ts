@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
-import { checkAdminAccess } from '@/app/lib/actions/checkAdminAccess';
 
 export async function GET() {
   try {
@@ -11,9 +10,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if user is admin
-    const isAdmin = await checkAdminAccess();
-    if (!isAdmin) {
+    // Check if user is admin using session role
+    if (session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
     }
 

@@ -40,9 +40,10 @@ interface ProgramSettingsProps {
   setSelectedCategories?: (categories: number[]) => void;
   isAdmin?: boolean;
   isLoading?: boolean;
+  isTemplateProgram?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, difficultyLevel, setDifficultyLevel, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, difficultyLevel, setDifficultyLevel, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false, isTemplateProgram = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -92,9 +93,9 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
 
   // Difficulty options for admin users
   const difficultyOptions = [
-    { value: 'BeHealthy', label: 'BeHealthy' },
-    { value: 'BeFit', label: 'BeFit' },
-    { value: 'BeHighEnd', label: 'BeHighEnd' }
+    { value: 'Healthy', label: 'Healthy' },
+    { value: 'Fit', label: 'Fit' },
+    { value: 'HighEnd', label: 'HighEnd' }
   ];
 
   // Local state for periodization type and program length
@@ -459,7 +460,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="text-sm text-gray-700 dark:text-gray-700">
                         {category.category_name}
                         {category.description && (
                           <span className="text-xs text-gray-500 ml-1">

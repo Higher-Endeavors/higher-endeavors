@@ -159,6 +159,15 @@ export const ProgramListItemSchema = z.object({
       name: z.string()
     }))
   }).optional(),
+  // Template information (only for templates)
+  templateInfo: z.object({
+    difficultyLevel: z.string().optional(),
+    categories: z.array(z.object({
+      id: z.number().int(),
+      name: z.string(),
+      description: z.string().optional()
+    })).optional()
+  }).optional(),
 }).strict();
 
 // --- Action Schemas ---

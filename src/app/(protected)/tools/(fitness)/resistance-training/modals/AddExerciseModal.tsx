@@ -212,7 +212,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
         rpm: isBike ? (firstSet?.rpm?.toString() || '') : '',
         watts: isBike ? (firstSet?.watts?.toString() || '') : '',
         pace: firstSet?.pace || '',
-        incline: firstSet?.incline?.toString() || '0',
+        incline: firstSet?.incline?.toString() || '',
       };
     }
     return {
@@ -236,7 +236,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       rpm: '',
       watts: '',
       pace: '',
-      incline: '0',
+      incline: '',
     };
   };
 
@@ -1052,7 +1052,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                     render={({ field }) => (
                       <input
                         {...field}
-                        value={field.value || '0'}
+                        value={field.value || ''}
                         id="exercise-incline"
                         type="number"
                         min="0"

@@ -72,6 +72,8 @@ export default function ResistanceTrainingClient({
   const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
   const [difficultyLevel, setDifficultyLevel] = useState<string>('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  // Add state to track if current program is a template
+  const [isTemplateProgram, setIsTemplateProgram] = useState(false);
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -82,7 +84,8 @@ export default function ResistanceTrainingClient({
   const handleLoadProgram = async (program: any) => {
     try {
       setIsLoadingProgram(true);
-      const { program: loadedProgram, exercises } = await getResistanceProgram(program.resistanceProgramId, selectedUserId);
+      // Use the program's actual userId instead of selectedUserId to handle templates correctly
+      const { program: loadedProgram, exercises } = await getResistanceProgram(program.resistanceProgramId, program.userId);
       
       // Type assertion for exercises with programInstance
       const exercisesWithWeek = exercises as (ProgramExercisesPlanned & { programInstance?: number })[];
@@ -124,6 +127,10 @@ export default function ResistanceTrainingClient({
       
       // Set the program ID we're editing
       setEditingProgramId(loadedProgram.resistanceProgramId);
+      
+      // Check if this is a template program (owned by Higher Endeavors - User ID 1)
+      const isTemplate = loadedProgram.userId === 1;
+      setIsTemplateProgram(isTemplate);
       
       console.log('Program loaded successfully:', loadedProgram.programName);
     } catch (error) {
@@ -279,8 +286,8 @@ export default function ResistanceTrainingClient({
     try {
       let result;
       
-      if (editingProgramId) {
-        // Update existing program
+      if (editingProgramId && !isTemplateProgram) {
+        // Update existing program (only if it's not a template)
         result = await updateResistanceProgram({
           programId: editingProgramId,
           userId: selectedUserId,
@@ -293,7 +300,7 @@ export default function ResistanceTrainingClient({
           weeklyExercises,
         });
       } else {
-        // Create new program
+        // Create new program (either new program or template-based program)
         result = await saveResistanceProgram({
           userId: selectedUserId,
           programName,
@@ -307,10 +314,11 @@ export default function ResistanceTrainingClient({
       }
       
       if (result.success) {
-        setSaveResult(editingProgramId ? 'Program updated successfully!' : 'Program saved successfully!');
-        // Update editingProgramId if this was a new program
-        if (!editingProgramId && result.programId) {
+        setSaveResult(editingProgramId && !isTemplateProgram ? 'Program updated successfully!' : 'Program saved successfully!');
+        // Update editingProgramId if this was a new program or template-based program
+        if ((!editingProgramId || isTemplateProgram) && result.programId) {
           setEditingProgramId(result.programId);
+          setIsTemplateProgram(false); // No longer a template program after saving
         }
       } else {
         setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
@@ -321,7 +329,7 @@ export default function ResistanceTrainingClient({
     } finally {
       // Reset button state
       if (saveButton) {
-        saveButton.textContent = editingProgramId ? 'Update Program' : 'Save Program';
+        saveButton.textContent = (editingProgramId && !isTemplateProgram) ? 'Update Program' : 'Save Program';
         saveButton.removeAttribute('disabled');
       }
     }
@@ -355,22 +363,41 @@ export default function ResistanceTrainingClient({
     }
     
     try {
-      const result = await saveResistanceTemplate({
+      // First, save the program to User ID 1 (Higher Endeavors)
+      const programResult = await saveResistanceProgram({
+        userId: 1, // Save to Higher Endeavors user
+        programName,
+        phaseFocus,
+        periodizationType,
+        progressionRules: progressionSettings,
+        notes,
+        weeklyExercises,
+        programDuration,
+      });
+
+      if (!programResult.success) {
+        setTemplateSaveResult('Error saving program: ' + (programResult.error || 'Unknown error'));
+        return;
+      }
+
+      // Then create the template using the newly saved program
+      const templateResult = await saveResistanceTemplate({
         userId: selectedUserId,
         templateName: programName,
         phaseFocus,
         periodizationType,
         progressionRules: progressionSettings,
-        difficultyLevel: difficultyLevel || 'BeFit', // Use selected difficulty or default to BeFit
+        difficultyLevel: difficultyLevel || 'Fit',
         notes,
         selectedCategories,
         weeklyExercises,
+        programId: programResult.programId, // Use the newly created program ID
       });
       
-      if (result.success) {
+      if (templateResult.success) {
         setTemplateSaveResult('Template saved successfully!');
       } else {
-        setTemplateSaveResult('Error saving template: ' + (result.error || 'Unknown error'));
+        setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Template save error:', error);
@@ -445,6 +472,7 @@ export default function ResistanceTrainingClient({
           setActiveDay(1);
           setLockedWeeks(new Set());
           setSaveResult(null);
+          setIsTemplateProgram(false); // Reset template state
         }}
         isProgramLoaded={!!editingProgramId}
       />
@@ -469,6 +497,7 @@ export default function ResistanceTrainingClient({
         setSelectedCategories={setSelectedCategories}
         isAdmin={isAdmin}
         isLoading={isLoadingProgram}
+        isTemplateProgram={isTemplateProgram}
       />
       <DayTabs
         activeDay={activeDay}
@@ -515,7 +544,7 @@ export default function ResistanceTrainingClient({
               onClick={handleSaveProgram}
               onTouchStart={(e) => e.preventDefault()}
             >
-              {editingProgramId ? 'Update Program' : 'Save Program'}
+              {(editingProgramId && !isTemplateProgram) ? 'Update Program' : 'Save Program'}
             </button>
           )}
           {isAdmin && weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (

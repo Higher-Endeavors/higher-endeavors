@@ -3,7 +3,6 @@
 import { auth } from '@/app/auth';
 import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
 import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
-import { checkAdminAccess } from '@/app/lib/actions/checkAdminAccess';
 
 interface SaveTemplateParams {
   userId: number;
@@ -15,15 +14,15 @@ interface SaveTemplateParams {
   notes?: string;
   selectedCategories?: number[];
   weeklyExercises: ProgramExercisesPlanned[][];
+  programId?: number; // ID of the existing program to copy from
 }
 
 interface SaveTemplateResult {
   success: boolean;
   templateId?: number;
+  newProgramId?: number;
   error?: string;
 }
-
-
 
 export async function saveResistanceTemplate(params: SaveTemplateParams): Promise<SaveTemplateResult> {
   try {
@@ -33,11 +32,8 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
       return { success: false, error: 'Unauthorized' };
     }
 
-    const sessionUserId = parseInt(session.user.id);
-    
-    // Check if user is admin
-    const isAdmin = await checkAdminAccess();
-    if (!isAdmin) {
+    // Check if user is admin using session role
+    if (session.user.role !== 'admin') {
       return { success: false, error: 'Forbidden: Admin access required' };
     }
 
@@ -50,7 +46,8 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
       difficultyLevel,
       notes,
       selectedCategories,
-      weeklyExercises
+      weeklyExercises,
+      programId
     } = params;
 
     // Validate required fields
@@ -62,25 +59,26 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
       return { success: false, error: 'At least one week of exercises is required' };
     }
 
+    if (!programId) {
+      return { success: false, error: 'Program ID is required to save template' };
+    }
+
     // Start transaction
     const client = await getClient();
     
     try {
       await client.query('BEGIN');
 
-      // Insert template
+      // Create the template in resist_program_templates (referencing the existing program)
       const templateResult = await client.query(
         `INSERT INTO resist_program_templates 
-         (template_name, phase_focus, periodization_type, progression_rules, difficulty_level, notes)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (template_name, difficulty_level, program_id)
+         VALUES ($1, $2, $3)
          RETURNING program_template_id`,
         [
           templateName.trim(),
-          phaseFocus || null,
-          periodizationType || null,
-          progressionRules ? JSON.stringify(progressionRules) : null,
           difficultyLevel || null,
-          notes || null
+          programId
         ]
       );
 
@@ -94,29 +92,6 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
              (program_template_id, resist_program_template_categories_id)
              VALUES ($1, $2)`,
             [templateId, categoryId]
-          );
-        }
-      }
-
-      // Insert exercises for each week
-      for (let weekIndex = 0; weekIndex < weeklyExercises.length; weekIndex++) {
-        const weekExercises = weeklyExercises[weekIndex];
-        
-        for (const exercise of weekExercises) {
-          await client.query(
-            `INSERT INTO resist_program_exercises 
-             (program_id, program_instance, exercise_source, exercise_library_id, user_exercise_library_id, pairing, notes, planned_sets)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [
-              templateId, // Use template ID as program_id for templates
-              weekIndex + 1, // program_instance represents the week
-              exercise.exerciseSource,
-              exercise.exerciseLibraryId || null,
-              exercise.userExerciseLibraryId || null,
-              exercise.pairing || null,
-              exercise.notes || null,
-              JSON.stringify(exercise.plannedSets || [])
-            ]
           );
         }
       }

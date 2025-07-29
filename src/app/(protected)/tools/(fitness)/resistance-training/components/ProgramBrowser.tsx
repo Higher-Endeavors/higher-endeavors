@@ -3,9 +3,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
-import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate } from 'react-icons/hi';
+import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { ProgramListItem } from '../types/resistance-training.zod';
 import { getResistancePrograms } from '../lib/hooks/getResistancePrograms';
+import { useResistanceTemplates } from '../lib/hooks/useResistanceTemplates';
+import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
 import { deleteResistanceProgram } from '../lib/actions/deleteResistanceProgram';
 import { duplicateResistanceProgram } from '../lib/actions/duplicateResistanceProgram';
 
@@ -31,6 +33,10 @@ interface FilterState {
   phaseFocus: string;
   periodizationType: string;
   sortBy: 'newest' | 'oldest' | 'name';
+  showTemplates: boolean;
+  hideOwnPrograms: boolean;
+  difficultyLevel: string;
+  templateCategory: string;
 }
 
 export default function ProgramBrowser({ 
@@ -59,13 +65,23 @@ export default function ProgramBrowser({
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
+  // Use custom hook for templates
+  const { templates, isLoading: templatesLoading, error: templatesError } = useResistanceTemplates();
+
+  // Use custom hook for template categories
+  const { categories: templateCategories, isLoading: categoriesLoading } = useTemplateCategories(true);
+
   // Search and filter settings
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     dateRange: 'all',
     phaseFocus: '',
     periodizationType: '',
-    sortBy: 'newest'
+    sortBy: 'newest',
+    showTemplates: false,
+    hideOwnPrograms: false,
+    difficultyLevel: '',
+    templateCategory: ''
   });
 
   // Fetch programs from the server
@@ -90,38 +106,90 @@ export default function ProgramBrowser({
     }
   }, [currentUserId]);
 
-  // Filter logic - simplified to avoid dependency issues
-  const filteredPrograms = useMemo(() => {
-    return programs.filter(program => {
+  // Load programs on mount and when user changes
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchPrograms();
+  }, [currentUserId, fetchPrograms]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      setMenuState({});
+      setProgramToDelete(null);
+    };
+  }, []);
+
+  // Determine which items to show based on filters
+  const itemsToShow = useMemo(() => {
+    let items: ProgramListItem[] = [];
+    
+    // Add user's own programs if not hiding them
+    if (!filters.hideOwnPrograms) {
+      items.push(...programs);
+    }
+    
+    // Add templates if showing them
+    if (filters.showTemplates) {
+      items.push(...templates);
+    }
+    
+    return items;
+  }, [programs, templates, filters.hideOwnPrograms, filters.showTemplates]);
+
+  // Helper function to determine if an item is a template
+  const isTemplate = useCallback((item: ProgramListItem) => {
+    return item.userId === 1; // Higher Endeavors user ID
+  }, []);
+
+  // Filter logic
+  const filteredItems = useMemo(() => {
+    return itemsToShow.filter(item => {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        const programNameMatch = program.programName.toLowerCase().includes(searchTerm);
+        const itemNameMatch = item.programName.toLowerCase().includes(searchTerm);
         
         // Check if any exercise names match the search term
         let exerciseMatch = false;
-        if (program.exerciseSummary && program.exerciseSummary.exercises && Array.isArray(program.exerciseSummary.exercises)) {
-          exerciseMatch = program.exerciseSummary.exercises.some((ex: { name: string }) => 
+        if (item.exerciseSummary && item.exerciseSummary.exercises && Array.isArray(item.exerciseSummary.exercises)) {
+          exerciseMatch = item.exerciseSummary.exercises.some((ex: { name: string }) => 
             ex.name.toLowerCase().includes(searchTerm)
           );
         }
         
-        // Return false if neither program name nor exercises match
-        if (!programNameMatch && !exerciseMatch) {
+        // Return false if neither item name nor exercises match
+        if (!itemNameMatch && !exerciseMatch) {
           return false;
         }
       }
 
-      if (filters.phaseFocus && program.phaseFocus !== filters.phaseFocus) {
+      if (filters.phaseFocus && item.phaseFocus !== filters.phaseFocus) {
         return false;
       }
 
-      if (filters.periodizationType && program.periodizationType !== filters.periodizationType) {
+      if (filters.periodizationType && item.periodizationType !== filters.periodizationType) {
         return false;
+      }
+
+      // Template-specific filtering
+      if (filters.difficultyLevel && isTemplate(item)) {
+        const templateDifficulty = item.templateInfo?.difficultyLevel;
+        if (templateDifficulty !== filters.difficultyLevel) {
+          return false;
+        }
+      }
+
+      if (filters.templateCategory && isTemplate(item)) {
+        const templateCategories = item.templateInfo?.categories || [];
+        const hasCategory = templateCategories.some(cat => cat.name === filters.templateCategory);
+        if (!hasCategory) {
+          return false;
+        }
       }
 
       // Date range filtering
       if (filters.dateRange !== 'all') {
-        const date = new Date(program.createdAt);
+        const date = new Date(item.createdAt);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = diff / (1000 * 60 * 60 * 24);
@@ -152,65 +220,59 @@ export default function ProgramBrowser({
           return 0;
       }
     });
-  }, [programs, filters]);
+  }, [itemsToShow, filters, isTemplate]);
 
-  const currentPrograms = useMemo(() => {
-    const indexOfLastProgram = currentPage * ITEMS_PER_PAGE;
-    const indexOfFirstProgram = indexOfLastProgram - ITEMS_PER_PAGE;
-    return filteredPrograms.slice(indexOfFirstProgram, indexOfLastProgram);
-  }, [currentPage, filteredPrograms]);
-
-  // Load programs on mount and when user changes
-  useEffect(() => {
-    setCurrentPage(1);
-    fetchPrograms();
-  }, [currentUserId]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      setMenuState({});
-      setProgramToDelete(null);
-    };
-  }, []);
+  const currentItems = useMemo(() => {
+    const indexOfLastItem = currentPage * ITEMS_PER_PAGE;
+    const indexOfFirstItem = indexOfLastItem - ITEMS_PER_PAGE;
+    return filteredItems.slice(indexOfFirstItem, indexOfLastItem);
+  }, [currentPage, filteredItems]);
 
   const paginationInfo = useMemo(() => ({
-    totalPages: Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE),
+    totalPages: Math.ceil(filteredItems.length / ITEMS_PER_PAGE),
     currentPage,
-    hasNextPage: currentPage < Math.ceil(filteredPrograms.length / ITEMS_PER_PAGE),
+    hasNextPage: currentPage < Math.ceil(filteredItems.length / ITEMS_PER_PAGE),
     hasPrevPage: currentPage > 1
-  }), [filteredPrograms.length, currentPage]);
+  }), [filteredItems.length, currentPage]);
 
   // Event handlers
-  const handleMenuClick = useCallback((e: React.MouseEvent, programId: number) => {
+  const handleMenuClick = useCallback((e: React.MouseEvent, itemId: number) => {
     e.stopPropagation();
     setMenuState(prev => ({
       ...prev,
-      [programId.toString()]: !prev[programId.toString()]
+      [itemId.toString()]: !prev[itemId.toString()]
     }));
   }, []);
 
-  const handleViewEdit = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
+  const handleViewEdit = useCallback((e: React.MouseEvent, item: ProgramListItem) => {
     e.stopPropagation();
     if (onProgramSelect) {
-      onProgramSelect(program);
+      onProgramSelect(item);
     }
-    setMenuState(prev => ({ ...prev, [program.resistanceProgramId]: false }));
+    setMenuState(prev => ({ ...prev, [item.resistanceProgramId]: false }));
   }, [onProgramSelect]);
 
-  const handleDuplicateClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
+  const handleUseTemplate = useCallback((e: React.MouseEvent, template: ProgramListItem) => {
     e.stopPropagation();
-    setProgramToDuplicate(program);
-    setNewProgramName(`${program.programName} (Copy)`);
+    if (onProgramSelect) {
+      onProgramSelect(template);
+    }
+    setMenuState(prev => ({ ...prev, [template.resistanceProgramId]: false }));
+  }, [onProgramSelect]);
+
+  const handleDuplicateClick = useCallback((e: React.MouseEvent, item: ProgramListItem) => {
+    e.stopPropagation();
+    setProgramToDuplicate(item);
+    setNewProgramName(`${item.programName} (Copy)`);
     setShowDuplicateModal(true);
-    setMenuState(prev => ({ ...prev, [program.resistanceProgramId]: false }));
+    setMenuState(prev => ({ ...prev, [item.resistanceProgramId]: false }));
   }, []);
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent, program: ProgramListItem) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, item: ProgramListItem) => {
     e.stopPropagation();
-    setProgramToDelete(program);
+    setProgramToDelete(item);
     setShowDeleteConfirm(true);
-    setMenuState(prev => ({ ...prev, [program.resistanceProgramId]: false }));
+    setMenuState(prev => ({ ...prev, [item.resistanceProgramId]: false }));
   }, []);
 
   const handleDeleteConfirm = async () => {
@@ -281,9 +343,9 @@ export default function ProgramBrowser({
     setCurrentPage(pageNumber);
   }, []);
 
-  const handleProgramClick = useCallback((program: ProgramListItem) => {
+  const handleItemClick = useCallback((item: ProgramListItem) => {
     if (onProgramSelect) {
-      onProgramSelect(program);
+      onProgramSelect(item);
     }
   }, [onProgramSelect]);
 
@@ -317,11 +379,41 @@ export default function ProgramBrowser({
 
       {isOpen && (
         <div className="mt-4">
+          {/* Template/Program Toggle */}
+          <div className="mb-4 p-3 bg-white dark:bg-white rounded-md border border-gray-200 dark:border-gray-300">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center space-x-4">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={filters.showTemplates}
+                    onChange={(e) => setFilters({ ...filters, showTemplates: e.target.checked })}
+                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
+                    Show Higher Endeavors Templates
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={filters.hideOwnPrograms}
+                    onChange={(e) => setFilters({ ...filters, hideOwnPrograms: e.target.checked })}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
+                    Hide My Programs
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
           {/* Search and Filters */}
           <div className="space-y-4 mb-6">
             <input
               type="text"
-              placeholder="Search programs or exercises..."
+              placeholder="Search programs, templates, or exercises..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
@@ -374,93 +466,170 @@ export default function ProgramBrowser({
                 <option value="None">None</option>
               </select>
             </div>
+
+            {/* Template-specific filters */}
+            {filters.showTemplates && (
+              <div className="grid grid-cols-2 gap-4">
+                <select
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
+                  value={filters.difficultyLevel}
+                  onChange={(e) => setFilters({ ...filters, difficultyLevel: e.target.value })}
+                >
+                  <option value="">All Template Difficulty Levels</option>
+                  <option value="Healthy">Healthy</option>
+                  <option value="Fit">Fit</option>
+                  <option value="HighEnd">HighEnd</option>
+                </select>
+
+                <select
+                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
+                  value={filters.templateCategory}
+                  onChange={(e) => setFilters({ ...filters, templateCategory: e.target.value })}
+                >
+                  <option value="">All Template Categories</option>
+                  {!categoriesLoading && templateCategories.map((category) => (
+                    <option key={category.resist_program_template_categories_id} value={category.category_name}>
+                      {category.category_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
-          {/* Programs List */}
+          {/* Items List */}
           {isLoading.programs && !hasAttemptedLoad ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
-          ) : error ? (
+          ) : error || templatesError ? (
             <div className="text-red-600 text-center p-4">
-              {error}
+              {error || templatesError}
             </div>
-          ) : filteredPrograms.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-slate-600">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
               </svg>
-              <p className="text-lg font-medium mb-2">No Saved Programs</p>
-              <p className="text-sm text-center">Create your first Resistance Training Program to get started</p>
+              <p className="text-lg font-medium mb-2">No Items Found</p>
+              <p className="text-sm text-center">
+                {filters.showTemplates && filters.hideOwnPrograms 
+                  ? "No templates match your search criteria"
+                  : "Create your first Resistance Training Program to get started"
+                }
+              </p>
             </div>
           ) : (
             <>
               <div className="space-y-4">
-                {currentPrograms.map((program) => (
-                  <div
-                    key={program.resistanceProgramId}
-                    className="border border-gray-200 dark:border-gray-300 rounded-md p-4 hover:bg-gray-50 dark:hover:bg-gray-100 cursor-pointer relative bg-white dark:bg-white"
-                    onClick={() => handleProgramClick(program)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col">
-                        <h3 className="font-medium text-gray-900 dark:text-slate-900">{program.programName}</h3>
-                        <span className="text-sm text-gray-500 dark:text-slate-600">
-                          {format(new Date(program.createdAt), 'MMM d, yyyy')}
-                        </span>
-                      </div>
-                      <div className="relative">
-                        <button
-                          onClick={(e) => handleMenuClick(e, program.resistanceProgramId)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-200 rounded-full"
-                        >
-                          <HiOutlineDotsVertical className="w-5 h-5 text-gray-500 dark:text-slate-600" />
-                        </button>
-                        {menuState[program.resistanceProgramId] && (
-                          <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-white rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-300">
-                            <div className="py-1">
-                              <button
-                                onClick={(e) => handleViewEdit(e, program)}
-                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-900 hover:bg-gray-100 dark:hover:bg-gray-200"
-                              >
-                                <HiOutlinePencil className="mr-2" />
-                                View/Edit
-                              </button>
-                              <button
-                                onClick={(e) => handleDuplicateClick(e, program)}
-                                className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-900 hover:bg-gray-100 dark:hover:bg-gray-200"
-                              >
-                                <HiOutlineDuplicate className="mr-2" />
-                                Duplicate
-                              </button>
-                              <button
-                                onClick={(e) => handleDeleteClick(e, program)}
-                                className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-700 hover:bg-gray-100 dark:hover:bg-gray-200"
-                              >
-                                <HiOutlineTrash className="mr-2" />
-                                Delete
-                              </button>
-                            </div>
+                {currentItems.map((item) => {
+                  const isTemplateItem = isTemplate(item);
+                  return (
+                    <div
+                      key={item.resistanceProgramId}
+                      className={`border rounded-md p-4 hover:bg-gray-50 dark:hover:bg-gray-100 cursor-pointer relative ${
+                        isTemplateItem 
+                          ? 'border-purple-200 bg-purple-50 dark:bg-purple-50 dark:border-purple-300' 
+                          : 'border-gray-200 dark:border-gray-300 bg-white dark:bg-white'
+                      }`}
+                      onClick={() => handleItemClick(item)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex flex-col">
+                          <div className="flex items-center space-x-2">
+                            <h3 className={`font-medium ${isTemplateItem ? 'text-purple-900 dark:text-purple-900' : 'text-gray-900 dark:text-slate-900'}`}>
+                              {item.programName}
+                            </h3>
+                            {isTemplateItem && (
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-200 dark:text-purple-900">
+                                Template
+                              </span>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    <div className="mt-2 text-sm text-gray-500 dark:text-slate-600">
-                      <div className="flex flex-col space-y-1">
-                        <div className="flex space-x-4">
-                          <span>Type: {program.periodizationType || 'None'}</span>
-                          <span>Phase: {program.phaseFocus || 'Not specified'}</span>
+                          <span className={`text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
+                            {format(new Date(item.createdAt), 'MMM d, yyyy')}
+                          </span>
                         </div>
-                        {program.exerciseSummary && program.exerciseSummary.exercises && program.exerciseSummary.exercises.length > 0 && (
-                          <div className="mt-2">
-                            <span className="font-medium">Exercises: </span>
-                            <span>{program.exerciseSummary.exercises.map((ex: { name: string }) => ex.name).join(', ')}</span>
+                        <div className="relative">
+                          <button
+                            onClick={(e) => handleMenuClick(e, item.resistanceProgramId)}
+                            className={`p-2 rounded-full ${
+                              isTemplateItem 
+                                ? 'hover:bg-purple-100 dark:hover:bg-purple-200' 
+                                : 'hover:bg-gray-100 dark:hover:bg-gray-200'
+                            }`}
+                          >
+                            <HiOutlineDotsVertical className={`w-5 h-5 ${isTemplateItem ? 'text-purple-500 dark:text-purple-600' : 'text-gray-500 dark:text-slate-600'}`} />
+                          </button>
+                          {menuState[item.resistanceProgramId] && (
+                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-white rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-300">
+                              <div className="py-1">
+                                {isTemplateItem ? (
+                                  <button
+                                    onClick={(e) => handleUseTemplate(e, item)}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-purple-700 dark:text-purple-800 hover:bg-purple-100 dark:hover:bg-purple-200"
+                                  >
+                                    <HiOutlineTemplate className="mr-2" />
+                                    Use Template
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={(e) => handleViewEdit(e, item)}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-900 hover:bg-gray-100 dark:hover:bg-gray-200"
+                                  >
+                                    <HiOutlinePencil className="mr-2" />
+                                    View/Edit
+                                  </button>
+                                )}
+                                <button
+                                  onClick={(e) => handleDuplicateClick(e, item)}
+                                  className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-slate-900 hover:bg-gray-100 dark:hover:bg-gray-200"
+                                >
+                                  <HiOutlineDuplicate className="mr-2" />
+                                  Duplicate
+                                </button>
+                                {!isTemplateItem && (
+                                  <button
+                                    onClick={(e) => handleDeleteClick(e, item)}
+                                    className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-700 hover:bg-gray-100 dark:hover:bg-gray-200"
+                                  >
+                                    <HiOutlineTrash className="mr-2" />
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
+                        <div className="flex flex-col space-y-1">
+                          <div className="flex space-x-4">
+                            <span>Periodization Type: {item.periodizationType || 'None'}</span>
+                            <span>Phase Focus: {item.phaseFocus || 'Not specified'}</span>
                           </div>
-                        )}
+                          {/* Template-specific information */}
+                          {isTemplateItem && item.templateInfo && (
+                            <div className="flex space-x-4">
+                              {item.templateInfo.difficultyLevel && (
+                                <span>Difficulty: {item.templateInfo.difficultyLevel}</span>
+                              )}
+                              {item.templateInfo.categories && item.templateInfo.categories.length > 0 && (
+                                <span>Categories: {item.templateInfo.categories.map(cat => cat.name).join(', ')}</span>
+                              )}
+                            </div>
+                          )}
+                          {item.exerciseSummary && item.exerciseSummary.exercises && item.exerciseSummary.exercises.length > 0 && (
+                            <div className="mt-2">
+                              <span className="font-medium">Exercises: </span>
+                              <span>{item.exerciseSummary.exercises.map((ex: { name: string }) => ex.name).join(', ')}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Pagination */}

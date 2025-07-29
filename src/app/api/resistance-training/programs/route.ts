@@ -110,7 +110,28 @@ export async function GET(request: Request) {
               LEFT JOIN resist_user_exercise_library uel ON pe.user_exercise_library_id = uel.user_exercise_library_id
               WHERE pe.program_id = p.program_id
             ), '[]'::json)
-          ) as exercise_summary
+          ) as exercise_summary,
+          -- Template information (only for templates)
+          CASE 
+            WHEN p.user_id = 1 THEN COALESCE((
+              SELECT json_build_object(
+                'difficultyLevel', COALESCE(rpt.difficulty_level, ''),
+                'categories', COALESCE((
+                  SELECT json_agg(jsonb_build_object(
+                    'id', rptc.resist_program_template_categories_id,
+                    'name', rptc.category_name,
+                    'description', rptc.description
+                  ))
+                  FROM resist_program_template_category_links rptcl
+                  JOIN resist_program_template_categories rptc ON rptcl.resist_program_template_categories_id = rptc.resist_program_template_categories_id
+                  WHERE rptcl.program_template_id = rpt.program_template_id
+                ), '[]'::json)
+              )
+              FROM resist_program_templates rpt
+              WHERE rpt.program_id = p.program_id
+            ), '{"difficultyLevel": "", "categories": []}'::json)
+            ELSE NULL
+          END as template_info
         FROM resist_programs p
         WHERE p.user_id = $1 AND (p.deleted IS NULL OR p.deleted = false)
         ORDER BY p.created_at DESC
@@ -118,7 +139,29 @@ export async function GET(request: Request) {
       const values = [userId];
       const result = await SingleQuery(query, values);
 
-      return NextResponse.json({ programs: result.rows });
+      // Transform the results to match the TypeScript schema
+      const transformedPrograms = result.rows.map((program: any) => {
+        const transformed = {
+          ...program,
+          // Map template_info to templateInfo (camelCase)
+          templateInfo: program.template_info || null,
+          // Remove the snake_case version
+          template_info: undefined
+        };
+        
+        // Debug logging for templates
+        if (program.user_id === 1) {
+          console.log('Template program:', {
+            programId: program.program_id,
+            programName: program.program_name,
+            templateInfo: program.template_info
+          });
+        }
+        
+        return transformed;
+      });
+
+      return NextResponse.json({ programs: transformedPrograms });
     }
   } catch (error) {
     console.error('Error fetching resistance training programs:', error);
