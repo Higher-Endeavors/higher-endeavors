@@ -28,9 +28,9 @@ const stages: ContinuumStage[] = [
 ];
 
 const ContinuumCard = ({ title, subtitle, description }: ContinuumStage) => (
-  <div className="bg-[#8AB6FF] p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
+  <div className="bg-sacral-chakra p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
     <h3 className="text-2xl font-bold mb-1 text-center">{title}</h3>
-    <h4 className="text-md text-indigo-600 font-medium mb-2 text-center">{subtitle}</h4>
+    <h4 className="text-md font-bold mb-2 text-center">{subtitle}</h4>
     <p className="text-xl text-center flex-grow">{description}</p>
   </div>
 );

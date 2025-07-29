@@ -18,7 +18,7 @@ const FitnessIcon = () => (
 
 const PillarCard = ({ icon, title, description, link }) => (
   <Link href={link} className="block">
-    <div className="bg-sacral-chakra p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
+    <div className="bg-solar-plexus-chakra p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
       <div className="mb-4 flex justify-center">{icon}</div>
       <h3 className="text-2xl font-bold mb-2 text-center">{title}</h3>
       <p className="text-xl text-center flex-grow">{description}</p>
