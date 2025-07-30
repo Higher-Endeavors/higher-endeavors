@@ -7,6 +7,7 @@ import {
   type WebVitalMetric,
   type WebVitalsBatch 
 } from '@/app/lib/types/web-vitals';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface BatchConfig {
   maxBatchSize?: number;
@@ -38,8 +39,8 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
   // Debug logging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('Web Vitals Batcher initialized with config:', finalConfig);
-      console.log('Current URL:', window.location.href);
+      clientLogger.info('Web Vitals Batcher initialized with config:', { finalConfig });
+      clientLogger.info('Current URL:', { url: window.location.href });
       currentUrl.current = window.location.href;
     }
   }, [finalConfig]);
@@ -49,9 +50,9 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     const newUrl = window.location.href;
     if (newUrl !== currentUrl.current) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Route changed from', currentUrl.current, 'to', newUrl);
-        console.log('Pathname:', pathname);
-        console.log('Search params:', searchParams.toString());
+        clientLogger.info('Route changed from', { from: currentUrl.current, to: newUrl });
+        clientLogger.info('Pathname:', { pathname });
+        clientLogger.info('Search params:', { searchParams: searchParams.toString() });
       }
       currentUrl.current = newUrl;
       
@@ -73,11 +74,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
 
     // Debug logging
     if (process.env.NODE_ENV === 'development') {
-      console.log('Sending web vitals batch:', {
-        batchId: batchData.batchId,
-        metricCount: metrics.length,
-        metrics: metrics.map(m => ({ name: m.name, value: m.value, url: m.url }))
-      });
+      clientLogger.info('Sending web vitals batch:', { batchId: batchData.batchId, metricCount: metrics.length, metrics: metrics.map(m => m.name) });
     }
 
     // Optional client-side validation before sending
@@ -87,7 +84,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
         for (const metric of metrics) {
           const validationResult = safeValidateWebVitalMetric(metric);
           if (!validationResult.success) {
-            console.warn('Invalid metric detected, skipping:', {
+            clientLogger.warn('Invalid metric detected, skipping:', {
               metric: metric,
               errors: validationResult.error.issues
             });
@@ -95,7 +92,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
           }
         }
       } catch (error) {
-        console.error('Validation error in batch:', error);
+        clientLogger.error('Validation error in batch:', error);
         return;
       }
     }
@@ -108,7 +105,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       const success = navigator.sendBeacon(finalConfig.endpoint, blob);
       
       if (!success) {
-        console.warn('sendBeacon failed, trying fetch fallback');
+        clientLogger.warn('sendBeacon failed, trying fetch fallback');
         await fetchFallback(payload);
       }
     } else {
@@ -128,14 +125,14 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.warn('Failed to send web vitals:', {
+        clientLogger.warn('Failed to send web vitals:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         });
       }
     } catch (error) {
-      console.warn('Fetch fallback failed:', error);
+      clientLogger.warn('Fetch fallback failed:', { error });
     }
   }, [finalConfig.endpoint]);
 
@@ -161,7 +158,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     // Check if web vitals collection is enabled
     if (!finalConfig.enabled) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Web vitals collection is disabled, skipping metric:', metric.name);
+        clientLogger.info('Web vitals collection is disabled, skipping metric:', { metric: metric.name });
       }
       return;
     }
@@ -169,7 +166,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     // Apply sampling rate
     if (finalConfig.samplingRate < 1.0 && Math.random() > finalConfig.samplingRate) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('Metric skipped due to sampling rate:', metric.name);
+        clientLogger.info('Metric skipped due to sampling rate:', { metric: metric.name });
       }
       return; // Skip this metric based on sampling rate
     }
@@ -178,7 +175,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     if (finalConfig.enableValidation) {
       const validationResult = safeValidateWebVitalMetric(metric);
       if (!validationResult.success) {
-        console.warn('Invalid metric received, skipping:', {
+        clientLogger.warn('Invalid metric received, skipping:', {
           metric,
           errors: validationResult.error.issues
         });
@@ -188,12 +185,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
 
     // Debug logging
     if (process.env.NODE_ENV === 'development') {
-      console.log('Adding web vital metric:', {
-        name: metric.name,
-        value: metric.value,
-        url: metric.url,
-        queueSize: metricsQueue.current.length + 1
-      });
+      clientLogger.info('Adding web vital metric:', { name: metric.name, value: metric.value, url: metric.url, queueSize: metricsQueue.current.length });
     }
 
     metricsQueue.current.push(metric);
@@ -225,17 +217,12 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       
       // Debug logging for metric collection
       if (process.env.NODE_ENV === 'development') {
-        console.log('Web vital metric collected:', {
-          name: webVitalMetric.name,
-          value: webVitalMetric.value,
-          url: webVitalMetric.url,
-          sessionId: webVitalMetric.sessionId
-        });
+        clientLogger.info('Web vital metric collected:', { name: webVitalMetric.name, value: webVitalMetric.value, url: webVitalMetric.url });
       }
       
       addMetric(webVitalMetric);
     } catch (error) {
-      console.error('Error processing web vital metric:', error);
+      clientLogger.error('Error processing web vital metric:', error);
     }
   });
 
@@ -245,7 +232,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       const newUrl = window.location.href;
       if (newUrl !== currentUrl.current) {
         if (process.env.NODE_ENV === 'development') {
-          console.log('URL changed from', currentUrl.current, 'to', newUrl);
+          clientLogger.info('URL changed from', { from: currentUrl.current, to: newUrl });
         }
         currentUrl.current = newUrl;
       }

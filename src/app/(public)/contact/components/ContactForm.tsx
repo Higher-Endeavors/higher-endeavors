@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 type FormData = {
   firstname: string;
@@ -169,7 +170,7 @@ export default function ContactForm() {
           siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
           onSuccess={(token) => setTurnstileToken(token)}
           onError={(error) => {
-            console.log('Turnstile client error', error)
+            clientLogger.error('Turnstile client error', error);
             setSubmitError('Turnstile verification failed. Please try again.');
             setIsErrorVisible(true);
             sendErrorEmail(

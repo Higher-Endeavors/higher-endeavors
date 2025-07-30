@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 const Client = require("pg").Client;
 const client = new Client();
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 //
 // This need sto be refactored into a general db function
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
     await client.end();
     return NextResponse.json({ message: "Success: message stored" });
   } catch (error) {
-    console.log(error);
+    serverLogger.error('db route error', error);
     NextResponse.json({ error: "COULD NOT STORE MESSAGE" }, { status: 500 });
   }
 }

@@ -15,6 +15,7 @@ import { generateProgressedWeeks } from '../../lib/calculations/resistanceTraini
 import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
 import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -113,7 +114,7 @@ export default function ResistanceTrainingClient({
       // Set the program ID we're editing
       setEditingProgramId(loadedProgram.resistanceProgramId);
       
-      console.log('Program loaded successfully:', loadedProgram.programName);
+      clientLogger.info('Program loaded successfully:', { programName: loadedProgram.programName });
     } catch (error) {
       console.error('Error loading program:', error);
       // You could add a toast notification here
@@ -244,7 +245,7 @@ export default function ResistanceTrainingClient({
         onProgramSelect={handleLoadProgram}
         onProgramDelete={(programId) => {
           // TODO: Handle program deletion
-          console.log('Program deleted:', programId);
+          clientLogger.info('Program deleted:', { programId });
         }}
       />
       <ProgramSettings

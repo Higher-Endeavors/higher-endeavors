@@ -22,7 +22,7 @@ class ClientLogger {
     
     // Use sendBeacon for reliable delivery
     if (navigator.sendBeacon) {
-      navigator.sendBeacon('/api/client-log', blob);
+      navigator.sendBeacon('/api/logging/client-log', blob);
     } else {
       // Fallback for older browsers
       fetch('/api/client-log', {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/app/auth';
 import { SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function POST(request: Request) {
   try {
@@ -12,10 +13,7 @@ export async function POST(request: Request) {
     const data = await request.json();
     
     // Log the data being sent
-    console.log('Intake form submission data:', {
-      email: session.user.email,
-      formData: data
-    });
+    serverLogger.info('Intake form submission data:', { body: data });
 
     // Get user ID
     const userResult = await SingleQuery(

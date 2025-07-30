@@ -2,6 +2,7 @@
 
 import { useWebVitalsBatcher } from '@/app/lib/hooks/use-web-vitals';
 import { useEffect } from 'react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface WebVitalsProviderProps {
   config?: {
@@ -27,16 +28,16 @@ export function WebVitalsProvider({ config }: WebVitalsProviderProps) {
   // Debug logging
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
-      console.log('WebVitalsProvider initialized with config:', config);
-      console.log('Web Vitals session:', getSessionId());
-      console.log('Current URL:', window.location.href);
+      clientLogger.info('WebVitalsProvider initialized with config:', { config });
+      clientLogger.info('Web Vitals session:', { session: getSessionId() });
+      clientLogger.info('Current URL:', { url: window.location.href });
     }
   }, [config, getSessionId]);
 
   // Optional: Add development tools
   if (process.env.NODE_ENV === 'development') {
     // You can add debugging info here
-    console.log('Web Vitals session:', getSessionId());
+    clientLogger.info('Web Vitals session:', { session: getSessionId() });
   }
 
   // This component doesn't render anything visible

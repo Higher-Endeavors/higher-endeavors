@@ -8,6 +8,7 @@ import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasureme
 import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 // import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
 
 interface UserBioData {
@@ -287,7 +288,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   };
 
   const onSubmit = async (data: FormInputs) => {
-    console.log('Form submission started');
+    clientLogger.info('Form submission started');
     
     const errors = validateMeasurements(
       data.weight,
@@ -394,18 +395,18 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       <form 
         onSubmit={(e) => {
           e.preventDefault();
-          console.log('Form submit event triggered');
+          clientLogger.info('Form submit event triggered');
           const formData = watch();
-          console.log('Form data:', formData);
+          clientLogger.info('Form data:', { formData });
           
           // Ensure we have required values
           if (!formData.weight || formData.weight <= 0) {
-            console.log('Invalid weight value');
+            clientLogger.error('Invalid weight value');
             return;
           }
 
           if (formData.bodyFatMethod === 'manual' && (!formData.manualBodyFat || formData.manualBodyFat <= 0)) {
-            console.log('Invalid manual body fat value');
+            clientLogger.error('Invalid manual body fat value');
             return;
           }
 
