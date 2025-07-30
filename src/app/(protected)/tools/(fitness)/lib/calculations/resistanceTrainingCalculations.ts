@@ -27,7 +27,7 @@ export function calculateTimeUnderTension(reps: number = 0, tempo: string = '201
 
 /**
  * Calculates the estimated total session duration based on planned exercises
- * For each set: setTime = TUT (for that set) + rest (for that set)
+ * For each set: setTime = TUT (for resistance) or duration (for CME) + rest (for that set)
  * Total Duration = sum of all setTimes (including rest after last set)
  *
  * @param exercises - Array of planned exercises
@@ -42,11 +42,28 @@ export function calculateSessionDuration(exercises: ProgramExercisesPlanned[]): 
     if (!exercise.plannedSets || exercise.plannedSets.length === 0) return;
 
     exercise.plannedSets.forEach((set) => {
-      // Add TUT for this set
-      const tut = calculateTimeUnderTension(set.reps || 0, set.tempo || '2010');
+      let setDuration = 0;
+      
+      // Check if this is a CME exercise (has duration field)
+      if (set.duration !== undefined && set.duration !== null) {
+        // CME exercise - use duration field
+        const duration = set.duration || 0;
+        const unit = set.durationUnit || 'minutes';
+        
+        if (unit === 'seconds') {
+          setDuration = duration;
+        } else {
+          // Convert minutes to seconds
+          setDuration = duration * 60;
+        }
+      } else {
+        // Resistance exercise - use TUT
+        setDuration = calculateTimeUnderTension(set.reps || 0, set.tempo || '2010');
+      }
+      
       // Add rest for this set (always included, even for last set)
       const rest = set.restSec || 0;
-      totalDuration += tut + rest;
+      totalDuration += setDuration + rest;
     });
   });
 
@@ -66,7 +83,7 @@ export function formatSessionDuration(durationInSeconds: number): string {
 
   // Round up to the nearest minute
   const minutes = Math.ceil(durationInSeconds / 60);
-  return `${minutes}m`;
+  return `${minutes} minutes`;
 }
 
 /**

@@ -3,10 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
+import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
 
 interface ProgramSettingsProps {
   programLength: number;
   setProgramLength: (length: number) => void;
+  sessionsPerWeek: number;
+  setSessionsPerWeek: (sessions: number) => void;
   progressionSettings: {
     type: string;
     settings: {
@@ -31,17 +34,27 @@ interface ProgramSettingsProps {
   setPeriodizationType: (type: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
+  difficultyLevel?: string;
+  setDifficultyLevel?: (level: string) => void;
+  selectedCategories?: number[];
+  setSelectedCategories?: (categories: number[]) => void;
+  isAdmin?: boolean;
   isLoading?: boolean;
+  isTemplateProgram?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, isLoading = false }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, difficultyLevel, setDifficultyLevel, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false, isTemplateProgram = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
   // Remove useEffect for syncing inputValue with programLength
   // Manage inputValue locally
   const [inputValue, setInputValue] = useState(programLength.toString());
+  const [sessionsInputValue, setSessionsInputValue] = useState(sessionsPerWeek.toString());
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
+  
+  // Template categories using custom hook
+  const { categories: templateCategories, isLoading: categoriesLoading, error: categoriesError } = useTemplateCategories(isAdmin);
 
   // Only propagate up when user changes input
   useEffect(() => {
@@ -56,6 +69,8 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
   }, [inputValue, setProgramLength]);
+
+
 
   const phaseFocusOptions = [
     { value: 'GPP', label: 'General Physical Preparedness (GPP)' },
@@ -74,6 +89,13 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
     { value: 'None', label: 'None' },
     { value: 'Linear', label: 'Linear' },
     { value: 'Undulating', label: 'Undulating' }
+  ];
+
+  // Difficulty options for admin users
+  const difficultyOptions = [
+    { value: 'Healthy', label: 'Healthy' },
+    { value: 'Fit', label: 'Fit' },
+    { value: 'HighEnd', label: 'HighEnd' }
   ];
 
   // Local state for periodization type and program length
@@ -182,6 +204,7 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
               Program Name
             </label>
             <input
+              id="program-name-input"
               type="text"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
               placeholder="Enter program name"
@@ -250,24 +273,65 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
             </div>
           )}
 
-          {/* Program Length */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Program Length (weeks)
-            </label>
-            <input
-              type="number"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
-              placeholder="4"
-              min="1"
-              max="52"
-              step="1"
-              value={inputValue}
-              onChange={e => setInputValue(e.target.value)}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Set the duration of your training program
-            </p>
+          {/* Program Length and Sessions Per Week */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Program Length (weeks)
+              </label>
+              <input
+                type="number"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="4"
+                min="1"
+                max="52"
+                step="1"
+                value={inputValue}
+                onChange={e => {
+                  const value = parseInt(e.target.value);
+                  if (!isNaN(value) && value >= 1 && value <= 52) {
+                    setInputValue(value.toString());
+                    setProgramLength(value);
+                  }
+                }}
+                onBlur={() => {
+                  const value = parseInt(inputValue);
+                  if (isNaN(value) || value < 1) {
+                    setInputValue('1');
+                    setProgramLength(1);
+                  } else if (value > 52) {
+                    setInputValue('52');
+                    setProgramLength(52);
+                  }
+                }}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Set the duration of your training program
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sessions Per Week
+              </label>
+              <input
+                type="number"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
+                placeholder="1"
+                min="0.5"
+                max="7"
+                step="0.5"
+                value={sessionsPerWeek}
+                onChange={e => {
+                  const value = parseFloat(e.target.value);
+                  if (!isNaN(value) && value >= 0.5 && value <= 7) {
+                    setSessionsPerWeek(value);
+                  }
+                }}
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                How many times each week are you planning to do the program?
+              </p>
+            </div>
           </div>
 
           {/* Progression Settings */}
@@ -342,6 +406,79 @@ export default function ProgramSettings({ programLength, setProgramLength, progr
               Add any additional notes or comments about the program
             </p>
           </div>
+
+          {/* Difficulty Level - Admin Only */}
+          {isAdmin && setDifficultyLevel && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Difficulty Level
+              </label>
+              <Select
+                options={difficultyOptions}
+                value={difficultyOptions.find(opt => opt.value === difficultyLevel) || null}
+                onChange={opt => setDifficultyLevel(opt?.value || '')}
+                className="basic-single dark:text-slate-700"
+                classNamePrefix="select"
+                placeholder="Select difficulty level..."
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                Set the difficulty level for this program template
+              </p>
+            </div>
+          )}
+
+          {/* Template Categories - Admin Only */}
+          {isAdmin && setSelectedCategories && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Template Categories
+              </label>
+              {categoriesLoading ? (
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Loading categories...</span>
+                </div>
+              ) : categoriesError ? (
+                <div className="text-sm text-red-500">
+                  Error loading categories: {categoriesError}
+                </div>
+              ) : templateCategories.length > 0 ? (
+                <div className="space-y-2">
+                  {templateCategories.map((category) => (
+                    <label key={category.resist_program_template_categories_id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories?.includes(category.resist_program_template_categories_id) || false}
+                        onChange={(e) => {
+                          if (setSelectedCategories) {
+                            if (e.target.checked) {
+                              setSelectedCategories([...(selectedCategories || []), category.resist_program_template_categories_id]);
+                            } else {
+                              setSelectedCategories((selectedCategories || []).filter(id => id !== category.resist_program_template_categories_id));
+                            }
+                          }
+                        }}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-700">
+                        {category.category_name}
+                        {category.description && (
+                          <span className="text-xs text-gray-500 ml-1">
+                            - {category.description}
+                          </span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">No categories available</p>
+              )}
+              <p className="mt-1 text-sm text-gray-500">
+                Select the categories this template belongs to
+              </p>
+            </div>
+          )}
         </form>
       )}
     </div>

@@ -61,7 +61,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 label: ex.name,
                 data: ex
               }))}
-              className="basic-single"
+              className="basic-single dark:text-slate-700"
               classNamePrefix="select"
               placeholder="Type to search exercises..."
               components={{
@@ -83,6 +83,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.difficulty}
                 isClearable
                 placeholder="Filter by difficulty"
+                className="dark:text-slate-700"
                 onChange={(option) =>
                   setSelectedFilters(prev => ({
                     ...prev,
@@ -100,6 +101,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.muscleGroup}
                 isClearable
                 placeholder="Filter by muscle group"
+                className="dark:text-slate-700"
                 onChange={(option) =>
                   setSelectedFilters(prev => ({
                     ...prev,
@@ -117,6 +119,7 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exer
                 options={filters.equipment}
                 isClearable
                 placeholder="Filter by equipment"
+                className="dark:text-slate-700"
                 onChange={(option) =>
                   setSelectedFilters(prev => ({
                     ...prev,

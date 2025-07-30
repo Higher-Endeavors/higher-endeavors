@@ -11,6 +11,7 @@ export async function GET(request: Request) {
       el.exercise_library_id,
       el.exercise_name as name,
       'library' as source,
+      el.exercise_family_id,
       ef.name as exercise_family,
       br.name as body_region,
       mg.name as muscle_group,

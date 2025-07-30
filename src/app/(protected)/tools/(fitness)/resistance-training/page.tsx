@@ -6,7 +6,10 @@ import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
 import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
+import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from './lib/actions/cmeTransformations';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.zod';
+import { CMEActivityLibraryItem } from '../cardiometabolic-training/types/cme-training.zod';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import ResistanceTrainingClient from "./components/ResistanceTraining.client";
@@ -27,18 +30,24 @@ export default async function ResistanceTrainingPage() {
 
   let libraryExercises: ExerciseLibraryItem[] = [];
   let userExercises: ExerciseLibraryItem[] = [];
+  let cmeActivities: CMEActivityLibraryItem[] = [];
   let error: Error | null = null;
   let fitnessSettings: FitnessSettings | undefined = undefined;
   try {
     libraryExercises = await getExerciseLibrary();
     userExercises = await getUserExerciseLibrary(loggedInUserId);
+    cmeActivities = await getCMEActivityLibrary();
     const userSettings = await getUserSettings();
     fitnessSettings = userSettings?.fitness;
   } catch (err: any) {
     error = err;
   }
 
-  const allExercises = [...userExercises, ...libraryExercises];
+  // Transform CME activities to match ExerciseLibraryItem format for compatibility
+  const transformedCMEActivities: ExerciseLibraryItem[] = transformCMEActivitiesToExerciseLibrary(cmeActivities);
+
+  // Combine all exercises and activities for the AddExerciseModal
+  const allExercises: ExerciseLibraryItem[] = [...userExercises, ...libraryExercises, ...transformedCMEActivities];
 
   const resistanceTrainingArticles = [
     {
@@ -58,10 +67,10 @@ export default async function ResistanceTrainingPage() {
 
   return (
     <SessionProvider>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
         <Header />
-        <h1 className="text-3xl font-bold my-8">Resistance Training Program Planning</h1>
-        <div className="flex flex-col lg:flex-row gap-6">
+        <h1 className="text-2xl sm:text-3xl font-bold my-4 sm:my-8">Resistance Training Program</h1>
+        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           <div className="flex-grow space-y-4">
             <ResistanceTrainingClient
               exercises={allExercises}

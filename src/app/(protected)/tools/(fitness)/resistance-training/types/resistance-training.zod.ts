@@ -36,7 +36,7 @@ export const ResistanceProgramTemplateSchema = z.object({
 export const ProgramExercisesPlannedSchema = z.object({
   programExercisesPlannedId: z.number().int(),
   resistanceProgramId: z.number().int(),
-  exerciseSource: z.enum(['library', 'user']),
+  exerciseSource: z.enum(['library', 'user', 'cme_library']),
   exerciseLibraryId: z.number().int().optional(),
   userExerciseLibraryId: z.number().int().optional(),
   pairing: z.string().optional(),
@@ -70,6 +70,20 @@ export type ExerciseSet = {
   subSets?: ExerciseSet[];
   type?: 'varied' | 'advanced';
   repUnit?: string;
+  distance?: number;
+  distanceUnit?: string;
+  duration?: number;
+  durationUnit?: string;
+  notes?: string;
+  // Cycling-specific fields
+  speed?: number | null;
+  rpm?: number | null;
+  watts?: number | null;
+  resistance?: number | null;
+  // Running-specific fields
+  pace?: string;
+  // Treadmill-specific fields
+  incline?: number;
 };
 
 export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
@@ -85,7 +99,20 @@ export const ExerciseSetSchema: z.ZodType<ExerciseSet> = z.lazy(() =>
     subSets: z.array(ExerciseSetSchema).optional(),
     type: z.enum(['varied', 'advanced']).optional(),
     repUnit: z.string().optional(),
+    distance: z.number().int().min(0).optional(),
+    distanceUnit: z.string().optional(),
+    duration: z.number().int().min(0).optional(),
+    durationUnit: z.string().optional(),
     notes: z.string().optional(),
+    // Cycling-specific fields
+    speed: z.number().int().min(0).nullable().optional(),
+    rpm: z.number().int().min(0).nullable().optional(),
+    watts: z.number().int().min(0).nullable().optional(),
+    resistance: z.number().int().min(0).nullable().optional(),
+    // Running-specific fields
+    pace: z.string().optional(),
+    // Treadmill-specific fields
+    incline: z.number().int().min(0).max(15).optional(),
   }).strict()
 );
 
@@ -106,7 +133,9 @@ export const ExerciseLibraryItemSchema = z.object({
   difficulty: z.string().optional(),
   muscleGroup: z.string().optional(),
   equipment: z.string().optional(),
-  source: z.enum(['library', 'user']),
+  source: z.enum(['library', 'user', 'cme_library']),
+  exercise_family: z.string().optional(),
+  exercise_family_id: z.number().int().optional(),
 }).strict();
 
 // Program list item for browser display
@@ -130,6 +159,15 @@ export const ProgramListItemSchema = z.object({
       name: z.string()
     }))
   }).optional(),
+  // Template information (only for templates)
+  templateInfo: z.object({
+    difficultyLevel: z.string().optional(),
+    categories: z.array(z.object({
+      id: z.number().int(),
+      name: z.string(),
+      description: z.string().optional()
+    })).optional()
+  }).optional(),
 }).strict();
 
 // --- Action Schemas ---
@@ -144,9 +182,9 @@ export const UpdateResistanceProgramSchema = z.object({
   programDuration: z.number().int().min(1).max(52),
   notes: z.string().optional(),
   weeklyExercises: z.array(z.array(z.object({
-    exerciseSource: z.enum(['library', 'user']),
-    exerciseLibraryId: z.number().int().optional(),
-    userExerciseLibraryId: z.number().int().optional(),
+    exerciseSource: z.enum(['library', 'user', 'cme_library']),
+    exerciseLibraryId: z.number().int().nullable().optional(),
+    userExerciseLibraryId: z.number().int().nullable().optional(),
     pairing: z.string().optional(),
     plannedSets: z.array(z.any()).optional(),
     notes: z.string().optional(),

@@ -16,6 +16,7 @@ export async function getExerciseLibrary(): Promise<ExerciseLibraryItem[]> {
     name: exercise.name,
     source: 'library',
     exercise_family: exercise.exercise_family || null,
+    exercise_family_id: exercise.exercise_family_id, // Use the value directly
     body_region: exercise.body_region || null,
     muscle_group: exercise.muscle_group || null,
     movement_pattern: exercise.movement_pattern || null,

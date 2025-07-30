@@ -14,23 +14,39 @@ interface User {
 interface UserSelectorProps {
   onUserSelect: (userId: number | null) => void;
   currentUserId: number;
+  showAdminFeatures?: boolean;
+  onAdminStatusChange?: (isAdmin: boolean) => void;
 }
 
-export default function UserSelector({ onUserSelect, currentUserId }: UserSelectorProps) {
+export default function UserSelector({ 
+  onUserSelect, 
+  currentUserId, 
+  showAdminFeatures = false,
+  onAdminStatusChange 
+}: UserSelectorProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number>(currentUserId);
   const [isLoading, setIsLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         const response = await fetch('/api/users');
-        if (!response.ok) throw new Error('Failed to fetch users');
-        const data = await response.json();
-        setUsers(data.users);
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users);
+          setIsAdmin(true);
+          onAdminStatusChange?.(true);
+        } else {
+          setIsAdmin(false);
+          onAdminStatusChange?.(false);
+        }
       } catch (error) {
         clientLogger.error('Error fetching users', error);
+        setIsAdmin(false);
+        onAdminStatusChange?.(false);
         setError('Failed to fetch users');
       } finally {
         setIsLoading(false);
@@ -38,7 +54,7 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
     };
 
     fetchUsers();
-  }, []);
+  }, [onAdminStatusChange]);
 
   const handleUserChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const userId = parseInt(event.target.value);
@@ -56,6 +72,13 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
 
   return (
     <div className="mb-4">
+      {showAdminFeatures && isAdmin && (
+        <div className="mb-2">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+            Admin Mode
+          </span>
+        </div>
+      )}
       <div className="relative">
         <select
           id="user-selector"
