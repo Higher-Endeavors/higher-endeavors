@@ -90,7 +90,7 @@ export default function ContactForm() {
           <option value="">Select an option</option>
           <option value="general">General</option>
           <option value="therapy">Performance Therapy</option>
-          <option value="beta">Beta Testing</option>
+          <option value="beta">Early Adopter Program</option>
           <option value="bug">Bug Report</option>
           <option value="feature">Feature Request</option>
         </select>
