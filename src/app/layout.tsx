@@ -4,8 +4,8 @@ import "./globals.css";
 import { UserSettingsProvider } from './context/UserSettingsContext';
 import { getUserSettings } from './lib/actions/userSettings';
 import { ErrorBoundary } from '@/app/components/error-boundary.client'
-import { WebVitalsProvider } from './components/web-vitals-provider';
-import { WebVitalsErrorBoundary } from './components/web-vitals-error-boundary';
+import { WebVitalsProvider } from './components/web-vitals-provider.client';
+import { WebVitalsErrorBoundary } from './components/web-vitals-error-boundary.client';
 import { webVitalsConfig } from './lib/web-vitals/web-vitals-config';
 
 

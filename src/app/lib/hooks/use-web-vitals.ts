@@ -1,6 +1,7 @@
 // hooks/useWebVitalsBatcher.ts
 import { useCallback, useEffect, useRef } from 'react';
 import { useReportWebVitals } from 'next/web-vitals';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { 
   safeValidateWebVitalMetric, 
   type WebVitalMetric,
@@ -12,13 +13,17 @@ interface BatchConfig {
   flushInterval?: number; // milliseconds
   endpoint?: string;
   enableValidation?: boolean; // Option to disable client-side validation
+  enabled?: boolean; // Whether web vitals collection is enabled
+  samplingRate?: number; // Sampling rate between 0 and 1
 }
 
 const DEFAULT_CONFIG: Required<BatchConfig> = {
   maxBatchSize: 10,
   flushInterval: 30000, // 30 seconds
   endpoint: '/api/web-vitals',
-  enableValidation: true
+  enableValidation: true,
+  enabled: true,
+  samplingRate: 1.0
 };
 
 export function useWebVitalsBatcher(config: BatchConfig = {}) {
@@ -26,6 +31,36 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
   const metricsQueue = useRef<WebVitalMetric[]>([]);
   const flushTimer = useRef<NodeJS.Timeout | null>(null);
   const sessionId = useRef<string>(generateSessionId());
+  const currentUrl = useRef<string>('');
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Debug logging
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Web Vitals Batcher initialized with config:', finalConfig);
+      console.log('Current URL:', window.location.href);
+      currentUrl.current = window.location.href;
+    }
+  }, [finalConfig]);
+
+  // Track route changes using Next.js navigation
+  useEffect(() => {
+    const newUrl = window.location.href;
+    if (newUrl !== currentUrl.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Route changed from', currentUrl.current, 'to', newUrl);
+        console.log('Pathname:', pathname);
+        console.log('Search params:', searchParams.toString());
+      }
+      currentUrl.current = newUrl;
+      
+      // Flush any pending metrics when route changes
+      if (metricsQueue.current.length > 0) {
+        flushQueue();
+      }
+    }
+  }, [pathname, searchParams]);
 
   const sendBatch = useCallback(async (metrics: WebVitalMetric[]) => {
     if (metrics.length === 0) return;
@@ -35,6 +70,15 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       batchId: generateBatchId(),
       timestamp: Date.now()
     };
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Sending web vitals batch:', {
+        batchId: batchData.batchId,
+        metricCount: metrics.length,
+        metrics: metrics.map(m => ({ name: m.name, value: m.value, url: m.url }))
+      });
+    }
 
     // Optional client-side validation before sending
     if (finalConfig.enableValidation) {
@@ -114,6 +158,22 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
   }, [flushQueue, finalConfig.flushInterval]);
 
   const addMetric = useCallback((metric: WebVitalMetric) => {
+    // Check if web vitals collection is enabled
+    if (!finalConfig.enabled) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Web vitals collection is disabled, skipping metric:', metric.name);
+      }
+      return;
+    }
+
+    // Apply sampling rate
+    if (finalConfig.samplingRate < 1.0 && Math.random() > finalConfig.samplingRate) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Metric skipped due to sampling rate:', metric.name);
+      }
+      return; // Skip this metric based on sampling rate
+    }
+
     // Optional client-side validation before adding to queue
     if (finalConfig.enableValidation) {
       const validationResult = safeValidateWebVitalMetric(metric);
@@ -126,6 +186,16 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       }
     }
 
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Adding web vital metric:', {
+        name: metric.name,
+        value: metric.value,
+        url: metric.url,
+        queueSize: metricsQueue.current.length + 1
+      });
+    }
+
     metricsQueue.current.push(metric);
     
     // Flush immediately if batch size reached
@@ -134,7 +204,7 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     } else {
       scheduleFlush();
     }
-  }, [flushQueue, scheduleFlush, finalConfig.maxBatchSize, finalConfig.enableValidation]);
+  }, [flushQueue, scheduleFlush, finalConfig.maxBatchSize, finalConfig.enableValidation, finalConfig.enabled, finalConfig.samplingRate]);
 
   // Set up the web vitals reporting
   useReportWebVitals((metric) => {
@@ -153,11 +223,58 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
         userId: getUserId() // Implement this based on your auth system
       };
       
+      // Debug logging for metric collection
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Web vital metric collected:', {
+          name: webVitalMetric.name,
+          value: webVitalMetric.value,
+          url: webVitalMetric.url,
+          sessionId: webVitalMetric.sessionId
+        });
+      }
+      
       addMetric(webVitalMetric);
     } catch (error) {
       console.error('Error processing web vital metric:', error);
     }
   });
+
+  // Track URL changes for debugging
+  useEffect(() => {
+    const handleUrlChange = () => {
+      const newUrl = window.location.href;
+      if (newUrl !== currentUrl.current) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('URL changed from', currentUrl.current, 'to', newUrl);
+        }
+        currentUrl.current = newUrl;
+      }
+    };
+
+    // Listen for popstate events (browser back/forward)
+    window.addEventListener('popstate', handleUrlChange);
+    
+    // For Next.js client-side navigation, we can also listen to route changes
+    // This is a basic approach - you might want to use Next.js router events
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+    
+    history.pushState = function(...args) {
+      originalPushState.apply(history, args);
+      handleUrlChange();
+    };
+    
+    history.replaceState = function(...args) {
+      originalReplaceState.apply(history, args);
+      handleUrlChange();
+    };
+
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, []);
 
   // Flush on page unload
   useEffect(() => {
