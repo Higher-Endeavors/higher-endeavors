@@ -6,6 +6,7 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import FeatureRoadmap from '@/app/(protected)/tools/feature-roadmap/components/FeatureRoadmap';
 import RelatedContent from '@/app/(protected)/tools/(components)/RelatedContent';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 type RefLift = {
   id: number;
@@ -66,7 +67,7 @@ export default async function BalancedLiftsPage() {
       const refLifts = await response.json();
       return refLifts.rows;
     } catch (error) {
-      console.error(error);
+      clientLogger.error('Error in structural balance page', error);
       return [];
     }
   };

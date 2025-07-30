@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -22,8 +23,8 @@ export async function GET(request: Request) {
     const result = await SingleQuery(query, values);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching balanced lifts:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error fetching balanced lifts', error);
+    return NextResponse.json({ error: 'Failed to fetch balanced lifts' }, { status: 500 });
   }
 }
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const result = await SingleQuery(query, values);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error creating balanced lift:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error creating balanced lift', error);
+    return NextResponse.json({ error: 'Failed to create balanced lift' }, { status: 500 });
   }
 }

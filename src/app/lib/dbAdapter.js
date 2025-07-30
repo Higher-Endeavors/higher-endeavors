@@ -1,4 +1,5 @@
 import pg from "pg";
+import { serverLogger } from '@/app/lib/logging/logger.server';
 const { Pool } = pg;
 
 // This is only to pass the pool to the Postgres adapter for AuthJS
@@ -6,8 +7,8 @@ export const pool = new Pool();
 
 // the pool will emit an error on behalf of any idle clients
 // it contains if a backend error or network partition happens
-pool.on("error", (err, client) => {
-  console.error("Unexpected error on idle client", err);
+pool.on("error", async (err, client) => {
+  await serverLogger.error('Unexpected error on idle client', err);
   process.exit(-1);
 });
 
@@ -67,11 +68,10 @@ export const getClient = async () => {
   const query = client.query;
   const release = client.release;
   // set a timeout of 5 seconds, after which we will log this client's last query
-  const timeout = setTimeout(() => {
-    console.error("A client has been checked out for more than 5 seconds!");
-    console.error(
-      `The last executed query on this client was: ${client.lastQuery}`
-    );
+  const timeout = setTimeout(async () => {
+    await serverLogger.error('A client has been checked out for more than 5 seconds', null, {
+      lastQuery: client.lastQuery
+    });
   }, 5000);
   // monkey patch the query method to keep track of the last query executed
   client.query = (...args) => {

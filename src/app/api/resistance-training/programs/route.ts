@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {
   try {
@@ -119,8 +120,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ programs: result.rows });
     }
   } catch (error) {
-    console.error('Error fetching resistance training programs:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error fetching resistance training programs', error);
+    return NextResponse.json({ error: 'Failed to fetch programs' }, { status: 500 });
   }
 }
 

@@ -5,6 +5,9 @@ import { signInHandler } from "@/app/lib/signInHandler";
 import { useSession } from "next-auth/react";
 import Link from 'next/link';
 import { usePathname } from "next/navigation";
+import React, { useState, useRef, useEffect } from 'react';
+import { signOut } from 'next-auth/react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function DropdownMenu() {
     const pathname = usePathname();
@@ -38,7 +41,8 @@ export default function DropdownMenu() {
                 headers: { 'Content-Type': 'plain/text' },
             });
         } catch (error) {
-            console.error('Error signing out:', error);
+            clientLogger.error('Error signing out', error);
+            // Handle sign out error
         }
 
         window.open(`https://auth.higherendeavors.com/logout?client_id=${cognitoClient}&logout_uri=${cognitoAuthUrl}`, "_self");

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface User {
   id: number;
@@ -19,6 +20,7 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number>(currentUserId);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -28,7 +30,8 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
         const data = await response.json();
         setUsers(data.users);
       } catch (error) {
-        console.error('Error fetching users:', error);
+        clientLogger.error('Error fetching users', error);
+        setError('Failed to fetch users');
       } finally {
         setIsLoading(false);
       }
@@ -45,6 +48,10 @@ export default function UserSelector({ onUserSelect, currentUserId }: UserSelect
 
   if (isLoading) {
     return <div>Loading users...</div>;
+  }
+
+  if (error) {
+    return <div className="text-red-500">{error}</div>;
   }
 
   return (

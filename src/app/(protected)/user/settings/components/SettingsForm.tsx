@@ -13,6 +13,7 @@ import NutritionUserSettings from './NutritionUserSettings';
 import FitnessUserSettings from './FitnessUserSettings';
 import { useUserSettingsRefresh } from '../../../components/UserSettingsProviderWrapper';
 import { saveUserSettings } from '../lib/actions/saveUserSettings';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 const SettingsForm = () => {
   const router = useRouter();
@@ -48,7 +49,10 @@ const SettingsForm = () => {
           setDbSettings(safeData);
         }
       } catch (error: any) {
-        if (isMounted) setFetchError(error.message || 'Error fetching settings');
+        if (isMounted) {
+          clientLogger.error('Error fetching user settings', error);
+          setFetchError(error.message || 'Error fetching settings');
+        }
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -118,7 +122,7 @@ const SettingsForm = () => {
     } catch (error) {
       setShowErrorToast(true);
       setTimeout(() => setShowErrorToast(false), 3000);
-      console.error('Error saving settings:', error);
+      clientLogger.error('Error saving user settings', error);
     } finally {
       setIsMutating(false);
     }

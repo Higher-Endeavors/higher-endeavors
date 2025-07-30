@@ -24,7 +24,11 @@ export async function POST(request: NextRequest) {
     await client.end();
     return NextResponse.json({ message: "Success: message stored" });
   } catch (error) {
-    serverLogger.error('db route error', error);
-    NextResponse.json({ error: "COULD NOT STORE MESSAGE" }, { status: 500 });
+    await serverLogger.error('Database route error', error, { 
+      firstname, 
+      lastname, 
+      email 
+    });
+    return NextResponse.json({ error: "COULD NOT STORE MESSAGE" }, { status: 500 });
   }
 }

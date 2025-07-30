@@ -1,6 +1,7 @@
 "use server";
 
 import { getClient } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { DuplicateResistanceProgramSchema, DuplicateResistanceProgramInput } from '../../types/resistance-training.zod';
 
 export async function duplicateResistanceProgram(input: DuplicateResistanceProgramInput, userId: number) {
@@ -136,15 +137,13 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
       return { success: true, newProgramId, message: 'Program duplicated successfully' };
     } catch (error) {
       await client.query('ROLLBACK');
-      throw error;
+      await serverLogger.error('Failed to duplicate resistance program', error, { userId, programId, newProgramName });
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     } finally {
       client.release();
     }
-  } catch (error) {
-    console.error('Error duplicating resistance training program:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to duplicate program' 
-    };
+  } catch (e) {
+    await serverLogger.error('Failed to validate duplicate resistance program input', e, { userId, programId });
+    return { success: false, error: e instanceof Error ? e.message : String(e) };
   }
 } 

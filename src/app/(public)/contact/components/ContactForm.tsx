@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -22,7 +22,8 @@ async function sendErrorEmail(replyTo: string, subject: string, body: string) {
       body: JSON.stringify({ replyTo, subject, body }),
     });
   } catch (error) {
-    console.error('Failed to send error email:', error);
+    clientLogger.error('Failed to send error email', error);
+    // Continue with normal flow even if error email fails
   }
 }
 

@@ -37,7 +37,13 @@ try {
     return "Success: email was sent"
 
 } catch (error) {
-    serverLogger.error('admin-notice-email error', error);
+    await serverLogger.error('Admin notice email failed to send', error, { 
+      replyTo, 
+      subject, 
+      toEmail,
+      host,
+      port 
+    });
     return "COULD NOT SEND MESSAGE"
 }
 }

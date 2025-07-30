@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     const userId = userResult.rows[0]?.id;
     
     if (!userId) {
-      console.error('User ID not found for email:', session.user.email);
+      await serverLogger.error('User ID not found for email', null, { email: session.user.email });
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -54,17 +54,16 @@ export async function POST(request: Request) {
       const result = await SingleQuery(query, [userId, sanitizedData]);
       return NextResponse.json({ success: true, id: result.rows[0].id });
     } catch (dbError) {
-      console.error('Database error saving intake form:', dbError);
+      await serverLogger.error('Database error saving intake form', dbError, { userId });
       return NextResponse.json(
-        { error: 'Database error saving form' },
+        { error: 'Database error occurred' },
         { status: 500 }
       );
     }
   } catch (error) {
-    // Log the full error for debugging
-    console.error('Error in intake form submission:', error);
+    await serverLogger.error('Error in intake form submission', error);
     return NextResponse.json(
-      { error: 'Failed to save intake form' },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -86,7 +85,7 @@ export async function GET(request: Request) {
     const userId = userResult.rows[0]?.id;
     
     if (!userId) {
-      console.error('User ID not found for email:', session.user.email);
+      await serverLogger.error('User ID not found for email', null, { email: session.user.email });
       return NextResponse.json({});
     }
 
@@ -102,8 +101,10 @@ export async function GET(request: Request) {
     // If no data exists yet, return an empty object (this is not an error condition)
     return NextResponse.json(result.rows[0]?.intake_responses || {});
   } catch (error) {
-    // Only log the error but still return an empty object
-    console.error('Error retrieving intake form:', error);
-    return NextResponse.json({});
+    await serverLogger.error('Error retrieving intake form', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve intake form' },
+      { status: 500 }
+    );
   }
 } 

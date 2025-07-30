@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Component, ReactNode } from 'react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface Props {
   children: ReactNode;
@@ -22,15 +23,15 @@ export class WebVitalsErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Web Vitals Error Boundary caught an error:', error, errorInfo);
-    
+    clientLogger.error('Web Vitals Error Boundary caught an error', error, errorInfo);
+
     this.setState(prevState => ({ 
       errorCount: prevState.errorCount + 1 
     }));
 
     // Disable Web Vitals after too many errors
     if (this.state.errorCount > 3) {
-      console.warn('Disabling Web Vitals due to repeated errors');
+      clientLogger.warn('Disabling Web Vitals due to repeated errors');
       return;
     }
 

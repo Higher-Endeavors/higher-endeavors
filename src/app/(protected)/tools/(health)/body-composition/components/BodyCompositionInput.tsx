@@ -122,7 +122,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           setBioError('Please complete your profile with date of birth and gender information.');
         }
       } catch (error) {
-        console.error('Error loading bio data:', error);
+        clientLogger.error('Error loading bio data', error);
         setBioError('Failed to load profile data. Some features may be limited.');
       }
     };
@@ -360,7 +360,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       }, 5000);
       
     } catch (error) {
-      console.error('Error saving measurements:', error);
+      clientLogger.error('Error saving body composition measurements', error);
       setValidationErrors([{ 
         path: ['save'], 
         message: error instanceof Error ? error.message : 'Failed to save measurements. Please try again.' 

@@ -1,5 +1,6 @@
 // lib/webVitalsDb.ts
 import { SingleQuery } from "@/app/lib/dbAdapter";
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { 
   TimeframeQuerySchema,
   MetricNameQuerySchema,
@@ -140,8 +141,8 @@ export async function getMetricsByTimeframe(
     const result = await SingleQuery(query, params);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving metrics:', error);
-    throw error;
+    await serverLogger.error('Error retrieving metrics', error);
+    return [];
   }
 }
 
@@ -175,8 +176,8 @@ export async function getRatingStatistics(
     const result = await SingleQuery(query, [days]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving rating statistics:', error);
-    throw error;
+    await serverLogger.error('Error retrieving rating statistics', error);
+    return [];
   }
 }
 
@@ -207,8 +208,8 @@ export async function getDailyMetrics(
     const result = await SingleQuery(query, [days]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving daily metrics:', error);
-    throw error;
+    await serverLogger.error('Error retrieving daily metrics', error);
+    return [];
   }
 }
 
@@ -263,8 +264,8 @@ export async function getTopPoorPerformingPages(
     const result = await SingleQuery(query, [days, metricName, limit]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving top poor performing pages:', error);
-    throw error;
+    await serverLogger.error('Error retrieving top poor performing pages', error);
+    return [];
   }
 }
 
@@ -288,8 +289,8 @@ export async function getSessionMetrics(
     const result = await SingleQuery(query, [sessionId]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving session metrics:', error);
-    throw error;
+    await serverLogger.error('Error retrieving session metrics', error);
+    return [];
   }
 }
 
@@ -337,8 +338,8 @@ export async function getUserMetricsSummary(
     const result = await SingleQuery(query, [userId, days]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving user metrics summary:', error);
-    throw error;
+    await serverLogger.error('Error retrieving user metrics summary', error);
+    return [];
   }
 }
 
@@ -393,8 +394,19 @@ export async function getMetricPercentiles(
     const result = await SingleQuery(query, [days, metricName]);
     return result.rows[0];
   } catch (error) {
-    console.error('Error retrieving metric percentiles:', error);
-    throw error;
+    await serverLogger.error('Error retrieving metric percentiles', error);
+    return {
+      metric_name: metricName,
+      count: 0,
+      min: 0,
+      p25: 0,
+      p50: 0,
+      p75: 0,
+      p90: 0,
+      p95: 0,
+      p99: 0,
+      max: 0
+    };
   }
 }
 
@@ -442,8 +454,8 @@ export async function getMetricsTrends(
     const result = await SingleQuery(query, [days, metricName, groupBy]);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving metrics trends:', error);
-    throw error;
+    await serverLogger.error('Error retrieving metrics trends', error);
+    return [];
   }
 }
 
@@ -464,8 +476,8 @@ export async function cleanupOldMetrics(
     const result = await SingleQuery(query, [retentionDays]);
     return result.rowCount || 0;
   } catch (error) {
-    console.error('Error cleaning up old metrics:', error);
-    throw error;
+    await serverLogger.error('Error cleaning up old metrics', error);
+    return 0;
   }
 }
 

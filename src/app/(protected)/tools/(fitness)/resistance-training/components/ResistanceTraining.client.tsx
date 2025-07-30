@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './ProgramBrowser';
 import ProgramSettings from './ProgramSettings';
@@ -116,7 +116,7 @@ export default function ResistanceTrainingClient({
       
       clientLogger.info('Program loaded successfully:', { programName: loadedProgram.programName });
     } catch (error) {
-      console.error('Error loading program:', error);
+      clientLogger.error('Error loading resistance training program', error);
       // You could add a toast notification here
     } finally {
       setIsLoadingProgram(false);

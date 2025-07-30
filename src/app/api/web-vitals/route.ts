@@ -2,6 +2,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
 import { ZodError } from 'zod';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { 
   validateWebVitalsBatch, 
   safeValidateWebVitalsBatch,
@@ -70,6 +71,7 @@ async function insertWebVitalsMetrics(metrics: WebVitalMetric[]): Promise<number
     return insertedCount;
   } catch (error) {
     await client.query('ROLLBACK');
+    await serverLogger.error('Failed to insert web vitals metrics', error);
     throw error;
   } finally {
     client.release();
@@ -104,7 +106,7 @@ export async function POST(request: Request) {
       timestamp: batch.timestamp
     });
   } catch (error) {
-    console.error('Error processing web vitals:', error);
+    await serverLogger.error('Error processing web vitals', error);
     
     if (error instanceof ZodError) {
       return Response.json({
@@ -149,7 +151,7 @@ export async function GET(request: Request) {
       }
     });
   } catch (error) {
-    console.error('Error retrieving metrics:', error);
+    await serverLogger.error('Error retrieving web vitals metrics', error);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -187,7 +189,7 @@ async function getMetricsByTimeframe(
     const result = await SingleQuery(query);
     return result.rows;
   } catch (error) {
-    console.error('Error retrieving metrics:', error);
-    throw error;
+    await serverLogger.error('Error getting metrics by timeframe', error);
+    return [];
   }
 }

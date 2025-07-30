@@ -1,8 +1,9 @@
 'use server';
 
 import { auth } from '@/app/auth';
-import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
-import { UserSettingsSchema, type UserSettings } from '@/app/lib/types/userSettings.zod';
+import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
+import { UserSettings, UserSettingsSchema } from '@/app/lib/types/userSettings.zod';
 
 // --- Server Actions ---
 export async function getUserSettings(): Promise<UserSettings | null> {
@@ -128,6 +129,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     };
   } catch (error) {
     await client.query('ROLLBACK');
+    await serverLogger.error('Failed to update user settings', error, { userId: session.user.id });
     throw error;
   } finally {
     client.release();

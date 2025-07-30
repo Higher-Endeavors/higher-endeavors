@@ -63,11 +63,8 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error in body composition API route:', error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    await serverLogger.error('Error in body composition API route', error);
+    return NextResponse.json({ error: 'Failed to save body composition' }, { status: 500 });
   }
 }
 
@@ -134,10 +131,7 @@ export async function GET(request: NextRequest) {
     serverLogger.info('API route: Successfully fetched entries');
     return NextResponse.json({ entries });
   } catch (error) {
-    console.error("Error fetching body composition entries:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch body composition entries" },
-      { status: 500 }
-    );
+    await serverLogger.error('Error fetching body composition entries', error);
+    return NextResponse.json({ error: 'Failed to fetch body composition entries' }, { status: 500 });
   }
 } 

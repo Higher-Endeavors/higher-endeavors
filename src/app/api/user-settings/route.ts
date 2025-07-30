@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
 import { auth } from "@/app/auth";
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 // GET endpoint to retrieve user settings
 export async function GET() {
@@ -30,7 +31,7 @@ export async function GET() {
 
     return NextResponse.json(mapDbSettingsToCanonical(result.rows[0]));
   } catch (error) {
-    console.error("Error fetching user settings:", error);
+    await serverLogger.error('Error fetching user settings', error);
     return NextResponse.json(
       { error: "Failed to fetch user settings" },
       { status: 500 }

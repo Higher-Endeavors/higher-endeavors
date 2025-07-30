@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRatingStatistics, getDailyMetrics, getMetricPercentiles } from '../../lib/web-vitals/web-vitals-db';
 import { TimeframeQuerySchema, MetricNameQuerySchema } from '../../lib/types/web-vitals';
+import { getClient } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,10 +56,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching web vitals stats:', error);
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    await serverLogger.error('Error fetching web vitals stats', error);
+    return Response.json({ error: 'Failed to fetch web vitals stats' }, { status: 500 });
   }
 }

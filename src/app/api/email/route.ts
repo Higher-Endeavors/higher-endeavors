@@ -39,9 +39,14 @@ try {
     return NextResponse.json({ message: "Success: email was sent" })
 
 } catch (error) {
-    serverLogger.error('email route error', error);
-    NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 })
-
+    await serverLogger.error('Email route error', error, { 
+      replyTo, 
+      subject, 
+      toEmail,
+      host,
+      port 
+    });
+    return NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 });
 }
 
 }

@@ -2,6 +2,7 @@
 
 import { getClient } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
 
 interface SaveUserSettingsInput {
@@ -62,6 +63,7 @@ export async function saveUserSettings({ settings }: SaveUserSettingsInput) {
     return { success: true };
   } catch (error) {
     await client.query('ROLLBACK');
+    await serverLogger.error('Failed to save user settings', error, { userId });
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     client.release();

@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import type { RatingStats, DailyMetrics } from '../../../../lib/web-vitals/web-vitals-db';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface DashboardProps {
   timeframe?: string;
@@ -62,10 +63,8 @@ export function WebVitalsDashboard({ timeframe = '7 days' }: DashboardProps) {
         setStats(result.data.ratingStats);
         setDailyData(result.data.dailyMetrics);
       } catch (err) {
-        if (!isMounted) return;
-        
-        setError(err instanceof Error ? err.message : 'Unknown error');
-        console.error('Dashboard fetch error:', err);
+        clientLogger.error('Dashboard fetch error', err);
+        setError('Failed to fetch dashboard data');
       } finally {
         if (isMounted) {
           setLoading(false);

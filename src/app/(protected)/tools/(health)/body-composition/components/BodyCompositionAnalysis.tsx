@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -73,7 +73,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         setEntries(data.entries);
         setSelectedEntryId(null); // Reset selected entry when user changes
       } catch (err) {
-        console.error('Error fetching entries:', err);
+        clientLogger.error('Error fetching body composition entries', err);
         setError('Failed to load body composition entries');
       } finally {
         setIsLoading(false);
@@ -99,7 +99,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         
         setUserSettings(data.settings);
       } catch (err) {
-        console.error('Error fetching user settings:', err);
+        clientLogger.error('Error fetching user settings', err);
         setError('Failed to load user settings');
       }
     };
