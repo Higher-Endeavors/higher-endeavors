@@ -18,7 +18,7 @@ const Promotion = () => {
         </p>
         <Link href="/contact?inquiry=early-adopter">
           <button className="hover:shadow-form rounded-md bg-purple-500 hover:bg-[#9400D3] py-3 px-8 text-base font-semibold text-white outline-none shadow-lg flex mx-auto">
-            Join Now
+            Contact Us
           </button>
         </Link>
       </div>

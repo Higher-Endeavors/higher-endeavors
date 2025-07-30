@@ -90,6 +90,12 @@ const Pillars = () => {
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">HighEnd Pillars</h2>
+        <p className="text-center text-gray-700 font-bold max-w-2xl mx-auto mb-8 text-lg dark:text-gray-100">
+          True transformation takes more than just working out or eating better.
+        </p>
+        <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
+          To become your Ideal Self, you must address every facet of your life, how you live, how you feel, how you fuel, and how you move. The Four Pillars of Higher Endeavors: Lifestyle, Health, Nutrition, and Fitness—work together to create a clear, integrated path to real, lasting change. When you align all four, progress isn&apos;t just possible, it&apos;s sustainable.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {pillars.map((pillar, index) => (
             <PillarCard key={index} {...pillar} />

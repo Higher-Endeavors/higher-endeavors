@@ -40,7 +40,7 @@ const Continuum = () => {
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">The Ideal Self Continuum</h2>
-        <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-200">
+        <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
           No matter where you're starting from, Higher Endeavors helps you progress step-by-step toward your ideal self.
           This Continuum shows the stages of transformation across Lifestyle, Health, Nutrition, and Fitness.
         </p>

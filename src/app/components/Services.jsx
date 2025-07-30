@@ -55,6 +55,9 @@ const PerformanceTherapyIcon = () => (
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">HighEnd Services</h2>
+        <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
+          Each service at Higher Endeavors is designed to meet you where you are and move you forward. Whether you need personalized support, structured guidance, or hands-on tools, these offerings help you take aligned action across all Four Pillars—so you can keep making progress toward your Ideal Self.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((service, index) => (
             <ServiceCard key={index} {...service} />
