@@ -1,5 +1,5 @@
-import { NextRequest } from 'next/server';
-import { getClient } from '@/app/lib/dbAdapter';
+import { NextResponse } from 'next/server';
+import { SingleQuery } from '@/app/lib/dbAdapter';
 import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {

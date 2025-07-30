@@ -7,7 +7,7 @@ const logger = pino({
   formatters: {
     level: (label) => ({ level: label.toUpperCase() }),
   },
-  ...(process.env.RUNTIME_ENV === 'dev' && {
+  ...(process.env.PRETTY_LOGGING === 'yes' && {
     transport: {
       target: 'pino-pretty',
       options: {

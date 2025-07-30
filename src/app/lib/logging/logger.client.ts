@@ -25,7 +25,7 @@ class ClientLogger {
       navigator.sendBeacon('/api/logging/client-log', blob);
     } else {
       // Fallback for older browsers
-      fetch('/api/client-log', {
+      fetch('/api/logging/client-log', {
         method: 'POST',
         body: blob,
         keepalive: true,
