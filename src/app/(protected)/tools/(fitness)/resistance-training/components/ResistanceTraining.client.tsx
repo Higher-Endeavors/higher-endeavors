@@ -477,6 +477,7 @@ export default function ResistanceTrainingClient({
         isProgramLoaded={!!editingProgramId}
       />
       <ProgramSettings
+        key={`${editingProgramId}-${programLength}-${sessionsPerWeek}`}
         programLength={programLength}
         setProgramLength={setProgramLength}
         sessionsPerWeek={sessionsPerWeek}

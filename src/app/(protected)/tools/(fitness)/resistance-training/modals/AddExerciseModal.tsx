@@ -90,6 +90,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     // Default to user's preferred unit from settings
     return fitnessSettings?.resistanceTraining?.loadUnit === 'kg';
   });
+
   const [variedSets, setVariedSets] = useState<{
     reps: string;
     load: string;
@@ -97,11 +98,74 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     rpe: string;
     rir: string;
     subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
-  }[]>([
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-  ]);
+  }[]>(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
+        const grouped = editingExercise.plannedSets.reduce((acc: any[], curr: any) => {
+          const setIdx = curr.set - 1;
+          if (!acc[setIdx]) {
+            acc[setIdx] = {
+              reps: '',
+              load: '',
+              rest: '',
+              rpe: '',
+              rir: '',
+              subSets: []
+            };
+          }
+          acc[setIdx].subSets.push({
+            reps: curr.reps?.toString() || '',
+            load: curr.load || '',
+            rest: curr.restSec?.toString() || '',
+            rpe: curr.rpe?.toString() || '',
+            rir: curr.rir?.toString() || ''
+          });
+          return acc;
+        }, []);
+        return grouped;
+      }
+      if (editingExercise.plannedSets.some((set, index) => 
+        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
+        set.load !== editingExercise.plannedSets?.[0]?.load ||
+        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
+      )) {
+        return editingExercise.plannedSets.map(set => ({
+          reps: set.reps?.toString() || '',
+          load: set.load || '',
+          rest: set.restSec?.toString() || '',
+          rpe: set.rpe?.toString() || '',
+          rir: set.rir?.toString() || '',
+          subSets: []
+        }));
+      }
+    }
+    return [
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+    ];
+  });
+
+  const [isVariedSets, setIsVariedSets] = useState(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
+        return true;
+      }
+      return editingExercise.plannedSets.some((set, index) => 
+        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
+        set.load !== editingExercise.plannedSets?.[0]?.load ||
+        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
+      );
+    }
+    return false;
+  });
+
+  const [isAdvancedSets, setIsAdvancedSets] = useState(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      return editingExercise.plannedSets.some((set: any) => set.subSet);
+    }
+    return false;
+  });
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
@@ -125,8 +189,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const isTreadmillExercise = (exercise: ExerciseWithSource | null) => {
     return exercise?.name?.toLowerCase().includes('treadmill');
   };
-
-
 
   const DIFFICULTY_ORDER = [
     'Basic', 'Beginner', 'Novice', 'Intermediate', 'Advanced',
@@ -239,76 +301,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       incline: '',
     };
   };
-
-  const getInitialVariedSetsState = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
-        return true;
-      }
-      return editingExercise.plannedSets.some((set, index) => 
-        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
-        set.load !== editingExercise.plannedSets?.[0]?.load ||
-        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
-      );
-    }
-    return false;
-  };
-
-  const getInitialAdvancedSetsState = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      return editingExercise.plannedSets.some((set: any) => set.subSet);
-    }
-    return false;
-  };
-
-  const getInitialVariedSets = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
-        const grouped = editingExercise.plannedSets.reduce((acc: any[], curr: any) => {
-          const setIdx = curr.set - 1;
-          if (!acc[setIdx]) {
-            acc[setIdx] = {
-              reps: '',
-              load: '',
-              rest: '',
-              rpe: '',
-              rir: '',
-              subSets: []
-            };
-          }
-          acc[setIdx].subSets.push({
-            reps: curr.reps?.toString() || '',
-            load: curr.load || '',
-            rest: curr.restSec?.toString() || '',
-            rpe: curr.rpe?.toString() || '',
-            rir: curr.rir?.toString() || ''
-          });
-          return acc;
-        }, []);
-        return grouped;
-      }
-      if (getInitialVariedSetsState()) {
-        return editingExercise.plannedSets.map(set => ({
-          reps: set.reps?.toString() || '',
-          load: set.load || '',
-          rest: set.restSec?.toString() || '',
-          rpe: set.rpe?.toString() || '',
-          rir: set.rir?.toString() || '',
-          subSets: []
-        }));
-      }
-    }
-    return [
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    ];
-  };
-
-  const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
-  const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
-
-
 
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),
@@ -1178,7 +1170,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                                 rir: '',
                                 subSets: [
                                   { reps: set.reps, load: set.load, rest: '', rpe: set.rpe, rir: set.rir },
-                                  { reps: '', load: '', rest: '', rpe: '', rir: '' }
+                                  { reps: '', load: '', rest: '', }
                                 ]
                               };
                             }
