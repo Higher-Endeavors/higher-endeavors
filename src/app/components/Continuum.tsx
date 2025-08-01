@@ -11,7 +11,7 @@ const stages: ContinuumStage[] = [
     title: 'I Am Healthy',
     subtitle: 'Build Your Foundation',
     description:
-      'This is where the journey begins—or begins again. Being healthy focuses on the fundamentals: sleep, breathing, hydration, balanced nutrition, and foundational movement. It&apos;s about restoring balance and removing dysfunction so you can build something greater.',
+      'This is where the journey begins, or begins again. Being healthy focuses on the fundamentals: sleep, breathing, hydration, balanced nutrition, and foundational movement. It\'s about restoring balance and removing dysfunction so you can build something greater.',
   },
   {
     title: 'I Am Fit',
@@ -23,7 +23,7 @@ const stages: ContinuumStage[] = [
     title: 'I Am HighEnd',
     subtitle: 'Live Your Vision',
     description:
-      'This is the refinement phase—where life is optimized and aligned with your Ideal Self. Living a HighEnd mentality helps you fine-tune each area of life to reflect your values, goals, and aspirations so that the way you live reflects who you are becoming.',
+      'This is the refinement phase, where life is optimized and aligned with your Ideal Self. Living a HighEnd mentality helps you fine-tune each area of life to reflect your values, goals, and aspirations so that the way you live reflects who you are becoming.',
   },
 ];
 
