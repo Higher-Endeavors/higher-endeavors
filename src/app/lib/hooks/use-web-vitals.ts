@@ -8,6 +8,7 @@ import {
   type WebVitalsBatch 
 } from '@/app/lib/types/web-vitals';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import { insertWebVitalsBatch } from '@/app/lib/actions/web-vitals';
 
 interface BatchConfig {
   maxBatchSize?: number;
@@ -21,7 +22,7 @@ interface BatchConfig {
 const DEFAULT_CONFIG: Required<BatchConfig> = {
   maxBatchSize: 10,
   flushInterval: 30000, // 30 seconds
-  endpoint: '/api/web-vitals',
+  endpoint: '/api/web-vitals', // Kept for fallback compatibility
   enableValidation: true,
   enabled: true,
   samplingRate: 1.0
@@ -71,12 +72,8 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       batchId: generateBatchId(),
       timestamp: Date.now()
     };
-    clientLogger.info('Sending web vitals batch:', { batchData });
-
-    // Debug logging
-    // if (process.env.NODE_ENV === 'development') {
-    //   clientLogger.info('Sending web vitals batch:', { batchId: batchData.batchId, metricCount: metrics.length, metrics: metrics.map(m => m.name) });
-    // }
+    // clientLogger.info('Sending web vitals batch:', { batchData });
+    clientLogger.info('Sending web vitals batch:');
 
     // Optional client-side validation before sending
     if (finalConfig.enableValidation) {
@@ -98,26 +95,30 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       }
     }
 
-    const payload = JSON.stringify(batchData);
-
-    // Use sendBeacon for reliable delivery
-    if (navigator.sendBeacon) {
-      const blob = new Blob([payload], { type: 'application/json' });
-      const success = navigator.sendBeacon(finalConfig.endpoint, blob);
+    try {
+      // Use server action directly
+      const result = await insertWebVitalsBatch(batchData);
       
-      if (!success) {
-        clientLogger.warn('sendBeacon failed, trying fetch fallback');
-        await fetchFallback(payload);
+      if (result.success) {
+        clientLogger.info('Web vitals batch processed successfully:', {
+          processed: result.processed,
+          batchId: result.batchId,
+          clockSkewAnalysis: result.clockSkewAnalysis
+        });
+      } else {
+        clientLogger.warn('Web vitals batch processing failed:', { result });
       }
-    } else {
-      // Fallback for browsers without sendBeacon
-      await fetchFallback(payload);
+    } catch (error) {
+      clientLogger.error('Error sending web vitals batch:', error);
+      
+      // Fallback to API route if server action fails
+      await fetchFallback(JSON.stringify(batchData));
     }
-  }, [finalConfig.endpoint, finalConfig.enableValidation]);
+  }, [finalConfig.enableValidation]);
 
   const fetchFallback = useCallback(async (payload: string) => {
     try {
-      const response = await fetch(finalConfig.endpoint, {
+      const response = await fetch('/api/web-vitals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: payload,
@@ -126,16 +127,18 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        clientLogger.warn('Failed to send web vitals:', {
+        clientLogger.warn('Failed to send web vitals via API fallback:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         });
+      } else {
+        clientLogger.info('Web vitals sent successfully via API fallback');
       }
     } catch (error) {
-      clientLogger.warn('Fetch fallback failed:', { error });
+      clientLogger.warn('API fallback failed:', { error });
     }
-  }, [finalConfig.endpoint]);
+  }, []);
 
   const flushQueue = useCallback(() => {
     if (metricsQueue.current.length > 0) {

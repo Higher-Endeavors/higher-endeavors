@@ -9,7 +9,8 @@ import {
   type WebVitalsBatch,
   type WebVitalMetric 
 } from '@/app/lib/types/web-vitals';
-
+import { analyzeClockSkew, analyzeWebVitalsBatchClockSkew, type ClockSkewAnalysis } from '@/app/lib/web-vitals/web-vitals-analyze-clock-skew';
+import { insertWebVitalsBatch } from '@/app/lib/actions/web-vitals';
 
 // Rating lookup map for performance
 const RATING_ID_MAP: Record<string, number> = {
@@ -18,93 +19,17 @@ const RATING_ID_MAP: Record<string, number> = {
   'poor': 3
 };
 
-async function insertWebVitalsMetrics(metrics: WebVitalMetric[]): Promise<number> {
 
-  const client = await getClient();
-  let insertedCount = 0;
-  
-  try {
-    await client.query('BEGIN');
-    
-    const insertQuery = `
-      INSERT INTO web_vitals_metrics (
-        metric_id, metric_name, value, delta, metric_ratings_id,
-        timestamp, url, user_agent, session_id, user_id,
-        created_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW()
-      )
-      ON CONFLICT (metric_id) DO UPDATE SET
-        value = EXCLUDED.value,
-        delta = EXCLUDED.delta,
-        metric_ratings_id = EXCLUDED.metric_ratings_id,
-        updated_at = NOW()
-      RETURNING metric_id
-    `;
-    
-    for (const metric of metrics) {
-      const ratingId = RATING_ID_MAP[metric.rating];
-      
-      if (!ratingId) {
-        throw new Error(`Invalid rating: ${metric.rating}`);
-      }
-      
-      const result = await client.query(insertQuery, [
-        metric.id,
-        metric.name,
-        metric.value,
-        metric.delta,
-        ratingId,
-        new Date(metric.timestamp),
-        metric.url,
-        metric.userAgent,
-        metric.sessionId,
-        metric.userId || null,
-      ]);
-      
-      if (result.rows.length > 0) {
-        insertedCount++;
-      }
-    }
-    
-    await client.query('COMMIT');
-    return insertedCount;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    await serverLogger.error('Failed to insert web vitals metrics', error);
-    throw error;
-  } finally {
-    client.release();
-  }
-}
 
 // For App Router (app/api/web-vitals/route.ts)
 export async function POST(request: Request) {
   try {
     const body = await request.json();
     
-    // Validate the request body using Zod
-    const validationResult = safeValidateWebVitalsBatch(body);
+    // Use the server action for processing
+    const result = await insertWebVitalsBatch(body);
     
-    if (!validationResult.success) {
-      return Response.json({ 
-        error: 'Validation failed',
-        details: validationResult.error.issues.map(issue => ({
-          path: issue.path.join('.'),
-          message: issue.message
-        }))
-      }, { status: 400 });
-    }
-
-    const batch = validationResult.data;
-    const insertedCount = await insertWebVitalsMetrics(batch.metrics);
-    
-    return Response.json({ 
-      success: true, 
-      processed: insertedCount,
-      batchId: batch.batchId,
-      timestamp: batch.timestamp
-    });
+    return Response.json(result);
   } catch (error) {
     await serverLogger.error('Error processing web vitals', error);
     
@@ -113,6 +38,16 @@ export async function POST(request: Request) {
         error: 'Validation error',
         details: error.issues
       }, { status: 400 });
+    }
+    
+    // Handle server action errors
+    if (error instanceof Error) {
+      if (error.message.includes('Validation failed')) {
+        return Response.json({
+          error: 'Validation failed',
+          details: error.message
+        }, { status: 400 });
+      }
     }
     
     return Response.json({ error: 'Internal server error' }, { status: 500 });
