@@ -321,7 +321,7 @@ export default function ResistanceTrainingClient({
         setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Save error:', error);
+      clientLogger.error('Save error:', error);
       setSaveResult('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
@@ -397,7 +397,7 @@ export default function ResistanceTrainingClient({
         setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Template save error:', error);
+      clientLogger.error('Template save error:', error);
       setTemplateSaveResult('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state

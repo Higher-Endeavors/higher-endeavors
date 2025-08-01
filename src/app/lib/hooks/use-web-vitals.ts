@@ -71,11 +71,12 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       batchId: generateBatchId(),
       timestamp: Date.now()
     };
+    clientLogger.info('Sending web vitals batch:', { batchData });
 
     // Debug logging
-    if (process.env.NODE_ENV === 'development') {
-      clientLogger.info('Sending web vitals batch:', { batchId: batchData.batchId, metricCount: metrics.length, metrics: metrics.map(m => m.name) });
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   clientLogger.info('Sending web vitals batch:', { batchId: batchData.batchId, metricCount: metrics.length, metrics: metrics.map(m => m.name) });
+    // }
 
     // Optional client-side validation before sending
     if (finalConfig.enableValidation) {
@@ -184,9 +185,9 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
     }
 
     // Debug logging
-    if (process.env.NODE_ENV === 'development') {
-      clientLogger.info('Adding web vital metric:', { name: metric.name, value: metric.value, url: metric.url, queueSize: metricsQueue.current.length });
-    }
+    // if (process.env.NODE_ENV === 'development') {
+    //   clientLogger.info('Adding web vital metric:', { name: metric.name, value: metric.value, url: metric.url, queueSize: metricsQueue.current.length });
+    // }
 
     metricsQueue.current.push(metric);
     
@@ -216,9 +217,9 @@ export function useWebVitalsBatcher(config: BatchConfig = {}) {
       };
       
       // Debug logging for metric collection
-      if (process.env.NODE_ENV === 'development') {
-        clientLogger.info('Web vital metric collected:', { name: webVitalMetric.name, value: webVitalMetric.value, url: webVitalMetric.url });
-      }
+      // if (process.env.NODE_ENV === 'development') {
+      //   clientLogger.info('Web vital metric collected:', { name: webVitalMetric.name, value: webVitalMetric.value, url: webVitalMetric.url });
+      // }
       
       addMetric(webVitalMetric);
     } catch (error) {

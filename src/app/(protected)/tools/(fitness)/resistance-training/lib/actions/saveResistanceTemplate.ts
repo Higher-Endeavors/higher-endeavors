@@ -3,6 +3,7 @@
 import { auth } from '@/app/auth';
 import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
 import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 interface SaveTemplateParams {
   userId: number;
@@ -111,7 +112,7 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
     }
 
   } catch (error) {
-    console.error('Error saving resistance template:', error);
+    serverLogger.error('Error saving resistance template:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to save template'

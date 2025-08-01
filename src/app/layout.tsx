@@ -21,12 +21,12 @@ export default async function RootLayout({
 }>) {
   const userSettings = await getUserSettings();
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html suppressHydrationWarning={true}>
       <head>
         <ThemeModeScript />
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
-      <body className="">
+      <body >
         {/* Wrap Web Vitals in error boundary */}
         {webVitalsConfig.enabled && (
           <WebVitalsErrorBoundary>

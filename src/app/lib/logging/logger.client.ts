@@ -12,7 +12,10 @@ class ClientLogger {
     try {
       ClientLogEntrySchema.parse(payload);
     } catch (error) {
-      console.error('Invalid log entry format:', error);
+      // Use a fallback logging method for the client logger itself
+      if (typeof window !== 'undefined' && window.console) {
+        window.console.error('Invalid log entry format:', error);
+      }
       return;
     }
     
@@ -31,7 +34,9 @@ class ClientLogger {
         keepalive: true,
       }).catch((error) => {
         // Silent fail - logging shouldn't break the app
-        console.warn('Failed to send log to server:', error);
+        if (typeof window !== 'undefined' && window.console) {
+          window.console.warn('Failed to send log to server:', error);
+        }
       });
     }
   }

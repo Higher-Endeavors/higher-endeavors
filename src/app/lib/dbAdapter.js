@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     await client.query('COMMIT')
     return NextResponse.json({ message: "Success: message stored" });
   } catch (error) {
-    console.log(error);
+    serverLogger.error('Database adapter error', error);
     
     NextResponse.json({ error: "COULD NOT STORE MESSAGE" }, { status: 500 });
   } finally {

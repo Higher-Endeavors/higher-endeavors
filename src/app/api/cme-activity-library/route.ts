@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
     const rows = result?.rows || [];
     return NextResponse.json(rows);
   } catch (error) {
-    console.error('Error fetching CME activities:', error);
+    serverLogger.error('Error fetching CME activities:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 } 

@@ -152,11 +152,7 @@ export async function GET(request: Request) {
         
         // Debug logging for templates
         if (program.user_id === 1) {
-          console.log('Template program:', {
-            programId: program.program_id,
-            programName: program.program_name,
-            templateInfo: program.template_info
-          });
+          serverLogger.info('Template program:', { templateProgram: transformed });
         }
         
         return transformed;
