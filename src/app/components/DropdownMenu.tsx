@@ -66,13 +66,6 @@ export default function DropdownMenu() {
                     </Dropdown.Item>
                 </>
             )}
-            {isAdmin && (
-                <>
-                    <Dropdown.Item as={Link} href="/admin/web-vitals">
-                        Web Vitals
-                    </Dropdown.Item>
-                </>
-            )}
             <Dropdown.Divider />
             {!session && (
                 <Dropdown.Item onClick={async () => {

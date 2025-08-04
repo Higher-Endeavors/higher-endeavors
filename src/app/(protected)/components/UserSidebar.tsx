@@ -185,11 +185,6 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           <Link href="/user/dashboard">
             <SidebarLink expanded={expanded} icon={<MdDashboard />} label="Dashboard" />
           </Link>
-          {isAdmin && (
-            <Link href="/admin/web-vitals">
-              <SidebarLink expanded={expanded} icon={<FaChartLine />} label="Web Vitals" />
-            </Link>
-          )}
           <div className="border-b border-slate-200 dark:border-slate-700 mx-4 my-2" />
           <SidebarLink expanded={expanded} icon={<FaBook />} label="Guide to Your Ideal Self" />
           {expanded && (

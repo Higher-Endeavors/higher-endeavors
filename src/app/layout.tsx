@@ -4,9 +4,6 @@ import "./globals.css";
 import { UserSettingsProvider } from './context/UserSettingsContext';
 import { getUserSettings } from './lib/actions/userSettings';
 import { ErrorBoundary } from '@/app/components/error-boundary.client'
-import { WebVitalsProvider } from './components/web-vitals-provider.client';
-import { WebVitalsErrorBoundary } from './components/web-vitals-error-boundary.client';
-import { webVitalsConfig } from './lib/web-vitals/web-vitals-config';
 
 
 export const metadata: Metadata = {
@@ -27,13 +24,6 @@ export default async function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
       <body >
-        {/* Wrap Web Vitals in error boundary */}
-        {webVitalsConfig.enabled && (
-          <WebVitalsErrorBoundary>
-            <WebVitalsProvider config={webVitalsConfig} />
-          </WebVitalsErrorBoundary>
-        )}
-
         <ErrorBoundary>
           <UserSettingsProvider userSettings={userSettings}>
             {children}
