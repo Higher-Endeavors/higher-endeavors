@@ -19,7 +19,7 @@ export default async function RootLayout({
 }>) {
   const userSettings = await getUserSettings();
   const gaId = process.env.NEXT_PUBLIC_GA_ID;
-  
+
   return (
     <html suppressHydrationWarning={true}>
       <head>
@@ -27,9 +27,9 @@ export default async function RootLayout({
         <link rel="stylesheet" href="https://use.typekit.net/pvb4enq.css" />
       </head>
       <body >
+        {gaId && <GoogleAnalytics gaId={gaId} />}
         <ErrorBoundary>
-          {gaId && <GoogleAnalytics gaId={gaId} />}
-        <UserSettingsProvider userSettings={userSettings}>
+          <UserSettingsProvider userSettings={userSettings}>
             {children}
           </UserSettingsProvider>
         </ErrorBoundary>
