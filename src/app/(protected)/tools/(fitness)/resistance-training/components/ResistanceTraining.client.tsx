@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './ProgramBrowser';
 import ProgramSettings from './ProgramSettings';
@@ -16,6 +16,7 @@ import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
 import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
 import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -128,13 +129,9 @@ export default function ResistanceTrainingClient({
       // Set the program ID we're editing
       setEditingProgramId(loadedProgram.resistanceProgramId);
       
-      // Check if this is a template program (owned by Higher Endeavors - User ID 1)
-      const isTemplate = loadedProgram.userId === 1;
-      setIsTemplateProgram(isTemplate);
-      
-      console.log('Program loaded successfully:', loadedProgram.programName);
+      clientLogger.info('Program loaded successfully:', { programName: loadedProgram.programName });
     } catch (error) {
-      console.error('Error loading program:', error);
+      clientLogger.error('Error loading resistance training program', error);
       // You could add a toast notification here
     } finally {
       setIsLoadingProgram(false);
@@ -324,7 +321,7 @@ export default function ResistanceTrainingClient({
         setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Save error:', error);
+      clientLogger.error('Save error:', error);
       setSaveResult('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
@@ -400,7 +397,7 @@ export default function ResistanceTrainingClient({
         setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
       }
     } catch (error) {
-      console.error('Template save error:', error);
+      clientLogger.error('Template save error:', error);
       setTemplateSaveResult('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
@@ -455,7 +452,7 @@ export default function ResistanceTrainingClient({
         onProgramSelect={handleLoadProgram}
         onProgramDelete={(programId) => {
           // TODO: Handle program deletion
-          console.log('Program deleted:', programId);
+          clientLogger.info('Program deleted:', { programId });
         }}
         newProgramHandler={() => {
           setEditingProgramId(null);

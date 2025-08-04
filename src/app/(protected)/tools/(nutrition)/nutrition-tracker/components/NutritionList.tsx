@@ -3,6 +3,7 @@ import NutritionItem, { NutritionItemType } from './NutritionItem';
 import AddFoodModal from '../modals/AddFoodModal';
 import PostMeal from '../modals/PostMeal';
 import { HiOutlineClipboardList } from 'react-icons/hi';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export type MealType = {
   mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner';
@@ -110,12 +111,12 @@ export default function NutritionList() {
   const [postMealOpen, setPostMealOpen] = useState<string | null>(null);
 
   const handleEdit = (id: number) => {
-    console.log('Edit food/drink:', id);
+    clientLogger.info('Edit food/drink:', { id });
     // Placeholder for edit functionality
   };
 
   const handleDelete = (id: number) => {
-    console.log('Delete food/drink:', id);
+    clientLogger.info('Delete food/drink:', { id });
     // Placeholder for delete functionality
   };
 

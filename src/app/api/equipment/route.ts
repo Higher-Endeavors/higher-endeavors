@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 // Type for equipment row
 interface EquipmentRow {
@@ -32,10 +33,7 @@ export async function GET() {
     const equipment: EquipmentRow[] = result.rows;
     return NextResponse.json(equipment);
   } catch (error) {
-    console.error('Error fetching equipment:', error);
-    return NextResponse.json(
-      { error: 'Internal Server Error', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    );
+    await serverLogger.error('Error fetching equipment', error);
+    return Response.json({ error: 'Failed to fetch equipment' }, { status: 500 });
   }
 } 

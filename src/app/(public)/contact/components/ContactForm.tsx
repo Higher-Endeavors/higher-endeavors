@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 type FormData = {
   firstname: string;
@@ -21,7 +22,8 @@ async function sendErrorEmail(replyTo: string, subject: string, body: string) {
       body: JSON.stringify({ replyTo, subject, body }),
     });
   } catch (error) {
-    console.error('Failed to send error email:', error);
+    clientLogger.error('Failed to send error email', error);
+    // Continue with normal flow even if error email fails
   }
 }
 
@@ -169,7 +171,7 @@ export default function ContactForm() {
           siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || ''}
           onSuccess={(token) => setTurnstileToken(token)}
           onError={(error) => {
-            console.log('Turnstile client error', error)
+            clientLogger.error('Turnstile client error', error);
             setSubmitError('Turnstile verification failed. Please try again.');
             setIsErrorVisible(true);
             sendErrorEmail(

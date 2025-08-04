@@ -10,11 +10,17 @@ import RecentContent from '../../guide/components/RecentContent';
 import RecentRecipes from '../../guide/components/RecentRecipes';
 import Link from 'next/link';
 import type { Recipe } from '../../guide/components/RecentRecipes';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
   const recentRecipes: Recipe[] = await getRecentRecipes();
   
+  serverLogger.info('Dashboard rendered', { 
+    component: 'Dashboard',
+    timestamp: new Date().toISOString()
+  });
+
   return (
     <SessionProvider>
       <Header />

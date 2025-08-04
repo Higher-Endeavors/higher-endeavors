@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET() {
   try {
@@ -33,7 +34,7 @@ export async function GET() {
     });
 
   } catch (error) {
-    console.error('Error fetching template categories:', error);
+    serverLogger.error('Error fetching template categories:', error);
     return NextResponse.json(
       { error: 'Failed to fetch template categories' },
       { status: 500 }

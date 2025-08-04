@@ -10,6 +10,7 @@ import LifestyleInfo from './LifestyleInfo';
 import HealthInfo from './HealthInfo';
 import NutritionInfo from './NutritionInfo';
 import FitnessInfo from './FitnessInfo';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 // Define a schema that allows all fields to be optional but ensures correct types
 const formSchema = z.object({
@@ -81,7 +82,7 @@ const IntakeForm = () => {
         // Reset form with data (will be empty object if no data exists)
         methods.reset(data);
       } catch (error) {
-        console.error('Error loading form data:', error);
+        clientLogger.error('Error loading intake form data', error);
         // On error, just start with an empty form
         methods.reset({});
       } finally {
@@ -118,7 +119,7 @@ const IntakeForm = () => {
       // Redirect to success page or dashboard
       router.push('/user/dashboard?success=intake-form');
     } catch (error) {
-      console.error('Error submitting form:', error);
+      clientLogger.error('Error submitting intake form', error);
       setSubmitError('Network error. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);

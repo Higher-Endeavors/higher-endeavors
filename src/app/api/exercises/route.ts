@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/app/lib/dbAdapter';
+import { NextRequest } from 'next/server';
+import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -40,9 +41,9 @@ export async function GET(request: Request) {
   try {
     const result = await SingleQuery(query, values);
     const rows = result?.rows || [];
-    return NextResponse.json(rows);
+    return Response.json(rows);
   } catch (error) {
-    console.error('Error fetching exercises:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error fetching exercises', error);
+    return Response.json({ error: 'Failed to fetch exercises' }, { status: 500 });
   }
 } 
