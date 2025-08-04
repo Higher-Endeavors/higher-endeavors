@@ -404,15 +404,16 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     const isCMEExercise = data.selectedExercise.source === 'cme_library';
     
     const newExercise: ProgramExercisesPlanned = {
-      programExercisesPlannedId: 0,
-      resistanceProgramId: 0,
+      programExercisesPlannedId: editingExercise ? editingExercise.programExercisesPlannedId : 0,
+      resistanceProgramId: editingExercise ? editingExercise.resistanceProgramId : 0,
       exerciseLibraryId: isUserExercise ? undefined : selectedExerciseData.exerciseLibraryId,
       userExerciseLibraryId: isUserExercise ? selectedExerciseData.userExerciseLibraryId : undefined,
       exerciseSource: isUserExercise ? 'user' : isCMEExercise ? 'cme_library' : 'library',
       pairing: data.pairing || 'A1',
       plannedSets,
       notes: data.notes,
-      createdAt: new Date().toISOString(),
+      createdAt: editingExercise ? editingExercise.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     onAdd(newExercise);
     reset();

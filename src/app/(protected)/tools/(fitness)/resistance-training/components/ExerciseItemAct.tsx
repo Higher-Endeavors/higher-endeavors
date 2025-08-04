@@ -208,17 +208,8 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
   const getExerciseId = () => {
-    // Create a unique identifier that includes both ID and source
-    let id;
-    if (exercise.exerciseSource === 'user') {
-      id = exercise.userExerciseLibraryId || 0;
-    } else if (exercise.exerciseSource === 'cme_library') {
-      // Use a large offset to avoid conflicts with regular library IDs
-      id = (exercise.exerciseLibraryId || 0) + 1000000;
-    } else {
-      id = exercise.exerciseLibraryId || 0;
-    }
-    return id;
+    // Use program_exercises_id as the primary identifier
+    return exercise.programExercisesPlannedId;
   };
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));

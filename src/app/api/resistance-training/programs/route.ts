@@ -104,10 +104,22 @@ export async function GET(request: Request) {
           json_build_object(
             'total_exercises', 0,
             'exercises', COALESCE((
-              SELECT json_agg(DISTINCT jsonb_build_object('name', COALESCE(el.exercise_name, uel.exercise_name)))
+              SELECT json_agg(DISTINCT jsonb_build_object(
+                'name', 
+                CASE 
+                  WHEN pe.exercise_source = 'library' THEN el.exercise_name
+                  WHEN pe.exercise_source = 'user' THEN uel.exercise_name
+                  WHEN pe.exercise_source = 'cme_library' THEN cal.activity
+                  ELSE 'Unknown Exercise'
+                END,
+                'source', pe.exercise_source,
+                'exerciseLibraryId', pe.exercise_library_id,
+                'userExerciseLibraryId', pe.user_exercise_library_id
+              ))
               FROM resist_program_exercises pe
-              LEFT JOIN exercise_library el ON pe.exercise_library_id = el.exercise_library_id
-              LEFT JOIN resist_user_exercise_library uel ON pe.user_exercise_library_id = uel.user_exercise_library_id
+              LEFT JOIN exercise_library el ON pe.exercise_library_id = el.exercise_library_id AND pe.exercise_source = 'library'
+              LEFT JOIN resist_user_exercise_library uel ON pe.user_exercise_library_id = uel.user_exercise_library_id AND pe.exercise_source = 'user'
+              LEFT JOIN cme_activity_library cal ON pe.exercise_library_id = cal.cme_activity_library_id AND pe.exercise_source = 'cme_library'
               WHERE pe.program_id = p.program_id
             ), '[]'::json)
           ) as exercise_summary,

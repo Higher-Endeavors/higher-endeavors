@@ -149,26 +149,12 @@ export default function ResistanceTrainingClient({
   };
 
   // Open edit modal for existing exercise
-  const handleEditExercise = (id: number) => {
+  const handleEditExercise = (programExercisesId: number) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
     
-    const exerciseToEdit = weeklyExercises[currentWeek - 1].find(ex => {
-      // For user exercises, match by userExerciseLibraryId
-      if (ex.exerciseSource === 'user') {
-        return ex.userExerciseLibraryId === id;
-      }
-      // For CME exercises, match by exerciseLibraryId (with offset removed)
-      if (ex.exerciseSource === 'cme_library') {
-        const actualId = id - 1000000;
-        return ex.exerciseLibraryId === actualId;
-      }
-      // For regular library exercises, match by exerciseLibraryId
-      if (ex.exerciseSource === 'library') {
-        return ex.exerciseLibraryId === id;
-      }
-      // Fallback for backward compatibility
-      return ex.exerciseLibraryId === id || ex.userExerciseLibraryId === id;
-    });
+    const exerciseToEdit = weeklyExercises[currentWeek - 1].find(ex => 
+      ex.programExercisesPlannedId === programExercisesId
+    );
     
     if (exerciseToEdit) {
       setEditingExercise(exerciseToEdit);
@@ -179,44 +165,16 @@ export default function ResistanceTrainingClient({
 
 
   // Delete exercise from all weeks
-  const handleDeleteExercise = (id: number) => {
+  const handleDeleteExercise = (programExercisesId: number) => {
     setWeeklyExercises(prev => prev.map(weekExercises => 
-      weekExercises.filter(ex => {
-        // For user exercises, match by userExerciseLibraryId
-        if (ex.exerciseSource === 'user') {
-          return ex.userExerciseLibraryId !== id;
-        }
-        // For CME exercises, match by exerciseLibraryId (with offset removed)
-        if (ex.exerciseSource === 'cme_library') {
-          return ex.exerciseLibraryId !== (id - 1000000);
-        }
-        // For regular library exercises, match by exerciseLibraryId
-        if (ex.exerciseSource === 'library') {
-          return ex.exerciseLibraryId !== id;
-        }
-        // Fallback for backward compatibility
-        return (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id);
-      })
+      weekExercises.filter(ex => ex.programExercisesPlannedId !== programExercisesId)
     ));
     
     // Also update baseWeekExercises if it exists
     if (baseWeekExercises.length > 0) {
-      setBaseWeekExercises(prev => prev.filter(ex => {
-        // For user exercises, match by userExerciseLibraryId
-        if (ex.exerciseSource === 'user') {
-          return ex.userExerciseLibraryId !== id;
-        }
-        // For CME exercises, match by exerciseLibraryId (with offset removed)
-        if (ex.exerciseSource === 'cme_library') {
-          return ex.exerciseLibraryId !== (id - 1000000);
-        }
-        // For regular library exercises, match by exerciseLibraryId
-        if (ex.exerciseSource === 'library') {
-          return ex.exerciseLibraryId !== id;
-        }
-        // Fallback for backward compatibility
-        return (ex.exerciseLibraryId !== id) && (ex.userExerciseLibraryId !== id);
-      }));
+      setBaseWeekExercises(prev => prev.filter(ex => 
+        ex.programExercisesPlannedId !== programExercisesId
+      ));
     }
   };
 
@@ -227,24 +185,9 @@ export default function ResistanceTrainingClient({
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
           idx === currentWeek - 1
-            ? arr.map(ex => {
-                // For user exercises, match by userExerciseLibraryId
-                if (ex.exerciseSource === 'user' && editingExercise.exerciseSource === 'user') {
-                  return ex.userExerciseLibraryId === editingExercise.userExerciseLibraryId ? exercise : ex;
-                }
-                // For CME exercises, match by exerciseLibraryId and source
-                if (ex.exerciseSource === 'cme_library' && editingExercise.exerciseSource === 'cme_library') {
-                  return ex.exerciseLibraryId === editingExercise.exerciseLibraryId ? exercise : ex;
-                }
-                // For regular library exercises, match by exerciseLibraryId and source
-                if (ex.exerciseSource === 'library' && editingExercise.exerciseSource === 'library') {
-                  return ex.exerciseLibraryId === editingExercise.exerciseLibraryId ? exercise : ex;
-                }
-                // Fallback for backward compatibility
-                const exId = ex.exerciseLibraryId || ex.userExerciseLibraryId;
-                const editingId = editingExercise.exerciseLibraryId || editingExercise.userExerciseLibraryId;
-                return exId === editingId ? exercise : ex;
-              })
+            ? arr.map(ex => 
+                ex.programExercisesPlannedId === editingExercise.programExercisesPlannedId ? exercise : ex
+              )
             : arr
         )
       );
@@ -531,7 +474,6 @@ export default function ResistanceTrainingClient({
               setIsModalOpen(true);
             }}
             onTouchStart={(e) => e.preventDefault()}
-            disabled={mode === 'act'}
           >
             Add Exercise
           </button>
