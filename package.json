@@ -5,6 +5,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "dev": "dotenvx run -f .env.local -- next dev",
+    "trace": "NODE_OPTIONS='--trace-warnings' dotenvx run -f .env.local -- next dev",
     "build": "next build",
     "start": "next start"
   },
