@@ -34,19 +34,19 @@ const PerformanceTherapyIcon = () => (
       {
         icon: <PerformanceTherapyIcon />,
         title: 'Performance Therapy',
-        description: "A fully personalized blend of lifestyle, health, nutrition, and fitness strategies—designed to help you overcome what's holding you back and become the best version of yourself.",
+        description: "A fully personalized blend of lifestyle, health, nutrition, and fitness strategies, designed to help you overcome what's holding you back and become the best version of yourself.",
         link: '/services/PerformanceTherapy',
       },
       {
         icon: <GuideIcon />,
         title: 'A Guide to Your Ideal Self',
-        description: "A clear, practical guide that helps you understand what matters, take aligned action, and build momentum in every area of your life—starting now.",
+        description: "A clear, practical guide that helps you understand what matters, take aligned action, and build momentum in every area of your life, starting now.",
         link: '/guide-overview',
       },
       {
         icon: <ToolsIcon />,
         title: 'HighEnd Tools',
-        description: "Interactive tools that turn insight into action—so it's easier to apply what you've learned and stay on track toward your goals every day.",
+        description: "Interactive tools that turn insight into action, so it's easier to apply what you've learned and stay on track toward your goals every day.",
         link: '/tools',
       },
     ];
@@ -56,7 +56,7 @@ const PerformanceTherapyIcon = () => (
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">HighEnd Services</h2>
         <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
-          Each service at Higher Endeavors is designed to meet you where you are and move you forward. Whether you need personalized support, structured guidance, or hands-on tools, these offerings help you take aligned action across all Four Pillars—so you can keep making progress toward your Ideal Self.
+          Each service at Higher Endeavors is designed to meet you where you are and move you forward. Whether you need personalized support, structured guidance, or hands-on tools, these offerings help you take aligned action across all Four Pillars, so you can keep making progress toward your Ideal Self.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {services.map((service, index) => (

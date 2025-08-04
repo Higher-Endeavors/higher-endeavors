@@ -34,10 +34,10 @@ const Pillars = () => {
       description: (
         <>
           <br />
-          <strong>Stop surviving—start designing your life.</strong>
+          <strong>Stop surviving, start designing your life.</strong>
           <br />
           <br />
-          Structure your time, habits, and energy around what matters most—so every day moves you closer to the life you want.
+          Structure your time, habits, and energy around what matters most, so every day moves you closer to the life you want.
         </>
       ),
       link: '/guide/lifestyle-overview',
@@ -48,7 +48,7 @@ const Pillars = () => {
       description: (
         <>
           <br />
-          <strong>You're not broken—you're out of balance.</strong>
+          <strong>You're not broken, you're out of balance.</strong>
           <br />
           <br />
           Discover what's holding you back and restore your body's natural rhythm to feel fully alive again.
@@ -65,7 +65,7 @@ const Pillars = () => {
           <strong>Feed the life you're meant to live.</strong>
           <br />
           <br />
-          Cut through the noise and fuel your body with what it truly needs—one intentional choice at a time. 
+          Cut through the noise and fuel your body with what it truly needs, one intentional choice at a time. 
         </>
       ),
       link: '/guide/nutrition-overview',
@@ -94,7 +94,7 @@ const Pillars = () => {
           True transformation takes more than just working out or eating better.
         </p>
         <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
-          To become your Ideal Self, you must address every facet of your life, how you live, how you feel, how you fuel, and how you move. The Four Pillars of Higher Endeavors: Lifestyle, Health, Nutrition, and Fitness—work together to create a clear, integrated path to real, lasting change. When you align all four, progress isn&apos;t just possible, it&apos;s sustainable.
+          To become your Ideal Self, you must address every facet of your life, how you live, how you feel, how you fuel, and how you move. The Four Pillars of Higher Endeavors: Lifestyle, Health, Nutrition, and Fitness, work together to create a clear, integrated path to real, lasting change. When you align all four, progress isn&apos;t just possible, it&apos;s sustainable.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {pillars.map((pillar, index) => (
