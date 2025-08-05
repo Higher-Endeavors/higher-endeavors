@@ -1,6 +1,7 @@
 //import NextAuth from "next-auth";
 import NextAuth, { type DefaultSession } from "next-auth"
 import type { Provider } from "next-auth/providers";
+import type { Session } from "next-auth";
 import Cognito from "next-auth/providers/cognito";
 import PostgresAdapter from "@auth/pg-adapter";
 import { pool, SingleQuery } from "@/app/lib/dbAdapter";
@@ -43,7 +44,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   theme: { logo: "https://authjs.dev/img/logo-sm.png" },
   providers,
   events: {
-    signIn: async (message) => {
+    signIn: async (message: any) => {
       const { account, profile, user, isNewUser } = message;
       const firstName = `${profile?.given_name}`;
       const lastName = `${profile?.family_name}`;
@@ -54,7 +55,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
   },
   callbacks: {
-    session({ session, user }) {
+    session({ session, user }: { session: Session; user: any }) {
       return session
     }
   },
