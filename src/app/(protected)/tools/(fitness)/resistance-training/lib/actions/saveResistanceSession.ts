@@ -9,7 +9,7 @@ const SaveResistanceSessionInput = z.object({
   week: z.number().int(),
   date: z.string(), // ISO date
   exercises: z.array(z.object({
-    programExercisesId: z.number().int().min(0), // Allow 0 for new Act-only exercises
+    programExercisesId: z.number().int(), // Allow negative for temporary IDs
     actualSets: z.array(z.any()), // Should match ExerciseSet[]
     // Additional fields for Act-only exercises
     exerciseSource: z.string().optional(),
@@ -31,8 +31,8 @@ export async function saveResistanceSession(input: z.infer<typeof SaveResistance
   try {
     await client.query('BEGIN');
     for (const ex of exercises) {
-      if (ex.programExercisesId === 0) {
-        // Insert new Act-only exercise
+      if (ex.programExercisesId <= 0) {
+        // Insert new Act-only exercise (negative or zero ID)
         await client.query(
           `INSERT INTO resist_program_exercises (
             program_id, 
@@ -58,7 +58,7 @@ export async function saveResistanceSession(input: z.infer<typeof SaveResistance
           ]
         );
       } else {
-        // Update existing exercise
+        // Update existing exercise (positive ID)
         await client.query(
           `UPDATE resist_program_exercises SET actual_sets = $1, updated_at = NOW() WHERE program_exercises_id = $2 AND program_id = $3`,
           [JSON.stringify(ex.actualSets), ex.programExercisesId, resistanceProgramId]

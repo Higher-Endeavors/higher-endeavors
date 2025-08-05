@@ -23,8 +23,8 @@ interface ExerciseListProps {
   mode: 'plan' | 'act';
   setMode: (mode: 'plan' | 'act') => void;
   resistanceProgramId?: number;
-  actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } };
-  onActualsChange: (actuals: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }) => void;
+  actuals: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } };
+  onActualsChange: (actuals: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }) => void;
   sessionCompleted?: boolean;
 }
 
@@ -114,13 +114,13 @@ export default function ExerciseList({
   };
 
   // NEW: Helper to handle actuals input
-  const handleActualChange = (exerciseIdx: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => {
+  const handleActualChange = (programExercisesPlannedId: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => {
     const newActuals = {
       ...actuals,
-      [exerciseIdx]: {
-        ...(actuals[exerciseIdx] || {}),
+      [programExercisesPlannedId]: {
+        ...(actuals[programExercisesPlannedId] || {}),
         [setIdx]: {
-          ...(actuals[exerciseIdx]?.[setIdx] || { reps: '', load: '', duration: '' }),
+          ...(actuals[programExercisesPlannedId]?.[setIdx] || { reps: '', load: '', duration: '' }),
           [field]: value
         }
       }
@@ -147,14 +147,14 @@ export default function ExerciseList({
   // NEW: Calculate summary
   const calculateSummary = () => {
     let plannedReps = 0, actualReps = 0, plannedLoad = 0, actualLoad = 0;
-    plannedExercises.forEach((exercise, exerciseIdx) => {
+    plannedExercises.forEach((exercise) => {
       (exercise.plannedSets || []).forEach((set, setIdx) => {
         const plannedRepsVal = set.reps || 0;
         const plannedLoadVal = Number(set.load) || 0;
         plannedReps += plannedRepsVal;
         plannedLoad += plannedRepsVal * plannedLoadVal;
 
-        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        const actual = actuals[exercise.programExercisesPlannedId]?.[setIdx] || {};
         const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
         const actualLoadVal = actual.load ? Number(actual.load) : 0;
         actualReps += actualRepsVal;
@@ -164,19 +164,56 @@ export default function ExerciseList({
     return { plannedReps, actualReps, plannedLoad, actualLoad };
   };
 
+  // Helper function to create set object with only fields that have values
+  const createSetObject = (set: any, actual: any) => {
+    const result: any = { set: set.set };
+    
+    // Only include fields that have actual values
+    if (actual.reps !== undefined && actual.reps !== '') {
+      result.reps = Number(actual.reps);
+    }
+    if (actual.load !== undefined && actual.load !== '') {
+      result.load = actual.load;
+    }
+    if (actual.duration !== undefined && actual.duration !== '') {
+      result.duration = Number(actual.duration);
+    }
+    if (actual.distance !== undefined && actual.distance !== '') {
+      result.distance = Number(actual.distance);
+    }
+    if (actual.rest !== undefined && actual.rest !== '') {
+      result.restSec = Number(actual.rest);
+    }
+    if (actual.rpe !== undefined && actual.rpe !== '') {
+      result.rpe = Number(actual.rpe);
+    }
+    if (actual.rir !== undefined && actual.rir !== '') {
+      result.rir = Number(actual.rir);
+    }
+    
+    // Include units and other fields from the planned set if they exist
+    if (set.loadUnit) result.loadUnit = set.loadUnit;
+    if (set.distanceUnit) result.distanceUnit = set.distanceUnit;
+    if (set.durationUnit) result.durationUnit = set.durationUnit;
+    if (set.tempo) result.tempo = set.tempo;
+    if (set.pace) result.pace = set.pace;
+    if (set.speed) result.speed = set.speed;
+    if (set.incline) result.incline = set.incline;
+    if (set.resistance) result.resistance = set.resistance;
+    if (set.rpm) result.rpm = set.rpm;
+    if (set.watts) result.watts = set.watts;
+    
+    return result;
+  };
+
   // NEW: Save actuals handler (calls server action, to be implemented)
   const handleSaveActuals = async () => {
     setSaving(true);
-    const exercisesToSave = plannedExercises.map((exercise, exerciseIdx) => ({
+    const exercisesToSave = plannedExercises.map((exercise) => ({
       programExercisesId: exercise.programExercisesPlannedId,
       actualSets: (exercise.plannedSets || []).map((set, setIdx) => {
-        const actual = actuals[exerciseIdx]?.[setIdx] || {};
-        return {
-          ...set,
-          reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
-          load: actual.load === undefined || actual.load === '' ? null : actual.load,
-          duration: actual.duration === undefined || actual.duration === '' ? null : Number(actual.duration)
-        };
+        const actual = actuals[exercise.programExercisesPlannedId]?.[setIdx] || {};
+        return createSetObject(set, actual);
       }),
       // Additional fields for Act-only exercises (when programExercisesPlannedId === 0)
       exerciseSource: exercise.exerciseSource,
@@ -212,9 +249,9 @@ export default function ExerciseList({
   // Helper to calculate running actual load tally
   const calculateActualLoadTally = () => {
     let actualLoad = 0;
-    plannedExercises.forEach((exercise, exerciseIdx) => {
+    plannedExercises.forEach((exercise) => {
       (exercise.plannedSets || []).forEach((set, setIdx) => {
-        const actual = actuals[exerciseIdx]?.[setIdx] || {};
+        const actual = actuals[exercise.programExercisesPlannedId]?.[setIdx] || {};
         const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
         const actualLoadVal = actual.load ? Number(actual.load) : 0;
         if (actual.reps && actual.load) {
@@ -316,8 +353,8 @@ export default function ExerciseList({
                     onEdit={onEditExercise}
                     onDelete={onDeleteExercise}
                     onChangeVariation={onChangeVariation}
-                    actuals={actuals[exerciseIdx] || {}}
-                    onActualChange={(setIdx, field, value) => handleActualChange(exerciseIdx, setIdx, field, value)}
+                                          actuals={actuals[exercise.programExercisesPlannedId] || {}}
+                    onActualChange={(setIdx, field, value) => handleActualChange(exercise.programExercisesPlannedId, setIdx, field, value)}
                     readOnly={sessionCompleted}
                   />
                 )}

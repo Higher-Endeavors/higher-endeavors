@@ -79,12 +79,7 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return typeof rpe === 'number' ? rpe : null;
   };
 
-  // Helper to calculate time under tension
-  const calculateTimeUnderTension = (reps: number | undefined, tempo: string | undefined) => {
-    if (!reps || !tempo) return 0;
-    const [eccentric, pause1, concentric, pause2] = tempo.split('').map(Number);
-    return reps * (eccentric + pause1 + concentric + pause2);
-  };
+
 
   // Helper to calculate planned and actual load for this exercise
   const calculatePlannedLoadTally = () => {

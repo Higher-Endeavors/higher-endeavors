@@ -34,7 +34,7 @@ export const ResistanceProgramTemplateSchema = z.object({
 }).strict();
 
 export const ProgramExercisesPlannedSchema = z.object({
-  programExercisesPlannedId: z.number().int(),
+  programExercisesPlannedId: z.number().int(), // Allow negative for temporary IDs
   resistanceProgramId: z.number().int(),
   exerciseSource: z.enum(['library', 'user', 'cme_library']),
   exerciseLibraryId: z.number().int().optional(),

@@ -65,8 +65,8 @@ export default function ResistanceTrainingClient({
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   // Add mode state
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
-  // Add actuals state for SessionSummary
-  const [actuals, setActuals] = useState<{ [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
+  // Add actuals state for SessionSummary - use programExercisesPlannedId as key to prevent data mixing
+  const [actuals, setActuals] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
   // Add admin state
   const [isAdmin, setIsAdmin] = useState(false);
   const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
@@ -178,6 +178,26 @@ export default function ResistanceTrainingClient({
     }
   };
 
+  // Helper to filter exercises for Plan mode (only exercises with plannedSets data)
+  const getPlanExercises = (exercises: ProgramExercisesPlanned[]) => {
+    return exercises.filter(exercise => 
+      exercise.plannedSets && Array.isArray(exercise.plannedSets) && exercise.plannedSets.length > 0
+    );
+  };
+
+  // Helper to filter exercises for Act mode (exercises with plannedSets data OR exercises with only actualSets data)
+  const getActExercises = (exercises: ProgramExercisesPlanned[]) => {
+    return exercises.filter(exercise => {
+      // Include exercises with planned data (so users can add actuals)
+      const hasPlannedData = exercise.plannedSets && Array.isArray(exercise.plannedSets) && exercise.plannedSets.length > 0;
+      // Include Act-only exercises (no planned data but has actual data)
+      const isActOnly = (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0) &&
+                       exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0;
+      
+      return hasPlannedData || isActOnly;
+    });
+  };
+
   // Save exercise (add new or update existing)
   const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
@@ -195,8 +215,6 @@ export default function ResistanceTrainingClient({
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
     } else {
-      // For both Plan and Act modes, add the exercise normally
-      // The difference is handled during session completion
       handleAddExercise(exercise);
       if (currentWeek !== 1) {
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
@@ -207,20 +225,7 @@ export default function ResistanceTrainingClient({
   };
 
   // Filter exercises based on mode and data availability
-  const getFilteredExercises = (exercises: ProgramExercisesPlanned[], mode: 'plan' | 'act') => {
-    return exercises.filter(exercise => {
-      const hasPlannedSets = exercise.plannedSets && Array.isArray(exercise.plannedSets) && exercise.plannedSets.length > 0;
-      const hasActualSets = exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0;
-      
-      if (mode === 'plan') {
-        // In Plan mode, show exercises that have planned_sets data
-        return hasPlannedSets;
-      } else {
-        // In Act mode, show exercises that have actual_sets data
-        return hasActualSets;
-      }
-    });
-  };
+
 
   // Save handler
   const handleSaveProgram = async () => {
@@ -381,17 +386,18 @@ export default function ResistanceTrainingClient({
   const sessionCompleted = currentSessionExercises.some(ex => Array.isArray((ex as any).actualSets) && (ex as any).actualSets.length > 0 && (ex as any).actualSets.some((set: any) => set && (set.reps !== undefined || set.load !== undefined)));
 
   // If completed, build actuals from actualSets; else use local actuals
-  let actualsForSession: { [exerciseIdx: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } } = {};
+  let actualsForSession: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } } = {};
   if (sessionCompleted) {
     actualsForSession = {};
-    currentSessionExercises.forEach((ex, exerciseIdx) => {
+    currentSessionExercises.forEach((ex) => {
       const actualSets = (ex as any).actualSets || [];
-      actualsForSession[exerciseIdx] = {};
+      actualsForSession[ex.programExercisesPlannedId] = {};
       (ex.plannedSets || []).forEach((set, setIdx) => {
         const actual = actualSets[setIdx] || {};
-        actualsForSession[exerciseIdx][setIdx] = {
+        actualsForSession[ex.programExercisesPlannedId][setIdx] = {
           reps: actual.reps !== undefined && actual.reps !== null ? String(actual.reps) : '',
           load: actual.load !== undefined && actual.load !== null ? String(actual.load) : '',
+          duration: actual.duration !== undefined && actual.duration !== null ? String(actual.duration) : '',
         };
       });
     });
@@ -471,7 +477,11 @@ export default function ResistanceTrainingClient({
         exercises={exercises}
         isLoading={false}
         userId={selectedUserId}
-        plannedExercises={getFilteredExercises(weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || [], mode)}
+        plannedExercises={
+          mode === 'plan' 
+            ? getPlanExercises(weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || [])
+            : getActExercises(weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || [])
+        }
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
         activeWeek={Math.ceil(activeDay / sessionsPerWeek)}
