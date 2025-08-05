@@ -177,7 +177,13 @@ export default function ExerciseList({
           load: actual.load === undefined || actual.load === '' ? null : actual.load,
           duration: actual.duration === undefined || actual.duration === '' ? null : Number(actual.duration)
         };
-      })
+      }),
+      // Additional fields for Act-only exercises (when programExercisesPlannedId === 0)
+      exerciseSource: exercise.exerciseSource,
+      exerciseLibraryId: exercise.exerciseLibraryId,
+      userExerciseLibraryId: exercise.userExerciseLibraryId,
+      pairing: exercise.pairing,
+      notes: exercise.notes,
     }));
     let result: any = { success: false, error: '' };
     if (resistanceProgramId) {

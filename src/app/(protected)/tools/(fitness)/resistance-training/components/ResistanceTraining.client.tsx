@@ -195,6 +195,8 @@ export default function ResistanceTrainingClient({
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
     } else {
+      // For both Plan and Act modes, add the exercise normally
+      // The difference is handled during session completion
       handleAddExercise(exercise);
       if (currentWeek !== 1) {
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
@@ -202,6 +204,22 @@ export default function ResistanceTrainingClient({
     }
     setEditingExercise(null);
     setIsModalOpen(false);
+  };
+
+  // Filter exercises based on mode and data availability
+  const getFilteredExercises = (exercises: ProgramExercisesPlanned[], mode: 'plan' | 'act') => {
+    return exercises.filter(exercise => {
+      const hasPlannedSets = exercise.plannedSets && Array.isArray(exercise.plannedSets) && exercise.plannedSets.length > 0;
+      const hasActualSets = exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0;
+      
+      if (mode === 'plan') {
+        // In Plan mode, show exercises that have planned_sets data
+        return hasPlannedSets;
+      } else {
+        // In Act mode, show exercises that have actual_sets data
+        return hasActualSets;
+      }
+    });
   };
 
   // Save handler
@@ -453,7 +471,7 @@ export default function ResistanceTrainingClient({
         exercises={exercises}
         isLoading={false}
         userId={selectedUserId}
-        plannedExercises={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || []}
+        plannedExercises={getFilteredExercises(weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1] || [], mode)}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
         activeWeek={Math.ceil(activeDay / sessionsPerWeek)}

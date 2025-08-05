@@ -39,11 +39,27 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
   };
   const formatNumberWithCommas = (x: number) => x.toLocaleString();
+  // Helper to determine if this is an Act-only exercise (no planned data)
+  const isActOnlyExercise = () => {
+    return exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0 && 
+           (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0);
+  };
+
+  // Helper to get the sets to use for display (plannedSets for planned exercises, actualSets for Act-only exercises)
+  const getSetsToUse = () => {
+    if (isActOnlyExercise()) {
+      return exercise.actualSets || [];
+    }
+    // Otherwise use plannedSets (for regular planned exercises)
+    return exercise.plannedSets || [];
+  };
+
   const getTotalLoad = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'lbs' };
-    const units = exercise.plannedSets.map(set => getLoadUnit(set));
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'lbs' };
+    const units = setsToUse.map(set => getLoadUnit(set));
     const mostCommonUnit = units.length > 0 ? units[0] : 'lbs';
-    const totalValue = exercise.plannedSets.reduce((sum, set) => {
+    const totalValue = setsToUse.reduce((sum, set) => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
       return sum + (reps * load);
@@ -51,13 +67,15 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return { value: totalValue, unit: mostCommonUnit };
   };
   const getRIR = () => {
-    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
-    const rir = exercise.plannedSets[0].rir;
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return null;
+    const rir = setsToUse[0].rir;
     return typeof rir === 'number' ? rir : null;
   };
   const getRPE = () => {
-    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
-    const rpe = exercise.plannedSets[0].rpe;
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return null;
+    const rpe = setsToUse[0].rpe;
     return typeof rpe === 'number' ? rpe : null;
   };
 
@@ -70,8 +88,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to calculate planned and actual load for this exercise
   const calculatePlannedLoadTally = () => {
+    const setsToUse = getSetsToUse();
     let plannedLoad = 0;
-    (exercise.plannedSets || []).forEach((set) => {
+    setsToUse.forEach((set) => {
       const plannedRepsVal = set.reps || 0;
       const plannedLoadVal = Number(set.load) || 0;
       plannedLoad += plannedRepsVal * plannedLoadVal;
@@ -79,8 +98,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return plannedLoad;
   };
   const calculateActualLoadTally = () => {
+    const setsToUse = getSetsToUse();
     let actualLoad = 0;
-    (exercise.plannedSets || []).forEach((set, setIdx) => {
+    setsToUse.forEach((set, setIdx) => {
       const actual = actuals[setIdx] || {};
       const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
       const actualLoadVal = actual.load ? Number(actual.load) : 0;
@@ -93,8 +113,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to calculate actual reps for this exercise
   const calculateActualRepsTally = () => {
+    const setsToUse = getSetsToUse();
     let actualReps = 0;
-    (exercise.plannedSets || []).forEach((set, setIdx) => {
+    setsToUse.forEach((set, setIdx) => {
       const actual = actuals[setIdx] || {};
       const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
       if (actual.reps) {
@@ -117,7 +138,8 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get color class for individual set values
   const getSetDeviationColor = (setIdx: number, type: 'reps' | 'load'): string => {
-    const set = exercise.plannedSets?.[setIdx];
+    const setsToUse = getSetsToUse();
+    const set = setsToUse[setIdx];
     const actual = actuals[setIdx];
     
     if (!set || !actual || !actual[type]) return '';
@@ -130,7 +152,13 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get color class for summary values
   const getSummaryDeviationColor = (type: 'reps' | 'load'): string => {
-    const plannedReps = exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0) || 0;
+    // For Act-only exercises, return neutral color since planned and actual are the same
+    if (isActOnlyExercise()) {
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-200 dark:text-gray-900';
+    }
+    
+    const setsToUse = getSetsToUse();
+    const plannedReps = setsToUse.reduce((sum, set) => sum + (set.reps || 0), 0);
     const actualReps = calculateActualRepsTally();
     const plannedLoad = getTotalLoad().value;
     const actualLoad = calculateActualLoadTally();
@@ -156,10 +184,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get total duration for CME exercises
   const getTotalDuration = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'minutes' };
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'minutes' };
     
     // Convert all durations and rest periods to seconds for accurate calculation
-    const totalSeconds = exercise.plannedSets.reduce((sum, set) => {
+    const totalSeconds = setsToUse.reduce((sum, set) => {
       const restSec = set.restSec || 0;
       
       let durationInSeconds = 0;
@@ -225,10 +254,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get total distance for Carry exercises
   const getTotalDistance = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'yards' };
-    const units = exercise.plannedSets.map(set => set.distanceUnit || 'yards');
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'yards' };
+    const units = setsToUse.map(set => set.distanceUnit || 'yards');
     const mostCommonUnit = units.length > 0 ? units[0] : 'yards';
-    const totalValue = exercise.plannedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+    const totalValue = setsToUse.reduce((sum, set) => sum + (set.distance || 0), 0);
     return { value: totalValue, unit: mostCommonUnit };
   };
 
@@ -249,8 +279,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to determine if Total Load should be shown
   function shouldShowTotalLoad() {
-    if (!exercise.plannedSets) return false;
-    return exercise.plannedSets.every(set => set.load && !isNaN(Number(set.load)));
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return false;
+    return setsToUse.every(set => set.load && !isNaN(Number(set.load)));
   }
 
   return (
@@ -319,20 +350,22 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         
         {/* Desktop table rows - hidden on mobile */}
         <div className={`hidden md:grid ${isCarry ? "md:grid-cols-4" : isCycling ? "md:grid-cols-8" : isRunning ? "md:grid-cols-5" : isTreadmill ? "md:grid-cols-6" : "md:grid-cols-6"} gap-2 text-sm dark:text-slate-600`}>
-          {(exercise.plannedSets || []).map((set, setIdx) => {
+          {getSetsToUse().map((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
             const isCycling = isCyclingExercise(exerciseData);
             const isRunning = isRunningExercise(exerciseData);
             const isTreadmill = isTreadmillExercise(exerciseData);
+            const isActOnly = isActOnlyExercise();
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
-            const actualReps = actuals[setIdx]?.reps ?? '';
-            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
-            const actualLoad = actuals[setIdx]?.load ?? '';
+            // For Act-only exercises, use the set data for both planned and actual
+            const actualReps = isActOnly ? (set.reps || 0).toString() : (actuals[setIdx]?.reps ?? '');
+            const actualDistance = isActOnly ? (set.distance || 0).toString() : (set.distance ? actuals[setIdx]?.reps ?? '' : '');
+            const actualLoad = isActOnly ? (set.load || '').toString() : (actuals[setIdx]?.load ?? '');
             
             // For Cycling exercises, get the additional fields from the set
             const speed = set.speed ?? 0;
@@ -455,20 +488,22 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         
         {/* Mobile-friendly card layout - shown on mobile */}
         <div className="md:hidden space-y-3">
-          {(exercise.plannedSets || []).map((set, setIdx) => {
+          {getSetsToUse().map((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
             const isCycling = isCyclingExercise(exerciseData);
             const isRunning = isRunningExercise(exerciseData);
             const isTreadmill = isTreadmillExercise(exerciseData);
+            const isActOnly = isActOnlyExercise();
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
-            const actualReps = actuals[setIdx]?.reps ?? '';
-            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
-            const actualLoad = actuals[setIdx]?.load ?? '';
+            // For Act-only exercises, use the set data for both planned and actual
+            const actualReps = isActOnly ? (set.reps || 0).toString() : (actuals[setIdx]?.reps ?? '');
+            const actualDistance = isActOnly ? (set.distance || 0).toString() : (set.distance ? actuals[setIdx]?.reps ?? '' : '');
+            const actualLoad = isActOnly ? (set.load || '').toString() : (actuals[setIdx]?.load ?? '');
             
             // For Cycling exercises, get the additional fields from the set
             const speed = set.speed ?? 0;
@@ -693,14 +728,24 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 <div>
                   <span className="mr-1">Total Reps (Planned/Actual):</span>
                   <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>
-                    {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)} / {calculateActualRepsTally()}
+                    {isActOnlyExercise() ? 
+                      // For Act-only exercises, show the same value for both planned and actual
+                      `${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)} / ${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)}` :
+                      // For regular exercises, show planned vs actual
+                      `${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)} / ${calculateActualRepsTally()}`
+                    }
                   </span>
                 </div>
                 {shouldShowTotalLoad() && (
                   <div>
                     <span className="mr-1">Total Load (Planned/Actual):</span>
                     <span className={`${getSummaryDeviationColor('load')} px-2 py-0.5 rounded-full`}>
-                      {formatNumberWithCommas(getTotalLoad().value)} / {formatNumberWithCommas(calculateActualLoadTally())} {getTotalLoad().unit}
+                      {isActOnlyExercise() ? 
+                        // For Act-only exercises, show the same value for both planned and actual
+                        `${formatNumberWithCommas(getTotalLoad().value)} / ${formatNumberWithCommas(getTotalLoad().value)} ${getTotalLoad().unit}` :
+                        // For regular exercises, show planned vs actual
+                        `${formatNumberWithCommas(getTotalLoad().value)} / ${formatNumberWithCommas(calculateActualLoadTally())} ${getTotalLoad().unit}`
+                      }
                     </span>
                   </div>
                 )}

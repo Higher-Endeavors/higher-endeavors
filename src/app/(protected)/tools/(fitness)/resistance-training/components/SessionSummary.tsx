@@ -17,7 +17,10 @@ function formatNumberWithCommas(x: number): string {
 
 // Helper to calculate percentage difference and determine color class
 function getDeviationColor(actual: number, planned: number): string {
-  if (planned === 0) return '';
+  if (planned === 0) {
+    // For Act-only exercises where planned is 0, show green if actual > 0
+    return actual > 0 ? 'bg-green-100 border-green-300 text-green-800' : '';
+  }
   const percentageDiff = ((actual - planned) / planned) * 100;
   
   if (percentageDiff === 0) return ''; // No color for exact matches
@@ -29,22 +32,40 @@ function getDeviationColor(actual: number, planned: number): string {
 function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actuals?: { reps: number | null; load: string | null; duration?: number | null; }[][]) {
   let totalSets = 0, totalReps = 0, totalLoad = 0;
   exercises.forEach((exercise, exerciseIdx) => {
-    const sets = exercise.plannedSets || [];
-    sets.forEach((set, setIdx) => {
+    // Skip Warm-Up and Cool-Down exercises
+    if (exercise.pairing === 'WU' || exercise.pairing === 'CD') {
+      return;
+    }
+    
+    // For Act-only exercises, use actualSets data directly
+    const isActOnly = exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0 && 
+                     (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0);
+    
+    const setsToUse = isActOnly ? (exercise.actualSets || []) : (exercise.plannedSets || []);
+    
+    setsToUse.forEach((set, setIdx) => {
       totalSets++;
-      // Always use planned for planned, but for actuals, only use if valid
       let reps = 0;
       let load = 0;
-      if (actuals && actuals[exerciseIdx] && actuals[exerciseIdx][setIdx]) {
-        const actual = actuals[exerciseIdx][setIdx];
-        reps = (actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
-        load = (actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
-      } else if ((exercise as any).actualSets && (exercise as any).actualSets[setIdx]) {
-        // Fallback to actualSets on exercise if present
-        const actual = (exercise as any).actualSets[setIdx];
-        reps = (actual && actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
-        load = (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
+      
+      if (isActOnly) {
+        // For Act-only exercises, use the set data directly (same as ExerciseItemAct)
+        reps = set.reps || 0;
+        load = Number(set.load) || 0;
+      } else {
+        // For regular exercises, use actuals input if available
+        if (actuals && actuals[exerciseIdx] && actuals[exerciseIdx][setIdx]) {
+          const actual = actuals[exerciseIdx][setIdx];
+          reps = (actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
+          load = (actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
+        } else if (exercise.actualSets && exercise.actualSets[setIdx]) {
+          // Fallback to actualSets on exercise if present
+          const actual = exercise.actualSets[setIdx];
+          reps = (actual && actual.reps !== null && actual.reps !== undefined) ? actual.reps : 0;
+          load = (actual && actual.load !== null && actual.load !== undefined && actual.load !== '') ? Number(actual.load) : 0;
+        }
       }
+      
       totalReps += reps || 0;
       totalLoad += (reps || 0) * (load || 0);
     });
@@ -55,15 +76,30 @@ function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actu
 export default function SessionSummary({ exercises, preferredLoadUnit, mode = 'plan', actuals }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
   const loadUnit = preferredLoadUnit || 'lbs';
-  const sessionStats = calculateSessionStats(exercises, loadUnit);
+  
+  // Filter out Warm-Up and Cool-Down exercises for summary calculations
+  const filteredExercises = exercises.filter(exercise => exercise.pairing !== 'WU' && exercise.pairing !== 'CD');
+  
+  // Calculate session stats excluding WU/CD for performance metrics
+  const sessionStats = calculateSessionStats(filteredExercises, loadUnit);
+  
+  // Calculate duration including WU/CD for total time estimate
+  const durationStats = calculateSessionStats(exercises, loadUnit);
+  
   const planned = {
     totalExercises: sessionStats.totalExercises,
     totalSets: sessionStats.totalSets,
     totalReps: sessionStats.totalReps,
     totalLoad: sessionStats.totalLoad,
-    estimatedDuration: sessionStats.estimatedDuration,
+    estimatedDuration: durationStats.estimatedDuration, // Include WU/CD for duration
   };
-  const actual = mode === 'act' ? sumActuals(exercises, loadUnit, actuals) : null;
+  const actual = mode === 'act' ? sumActuals(filteredExercises, loadUnit, actuals) : null;
+  
+  // Check if all exercises are Act-only (no planned data to compare against)
+  const allActOnly = filteredExercises.length > 0 && filteredExercises.every(exercise => 
+    exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0 && 
+    (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0)
+  );
 
   const summaryData = mode === 'act' ? {
     'Estimated Duration': { value: planned.estimatedDuration, color: '' },

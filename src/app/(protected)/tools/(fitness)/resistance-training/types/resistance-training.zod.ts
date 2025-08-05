@@ -41,6 +41,7 @@ export const ProgramExercisesPlannedSchema = z.object({
   userExerciseLibraryId: z.number().int().optional(),
   pairing: z.string().optional(),
   plannedSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
+  actualSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
   notes: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
