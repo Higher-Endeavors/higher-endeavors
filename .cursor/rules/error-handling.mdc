@@ -1,0 +1,44 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Error Handling Guidelines
+
+## Component Errors
+- Use TypeScript for type safety
+- Handle undefined/null cases
+- Provide fallback UI for error states
+## API Errors
+- Handle network errors
+- Show appropriate error messages
+- Provide retry mechanisms where appropriate
+
+## Form Validation
+- Validate input before submission
+- Show clear error messages
+- Handle edge cases
+
+- Use Error Boundaries with error.ts and global-error.tsx
+- Use React error boundaries to catch uncaught exceptions in the component tree. Implement an error.tsx file in route segments to handle errors locally and display a fallback UI, preventing the entire app from crashing.
+- For root-level errors, create a global-error.tsx in your app’s root directory. This ensures even fatal errors are caught and a user-friendly message is displayed, replacing the root layout as needed.
+
+## Granular Error Handling
+- Place error.tsx files at different levels of your route hierarchy for granular control. Errors will bubble up to the nearest parent error boundary, allowing unaffected parts of your UI to remain interactive and recoverable.
+- Error boundary components receive an error object and a reset function. Use reset to let users retry or recover from errors without a full page reload.
+
+## Custom 404 and 500 Pages
+- Create custom 404.js and 500.js pages for handling not-found and server errors, enhancing user experience and providing clear feedback for common error scenarios.
+
+## API Route Error Handling
+- In API routes, always catch and transform errors into proper HTTP responses. Use structured JSON responses with clear error messages, status codes, and (optionally) request IDs for easier debugging and client feedback.
+- Validate input early, handle known error types (e.g., validation, external service failures), and avoid leaking sensitive information in error responses.
+
+## Logging and Reporting
+- Log errors using console.error or a structured logger, and integrate with error reporting services (like Sentry or Alerty) to capture stack traces and error context for debugging and monitoring.
+- Avoid exposing internal implementation details or sensitive data in error messages shown to users.
+
+## Handling Expected vs. Unexpected Errors
+- For expected errors (like validation failures), return them as values rather than throwing exceptions, especially in Server Actions. Use try/catch only for truly unexpected errors.
+- For unexpected errors, let them propagate to error boundaries, which will handle them gracefully.
+	

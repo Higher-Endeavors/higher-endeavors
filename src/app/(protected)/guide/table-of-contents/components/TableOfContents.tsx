@@ -89,7 +89,7 @@ export default function TableOfContents({ articles }: TableOfContentsProps) {
                             {(!groupedArticles[pillar] || groupedArticles[pillar].length === 0) && (
                                 <p className="text-gray-500 italic p-2">
                                     No articles available yet
-                                </p>
+                                </p>    
                             )}
                         </div>
                     )}

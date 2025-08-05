@@ -1,0 +1,53 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+Initiation & Planning
+- Define feature scope, functional specs, and user stories.
+- Validate requirements and architecture fits existing NextJS/Postgres stack.
+- Schedule stakeholder checkpoints for early feedback.
+
+Environment & Repository Setup
+- Create a feature branch off develop: feature/<tool-name>.
+- Use standard directory structure under /src (components, pages, styles, utils, hooks, validators).
+- Apply naming conventions: PascalCase for components, kebab-case for files/assets, camelCase for variables/functions.
+
+UI Framework Foundation
+- Bootstrap core layout (header, nav, content, footer) with Tailwind CSS and Flowbite.
+- Build reusable React/TypeScript components (buttons, inputs, modals).
+- Document styling rules and branding in shared style guide.
+
+Scaffolding New Functionality
+- Generate component, hook, and page boilerplate in feature folder.
+- Define data contracts: Zod schemas and TypeScript interfaces.
+- Stub NextJS API routes returning placeholder data.
+- Create data-fetch hooks (useFetchX) pointing to stubs.
+- Include a README in the feature directory with overview and design notes.
+
+Implementation & Integration
+- Replace stubs: implement API handlers with pg to interact with Postgres.
+- Encapsulate data logic in service layer (/src/utils/db).
+- Hook UI components to live data and mutation endpoints.
+- Enforce form validation via React Hook Form + Zod.
+- Adhere to ESLint rules and code style throughout.
+
+Testing & CI
+- Write unit tests (Jest + React Testing Library) for components and utils.
+- Develop end-to-end tests (Cypress) for critical flows.
+- Configure CI (GitHub Actions): lint, test, and coverage on each PR.
+
+Code Review & Merging
+- Open PR against develop with conventional commits and detailed description.
+- Ensure checklist: passing CI, tests, documentation updates, and branch up-to-date.
+- Peer review requirement: at least one approval before merge (squash merge preferred).
+
+Deployment & Monitoring
+- On merge to main, CI/CD pipeline builds and deploys to AWS (CodeDeploy/GitHub Actions).
+- Perform smoke tests and monitor logs for errors.
+- Document rollback steps and maintain system health dashboards.
+
+Ongoing Documentation & Feedback
+- Keep standards (branching, naming, testing) updated with lessons learned.
+- Collect developer feedback post-deployment to refine rules and processes.
+- Sync with broader Codebase Standards and GitHub guidelines.

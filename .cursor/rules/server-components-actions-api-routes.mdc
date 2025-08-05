@@ -1,0 +1,42 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Rule: Server Components, Server Actions, and API Routes
+
+## Server Components
+- Use for all data-heavy, read-only, or SEO-critical content.
+- Fetch data directly from databases or APIs on the server.
+- Render static or semi-static content that does not require interactivity.
+- Do not use browser APIs, event handlers, or React hooks like `useState` in server components.
+- Pass only serializable data as props to client components.
+
+## Server Actions
+- Use for all mutations (create, update, delete) that originate from forms or UI actions within the app.
+- Implement as async functions with the `'use server'` directive.
+- Use as the `action` prop on forms, or call imperatively from client components.
+- Handle server-side validation, database mutations, and cache revalidation within server actions.
+- Prefer server actions over API routes for internal app mutations for better type safety and simplicity.
+
+## API Routes
+- Use for public APIs, webhooks, or endpoints that must be accessed by non-Next.js clients (e.g., mobile apps, integrations).
+- Implement in the `app/api` directory.
+- Handle multiple HTTP methods and return JSON or other response formats as needed.
+- Use for complex request/response handling or when fine-grained control over HTTP is required.
+
+---
+
+**Summary Table**
+
+| Use Case                                 | Server Component | Server Action | API Route |
+|------------------------------------------|------------------|---------------|-----------|
+| Data fetching for rendering (SSR/SSG)    | ✅               | ❌            | ❌        |
+| Internal form submissions/mutations      | ❌               | ✅            | ❌        |
+| Public API for external clients          | ❌               | ❌            | ✅        |
+| Webhooks/integrations                    | ❌               | ❌            | ✅        |
+| SEO-critical or static content           | ✅               | ❌            | ❌        |
+| Complex HTTP request/response handling   | ❌               | ❌            | ✅        |
+| Direct DB access for rendering           | ✅               | ❌            | ❌        |
+| Built-in form handling and validation    | ❌               | ✅            | ❌        |
+| Non-Next.js frontend support             | ❌               | ❌            | ✅        |

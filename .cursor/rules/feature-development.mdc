@@ -1,0 +1,24 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Feature Development Process
+
+## Initial Setup
+1. Create necessary directories (components, modals)
+2. Set up basic component structure
+3. Implement UI framework before adding logic
+
+## Component Development
+1. Start with basic UI implementation
+2. Add state management
+3. Implement business logic
+4. Add error handling
+5. Implement loading states
+
+## Testing
+1. Test UI responsiveness
+2. Test dark mode
+3. Test error states
+4. Test loading states

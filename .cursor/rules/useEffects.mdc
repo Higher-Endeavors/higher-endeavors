@@ -1,0 +1,26 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+	1.	Don’t use useEffect to compute or derive state
+    2.	Don’t use useEffect to initialize state from props. Instead, use useState initializers to derive state from props, and for modal/dialog components, use a key prop (e.g., key={editingGoal?.id || 'new'}) to force remounts and fresh state when switching between edit/add modes.
+    3.	Avoid mixing side effects
+	•	If an effect block contains more than one category of work (e.g. setting state and fetching data and focusing an input), flag it.
+	•	Best practice: "One useEffect = one responsibility."
+	4.	Prefer server‐side data fetching over client useEffect
+	•	If a page is in pages/ and you see an effect that fetches data without checking if it must be client‐only, suggest moving to getStaticProps/getServerSideProps.
+	•	Exception: If you see window, localStorage, or other browser APIs inside the effect, then it's legitimately client‐only.
+	5.	Guard against stale closures
+	•	If an effect depends on a function defined inline (e.g. event handler) without listing it in the dependency array, flag it.
+	•	Encourage either adding the function to the dependency array (and using useCallback) or restructuring logic so the effect's dependencies are explicit.
+	6.	Keep dependency arrays minimal but correct
+	•	If the dependency array is missing values (e.g. ESLint "exhaustive‐deps" warning), flag it.
+	•	If the array is [] but the effect references props/state other than what's in that array (except refs), flag as potential stale closure.
+	7.	Require cleanup when subscribing
+	•	If you see useEffect(() => { window.addEventListener('resize', …); }); (without a return cleanup), flag it.
+	8.	Client vs. Server Components (Next 13+)
+	•	If a file does not start with "use client" but includes useEffect, flag it—effects never run in a Server Component.
+	9.	Prefer custom hooks or third‐party data libraries
+	•	If a component has a plain fetch(...) inside useEffect, suggest "consider SWR/React-Query or a custom hook" instead of raw fetch logic.
+	10.	For modal/dialog state, avoid syncing props to state in useEffect. Use useState initializers and key-based remounting to ensure state is always fresh and correct.

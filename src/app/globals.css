@@ -18,6 +18,26 @@
   .text-balance {
     text-wrap: balance;
   }
+  
+  /* Hide scrollbar for better mobile experience */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
+  }
+  
+  /* Improve touch scrolling on mobile */
+  .touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+}
+
+html, body {
+  height: 100%;
+  min-height: 100%;
 }
 
 body {
