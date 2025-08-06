@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { SingleQuery } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const query = `
     SELECT b.*, r.struct_bal_ref_lift_load, e.exercise_name
     FROM struct_balanced_lifts b
-    JOIN struct_bal_ref_lifts r ON b.struct_balanced_reference_lift_id = r.id
+    JOIN struct_bal_ref_lifts r ON b.struct_balanced_reference_lift_id = r.web_vitals_ratings_id
     JOIN resist_train_exercise_library e ON r.exercise_library_id = e.id
     WHERE b.struct_balanced_user_id = $1
   `;
@@ -22,8 +23,8 @@ export async function GET(request: Request) {
     const result = await SingleQuery(query, values);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching balanced lifts:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error fetching balanced lifts', error);
+    return NextResponse.json({ error: 'Failed to fetch balanced lifts' }, { status: 500 });
   }
 }
 
@@ -42,7 +43,7 @@ export async function POST(request: Request) {
     const result = await SingleQuery(query, values);
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error creating balanced lift:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    await serverLogger.error('Error creating balanced lift', error);
+    return NextResponse.json({ error: 'Failed to create balanced lift' }, { status: 500 });
   }
 }

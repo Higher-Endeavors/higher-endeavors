@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function adminNoticeEmail(replyTo: string, subject: string, html: string) {
   const host = process.env.NEXT_PUBLIC_EMAIL_HOST
@@ -36,7 +37,13 @@ try {
     return "Success: email was sent"
 
 } catch (error) {
-    console.log(error)
+    await serverLogger.error('Admin notice email failed to send', error, { 
+      replyTo, 
+      subject, 
+      toEmail,
+      host,
+      port 
+    });
     return "COULD NOT SEND MESSAGE"
 }
 }

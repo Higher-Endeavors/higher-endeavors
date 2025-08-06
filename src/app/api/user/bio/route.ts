@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { auth } from "@/app/auth";
 import { SingleQuery } from "@/app/lib/dbAdapter";
 import { bioFormSchema } from "@/app/(protected)/user/bio/types/bio";
+import { serverLogger } from "@/app/lib/logging/logger.server";
 
 export async function GET() {
   try {
@@ -34,7 +35,7 @@ export async function GET() {
     const bioData = result.rows[0];
     return NextResponse.json(bioData);
   } catch (error) {
-    console.error("Error fetching user bio:", error);
+    await serverLogger.error('Error fetching user bio', error);
     return NextResponse.json(
       { error: "Failed to fetch user bio" },
       { status: 500 }
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ message: "Bio updated successfully" });
   } catch (error) {
-    console.error("Error saving user bio:", error);
+    await serverLogger.error('Error saving user bio', error);
     return NextResponse.json(
       { error: "Failed to save user bio" },
       { status: 500 }
