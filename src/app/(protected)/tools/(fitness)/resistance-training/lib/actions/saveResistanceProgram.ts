@@ -1,6 +1,7 @@
 "use server";
 
 import { getClient } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { ProgramExercisesPlanned } from '../../../resistance-training/types/resistance-training.zod';
 
 interface SaveResistanceProgramInput {
@@ -64,6 +65,7 @@ export async function saveResistanceProgram({
     return { success: true, programId };
   } catch (error) {
     await client.query('ROLLBACK');
+    await serverLogger.error('Failed to save resistance program', error, { userId, programName });
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     client.release();

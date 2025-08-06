@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getResistanceTemplates } from './getResistanceTemplates';
 import { ProgramListItem } from '../../types/resistance-training.zod';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export function useResistanceTemplates() {
   const [templates, setTemplates] = useState<ProgramListItem[]>([]);
@@ -22,7 +23,7 @@ export function useResistanceTemplates() {
       } catch (err) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'Failed to fetch templates');
-          console.error('Error fetching resistance templates:', err);
+          clientLogger.error('Error fetching resistance templates:', err);
         }
       } finally {
         if (isMounted) {

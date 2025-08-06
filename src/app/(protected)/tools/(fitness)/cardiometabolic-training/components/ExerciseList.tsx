@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import AddExerciseModal from '../modals/AddExerciseModal';
 import ExerciseItem from './ExerciseItem';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function ExerciseList() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -90,12 +91,12 @@ export default function ExerciseList() {
   ];
 
   const handleEdit = (id: number) => {
-    console.log('Edit exercise:', id);
+    clientLogger.info('Edit exercise:', { id });
     // Placeholder for edit functionality
   };
 
   const handleDelete = (id: number) => {
-    console.log('Delete exercise:', id);
+    clientLogger.info('Delete exercise:', { id });
     // Placeholder for delete functionality
   };
 

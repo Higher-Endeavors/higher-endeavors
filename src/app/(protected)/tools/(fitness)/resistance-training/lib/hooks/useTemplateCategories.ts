@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getTemplateCategories, TemplateCategory } from './getTemplateCategories';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export function useTemplateCategories(isAdmin: boolean) {
   const [categories, setCategories] = useState<TemplateCategory[]>([]);
@@ -28,7 +29,7 @@ export function useTemplateCategories(isAdmin: boolean) {
       } catch (err) {
         if (isMounted) {
           setError(err instanceof Error ? err.message : 'Failed to fetch categories');
-          console.error('Error fetching template categories:', err);
+          clientLogger.error('Error fetching template categories:', err);
         }
       } finally {
         if (isMounted) {

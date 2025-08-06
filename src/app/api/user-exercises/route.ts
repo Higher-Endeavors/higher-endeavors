@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
 import { auth } from '@/app/auth';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function POST(request: Request) {
   try {
@@ -36,9 +37,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result.rows[0]);
   } catch (error) {
-    console.error('Error creating user exercise:', error);
+    await serverLogger.error('Error creating user exercise', error);
     return NextResponse.json(
-      { error: 'Failed to create exercise' },
+      { error: 'Failed to create user exercise' },
       { status: 500 }
     );
   }
@@ -68,7 +69,7 @@ export async function GET(request: Request) {
       }))
     );
   } catch (error) {
-    console.error('Error fetching user exercises:', error);
+    await serverLogger.error('Error fetching user exercises', error);
     return NextResponse.json(
       { error: 'Failed to fetch user exercises' },
       { status: 500 }

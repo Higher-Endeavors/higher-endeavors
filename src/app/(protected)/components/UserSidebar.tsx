@@ -9,7 +9,7 @@ import { useSession } from "next-auth/react";
 
 
 // Dependencies
-import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagram, FaChevronDown, FaChevronLeft, FaCog, FaIdBadge, FaChevronRight, FaHeartbeat, FaAppleAlt, FaTachometerAlt, FaListUl, FaUtensils, FaBars } from 'react-icons/fa';
+import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagram, FaChevronDown, FaChevronLeft, FaCog, FaIdBadge, FaChevronRight, FaHeartbeat, FaAppleAlt, FaTachometerAlt, FaListUl, FaUtensils, FaBars, FaChartLine } from 'react-icons/fa';
 import { MdSelfImprovement, MdDashboard } from 'react-icons/md';
 import { GiMuscleUp } from 'react-icons/gi';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
@@ -62,6 +62,7 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
   const { data: session } = useSession();
   const { userSettings } = useUserSettings();
   const sidebarExpandMode = userSettings?.general?.sidebarExpandMode || 'hover';
+  const isAdmin = session?.user?.role === 'admin';
   const firstName = session?.user?.first_name ?? null;
   const lastName = session?.user?.last_name ?? null;
   const fullName = session?.user?.name ?? "User name";

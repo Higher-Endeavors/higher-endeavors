@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -16,6 +16,7 @@ import {
 import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.js';
 import AssessmentReview from './AssessmentReview';
 import UserSelector from '../../../../components/UserSelector.jsx';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 ChartJS.register(
   CategoryScale,
@@ -62,17 +63,17 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         }
 
         const data = await response.json();
-        console.log('Debug - API Response:', data);
+        clientLogger.info('Debug - API Response:', { data });
         
         if (!data.entries || !Array.isArray(data.entries)) {
           throw new Error('Invalid response format');
         }
 
-        console.log('Debug - First Entry:', data.entries[0]);
+        clientLogger.info('Debug - First Entry:', { entry: data.entries[0] });
         setEntries(data.entries);
         setSelectedEntryId(null); // Reset selected entry when user changes
       } catch (err) {
-        console.error('Error fetching entries:', err);
+        clientLogger.error('Error fetching body composition entries', err);
         setError('Failed to load body composition entries');
       } finally {
         setIsLoading(false);
@@ -94,11 +95,11 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         }
 
         const data = await response.json();
-        console.log('Debug - API Response:', data);
+        clientLogger.info('Debug - API Response:', { data });
         
         setUserSettings(data.settings);
       } catch (err) {
-        console.error('Error fetching user settings:', err);
+        clientLogger.error('Error fetching user settings', err);
         setError('Failed to load user settings');
       }
     };
