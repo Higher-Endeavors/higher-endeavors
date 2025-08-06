@@ -1,6 +1,7 @@
 "use server";
 
 import { getClient } from '@/app/lib/dbAdapter';
+import { serverLogger } from '@/app/lib/logging/logger.server';
 import { UpdateResistanceProgramSchema, UpdateResistanceProgramInput } from '../../types/resistance-training.zod';
 
 export async function updateResistanceProgram(input: UpdateResistanceProgramInput) {
@@ -44,6 +45,7 @@ export async function updateResistanceProgram(input: UpdateResistanceProgramInpu
     return { success: true, programId };
   } catch (error) {
     await client.query('ROLLBACK');
+    await serverLogger.error('Failed to update resistance program', error, { userId, programId });
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   } finally {
     client.release();

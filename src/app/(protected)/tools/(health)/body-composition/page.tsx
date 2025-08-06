@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession, SessionProvider } from 'next-auth/react';
 import BodyCompositionInput from './components/BodyCompositionInput';
 import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
@@ -9,6 +9,7 @@ import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
 import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 function BodyCompositionContent() {
   const { data: session } = useSession();
@@ -19,6 +20,7 @@ function BodyCompositionContent() {
   const [activeTab, setActiveTab] = useState<'input' | 'analysis'>('input');
   const [showSettingsNotification, setShowSettingsNotification] = useState(true);
   const [bioData, setBioData] = useState<{ date_of_birth?: string; gender?: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch bio data
   useEffect(() => {
@@ -33,8 +35,10 @@ function BodyCompositionContent() {
           gender: data.gender
         });
       } catch (error) {
-        console.error('Error loading bio data:', error);
-        setBioData(null);
+        clientLogger.error('Error loading bio data', error);
+        setError('Failed to load bio data');
+      } finally {
+        // setBioData(null); // This line was removed as per the new_code
       }
     };
 
@@ -48,8 +52,10 @@ function BodyCompositionContent() {
           const response = await fetch('/api/users');
           setIsAdmin(response.ok);
         } catch (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
+          clientLogger.error('Error checking admin status', error);
+          setError('Failed to check admin status');
+        } finally {
+          // setIsAdmin(false); // This line was removed as per the new_code
         }
       }
     };

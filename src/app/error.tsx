@@ -1,6 +1,7 @@
 'use client';
  
 import { useEffect } from 'react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
  
 export default function Error({
   error,
@@ -11,7 +12,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Optionally log the error to an error reporting service
-    console.error(error);
+    clientLogger.error('Error page caught an error', error);
   }, [error]);
  
   return (

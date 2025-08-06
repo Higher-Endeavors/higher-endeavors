@@ -11,6 +11,7 @@ import Promotion from './components/Promotion.jsx';
 import Footer from './components/Footer.jsx';
 import Services from './components/Services.jsx';
 import Pillars from './components/Pillars';
+import Continuum from './components/Continuum';
 
 export default async function Home() {
 
@@ -23,6 +24,7 @@ export default async function Home() {
         <Promotion />
         <Services />
         <Pillars />
+        <Continuum />
         <Footer />
       </div>
     </SessionProvider>

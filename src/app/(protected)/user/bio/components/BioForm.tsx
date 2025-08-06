@@ -2,14 +2,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import countries from 'world-countries';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
 import { bioFormSchema, type BioFormData, type CountryOption } from '../types/bio';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 // Format country data for react-select
 let countryOptions = countries.map((country) => ({
@@ -30,6 +31,8 @@ export default function BioForm() {
   const [selectedGender, setSelectedGender] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
   const [settings, setSettings] = React.useState<any>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -82,7 +85,8 @@ export default function BioForm() {
           setSelectedGender(data.gender);
         }
       } catch (error) {
-        console.error('Error loading bio data:', error);
+        clientLogger.error('Error loading bio data', error);
+        setFetchError(error instanceof Error ? error.message : 'Error loading bio data');
       } finally {
         setIsLoading(false);
       }
@@ -124,9 +128,8 @@ export default function BioForm() {
       setShowSuccessToast(true);
       setTimeout(() => setShowSuccessToast(false), 3000);
     } catch (error) {
-      console.error('Error saving bio:', error);
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
+      clientLogger.error('Error saving bio', error);
+      setSubmitError(error instanceof Error ? error.message : 'Error saving bio');
     }
   };
 

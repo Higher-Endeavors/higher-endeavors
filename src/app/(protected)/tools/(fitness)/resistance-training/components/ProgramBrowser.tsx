@@ -10,6 +10,7 @@ import { useResistanceTemplates } from '../lib/hooks/useResistanceTemplates';
 import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
 import { deleteResistanceProgram } from '../lib/actions/deleteResistanceProgram';
 import { duplicateResistanceProgram } from '../lib/actions/duplicateResistanceProgram';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 // How many programs to show per page
 const ITEMS_PER_PAGE = 5;
@@ -95,9 +96,8 @@ export default function ProgramBrowser({
       setPrograms(fetchedPrograms);
       
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch programs';
-      setError(errorMessage);
-      console.error('Error fetching programs:', error);
+      clientLogger.error('Error fetching resistance training programs', error);
+      setError('Failed to fetch programs');
     } finally {
       setTimeout(() => {
         setHasAttemptedLoad(true);
@@ -302,7 +302,7 @@ export default function ProgramBrowser({
       setShowDeleteConfirm(false);
       setProgramToDelete(null);
     } catch (error) {
-      console.error('Error deleting program:', error);
+      clientLogger.error('Error deleting resistance training program', error);
       setError(error instanceof Error ? error.message : 'Failed to delete program');
     } finally {
       setIsLoading(prev => ({ ...prev, delete: false }));
@@ -334,7 +334,7 @@ export default function ProgramBrowser({
       setProgramToDuplicate(null);
       setNewProgramName('');
     } catch (error) {
-      console.error('Error duplicating program:', error);
+      clientLogger.error('Error duplicating resistance training program', error);
       setError(error instanceof Error ? error.message : 'Failed to duplicate program');
     } finally {
       setIsLoading(prev => ({ ...prev, duplicate: false }));
