@@ -15,6 +15,7 @@ import { generateProgressedWeeks } from '../../lib/calculations/resistanceTraini
 import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
 import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
 import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
+import { updateResistanceSession } from '../lib/actions/updateResistanceSession';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
 
 export default function ResistanceTrainingClient({
@@ -67,6 +68,12 @@ export default function ResistanceTrainingClient({
   const [mode, setMode] = useState<'plan' | 'act'>('plan');
   // Add actuals state for SessionSummary - use programExercisesPlannedId as key to prevent data mixing
   const [actuals, setActuals] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
+  
+  // Session editing state
+  const [sessionEditMode, setSessionEditMode] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState<number | null>(null);
+  const [updatedActuals, setUpdatedActuals] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }>({});
+  const [modifiedFields, setModifiedFields] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: boolean; load: boolean; duration: boolean } } }>({});
   // Add admin state
   const [isAdmin, setIsAdmin] = useState(false);
   const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
@@ -78,6 +85,20 @@ export default function ResistanceTrainingClient({
   // Update programDuration when programLength changes
   useEffect(() => {
     setProgramDuration(programLength);
+  }, [programLength]);
+
+  // Update weeklyExercises array when programLength changes
+  useEffect(() => {
+    setWeeklyExercises(prev => {
+      const newArray = Array.from({ length: programLength }, (_, i) => {
+        if (i < prev.length) {
+          return prev[i]; // Keep existing week data
+        } else {
+          return []; // Add empty arrays for new weeks
+        }
+      });
+      return newArray;
+    });
   }, [programLength]);
 
   // Load program handler
@@ -146,6 +167,154 @@ export default function ResistanceTrainingClient({
     setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
     setIsModalOpen(false);
     setEditingExercise(null);
+  };
+
+  // Session editing functions
+  const handleEditSession = () => {
+    setSessionEditMode(true);
+    setEditingSessionId(null);
+    setUpdatedActuals({});
+    setModifiedFields({});
+  };
+
+  const handleCancelSessionEdit = () => {
+    setSessionEditMode(false);
+    setEditingSessionId(null);
+    setUpdatedActuals({});
+    setModifiedFields({});
+  };
+
+  const handleEditExerciseSession = (exerciseId: number) => {
+    setEditingSessionId(exerciseId);
+  };
+
+  const handleCancelExerciseEdit = () => {
+    setEditingSessionId(null);
+  };
+
+  const handleSessionFieldChange = (exerciseId: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => {
+    setUpdatedActuals(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...(prev[exerciseId] || {}),
+        [setIdx]: {
+          ...(prev[exerciseId]?.[setIdx] || {}),
+          [field]: value
+        }
+      }
+    }));
+
+    setModifiedFields(prev => ({
+      ...prev,
+      [exerciseId]: {
+        ...(prev[exerciseId] || {}),
+        [setIdx]: {
+          ...(prev[exerciseId]?.[setIdx] || {}),
+          [field]: true
+        }
+      }
+    }));
+  };
+
+  const handleSaveSessionChanges = async () => {
+    if (!editingProgramId) return;
+
+    const exercisesToUpdate = Object.keys(updatedActuals).map(programExercisesPlannedId => {
+      const exerciseId = parseInt(programExercisesPlannedId);
+      const exercise = currentSessionExercises.find(ex => ex.programExercisesPlannedId === exerciseId);
+      if (!exercise) return null;
+
+      const updatedSets = (exercise.plannedSets || []).map((set, setIdx) => {
+        const updatedData = updatedActuals[exerciseId]?.[setIdx] || {};
+        const originalActualSet = exercise.actualSets?.[setIdx];
+        return createSetObject(set, updatedData, originalActualSet);
+      });
+
+      return {
+        programExercisesId: exerciseId,
+        actualSets: updatedSets
+      };
+    }).filter((exercise): exercise is { programExercisesId: number; actualSets: any[] } => exercise !== null);
+
+    if (exercisesToUpdate.length === 0) {
+      handleCancelSessionEdit();
+      return;
+    }
+
+    try {
+      const result = await updateResistanceSession({
+        userId: selectedUserId,
+        resistanceProgramId: editingProgramId,
+        exercises: exercisesToUpdate
+      });
+
+      if (result.success) {
+        // Reload the program to get updated data
+        const currentProgram = { resistanceProgramId: editingProgramId, userId: selectedUserId };
+        await handleLoadProgram(currentProgram);
+        handleCancelSessionEdit();
+      } else {
+        alert('Error updating session: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error updating session:', error);
+      alert('Error updating session: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  };
+
+  // Helper function to create set object (copied from ExerciseList)
+  const createSetObject = (set: any, actual: any, originalActualSet?: any) => {
+    // Start with the original actual set data (if it exists) or the planned set data
+    const result: any = originalActualSet ? { ...originalActualSet } : { ...set };
+    
+    // Ensure we have the set number
+    result.set = set.set;
+    
+    // Update only the fields that were explicitly changed
+    if (actual.reps !== undefined && actual.reps !== '') {
+      result.reps = Number(actual.reps);
+    } else if (actual.reps === '') {
+      // If field was cleared, remove it from result
+      delete result.reps;
+    }
+    
+    if (actual.load !== undefined && actual.load !== '') {
+      result.load = actual.load;
+    } else if (actual.load === '') {
+      delete result.load;
+    }
+    
+    if (actual.duration !== undefined && actual.duration !== '') {
+      result.duration = Number(actual.duration);
+    } else if (actual.duration === '') {
+      delete result.duration;
+    }
+    
+    if (actual.distance !== undefined && actual.distance !== '') {
+      result.distance = Number(actual.distance);
+    } else if (actual.distance === '') {
+      delete result.distance;
+    }
+    
+    if (actual.rest !== undefined && actual.rest !== '') {
+      result.restSec = Number(actual.rest);
+    } else if (actual.rest === '') {
+      delete result.restSec;
+    }
+    
+    if (actual.rpe !== undefined && actual.rpe !== '') {
+      result.rpe = Number(actual.rpe);
+    } else if (actual.rpe === '') {
+      delete result.rpe;
+    }
+    
+    if (actual.rir !== undefined && actual.rir !== '') {
+      result.rir = Number(actual.rir);
+    } else if (actual.rir === '') {
+      delete result.rir;
+    }
+    
+    return result;
   };
 
   // Open edit modal for existing exercise
@@ -491,20 +660,33 @@ export default function ResistanceTrainingClient({
         actuals={actualsForSession}
         onActualsChange={setActuals}
         sessionCompleted={sessionCompleted}
+        // Session editing props
+        sessionEditMode={sessionEditMode}
+        editingSessionId={editingSessionId}
+        updatedActuals={updatedActuals}
+        modifiedFields={modifiedFields}
+        onEditSession={handleEditSession}
+        onCancelSessionEdit={handleCancelSessionEdit}
+        onEditExerciseSession={handleEditExerciseSession}
+        onCancelExerciseEdit={handleCancelExerciseEdit}
+        onSessionFieldChange={handleSessionFieldChange}
+        onSaveSessionChanges={handleSaveSessionChanges}
       />
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4 touch-manipulation">
         <div className="flex flex-col sm:flex-row gap-2">
-          <button
-            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
-            style={{ minHeight: '44px' }}
-            onClick={() => {
-              setEditingExercise(null);
-              setIsModalOpen(true);
-            }}
-            onTouchStart={(e) => e.preventDefault()}
-          >
-            Add Exercise
-          </button>
+          {!sessionCompleted && (
+            <button
+              className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
+              style={{ minHeight: '44px' }}
+              onClick={() => {
+                setEditingExercise(null);
+                setIsModalOpen(true);
+              }}
+              onTouchStart={(e) => e.preventDefault()}
+            >
+              Add Exercise
+            </button>
+          )}
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
           {weeklyExercises.some(week => week.length > 0) && mode === 'plan' && (
@@ -573,15 +755,16 @@ export default function ResistanceTrainingClient({
             exercises={weeklyExercises[Math.ceil(activeDay / sessionsPerWeek) - 1]} 
             preferredLoadUnit={(fitnessSettings?.resistanceTraining?.loadUnit === 'kg' ? 'kg' : 'lbs')}
             mode={mode}
-            actuals={currentSessionExercises.map((exercise, exerciseIdx) =>
+            actuals={currentSessionExercises.map((exercise) =>
               (exercise.plannedSets || []).map((set, setIdx) => {
-                const actual = actualsForSession[exerciseIdx]?.[setIdx] || {};
+                const actual = actualsForSession[exercise.programExercisesPlannedId]?.[setIdx] || {};
                 return {
                   reps: actual.reps === undefined || actual.reps === '' ? null : Number(actual.reps),
                   load: actual.load === undefined || actual.load === '' ? null : actual.load
                 };
               })
             )}
+
           />
         </div>
       )}

@@ -37,7 +37,7 @@ function sumActuals(exercises: ProgramExercisesPlanned[], loadUnit: string, actu
       return;
     }
     
-    // For Act-only exercises, use actualSets data directly
+    // Use the same logic as ExerciseItemAct to determine which sets to use
     const isActOnly = exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0 && 
                      (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0);
     

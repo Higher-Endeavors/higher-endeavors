@@ -26,6 +26,17 @@ interface ExerciseListProps {
   actuals: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } };
   onActualsChange: (actuals: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } }) => void;
   sessionCompleted?: boolean;
+  // Session editing props
+  sessionEditMode?: boolean;
+  editingSessionId?: number | null;
+  updatedActuals?: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: string; load: string; duration?: string } } };
+  modifiedFields?: { [programExercisesPlannedId: number]: { [setIdx: number]: { reps: boolean; load: boolean; duration: boolean } } };
+  onEditSession?: () => void;
+  onCancelSessionEdit?: () => void;
+  onEditExerciseSession?: (exerciseId: number) => void;
+  onCancelExerciseEdit?: () => void;
+  onSessionFieldChange?: (exerciseId: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => void;
+  onSaveSessionChanges?: () => void;
 }
 
 export default function ExerciseList({
@@ -42,7 +53,18 @@ export default function ExerciseList({
   resistanceProgramId,
   actuals,
   onActualsChange,
-  sessionCompleted = false
+  sessionCompleted = false,
+  // Session editing props
+  sessionEditMode = false,
+  editingSessionId = null,
+  updatedActuals = {},
+  modifiedFields = {},
+  onEditSession,
+  onCancelSessionEdit,
+  onEditExerciseSession,
+  onCancelExerciseEdit,
+  onSessionFieldChange,
+  onSaveSessionChanges
 }: ExerciseListProps) {
   const [showCalendar, setShowCalendar] = useState(false);
   // Remove local actuals state - use parent state directly
@@ -347,15 +369,23 @@ export default function ExerciseList({
                     onChangeVariation={onChangeVariation}
                   />
                 ) : (
-                  <ExerciseItemAct
+                                    <ExerciseItemAct
                     exercise={exercise}
                     exercises={exercises || []}
                     onEdit={onEditExercise}
                     onDelete={onDeleteExercise}
                     onChangeVariation={onChangeVariation}
-                                          actuals={actuals[exercise.programExercisesPlannedId] || {}}
+                    actuals={actuals[exercise.programExercisesPlannedId] || {}}
                     onActualChange={(setIdx, field, value) => handleActualChange(exercise.programExercisesPlannedId, setIdx, field, value)}
-                    readOnly={sessionCompleted}
+                    readOnly={sessionCompleted && !sessionEditMode}
+                    // Session editing props
+                    isEditing={sessionEditMode}
+                    isCurrentEditing={editingSessionId === exercise.programExercisesPlannedId}
+                    onEditSession={onEditExerciseSession}
+                    onCancelEdit={onCancelExerciseEdit}
+                    onFieldChange={onSessionFieldChange}
+                    modifiedFields={modifiedFields[exercise.programExercisesPlannedId] || {}}
+                    updatedActuals={updatedActuals[exercise.programExercisesPlannedId] || {}}
                   />
                 )}
               </div>
@@ -363,16 +393,45 @@ export default function ExerciseList({
           })
         )}
       </div>
-      {/* Complete Session button in Act mode */}
-      {mode === 'act' && plannedExercises.length > 0 && !sessionCompleted && (
-        <div className="flex justify-end mt-6">
-          <button
-            className="px-6 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition"
-            onClick={() => setShowConfirm(true)}
-            disabled={saving}
-          >
-            Complete Session
-          </button>
+      {/* Session editing controls */}
+      {mode === 'act' && plannedExercises.length > 0 && (
+        <div className="flex justify-end mt-6 gap-3">
+          {sessionCompleted && !sessionEditMode && (
+            <button
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+              onClick={onEditSession}
+            >
+              Edit Session
+            </button>
+          )}
+          
+          {sessionEditMode && (
+            <>
+              <button
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700 transition"
+                onClick={onCancelSessionEdit}
+              >
+                Cancel All Changes
+              </button>
+              <button
+                className="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
+                onClick={onSaveSessionChanges}
+                disabled={Object.keys(updatedActuals).length === 0}
+              >
+                Save All Changes
+              </button>
+            </>
+          )}
+          
+          {!sessionCompleted && (
+            <button
+              className="px-6 py-2 bg-purple-700 text-white rounded-lg font-semibold hover:bg-purple-800 transition"
+              onClick={() => setShowConfirm(true)}
+              disabled={saving}
+            >
+              Complete Session
+            </button>
+          )}
         </div>
       )}
       {/* Confirmation Dialog */}
