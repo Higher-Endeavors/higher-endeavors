@@ -142,6 +142,8 @@ export default function ProgramBrowser({
     return item.userId === 1; // Higher Endeavors user ID
   }, []);
 
+
+
   // Filter logic
   const filteredItems = useMemo(() => {
     return itemsToShow.filter(item => {
@@ -153,7 +155,7 @@ export default function ProgramBrowser({
         let exerciseMatch = false;
         if (item.exerciseSummary && item.exerciseSummary.exercises && Array.isArray(item.exerciseSummary.exercises)) {
           exerciseMatch = item.exerciseSummary.exercises.some((ex: { name: string }) => 
-            ex.name.toLowerCase().includes(searchTerm)
+            ex.name && ex.name.toLowerCase().includes(searchTerm)
           );
         }
         
@@ -622,7 +624,7 @@ export default function ProgramBrowser({
                           {item.exerciseSummary && item.exerciseSummary.exercises && item.exerciseSummary.exercises.length > 0 && (
                             <div className="mt-2">
                               <span className="font-medium">Exercises: </span>
-                              <span>{item.exerciseSummary.exercises.map((ex: { name: string }) => ex.name).join(', ')}</span>
+                              <span>{item.exerciseSummary.exercises.map((ex: { name: string }) => ex.name).filter(name => name).join(', ')}</span>
                             </div>
                           )}
                         </div>
