@@ -47,8 +47,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
-  // Remove useEffect for syncing inputValue with programLength
-  // Manage inputValue locally
+  // Manage inputValue locally for better editing experience
   const [inputValue, setInputValue] = useState(programLength.toString());
   const [sessionsInputValue, setSessionsInputValue] = useState(sessionsPerWeek.toString());
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -56,21 +55,12 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
   // Template categories using custom hook
   const { categories: templateCategories, isLoading: categoriesLoading, error: categoriesError } = useTemplateCategories(isAdmin);
 
-  // Only propagate up when user changes input
+  // Cleanup timeout on unmount
   useEffect(() => {
-    if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
-    debounceTimeout.current = setTimeout(() => {
-      const parsed = parseInt(inputValue, 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        setProgramLength(parsed);
-      }
-    }, 200);
     return () => {
       if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
     };
-  }, [inputValue, setProgramLength]);
-
-
+  }, []);
 
   const phaseFocusOptions = [
     { value: 'GPP', label: 'General Physical Preparedness (GPP)' },
@@ -288,11 +278,15 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                 step="1"
                 value={inputValue}
                 onChange={e => {
-                  const value = parseInt(e.target.value);
-                  if (!isNaN(value) && value >= 1 && value <= 52) {
-                    setInputValue(value.toString());
-                    setProgramLength(value);
-                  }
+                  setInputValue(e.target.value);
+                  // Debounce the program length update
+                  if (debounceTimeout.current) clearTimeout(debounceTimeout.current);
+                  debounceTimeout.current = setTimeout(() => {
+                    const value = parseInt(e.target.value);
+                    if (!isNaN(value) && value > 0 && value <= 52) {
+                      setProgramLength(value);
+                    }
+                  }, 200);
                 }}
                 onBlur={() => {
                   const value = parseInt(inputValue);
@@ -317,13 +311,30 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                 type="number"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                 placeholder="1"
-                min="0.5"
+                min="1"
                 max="7"
                 step="0.5"
-                value={sessionsPerWeek}
+                value={sessionsInputValue}
                 onChange={e => {
+                  setSessionsInputValue(e.target.value);
                   const value = parseFloat(e.target.value);
-                  if (!isNaN(value) && value >= 0.5 && value <= 7) {
+                  if (isNaN(value) || value < 1) {
+                    setSessionsPerWeek(1);
+                  } else if (value > 7) {
+                    setSessionsPerWeek(7);
+                  } else if (!isNaN(value)) {
+                    setSessionsPerWeek(value);
+                  }
+                }}
+                onBlur={() => {
+                  const value = parseFloat(sessionsInputValue);
+                  if (isNaN(value) || value < 1) {
+                    setSessionsInputValue('1');
+                    setSessionsPerWeek(1);
+                  } else if (value > 7) {
+                    setSessionsInputValue('7');
+                    setSessionsPerWeek(7);
+                  } else if (!isNaN(value)) {
                     setSessionsPerWeek(value);
                   }
                 }}

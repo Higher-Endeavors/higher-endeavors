@@ -12,9 +12,34 @@ interface ExerciseItemActProps {
   actuals: { [setIdx: number]: { reps: string; load: string; duration?: string } };
   onActualChange: (setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => void;
   readOnly?: boolean;
+  // Session editing props
+  isEditing?: boolean;
+  isCurrentEditing?: boolean;
+  onEditSession?: (exerciseId: number) => void;
+  onCancelEdit?: () => void;
+  onFieldChange?: (exerciseId: number, setIdx: number, field: 'reps' | 'load' | 'duration', value: string) => void;
+  modifiedFields?: { [setIdx: number]: { reps: boolean; load: boolean; duration: boolean } };
+  updatedActuals?: { [setIdx: number]: { reps: string; load: string; duration?: string } };
 }
 
-export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete, onChangeVariation, actuals = {}, onActualChange, readOnly = false }: ExerciseItemActProps) {
+export default function ExerciseItemAct({ 
+  exercise, 
+  exercises, 
+  onEdit, 
+  onDelete, 
+  onChangeVariation, 
+  actuals = {}, 
+  onActualChange, 
+  readOnly = false,
+  // Session editing props
+  isEditing = false,
+  isCurrentEditing = false,
+  onEditSession,
+  onCancelEdit,
+  onFieldChange,
+  modifiedFields = {},
+  updatedActuals = {}
+}: ExerciseItemActProps) {
   // Helper functions copied from ExerciseItemPlan
   const getLoadUnit = (set: any) => set.loadUnit || 'lbs';
   const formatLoad = (load: string, unit?: string) => {
@@ -39,11 +64,27 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
   };
   const formatNumberWithCommas = (x: number) => x.toLocaleString();
+  // Helper to determine if this is an Act-only exercise (no planned data)
+  const isActOnlyExercise = () => {
+    return exercise.actualSets && Array.isArray(exercise.actualSets) && exercise.actualSets.length > 0 && 
+           (!exercise.plannedSets || !Array.isArray(exercise.plannedSets) || exercise.plannedSets.length === 0);
+  };
+
+  // Helper to get the sets to use for display (plannedSets for planned exercises, actualSets for Act-only exercises)
+  const getSetsToUse = () => {
+    if (isActOnlyExercise()) {
+      return exercise.actualSets || [];
+    }
+    // Otherwise use plannedSets (for regular planned exercises)
+    return exercise.plannedSets || [];
+  };
+
   const getTotalLoad = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'lbs' };
-    const units = exercise.plannedSets.map(set => getLoadUnit(set));
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'lbs' };
+    const units = setsToUse.map(set => getLoadUnit(set));
     const mostCommonUnit = units.length > 0 ? units[0] : 'lbs';
-    const totalValue = exercise.plannedSets.reduce((sum, set) => {
+    const totalValue = setsToUse.reduce((sum, set) => {
       const reps = set.reps || 0;
       const load = Number(set.load) || 0;
       return sum + (reps * load);
@@ -51,27 +92,25 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return { value: totalValue, unit: mostCommonUnit };
   };
   const getRIR = () => {
-    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
-    const rir = exercise.plannedSets[0].rir;
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return null;
+    const rir = setsToUse[0].rir;
     return typeof rir === 'number' ? rir : null;
   };
   const getRPE = () => {
-    if (!exercise.plannedSets || exercise.plannedSets.length === 0) return null;
-    const rpe = exercise.plannedSets[0].rpe;
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return null;
+    const rpe = setsToUse[0].rpe;
     return typeof rpe === 'number' ? rpe : null;
   };
 
-  // Helper to calculate time under tension
-  const calculateTimeUnderTension = (reps: number | undefined, tempo: string | undefined) => {
-    if (!reps || !tempo) return 0;
-    const [eccentric, pause1, concentric, pause2] = tempo.split('').map(Number);
-    return reps * (eccentric + pause1 + concentric + pause2);
-  };
+
 
   // Helper to calculate planned and actual load for this exercise
   const calculatePlannedLoadTally = () => {
+    const setsToUse = getSetsToUse();
     let plannedLoad = 0;
-    (exercise.plannedSets || []).forEach((set) => {
+    setsToUse.forEach((set) => {
       const plannedRepsVal = set.reps || 0;
       const plannedLoadVal = Number(set.load) || 0;
       plannedLoad += plannedRepsVal * plannedLoadVal;
@@ -79,8 +118,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
     return plannedLoad;
   };
   const calculateActualLoadTally = () => {
+    const setsToUse = getSetsToUse();
     let actualLoad = 0;
-    (exercise.plannedSets || []).forEach((set, setIdx) => {
+    setsToUse.forEach((set, setIdx) => {
       const actual = actuals[setIdx] || {};
       const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
       const actualLoadVal = actual.load ? Number(actual.load) : 0;
@@ -93,8 +133,9 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to calculate actual reps for this exercise
   const calculateActualRepsTally = () => {
+    const setsToUse = getSetsToUse();
     let actualReps = 0;
-    (exercise.plannedSets || []).forEach((set, setIdx) => {
+    setsToUse.forEach((set, setIdx) => {
       const actual = actuals[setIdx] || {};
       const actualRepsVal = actual.reps ? Number(actual.reps) : 0;
       if (actual.reps) {
@@ -117,7 +158,8 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get color class for individual set values
   const getSetDeviationColor = (setIdx: number, type: 'reps' | 'load'): string => {
-    const set = exercise.plannedSets?.[setIdx];
+    const setsToUse = getSetsToUse();
+    const set = setsToUse[setIdx];
     const actual = actuals[setIdx];
     
     if (!set || !actual || !actual[type]) return '';
@@ -130,7 +172,13 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get color class for summary values
   const getSummaryDeviationColor = (type: 'reps' | 'load'): string => {
-    const plannedReps = exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0) || 0;
+    // For Act-only exercises, return neutral color since planned and actual are the same
+    if (isActOnlyExercise()) {
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-200 dark:text-gray-900';
+    }
+    
+    const setsToUse = getSetsToUse();
+    const plannedReps = setsToUse.reduce((sum, set) => sum + (set.reps || 0), 0);
     const actualReps = calculateActualRepsTally();
     const plannedLoad = getTotalLoad().value;
     const actualLoad = calculateActualLoadTally();
@@ -156,10 +204,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get total duration for CME exercises
   const getTotalDuration = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'minutes' };
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'minutes' };
     
     // Convert all durations and rest periods to seconds for accurate calculation
-    const totalSeconds = exercise.plannedSets.reduce((sum, set) => {
+    const totalSeconds = setsToUse.reduce((sum, set) => {
       const restSec = set.restSec || 0;
       
       let durationInSeconds = 0;
@@ -208,17 +257,8 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   const [menuOpen, setMenuOpen] = React.useState<{ [key: number]: boolean }>({});
   const getExerciseId = () => {
-    // Create a unique identifier that includes both ID and source
-    let id;
-    if (exercise.exerciseSource === 'user') {
-      id = exercise.userExerciseLibraryId || 0;
-    } else if (exercise.exerciseSource === 'cme_library') {
-      // Use a large offset to avoid conflicts with regular library IDs
-      id = (exercise.exerciseLibraryId || 0) + 1000000;
-    } else {
-      id = exercise.exerciseLibraryId || 0;
-    }
-    return id;
+    // Use program_exercises_id as the primary identifier
+    return exercise.programExercisesPlannedId;
   };
   const toggleMenu = (id: number) => {
     setMenuOpen(prev => ({ ...prev, [id]: !prev[id] }));
@@ -234,10 +274,11 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to get total distance for Carry exercises
   const getTotalDistance = () => {
-    if (!exercise.plannedSets) return { value: 0, unit: 'yards' };
-    const units = exercise.plannedSets.map(set => set.distanceUnit || 'yards');
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return { value: 0, unit: 'yards' };
+    const units = setsToUse.map(set => set.distanceUnit || 'yards');
     const mostCommonUnit = units.length > 0 ? units[0] : 'yards';
-    const totalValue = exercise.plannedSets.reduce((sum, set) => sum + (set.distance || 0), 0);
+    const totalValue = setsToUse.reduce((sum, set) => sum + (set.distance || 0), 0);
     return { value: totalValue, unit: mostCommonUnit };
   };
 
@@ -258,16 +299,24 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
 
   // Helper to determine if Total Load should be shown
   function shouldShowTotalLoad() {
-    if (!exercise.plannedSets) return false;
-    return exercise.plannedSets.every(set => set.load && !isNaN(Number(set.load)));
+    const setsToUse = getSetsToUse();
+    if (!setsToUse || setsToUse.length === 0) return false;
+    return setsToUse.every(set => set.load && !isNaN(Number(set.load)));
   }
 
   return (
-    <div className="bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group">
+    <div className={`bg-white border rounded-lg p-4 mb-2 hover:shadow-md transition-shadow relative group ${
+      isCurrentEditing ? 'border-blue-500 bg-blue-50' : ''
+    }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <span className="text-gray-600 dark:text-slate-900 font-semibold">{exercise.pairing}</span>
           <span className="font-medium dark:text-slate-900">{getExerciseName()}</span>
+          {isCurrentEditing && (
+            <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+              Editing
+            </span>
+          )}
         </div>
         <div className="relative">
           <button
@@ -283,12 +332,33 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
               <div className="fixed inset-0 z-10" onClick={closeMenu} />
               <div className="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-slate-800 ring-1 ring-black ring-opacity-5 z-20">
                 <div className="py-1">
-                  <button
-                    onClick={e => { e.preventDefault(); onEdit(getExerciseId()); closeMenu(); }}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                  >
-                    Edit
-                  </button>
+                  {isEditing ? (
+                    <>
+                      {!isCurrentEditing && (
+                        <button
+                          onClick={e => { e.preventDefault(); onEditSession?.(getExerciseId()); closeMenu(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                        >
+                          Edit This Exercise
+                        </button>
+                      )}
+                      {isCurrentEditing && (
+                        <button
+                          onClick={e => { e.preventDefault(); onCancelEdit?.(); closeMenu(); }}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-700"
+                        >
+                          Cancel Edit
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      onClick={e => { e.preventDefault(); onEdit(getExerciseId()); closeMenu(); }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
+                    >
+                      Edit
+                    </button>
+                  )}
                   <button
                     onClick={e => { e.preventDefault(); onDelete(getExerciseId()); closeMenu(); }}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
@@ -328,20 +398,28 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         
         {/* Desktop table rows - hidden on mobile */}
         <div className={`hidden md:grid ${isCarry ? "md:grid-cols-4" : isCycling ? "md:grid-cols-8" : isRunning ? "md:grid-cols-5" : isTreadmill ? "md:grid-cols-6" : "md:grid-cols-6"} gap-2 text-sm dark:text-slate-600`}>
-          {(exercise.plannedSets || []).map((set, setIdx) => {
+          {getSetsToUse().map((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
             const isCycling = isCyclingExercise(exerciseData);
             const isRunning = isRunningExercise(exerciseData);
             const isTreadmill = isTreadmillExercise(exerciseData);
+            const isActOnly = isActOnlyExercise();
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
-            const actualReps = actuals[setIdx]?.reps ?? '';
-            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
-            const actualLoad = actuals[setIdx]?.load ?? '';
+            // For Act-only exercises, use the set data for both planned and actual
+            // In session edit mode, use updatedActuals if available, otherwise fall back to actuals
+            const actualReps = isActOnly ? (set.reps || 0).toString() : 
+              (isEditing && updatedActuals[setIdx]?.reps !== undefined) ? updatedActuals[setIdx].reps : 
+              (actuals[setIdx]?.reps ?? '');
+            const actualDistance = isActOnly ? (set.distance || 0).toString() : 
+              (set.distance ? (isEditing && updatedActuals[setIdx]?.reps !== undefined) ? updatedActuals[setIdx].reps : (actuals[setIdx]?.reps ?? '') : '');
+            const actualLoad = isActOnly ? (set.load || '').toString() : 
+              (isEditing && updatedActuals[setIdx]?.load !== undefined) ? updatedActuals[setIdx].load : 
+              (actuals[setIdx]?.load ?? '');
             
             // For Cycling exercises, get the additional fields from the set
             const speed = set.speed ?? 0;
@@ -369,10 +447,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -386,10 +472,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -403,10 +497,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -419,10 +521,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                         <input
                           type="number"
                           min={0}
-                          className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                          className={`w-14 px-1 py-0.5 border rounded ml-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
+                            getSetDeviationColor(setIdx, 'reps') || 
+                            (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                          }`}
                           placeholder="Actual"
                           value={actualReps}
-                          onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                          onChange={e => {
+                            onActualChange(setIdx, 'reps', e.target.value);
+                            if (isEditing && onFieldChange) {
+                              onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                            }
+                          }}
                         />
                       )}
                     </>
@@ -439,10 +549,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                     ) : (
                       <input
                         type="text"
-                        className={`w-16 px-1 py-0.5 border rounded ml-1 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                        className={`w-16 px-1 py-0.5 border rounded ml-1 ${
+                          getSetDeviationColor(setIdx, 'load') || 
+                          (modifiedFields[setIdx]?.load ? 'border-red-500' : 'border-gray-300')
+                        }`}
                         placeholder="Actual"
                         value={actualLoad}
-                        onChange={e => onActualChange(setIdx, 'load', e.target.value)}
+                        onChange={e => {
+                          onActualChange(setIdx, 'load', e.target.value);
+                          if (isEditing && onFieldChange) {
+                            onFieldChange(exercise.programExercisesPlannedId, setIdx, 'load', e.target.value);
+                          }
+                        }}
                       />
                     )}
                   </div>
@@ -464,20 +582,28 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
         
         {/* Mobile-friendly card layout - shown on mobile */}
         <div className="md:hidden space-y-3">
-          {(exercise.plannedSets || []).map((set, setIdx) => {
+          {getSetsToUse().map((set, setIdx) => {
             const exerciseData = getExerciseNameData();
             const isCarry = isCarryExercise(exerciseData);
             const isCycling = isCyclingExercise(exerciseData);
             const isRunning = isRunningExercise(exerciseData);
             const isTreadmill = isTreadmillExercise(exerciseData);
+            const isActOnly = isActOnlyExercise();
             const plannedReps = set.reps || 0;
             const plannedDistance = set.distance || 0;
             const plannedDistanceUnit = set.distanceUnit || 'yards';
             const plannedLoad = set.load || '';
             const plannedUnit = getLoadUnit(set);
-            const actualReps = actuals[setIdx]?.reps ?? '';
-            const actualDistance = set.distance ? actuals[setIdx]?.reps ?? '' : '';
-            const actualLoad = actuals[setIdx]?.load ?? '';
+            // For Act-only exercises, use the set data for both planned and actual
+            // In session edit mode, use updatedActuals if available, otherwise fall back to actuals
+            const actualReps = isActOnly ? (set.reps || 0).toString() : 
+              (isEditing && updatedActuals[setIdx]?.reps !== undefined) ? updatedActuals[setIdx].reps : 
+              (actuals[setIdx]?.reps ?? '');
+            const actualDistance = isActOnly ? (set.distance || 0).toString() : 
+              (set.distance ? (isEditing && updatedActuals[setIdx]?.reps !== undefined) ? updatedActuals[setIdx].reps : (actuals[setIdx]?.reps ?? '') : '');
+            const actualLoad = isActOnly ? (set.load || '').toString() : 
+              (isEditing && updatedActuals[setIdx]?.load !== undefined) ? updatedActuals[setIdx].load : 
+              (actuals[setIdx]?.load ?? '');
             
             // For Cycling exercises, get the additional fields from the set
             const speed = set.speed ?? 0;
@@ -513,10 +639,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -530,10 +664,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -547,10 +689,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -564,10 +714,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                             <input
                               type="number"
                               min={0}
-                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'reps') || 'border-gray-300'}`}
+                              className={`w-16 px-2 py-1 border rounded [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-gray-900 dark:text-gray-900 ${
+                                getSetDeviationColor(setIdx, 'reps') || 
+                                (modifiedFields[setIdx]?.reps ? 'border-red-500' : 'border-gray-300')
+                              }`}
                               placeholder="Actual"
                               value={actualReps}
-                              onChange={e => onActualChange(setIdx, 'reps', e.target.value)}
+                              onChange={e => {
+                                onActualChange(setIdx, 'reps', e.target.value);
+                                if (isEditing && onFieldChange) {
+                                  onFieldChange(exercise.programExercisesPlannedId, setIdx, 'reps', e.target.value);
+                                }
+                              }}
                             />
                           )}
                         </>
@@ -585,10 +743,18 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                         ) : (
                           <input
                             type="text"
-                            className={`w-20 px-2 py-1 border rounded text-gray-900 dark:text-gray-900 ${getSetDeviationColor(setIdx, 'load') || 'border-gray-300'}`}
+                            className={`w-20 px-2 py-1 border rounded text-gray-900 dark:text-gray-900 ${
+                              getSetDeviationColor(setIdx, 'load') || 
+                              (modifiedFields[setIdx]?.load ? 'border-red-500' : 'border-gray-300')
+                            }`}
                             placeholder="Actual"
                             value={actualLoad}
-                            onChange={e => onActualChange(setIdx, 'load', e.target.value)}
+                            onChange={e => {
+                              onActualChange(setIdx, 'load', e.target.value);
+                              if (isEditing && onFieldChange) {
+                                onFieldChange(exercise.programExercisesPlannedId, setIdx, 'load', e.target.value);
+                              }
+                            }}
                           />
                         )}
                       </div>
@@ -702,14 +868,24 @@ export default function ExerciseItemAct({ exercise, exercises, onEdit, onDelete,
                 <div>
                   <span className="mr-1">Total Reps (Planned/Actual):</span>
                   <span className={`${getSummaryDeviationColor('reps')} px-2 py-0.5 rounded-full`}>
-                    {exercise.plannedSets?.reduce((sum, set) => sum + (set.reps || 0), 0)} / {calculateActualRepsTally()}
+                    {isActOnlyExercise() ? 
+                      // For Act-only exercises, show the same value for both planned and actual
+                      `${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)} / ${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)}` :
+                      // For regular exercises, show planned vs actual
+                      `${getSetsToUse().reduce((sum, set) => sum + (set.reps || 0), 0)} / ${calculateActualRepsTally()}`
+                    }
                   </span>
                 </div>
                 {shouldShowTotalLoad() && (
                   <div>
                     <span className="mr-1">Total Load (Planned/Actual):</span>
                     <span className={`${getSummaryDeviationColor('load')} px-2 py-0.5 rounded-full`}>
-                      {formatNumberWithCommas(getTotalLoad().value)} / {formatNumberWithCommas(calculateActualLoadTally())} {getTotalLoad().unit}
+                      {isActOnlyExercise() ? 
+                        // For Act-only exercises, show the same value for both planned and actual
+                        `${formatNumberWithCommas(getTotalLoad().value)} / ${formatNumberWithCommas(getTotalLoad().value)} ${getTotalLoad().unit}` :
+                        // For regular exercises, show planned vs actual
+                        `${formatNumberWithCommas(getTotalLoad().value)} / ${formatNumberWithCommas(calculateActualLoadTally())} ${getTotalLoad().unit}`
+                      }
                     </span>
                   </div>
                 )}

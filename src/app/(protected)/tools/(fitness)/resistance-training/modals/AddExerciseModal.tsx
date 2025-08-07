@@ -90,6 +90,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     // Default to user's preferred unit from settings
     return fitnessSettings?.resistanceTraining?.loadUnit === 'kg';
   });
+
   const [variedSets, setVariedSets] = useState<{
     reps: string;
     load: string;
@@ -97,11 +98,74 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     rpe: string;
     rir: string;
     subSets: { reps: string; load: string; rest: string; rpe?: string; rir?: string }[];
-  }[]>([
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-  ]);
+  }[]>(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
+        const grouped = editingExercise.plannedSets.reduce((acc: any[], curr: any) => {
+          const setIdx = curr.set - 1;
+          if (!acc[setIdx]) {
+            acc[setIdx] = {
+              reps: '',
+              load: '',
+              rest: '',
+              rpe: '',
+              rir: '',
+              subSets: []
+            };
+          }
+          acc[setIdx].subSets.push({
+            reps: curr.reps?.toString() || '',
+            load: curr.load || '',
+            rest: curr.restSec?.toString() || '',
+            rpe: curr.rpe?.toString() || '',
+            rir: curr.rir?.toString() || ''
+          });
+          return acc;
+        }, []);
+        return grouped;
+      }
+      if (editingExercise.plannedSets.some((set, index) => 
+        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
+        set.load !== editingExercise.plannedSets?.[0]?.load ||
+        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
+      )) {
+        return editingExercise.plannedSets.map(set => ({
+          reps: set.reps?.toString() || '',
+          load: set.load || '',
+          rest: set.restSec?.toString() || '',
+          rpe: set.rpe?.toString() || '',
+          rir: set.rir?.toString() || '',
+          subSets: []
+        }));
+      }
+    }
+    return [
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
+    ];
+  });
+
+  const [isVariedSets, setIsVariedSets] = useState(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
+        return true;
+      }
+      return editingExercise.plannedSets.some((set, index) => 
+        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
+        set.load !== editingExercise.plannedSets?.[0]?.load ||
+        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
+      );
+    }
+    return false;
+  });
+
+  const [isAdvancedSets, setIsAdvancedSets] = useState(() => {
+    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
+      return editingExercise.plannedSets.some((set: any) => set.subSet);
+    }
+    return false;
+  });
 
   const defaultUnit = 'lbs';
   const alternateUnit = 'kg';
@@ -125,8 +189,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const isTreadmillExercise = (exercise: ExerciseWithSource | null) => {
     return exercise?.name?.toLowerCase().includes('treadmill');
   };
-
-
 
   const DIFFICULTY_ORDER = [
     'Basic', 'Beginner', 'Novice', 'Intermediate', 'Advanced',
@@ -240,76 +302,6 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
     };
   };
 
-  const getInitialVariedSetsState = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
-        return true;
-      }
-      return editingExercise.plannedSets.some((set, index) => 
-        set.reps !== editingExercise.plannedSets?.[0]?.reps || 
-        set.load !== editingExercise.plannedSets?.[0]?.load ||
-        set.restSec !== editingExercise.plannedSets?.[0]?.restSec
-      );
-    }
-    return false;
-  };
-
-  const getInitialAdvancedSetsState = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      return editingExercise.plannedSets.some((set: any) => set.subSet);
-    }
-    return false;
-  };
-
-  const getInitialVariedSets = () => {
-    if (editingExercise && editingExercise.plannedSets && editingExercise.plannedSets.length > 0) {
-      if (editingExercise.plannedSets.some((set: any) => set.subSet)) {
-        const grouped = editingExercise.plannedSets.reduce((acc: any[], curr: any) => {
-          const setIdx = curr.set - 1;
-          if (!acc[setIdx]) {
-            acc[setIdx] = {
-              reps: '',
-              load: '',
-              rest: '',
-              rpe: '',
-              rir: '',
-              subSets: []
-            };
-          }
-          acc[setIdx].subSets.push({
-            reps: curr.reps?.toString() || '',
-            load: curr.load || '',
-            rest: curr.restSec?.toString() || '',
-            rpe: curr.rpe?.toString() || '',
-            rir: curr.rir?.toString() || ''
-          });
-          return acc;
-        }, []);
-        return grouped;
-      }
-      if (getInitialVariedSetsState()) {
-        return editingExercise.plannedSets.map(set => ({
-          reps: set.reps?.toString() || '',
-          load: set.load || '',
-          rest: set.restSec?.toString() || '',
-          rpe: set.rpe?.toString() || '',
-          rir: set.rir?.toString() || '',
-          subSets: []
-        }));
-      }
-    }
-    return [
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-      { reps: '', load: '', rest: '', rpe: '', rir: '', subSets: [] },
-    ];
-  };
-
-  const [isVariedSets, setIsVariedSets] = useState(getInitialVariedSetsState());
-  const [isAdvancedSets, setIsAdvancedSets] = useState(getInitialAdvancedSetsState());
-
-
-
   const { control, handleSubmit, setValue, watch, reset } = useForm<AddExerciseFormValues>({
     defaultValues: getInitialValues(),
   });
@@ -320,6 +312,73 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
   const showRPE = resistanceSettings?.trackRPE;
   const showRIR = resistanceSettings?.trackRIR;
   const rpeScale = resistanceSettings?.rpeScale || '0-10';
+
+  // Helper function to create a set object with only relevant fields
+  const createSetObject = (index: number, data: AddExerciseFormValues, isCarry: boolean, isBike: boolean, isRunning: boolean, isTreadmill: boolean, currentLoadUnit: string) => {
+    const baseSet = { set: index + 1 };
+    
+    if (isCarry) {
+      // Carry exercises: distance, load, rest, rpe
+      return {
+        ...baseSet,
+        distance: data.distance && data.distance.trim() ? parseInt(data.distance) || 0 : undefined,
+        distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'yards') : undefined,
+        load: data.load || '0',
+        loadUnit: currentLoadUnit,
+        restSec: parseInt(data.rest || '0') || 0,
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+      };
+    } else if (isBike) {
+      // Bike exercises: duration, distance, speed, resistance, rpm, watts
+      return {
+        ...baseSet,
+        duration: data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined,
+        durationUnit: data.duration && data.duration.trim() ? (data.durationUnit || 'minutes') : undefined,
+        distance: data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined,
+        distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'miles') : undefined,
+        speed: data.speed && data.speed.trim() ? parseInt(data.speed) : undefined,
+        resistance: data.resistance && data.resistance.trim() ? parseInt(data.resistance) : undefined,
+        rpm: data.rpm && data.rpm.trim() ? parseInt(data.rpm) : undefined,
+        watts: data.watts && data.watts.trim() ? parseInt(data.watts) : undefined,
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+      };
+    } else if (isRunning) {
+      // Running exercises: distance, duration, pace
+      return {
+        ...baseSet,
+        distance: data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined,
+        distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'miles') : undefined,
+        duration: data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined,
+        durationUnit: data.duration && data.duration.trim() ? (data.durationUnit || 'minutes') : undefined,
+        pace: data.pace || undefined,
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+      };
+    } else if (isTreadmill) {
+      // Treadmill exercises: duration, distance, pace, incline
+      return {
+        ...baseSet,
+        duration: data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined,
+        durationUnit: data.duration && data.duration.trim() ? (data.durationUnit || 'minutes') : undefined,
+        distance: data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined,
+        distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'miles') : undefined,
+        pace: data.pace || undefined,
+        incline: data.incline && data.incline.trim() ? parseInt(data.incline) : undefined,
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+      };
+    } else {
+      // Resistance exercises: reps, load, rest, tempo, rpe, rir
+      return {
+        ...baseSet,
+        reps: parseInt(data.reps || '0') || 0,
+        load: data.load || '0',
+        loadUnit: currentLoadUnit,
+        restSec: parseInt(data.rest || '0') || 0,
+        tempo: data.tempo || '2010',
+        rpe: data.rpe ? parseInt(data.rpe) : undefined,
+        rir: data.rir ? parseInt(data.rir) : undefined,
+      };
+    }
+  };
 
   const onSubmit = (data: AddExerciseFormValues) => {
     if (!data.selectedExercise) return;
@@ -343,84 +402,104 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       if (isAdvancedSets) {
         plannedSets = variedSets.flatMap((set, setIdx) => {
           if (set.subSets && set.subSets.length > 0) {
-            return set.subSets.map((subSet, subSetIdx) => ({
-              set: setIdx + 1,
-              reps: isCarry ? undefined : (parseInt(subSet.reps) || 0),
-              load: subSet.load,
-              loadUnit: currentLoadUnit,
-              restSec: parseInt(subSet.rest) || 0,
-              tempo: isCarry ? undefined : (data.tempo || '2010'),
-              rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
-              rir: isCarry ? undefined : (subSet.rir ? parseInt(subSet.rir) : undefined),
-            }));
+            return set.subSets.map((subSet, subSetIdx) => {
+              const baseSet = { set: setIdx + 1 };
+              if (isCarry) {
+                return {
+                  ...baseSet,
+                  distance: data.distance && data.distance.trim() ? parseInt(data.distance) || 0 : undefined,
+                  distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'yards') : undefined,
+                  load: subSet.load,
+                  loadUnit: currentLoadUnit,
+                  restSec: parseInt(subSet.rest) || 0,
+                  rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
+                };
+              } else {
+                return {
+                  ...baseSet,
+                  reps: parseInt(subSet.reps) || 0,
+                  load: subSet.load,
+                  loadUnit: currentLoadUnit,
+                  restSec: parseInt(subSet.rest) || 0,
+                  tempo: data.tempo || '2010',
+                  rpe: subSet.rpe ? parseInt(subSet.rpe) : undefined,
+                  rir: subSet.rir ? parseInt(subSet.rir) : undefined,
+                };
+              }
+            });
           } else {
-            return [{
-              set: setIdx + 1,
-              reps: isCarry ? undefined : (parseInt(set.reps || '0') || 0),
-              load: set.load,
-              loadUnit: currentLoadUnit,
-              restSec: parseInt(data.rest || '0') || 0,
-              tempo: isCarry ? undefined : (data.tempo || '2010'),
-              rpe: set.rpe ? parseInt(set.rpe) : undefined,
-              rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
-            }];
+            const baseSet = { set: setIdx + 1 };
+            if (isCarry) {
+              return [{
+                ...baseSet,
+                distance: data.distance && data.distance.trim() ? parseInt(data.distance) || 0 : undefined,
+                distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'yards') : undefined,
+                load: set.load,
+                loadUnit: currentLoadUnit,
+                restSec: parseInt(data.rest || '0') || 0,
+                rpe: set.rpe ? parseInt(set.rpe) : undefined,
+              }];
+            } else {
+              return [{
+                ...baseSet,
+                reps: parseInt(set.reps || '0') || 0,
+                load: set.load,
+                loadUnit: currentLoadUnit,
+                restSec: parseInt(data.rest || '0') || 0,
+                tempo: data.tempo || '2010',
+                rpe: set.rpe ? parseInt(set.rpe) : undefined,
+                rir: set.rir ? parseInt(set.rir) : undefined,
+              }];
+            }
           }
         });
       } else {
-        plannedSets = variedSets.map((set, index) => ({
-          set: index + 1,
-          reps: isCarry ? undefined : (parseInt(set.reps || '0') || 0),
-          load: set.load,
-          loadUnit: currentLoadUnit,
-          restSec: parseInt(data.rest || '0') || 0,
-          tempo: isCarry ? undefined : (data.tempo || '2010'),
-          rpe: set.rpe ? parseInt(set.rpe) : undefined,
-          rir: isCarry ? undefined : (set.rir ? parseInt(set.rir) : undefined),
-        }));
+        plannedSets = variedSets.map((set, index) => {
+          const baseSet = { set: index + 1 };
+          if (isCarry) {
+            return {
+              ...baseSet,
+              distance: data.distance && data.distance.trim() ? parseInt(data.distance) || 0 : undefined,
+              distanceUnit: data.distance && data.distance.trim() ? (data.distanceUnit || 'yards') : undefined,
+              load: set.load,
+              loadUnit: currentLoadUnit,
+              restSec: parseInt(data.rest || '0') || 0,
+              rpe: set.rpe ? parseInt(set.rpe) : undefined,
+            };
+          } else {
+            return {
+              ...baseSet,
+              reps: parseInt(set.reps || '0') || 0,
+              load: set.load,
+              loadUnit: currentLoadUnit,
+              restSec: parseInt(data.rest || '0') || 0,
+              tempo: data.tempo || '2010',
+              rpe: set.rpe ? parseInt(set.rpe) : undefined,
+              rir: set.rir ? parseInt(set.rir) : undefined,
+            };
+          }
+        });
       }
     } else {
-      plannedSets = Array(data.setsCount).fill({
-        reps: isCarry || isBike || isRunning || isTreadmill ? undefined : (parseInt(data.reps || '0') || 0),
-        load: data.load || '0',
-        loadUnit: currentLoadUnit,
-        restSec: parseInt(data.rest || '0') || 0,
-        tempo: isCarry || isBike || isRunning || isTreadmill ? undefined : (data.tempo || '2010'),
-        rpe: data.rpe ? parseInt(data.rpe) : undefined,
-        rir: isCarry || isBike || isRunning || isTreadmill ? undefined : (data.rir ? parseInt(data.rir) : undefined),
-        distance: isCarry ? (data.distance && data.distance.trim() ? parseInt(data.distance) || 0 : undefined) : 
-                  isBike ? (data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined) :
-                  isRunning ? (data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined) :
-                  isTreadmill ? (data.distance && data.distance.trim() ? parseFloat(data.distance) || 0 : undefined) : undefined,
-        distanceUnit: (data.distance && data.distance.trim()) ? (data.distanceUnit || (isCarry ? 'yards' : 'miles')) : undefined,
-        duration: isBike ? (data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined) :
-                  isRunning ? (data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined) :
-                  isTreadmill ? (data.duration && data.duration.trim() ? parseInt(data.duration) || 0 : undefined) : undefined,
-        durationUnit: (data.duration && data.duration.trim()) ? (data.durationUnit || 'minutes') : undefined,
-        speed: isBike ? (data.speed && data.speed.trim() ? parseInt(data.speed) : null) : undefined,
-        resistance: isBike ? (data.resistance && data.resistance.trim() ? parseInt(data.resistance) : null) : undefined,
-        rpm: isBike ? (data.rpm && data.rpm.trim() ? parseInt(data.rpm) : null) : undefined,
-        watts: isBike ? (data.watts && data.watts.trim() ? parseInt(data.watts) : null) : undefined,
-        pace: isRunning || isTreadmill ? (data.pace || undefined) : undefined,
-        incline: isTreadmill ? (data.incline && data.incline.trim() ? parseInt(data.incline) : null) : undefined,
-      }).map((set, index) => ({
-        ...set,
-        set: index + 1,
-      }));
+      plannedSets = Array(data.setsCount).fill(null).map((_, index) => 
+        createSetObject(index, data, !!isCarry, !!isBike, !!isRunning, !!isTreadmill, currentLoadUnit)
+      );
     }
     const selectedExerciseData = data.selectedExercise.exercise;
     const isUserExercise = data.selectedExercise.source === 'user';
     const isCMEExercise = data.selectedExercise.source === 'cme_library';
     
     const newExercise: ProgramExercisesPlanned = {
-      programExercisesPlannedId: 0,
-      resistanceProgramId: 0,
+      programExercisesPlannedId: editingExercise ? editingExercise.programExercisesPlannedId : -Math.floor(Math.random() * 1000000), // Use negative random number for new exercises
+      resistanceProgramId: editingExercise ? editingExercise.resistanceProgramId : 0,
       exerciseLibraryId: isUserExercise ? undefined : selectedExerciseData.exerciseLibraryId,
       userExerciseLibraryId: isUserExercise ? selectedExerciseData.userExerciseLibraryId : undefined,
       exerciseSource: isUserExercise ? 'user' : isCMEExercise ? 'cme_library' : 'library',
       pairing: data.pairing || 'A1',
       plannedSets,
       notes: data.notes,
-      createdAt: new Date().toISOString(),
+      createdAt: editingExercise ? editingExercise.createdAt : new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
     onAdd(newExercise);
     reset();
@@ -1178,7 +1257,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
                                 rir: '',
                                 subSets: [
                                   { reps: set.reps, load: set.load, rest: '', rpe: set.rpe, rir: set.rir },
-                                  { reps: '', load: '', rest: '', rpe: '', rir: '' }
+                                  { reps: '', load: '', rest: '', }
                                 ]
                               };
                             }

@@ -34,13 +34,14 @@ export const ResistanceProgramTemplateSchema = z.object({
 }).strict();
 
 export const ProgramExercisesPlannedSchema = z.object({
-  programExercisesPlannedId: z.number().int(),
+  programExercisesPlannedId: z.number().int(), // Allow negative for temporary IDs
   resistanceProgramId: z.number().int(),
   exerciseSource: z.enum(['library', 'user', 'cme_library']),
   exerciseLibraryId: z.number().int().optional(),
   userExerciseLibraryId: z.number().int().optional(),
   pairing: z.string().optional(),
   plannedSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
+  actualSets: z.array(z.lazy(() => ExerciseSetSchema)).optional(),
   notes: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),

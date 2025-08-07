@@ -142,6 +142,8 @@ export default function ProgramBrowser({
     return item.userId === 1; // Higher Endeavors user ID
   }, []);
 
+
+
   // Filter logic
   const filteredItems = useMemo(() => {
     return itemsToShow.filter(item => {
