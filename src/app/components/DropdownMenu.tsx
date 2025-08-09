@@ -11,7 +11,8 @@ import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function DropdownMenu() {
     const pathname = usePathname();
-    const isProtected = pathname.startsWith("/user") || pathname.startsWith("/tools") || pathname.startsWith("/guide");
+    const protectedPrefixes = ["/user", "/tools", "/guide", "/news-updates", "/admin", "/tree"];
+    const isProtected = protectedPrefixes.some(prefix => pathname.startsWith(prefix));
     if (isProtected) {
         return null;
     }
