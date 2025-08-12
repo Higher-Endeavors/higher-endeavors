@@ -18,6 +18,7 @@ import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
 import { updateResistanceSession } from '../lib/actions/updateResistanceSession';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import { useToast } from '@/app/lib/toast';
 
 export default function ResistanceTrainingClient({
   exercises,
@@ -30,6 +31,7 @@ export default function ResistanceTrainingClient({
   userId: number;
   fitnessSettings?: FitnessSettings;
 }) {
+  const toast = useToast();
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [programLength, setProgramLength] = useState(4);
   const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
@@ -55,14 +57,12 @@ export default function ResistanceTrainingClient({
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
   // Add state for programName (to be set from ProgramSettings)
   const [programName, setProgramName] = useState('');
-  const [saveWarning, setSaveWarning] = useState('');
   // Add state for phaseFocus, periodizationType, progressionRules, programDuration, notes
   const [phaseFocus, setPhaseFocus] = useState('');
   const [periodizationType, setPeriodizationType] = useState('None');
   const [progressionRulesState, setProgressionRulesState] = useState({});
   const [programDuration, setProgramDuration] = useState(programLength);
   const [notes, setNotes] = useState('');
-  const [saveResult, setSaveResult] = useState<string | null>(null);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   // Add mode state
@@ -77,7 +77,6 @@ export default function ResistanceTrainingClient({
   const [modifiedFields, setModifiedFields] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: boolean; load: boolean; duration: boolean } } }>({});
   // Add admin state
   const [isAdmin, setIsAdmin] = useState(false);
-  const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
   const [difficultyLevel, setDifficultyLevel] = useState<string>('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   // Add state to track if current program is a template
@@ -250,12 +249,13 @@ export default function ResistanceTrainingClient({
         const currentProgram = { resistanceProgramId: editingProgramId, userId: selectedUserId };
         await handleLoadProgram(currentProgram);
         handleCancelSessionEdit();
+        toast.success('Session updated successfully!');
       } else {
-        alert('Error updating session: ' + (result.error || 'Unknown error'));
+        toast.error('Error updating session: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error updating session:', error);
-      alert('Error updating session: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error updating session: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -396,7 +396,7 @@ export default function ResistanceTrainingClient({
   // Save handler
   const handleSaveProgram = async () => {
     if (!programName.trim()) {
-      setSaveWarning('Please enter a Program Name before saving.');
+      toast.warning('Please enter a Program Name before saving.');
       // Focus the program name input on mobile
       const programNameInput = document.getElementById('program-name-input');
       if (programNameInput) {
@@ -405,8 +405,6 @@ export default function ResistanceTrainingClient({
       }
       return;
     }
-    setSaveWarning('');
-    setSaveResult(null);
     
     // Show loading state
     const saveButton = document.querySelector('[data-save-button]');
@@ -446,18 +444,18 @@ export default function ResistanceTrainingClient({
       }
       
       if (result.success) {
-        setSaveResult(editingProgramId && !isTemplateProgram ? 'Program updated successfully!' : 'Program saved successfully!');
+        toast.success(editingProgramId && !isTemplateProgram ? 'Program updated successfully!' : 'Program saved successfully!');
         // Update editingProgramId if this was a new program or template-based program
         if ((!editingProgramId || isTemplateProgram) && result.programId) {
           setEditingProgramId(result.programId);
           setIsTemplateProgram(false); // No longer a template program after saving
         }
       } else {
-        setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
+        toast.error('Error saving program: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Save error:', error);
-      setSaveResult('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
       if (saveButton) {
@@ -470,7 +468,7 @@ export default function ResistanceTrainingClient({
   // Save template handler
   const handleSaveTemplate = async () => {
     if (!programName.trim()) {
-      setSaveWarning('Please enter a Program Name before saving as template.');
+      toast.warning('Please enter a Program Name before saving as template.');
       const programNameInput = document.getElementById('program-name-input');
       if (programNameInput) {
         programNameInput.focus();
@@ -480,12 +478,11 @@ export default function ResistanceTrainingClient({
     }
     
     if (!weeklyExercises.some(week => week.length > 0)) {
-      setSaveWarning('Please add at least one exercise before saving as template.');
+      toast.warning('Please add at least one exercise before saving as template.');
       return;
     }
     
-    setSaveWarning('');
-    setTemplateSaveResult(null);
+
     
     // Show loading state
     const templateButton = document.querySelector('[data-template-button]');
@@ -508,7 +505,7 @@ export default function ResistanceTrainingClient({
       });
 
       if (!programResult.success) {
-        setTemplateSaveResult('Error saving program: ' + (programResult.error || 'Unknown error'));
+        toast.error('Error saving program: ' + (programResult.error || 'Unknown error'));
         return;
       }
 
@@ -527,13 +524,13 @@ export default function ResistanceTrainingClient({
       });
       
       if (templateResult.success) {
-        setTemplateSaveResult('Template saved successfully!');
+        toast.success('Template saved successfully!');
       } else {
-        setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
+        toast.error('Error saving template: ' + (templateResult.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Template save error:', error);
-      setTemplateSaveResult('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
       if (templateButton) {
@@ -604,7 +601,6 @@ export default function ResistanceTrainingClient({
           setBaseWeekExercises([]);
           setActiveDay(1);
           setLockedWeeks(new Set());
-          setSaveResult(null);
           setIsTemplateProgram(false); // Reset template state
         }}
         isProgramLoaded={!!editingProgramId}
@@ -710,29 +706,8 @@ export default function ResistanceTrainingClient({
           )}
         </div>
       </div>
-      {saveWarning && (
-        <div className="text-red-600 text-center sm:text-right mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800">
-          {saveWarning}
-        </div>
-      )}
-      {saveResult && (
-        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
-          saveResult.startsWith('Error') 
-            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
-            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-        }`}>
-          {saveResult}
-        </div>
-      )}
-      {templateSaveResult && (
-        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
-          templateSaveResult.startsWith('Error') 
-            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
-            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-        }`}>
-          {templateSaveResult}
-        </div>
-      )}
+
+
       <AddExerciseModal
         key={editingExercise?.exerciseLibraryId || editingExercise?.userExerciseLibraryId || 'new'}
         isOpen={isModalOpen}
