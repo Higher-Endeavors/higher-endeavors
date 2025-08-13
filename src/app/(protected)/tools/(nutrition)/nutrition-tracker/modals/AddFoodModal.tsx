@@ -25,6 +25,15 @@ const mealOptions = [
   { value: 'lunch', label: 'Lunch' },
   { value: 'snack', label: 'Snack' },
   { value: 'dinner', label: 'Dinner' },
+  { value: 'other', label: 'Other' },
+];
+
+const nutrientOptions = [
+  { value: '', label: 'Select Nutrient' },
+  { value: 'calories', label: 'Calories (kcal)' },
+  { value: 'protein', label: 'Protein (g)' },
+  { value: 'carbs', label: 'Carbohydrates (g)' },
+  { value: 'fat', label: 'Fat (g)' },
 ];
 
 // Placeholder nutrition data for demonstration
@@ -46,6 +55,9 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
   const [notes, setNotes] = useState('');
   const [isAdvancedSearchOpen, setIsAdvancedSearchOpen] = useState(false);
   const [selectedFood, setSelectedFood] = useState<any>(null); // Placeholder for selected food object
+  const [timeOfDay, setTimeOfDay] = useState('');
+  const [autoPortion, setAutoPortion] = useState(false);
+  const [selectedNutrient, setSelectedNutrient] = useState('');
 
   // Calculate nutrition info based on quantity/unit (placeholder logic)
   const qty = parseFloat(quantity) || 1;
@@ -68,7 +80,7 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Placeholder for submit logic
+    // Placeholder for submit logic, now includes autoPortion and selectedNutrient
     onClose();
   };
 
@@ -124,7 +136,24 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
             )}
           </div>
 
-          {/* Quantity and Unit */}
+          {/* Auto Portion Checkbox */}
+          <div className="flex items-center gap-2 mb-1">
+            <input
+              id="auto-portion"
+              type="checkbox"
+              checked={autoPortion}
+              onChange={e => {
+                setAutoPortion(e.target.checked);
+                if (!e.target.checked) setSelectedNutrient('');
+              }}
+              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="auto-portion" className="text-sm font-medium dark:text-white">
+              Auto Portion
+            </label>
+          </div>
+
+          {/* Quantity and Unit/Nutrient */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label htmlFor="quantity" className="block text-sm font-medium dark:text-white">
@@ -136,25 +165,46 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
                 min="0"
                 value={quantity}
                 onChange={e => setQuantity(e.target.value)}
-                placeholder="Amount"
+                placeholder={autoPortion ? 'Amount of nutrient' : 'Amount'}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 required
               />
             </div>
             <div>
-              <label htmlFor="unit" className="block text-sm font-medium dark:text-white">
-                Unit
-              </label>
-              <select
-                id="unit"
-                value={unit}
-                onChange={e => setUnit(e.target.value)}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
-              >
-                {unitOptions.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
+              {autoPortion ? (
+                <div>
+                  <label htmlFor="nutrient" className="block text-sm font-medium dark:text-white">
+                    Nutrient
+                  </label>
+                  <select
+                    id="nutrient"
+                    value={selectedNutrient}
+                    onChange={e => setSelectedNutrient(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                    required
+                  >
+                    {nutrientOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label htmlFor="unit" className="block text-sm font-medium dark:text-white">
+                    Unit
+                  </label>
+                  <select
+                    id="unit"
+                    value={unit}
+                    onChange={e => setUnit(e.target.value)}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                  >
+                    {unitOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 
@@ -174,6 +224,23 @@ export default function AddFoodModal({ isOpen, onClose }: AddFoodModalProps) {
               ))}
             </select>
           </div>
+
+          {/* Time of Day for 'Other' meal */}
+          {meal === 'other' && (
+            <div>
+              <label htmlFor="time-of-day" className="block text-sm font-medium dark:text-white">
+                Time of Day (optional)
+              </label>
+              <input
+                id="time-of-day"
+                type="time"
+                value={timeOfDay}
+                onChange={e => setTimeOfDay(e.target.value)}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+                placeholder="e.g. 14:30"
+              />
+            </div>
+          )}
 
           {/* Notes */}
           <div>

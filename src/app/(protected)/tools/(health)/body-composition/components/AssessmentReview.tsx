@@ -3,6 +3,7 @@
 import { format } from 'date-fns';
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
 import { useState } from 'react';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface Props {
   entries: BodyCompositionEntry[];
@@ -29,8 +30,8 @@ const getDifferenceColor = (diff: number): string => {
 };
 
 export default function AssessmentReview({ entries, selectedEntryId, onEntrySelect }: Props) {
-  console.log('Debug - AssessmentReview - All entries:', entries);
-  console.log('Debug - AssessmentReview - Selected ID:', selectedEntryId);
+  clientLogger.info('Debug - AssessmentReview - All entries:', { entries });
+  clientLogger.info('Debug - AssessmentReview - Selected ID:', { selectedEntryId });
   
   const sortedEntries = [...entries].sort((a, b) => 
     new Date(b.date).getTime() - new Date(a.date).getTime()
@@ -41,8 +42,8 @@ export default function AssessmentReview({ entries, selectedEntryId, onEntrySele
   const comparisonEntry = entries.find(entry => entry.id === comparisonEntryId);
 
   // Debug logging
-  console.log('Debug - AssessmentReview - Selected Entry:', selectedEntry);
-  console.log('Debug - AssessmentReview - Comparison Entry:', comparisonEntry);
+  clientLogger.info('Debug - AssessmentReview - Selected Entry:', { selectedEntry });
+  clientLogger.info('Debug - AssessmentReview - Comparison Entry:', { comparisonEntry });
 
   const renderMeasurementWithComparison = (
     label: string,

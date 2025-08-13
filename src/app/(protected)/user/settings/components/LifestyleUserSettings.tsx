@@ -1,6 +1,7 @@
 import React from 'react';
 import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings';
+import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+// import type { UserSettings } from '../types/settings';
 
 interface LifestyleUserSettingsProps {
   register: UseFormRegister<UserSettings>;
@@ -20,7 +21,7 @@ const LifestyleUserSettings: React.FC<LifestyleUserSettingsProps> = () => (
           <input
             type="checkbox"
             // checked={lifestyle.deviceIntegration?.enabled}
-            // onChange={(e) => setValue('pillar_settings.lifestyle.deviceIntegration.enabled', e.target.checked)}
+            onChange={(e) => setValue('pillar_settings.lifestyle.deviceIntegration.enabled', e.target.checked)}
             className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
           <span className="ml-2 text-sm text-gray-600">Enable Device Integration</span>

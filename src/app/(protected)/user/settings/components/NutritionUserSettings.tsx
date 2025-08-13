@@ -1,7 +1,18 @@
 import React from 'react';
-import { UseFormSetValue } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings';
-import type { MacronutrientTargetMode, MacronutrientTargets, MealScheduleEntry, CustomMealSchedule, NutrientDistribution, ScheduleAssignments } from '../types/settings';
+import { UseFormSetValue, useFormContext } from 'react-hook-form';
+import type {
+  UserSettings,
+  FoodAllergy,
+  FoodMeasurementUnit,
+  HydrationUnit,
+  DietaryBase,
+  MacronutrientTargetMode,
+  MacronutrientTargets,
+  MealScheduleEntry,
+  CustomMealSchedule,
+  NutrientDistribution,
+  ScheduleAssignments
+} from '@/app/lib/types/userSettings.zod';
 import { HiChevronDown } from 'react-icons/hi';
 
 interface NutritionUserSettingsProps {
@@ -16,6 +27,9 @@ const CALORIES_PER_GRAM = {
 };
 
 const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue, nutrition }) => {
+  const { watch } = useFormContext<UserSettings>();
+  const watchedCalorieTarget = watch('nutrition.calorieTarget');
+  const watchedMacronutrientTargets = watch('nutrition.macronutrientTargets');
   const [macroMode, setMacroMode] = React.useState<MacronutrientTargetMode>(nutrition.macronutrientTargetMode || 'grams');
   const [nutrientOpen, setNutrientOpen] = React.useState(true);
   const [mealOpen, setMealOpen] = React.useState(true);
@@ -95,10 +109,10 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
   // --- Update schedule in nutrition object ---
   function updateSchedule(updated: CustomMealSchedule) {
     if (selectedScheduleId === 'default') {
-      setValue('pillar_settings.nutrition.defaultMealSchedule', updated, { shouldDirty: true });
+      setValue('nutrition.defaultMealSchedule', updated, { shouldDirty: true });
     } else {
       const updatedCustom = ((nutrition.customMealSchedules || []) as CustomMealSchedule[]).map((s: CustomMealSchedule) => s.id === updated.id ? updated : s);
-      setValue('pillar_settings.nutrition.customMealSchedules', updatedCustom, { shouldDirty: true });
+      setValue('nutrition.customMealSchedules', updatedCustom, { shouldDirty: true });
     }
   }
 
@@ -117,7 +131,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
       meals: [],
       nutrientDistribution: { mode: 'even' },
     };
-    setValue('pillar_settings.nutrition.customMealSchedules', [...(nutrition.customMealSchedules || []), newSchedule], { shouldDirty: true });
+    setValue('nutrition.customMealSchedules', [...(nutrition.customMealSchedules || []), newSchedule], { shouldDirty: true });
     setSelectedScheduleId(newId);
     setNewScheduleName('');
     setCreatingNew(false);
@@ -127,7 +141,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
   function handleAssignDay(day: string, scheduleId: string) {
     const updated = { ...assignments, [day]: scheduleId };
     setAssignments(updated);
-    setValue('pillar_settings.nutrition.scheduleAssignments', updated, { shouldDirty: true });
+    setValue('nutrition.scheduleAssignments', updated, { shouldDirty: true });
   }
 
   // --- Days of week ---
@@ -150,7 +164,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
     const updated = checked
       ? [...foodAllergies, allergy]
       : foodAllergies.filter((a) => a !== allergy);
-    setValue('pillar_settings.nutrition.foodAllergies', updated, { shouldDirty: true });
+      setValue('nutrition.foodAllergies', updated);
   };
 
   const dietaryOptions = [
@@ -173,7 +187,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
         <label className="block text-sm font-medium text-gray-700">Food Measurement</label>
         <select
           value={nutrition.foodMeasurement}
-          onChange={(e) => setValue('pillar_settings.nutrition.foodMeasurement', e.target.value, { shouldDirty: true })}
+          onChange={(e) => setValue('nutrition.foodMeasurement', e.target.value as FoodMeasurementUnit, { shouldDirty: true })}
           className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
         >
           <option value="grams">Grams</option>
@@ -186,7 +200,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
         <label className="block text-sm font-medium text-gray-700">Hydration Unit</label>
         <select
           value={nutrition.hydrationUnit}
-          onChange={(e) => setValue('pillar_settings.nutrition.hydrationUnit', e.target.value, { shouldDirty: true })}
+          onChange={e => setValue('nutrition.hydrationUnit', e.target.value as HydrationUnit, { shouldDirty: true })}
           className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
         >
           <option value="oz">Fluid Ounces</option>
@@ -213,7 +227,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                 type="number"
                 min={0}
                 value={nutrition.calorieTarget || ''}
-                onChange={e => setValue('pillar_settings.nutrition.calorieTarget', Number(e.target.value), { shouldDirty: true })}
+                onChange={e => setValue('nutrition.calorieTarget', Number(e.target.value), { shouldDirty: true })}
                 className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
               />
             </div>
@@ -252,7 +266,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                     type="number"
                     min={0}
                     value={nutrition.macronutrientTargets?.[macro] || ''}
-                    onChange={e => setValue(`pillar_settings.nutrition.macronutrientTargets.${macro}` as any, Number(e.target.value), { shouldDirty: true })}
+                    onChange={e => setValue(`nutrition.macronutrientTargets.${macro}` as any, Number(e.target.value), { shouldDirty: true })}
                     className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-700"
                   />
                 </div>
@@ -403,7 +417,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                               const updated = { ...assignments };
                               delete updated[day as keyof ScheduleAssignments];
                               setAssignments(updated);
-                              setValue('pillar_settings.nutrition.scheduleAssignments', updated, { shouldDirty: true });
+                              setValue('nutrition.scheduleAssignments', updated, { shouldDirty: true });
                             }
                           } else {
                             const updated = { ...assignments };
@@ -418,7 +432,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                               }
                             }
                             setAssignments(updated);
-                            setValue('pillar_settings.nutrition.scheduleAssignments', updated, { shouldDirty: true });
+                            setValue('nutrition.scheduleAssignments', updated, { shouldDirty: true });
                           }
                         }}
                         className="mb-1"
@@ -431,11 +445,12 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
             </div>
             {/* Nutrient Distribution Section for selected schedule */}
             <NutrientDistribution
-              calorieTarget={nutrition.calorieTarget}
-              macronutrientTargets={nutrition.macronutrientTargets}
-              macroMode={nutrition.macronutrientTargetMode}
+              calorieTarget={watchedCalorieTarget as number}
+              macronutrientTargets={watchedMacronutrientTargets as MacronutrientTargets}
+              macroMode={macroMode} // Pass the local state instead of nutrition.macronutrientTargetMode
               meals={selectedSchedule.meals}
-              // TODO: Pass and update selectedSchedule.nutrientDistribution
+              nutrientDistribution={selectedSchedule.nutrientDistribution}
+              setValue={setValue}
             />
           </div>
         )}
@@ -502,7 +517,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                     !foodAllergies.includes(trimmed) &&
                     !foodAllergyOptions.some(opt => opt.value.toLowerCase() === trimmed.toLowerCase())
                   ) {
-                    setValue('pillar_settings.nutrition.foodAllergies', [...foodAllergies, trimmed], { shouldDirty: true });
+                    setValue('nutrition.foodAllergies', [...foodAllergies, trimmed], { shouldDirty: true });
                     setCustomAllergy('');
                   }
                 }}
@@ -528,7 +543,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
             <label className="block text-sm font-medium text-gray-700 mb-2">Select your base dietary preference:</label>
             <select
               value={nutrition.dietaryBase || ''}
-              onChange={e => setValue('pillar_settings.nutrition.dietaryBase', e.target.value, { shouldDirty: true })}
+              onChange={e => setValue('nutrition.dietaryBase', e.target.value as DietaryBase, { shouldDirty: true })}
               className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2 mb-4"
             >
               <option value="">-- Select --</option>
@@ -552,7 +567,7 @@ const NutritionUserSettings: React.FC<NutritionUserSettingsProps> = ({ setValue,
                       const updated = checked
                         ? [...prev, style]
                         : prev.filter((s: string) => s !== style);
-                      setValue('pillar_settings.nutrition.dietaryStyles', updated, { shouldDirty: true });
+                      setValue('nutrition.dietaryStyles', updated, { shouldDirty: true });
                     }}
                     className="mr-2"
                   />
@@ -573,6 +588,8 @@ interface NutrientDistributionProps {
   macronutrientTargets?: MacronutrientTargets;
   macroMode: MacronutrientTargetMode;
   meals: MealScheduleEntry[];
+  nutrientDistribution?: any; // Accept the persisted distribution from form state
+  setValue?: UseFormSetValue<UserSettings>; // Allow updating form state
 }
 
 const CALORIES_PER_GRAM_DIST = {
@@ -586,13 +603,25 @@ const NutrientDistribution: React.FC<NutrientDistributionProps> = ({
   macronutrientTargets,
   macroMode,
   meals,
+  nutrientDistribution,
+  setValue,
 }) => {
   type DistributionMode = 'even' | 'custom-percent' | 'custom-macros';
-  const [distributionMode, setDistributionMode] = React.useState<DistributionMode>('even');
-  const [customPercents, setCustomPercents] = React.useState<number[]>(meals.map(() => Math.round(100 / (meals.length || 1))));
-  const [customMacros, setCustomMacros] = React.useState<{ protein: number; carbs: number; fat: number }[]>(
-    meals.map(() => ({ protein: 0, carbs: 0, fat: 0 }))
-  );
+  // Initialize from form state if present, else fallback
+  const [distributionMode, setDistributionMode] = React.useState<DistributionMode>(nutrientDistribution?.mode || 'even');
+  const [customPercents, setCustomPercents] = React.useState<number[]>(nutrientDistribution?.customPercents || meals.map(() => Math.round(100 / (meals.length || 1))));
+  const [customMacros, setCustomMacros] = React.useState<{ protein: number; carbs: number; fat: number }[]>(nutrientDistribution?.customMacros || meals.map(() => ({ protein: 0, carbs: 0, fat: 0 })));
+
+  // Sync local state to form state on change
+  React.useEffect(() => {
+    if (setValue) {
+      setValue('nutrition.defaultMealSchedule.nutrientDistribution', {
+        mode: distributionMode,
+        customPercents,
+        customMacros,
+      } as any, { shouldDirty: true });
+    }
+  }, [distributionMode, customPercents, customMacros, setValue]);
 
   // Keep customPercents and customMacros in sync with meals
   React.useEffect(() => {

@@ -7,7 +7,9 @@ import { validateMeasurements, type ValidationError } from '../utils/validation'
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
 import { Toast } from 'flowbite-react';
 import { HiCheck } from 'react-icons/hi';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import { clientLogger } from '@/app/lib/logging/logger.client';
+// import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
 
 interface UserBioData {
   dateOfBirth: string;
@@ -75,7 +77,7 @@ interface BodyCompositionInputProps {
 }
 
 export default function BodyCompositionInput({ userId }: BodyCompositionInputProps) {
-  const { settings: userSettings } = useUserSettings();
+  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [calculatedMetrics, setCalculatedMetrics] = useState<{
     bodyFatPercentage: number;
     fatMass: number;
@@ -86,6 +88,22 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [bioData, setBioData] = useState<UserBioData | null>(null);
   const [bioError, setBioError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/user-settings');
+        if (!res.ok) throw new Error('Failed to fetch user settings');
+        const data = await res.json();
+        if (isMounted) setUserSettings(data);
+      } catch (error) {
+        if (isMounted) setUserSettings(null);
+      }
+    }
+    fetchSettings();
+    return () => { isMounted = false; };
+  }, []);
 
   // Fetch user's bio data
   useEffect(() => {
@@ -104,7 +122,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
           setBioError('Please complete your profile with date of birth and gender information.');
         }
       } catch (error) {
-        console.error('Error loading bio data:', error);
+        clientLogger.error('Error loading bio data', error);
         setBioError('Failed to load profile data. Some features may be limited.');
       }
     };
@@ -157,14 +175,24 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const manualBodyFat = watch('manualBodyFat');
 
   // Get the enabled circumference measurements from user settings
-  const enabledCircumferenceMeasurements = userSettings?.pillar_settings?.health?.circumferenceMeasurements || [];
+  const enabledCircumferenceMeasurements = Array.isArray(userSettings?.health?.circumferenceMeasurements)
+    ? userSettings?.health?.circumferenceMeasurements
+    : [];
 
   // Get units from user settings
-  const weightUnit = formatUnit(userSettings?.weight_unit, 'weight');
-  const circumferenceUnit = formatUnit(userSettings?.pillar_settings?.health?.circumferenceUnit, 'circumference');
+  const weightUnit = formatUnit(
+    typeof userSettings?.general?.weightUnit === 'string' ? userSettings.general.weightUnit : undefined,
+    'weight'
+  );
+  const circumferenceUnit = formatUnit(
+    typeof userSettings?.health?.circumferenceUnit === 'string' ? userSettings.health.circumferenceUnit : undefined,
+    'circumference'
+  );
 
   // Get the enabled body fat methods from user settings
-  const enabledBodyFatMethods = userSettings?.pillar_settings?.health?.bodyFatMethods || [];
+  const enabledBodyFatMethods = Array.isArray(userSettings?.health?.bodyFatMethods)
+    ? userSettings?.health?.bodyFatMethods
+    : [];
   
   // Check if manual entry should be available (if manual or bioelectrical is enabled)
   const showManualEntry = enabledBodyFatMethods.includes('manual') || enabledBodyFatMethods.includes('bioelectrical');
@@ -198,7 +226,8 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         .replace(/^(left|right)/, '')  // Remove left/right only from the start
         .replace(/(relaxed|flexed)$/, ''); // Remove relaxed/flexed only from the end
       
-      if (enabledCircumferenceMeasurements.includes(settingKey)) {
+        if (enabledCircumferenceMeasurements.includes(settingKey)) {
+        // if (enabledCircumferenceMeasurements.includes(settingKey as CircumferenceMeasurement)) {
         measurements[key as keyof CircumferenceMeasurements] = defaultCircumferenceMeasurements[key as keyof CircumferenceMeasurements];
       }
     });
@@ -259,7 +288,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   };
 
   const onSubmit = async (data: FormInputs) => {
-    console.log('Form submission started');
+    clientLogger.info('Form submission started');
     
     const errors = validateMeasurements(
       data.weight,
@@ -331,7 +360,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       }, 5000);
       
     } catch (error) {
-      console.error('Error saving measurements:', error);
+      clientLogger.error('Error saving body composition measurements', error);
       setValidationErrors([{ 
         path: ['save'], 
         message: error instanceof Error ? error.message : 'Failed to save measurements. Please try again.' 
@@ -366,18 +395,18 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       <form 
         onSubmit={(e) => {
           e.preventDefault();
-          console.log('Form submit event triggered');
+          clientLogger.info('Form submit event triggered');
           const formData = watch();
-          console.log('Form data:', formData);
+          clientLogger.info('Form data:', { formData });
           
           // Ensure we have required values
           if (!formData.weight || formData.weight <= 0) {
-            console.log('Invalid weight value');
+            clientLogger.error('Invalid weight value');
             return;
           }
 
           if (formData.bodyFatMethod === 'manual' && (!formData.manualBodyFat || formData.manualBodyFat <= 0)) {
-            console.log('Invalid manual body fat value');
+            clientLogger.error('Invalid manual body fat value');
             return;
           }
 

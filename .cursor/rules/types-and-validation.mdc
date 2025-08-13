@@ -3,11 +3,6 @@ description:
 globs: 
 alwaysApply: false
 ---
----
-description: 
-globs: 
-alwaysApply: false
----
 # Types & Validation Rules for Resistance Training Tool
 
 This document outlines the conventions and best practices for defining TypeScript interfaces/types and Zod schemas in the Resistance Training tool. Follow these guidelines to ensure consistency, maintainability, and type safety across the codebase.
@@ -64,6 +59,7 @@ This document outlines the conventions and best practices for defining TypeScrip
 
 - **Versioning**
   - If the schema evolves significantly, consider versioning your types and schemas or documenting migration steps.
+
 ---
 
 ## 4. Examples

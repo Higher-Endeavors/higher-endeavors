@@ -2,80 +2,46 @@
 
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
+import { useState, useMemo } from 'react';
+import { ExerciseLibraryItem } from '../types/resistance-training.zod';
 
 interface AdvancedExerciseSearchProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (exercise: any) => void;
+  onSelect: (exercise: ExerciseLibraryItem) => void;
+  exercises: ExerciseLibraryItem[];
 }
 
-export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect }: AdvancedExerciseSearchProps) {
-  // Placeholder options for demonstration
-  const exerciseFamilyOptions = [
-    { value: 'compound', label: 'Compound' },
-    { value: 'isolation', label: 'Isolation' },
-  ];
+export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect, exercises }: AdvancedExerciseSearchProps) {
+  const [selectedFilters, setSelectedFilters] = useState<{
+    difficulty?: string;
+    muscleGroup?: string;
+    equipment?: string;
+  }>({});
 
-  const bodyRegionOptions = [
-    { value: 'upper', label: 'Upper Body' },
-    { value: 'lower', label: 'Lower Body' },
-    { value: 'core', label: 'Core' },
-  ];
+  // Extract unique values for each filter from exercises
+  const filters = useMemo(() => {
+    const getUniqueValues = (key: keyof ExerciseLibraryItem) => 
+      Array.from(new Set(exercises.map(ex => ex[key]).filter(Boolean)))
+        .sort()
+        .map(value => ({ value, label: value }));
 
-  const muscleGroupOptions = [
-    { value: 'chest', label: 'Chest' },
-    { value: 'back', label: 'Back' },
-    { value: 'shoulders', label: 'Shoulders' },
-    { value: 'legs', label: 'Legs' },
-  ];
+    return {
+      difficulty: getUniqueValues('difficulty'),
+      muscleGroup: getUniqueValues('muscleGroup'),
+      equipment: getUniqueValues('equipment'),
+    };
+  }, [exercises]);
 
-  const movementPatternOptions = [
-    { value: 'push', label: 'Push' },
-    { value: 'pull', label: 'Pull' },
-    { value: 'squat', label: 'Squat' },
-    { value: 'hinge', label: 'Hinge' },
-  ];
-
-  const movementPlaneOptions = [
-    { value: 'sagittal', label: 'Sagittal' },
-    { value: 'frontal', label: 'Frontal' },
-    { value: 'transverse', label: 'Transverse' },
-  ];
-
-  const equipmentOptions = [
-    { value: 'barbell', label: 'Barbell' },
-    { value: 'dumbbell', label: 'Dumbbell' },
-    { value: 'kettlebell', label: 'Kettlebell' },
-    { value: 'bodyweight', label: 'Bodyweight' },
-  ];
-
-  const lateralityOptions = [
-    { value: 'bilateral', label: 'Bilateral' },
-    { value: 'unilateral', label: 'Unilateral' },
-  ];
-
-  // Placeholder exercises for demonstration
-  const placeholderExercises = [
-    {
-      id: '1',
-      label: 'Barbell Bench Press',
-      data: {
-        target_muscle_group: 'Chest',
-        primary_equipment: 'Barbell',
-        difficulty: 'Intermediate'
-      },
-      source: 'library'
-    },
-    {
-      id: '2',
-      label: 'Custom Exercise',
-      data: {
-        target_muscle_group: 'Back',
-        primary_equipment: 'Dumbbell'
-      },
-      source: 'user'
-    }
-  ];
+  // Filter exercises based on selected filters
+  const filteredExercises = useMemo(() => {
+    return exercises.filter(exercise => {
+      return Object.entries(selectedFilters).every(([key, value]) => {
+        if (!value) return true;
+        return exercise[key as keyof ExerciseLibraryItem] === value;
+      });
+    });
+  }, [exercises, selectedFilters]);
 
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
@@ -90,100 +56,76 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect }: Ad
               Search Exercise
             </label>
             <Select
-              options={placeholderExercises}
-              className="basic-single"
+              options={exercises.map(ex => ({
+                value: ex.exerciseLibraryId,
+                label: ex.name,
+                data: ex
+              }))}
+              className="basic-single dark:text-slate-700"
               classNamePrefix="select"
               placeholder="Type to search exercises..."
               components={{
                 DropdownIndicator: () => null,
                 IndicatorSeparator: () => null
               }}
+              onChange={(option) => option && onSelect(option.data)}
             />
           </div>
 
           {/* Filters in a responsive grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Exercise Family */}
-            <div className="w-full">
+            {/* Difficulty */}
+            <div key="difficulty" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
-                Exercise Family
+                Difficulty
               </label>
               <Select
-                options={exerciseFamilyOptions}
+                options={filters.difficulty}
                 isClearable
-                placeholder="Filter by exercise family"
+                placeholder="Filter by difficulty"
+                className="dark:text-slate-700"
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    difficulty: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
-
-            {/* Body Region */}
-            <div className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Body Region
-              </label>
-              <Select
-                options={bodyRegionOptions}
-                isClearable
-                placeholder="Filter by body region"
-              />
-            </div>
-
             {/* Muscle Group */}
-            <div className="w-full">
+            <div key="muscleGroup" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
                 Muscle Group
               </label>
               <Select
-                options={muscleGroupOptions}
+                options={filters.muscleGroup}
                 isClearable
                 placeholder="Filter by muscle group"
+                className="dark:text-slate-700"
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    muscleGroup: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
-
-            {/* Movement Pattern */}
-            <div className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Movement Pattern
-              </label>
-              <Select
-                options={movementPatternOptions}
-                isClearable
-                placeholder="Filter by movement pattern"
-              />
-            </div>
-
-            {/* Movement Plane */}
-            <div className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Movement Plane
-              </label>
-              <Select
-                options={movementPlaneOptions}
-                isClearable
-                placeholder="Filter by movement plane"
-              />
-            </div>
-
             {/* Equipment */}
-            <div className="w-full">
+            <div key="equipment" className="w-full">
               <label className="block text-sm font-medium dark:text-white mb-2">
                 Equipment
               </label>
               <Select
-                options={equipmentOptions}
+                options={filters.equipment}
                 isClearable
                 placeholder="Filter by equipment"
-              />
-            </div>
-
-            {/* Laterality */}
-            <div className="w-full">
-              <label className="block text-sm font-medium dark:text-white mb-2">
-                Laterality
-              </label>
-              <Select
-                options={lateralityOptions}
-                isClearable
-                placeholder="Filter by laterality"
+                className="dark:text-slate-700"
+                onChange={(option) =>
+                  setSelectedFilters(prev => ({
+                    ...prev,
+                    equipment: typeof option?.value === 'string' ? option.value : undefined
+                  }))
+                }
               />
             </div>
           </div>
@@ -191,12 +133,12 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect }: Ad
           {/* Exercise List */}
           <div className="mt-6">
             <h3 className="text-sm font-medium dark:text-white mb-3">
-              {placeholderExercises.length} exercises found
+              {filteredExercises.length} exercises found
             </h3>
             <div className="max-h-[calc(100vh-24rem)] overflow-y-auto">
-              {placeholderExercises.map((exercise) => (
+              {filteredExercises.map((exercise) => (
                 <div
-                  key={exercise.id}
+                  key={`exercise-${exercise.exerciseLibraryId}`}
                   className="p-3 hover:bg-gray-100 dark:hover:bg-slate-800 cursor-pointer rounded transition-colors"
                   onClick={() => {
                     onSelect(exercise);
@@ -204,18 +146,13 @@ export default function AdvancedExerciseSearch({ isOpen, onClose, onSelect }: Ad
                   }}
                 >
                   <div className="font-medium text-gray-900 dark:text-gray-100">
-                    {exercise.label}
-                    {exercise.source === 'user' && (
-                      <span className="ml-2 px-2 py-0.5 text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-100 rounded-full">
-                        Custom
-                      </span>
-                    )}
+                    {exercise.name}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {exercise.data.target_muscle_group} • {exercise.data.primary_equipment}
-                    {exercise.source === 'library' && exercise.data.difficulty && (
+                    {exercise.muscleGroup} • {exercise.equipment}
+                    {exercise.difficulty && (
                       <span className="ml-2 text-xs text-gray-400 dark:text-gray-500">
-                        {exercise.data.difficulty}
+                        {exercise.difficulty}
                       </span>
                     )}
                   </div>

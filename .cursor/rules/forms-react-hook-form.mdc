@@ -1,0 +1,56 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+---
+description: Rule for form creation and React Hook Form usage in this codebase.
+globs:
+alwaysApply: false
+---
+
+# Rule: Form Creation and React Hook Form Usage
+
+## General
+- All new forms must use [React Hook Form](https://react-hook-form.com/) for state management and validation.
+- Avoid using `useState` for individual form fields; use `useForm` and `Controller` for all field state and value management.
+- Integrate Zod schemas for validation using `@hookform/resolvers/zod` when possible.
+
+## Implementation
+- Initialize form state with `useForm` at the top of your component.
+- Use `Controller` for all controlled components (e.g., custom selects, date pickers).
+- For simple HTML inputs, use the `register` method from React Hook Form.
+- All form submissions must use `handleSubmit` from React Hook Form.
+- For forms that require server-side validation or mutation, prefer using Next.js Server Actions as the form's `action` handler.
+
+## Validation
+- Use Zod schemas for validation and type inference.
+- Pass the Zod schema to `useForm` via the `resolver` option.
+- Display validation errors inline, near the relevant field.
+
+## State & Effects
+- Do not use `useEffect` to derive or sync form state.
+- All derived state (e.g., dynamic fields, dependent values) should be handled via event handlers or React Hook Form's built-in mechanisms.
+
+## UX
+- Always provide user feedback for validation errors and server errors.
+- Disable the submit button while the form is submitting.
+- Reset the form on successful submission, unless otherwise specified.
+
+## Accessibility
+- All form fields must have associated labels.
+- Use semantic HTML for form elements.
+
+---
+
+**Summary Table**
+
+| Requirement                | Rule/Pattern                                                                 |
+|----------------------------|------------------------------------------------------------------------------|
+| Form state                 | Use `useForm` from React Hook Form                                           |
+| Controlled components      | Use `Controller`                                                             |
+| Validation                 | Use Zod schemas and `@hookform/resolvers/zod`                                |
+| Submission                 | Use `handleSubmit` and/or Next.js Server Actions                             |
+| No useEffect for state     | Handle all derived state via event handlers or React Hook Form mechanisms    |
+| Error display              | Show errors inline, near the relevant field                                  |
+| Accessibility              | All fields must have labels, use semantic HTML                               |

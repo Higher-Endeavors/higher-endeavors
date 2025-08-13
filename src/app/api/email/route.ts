@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 const nodemailer = require('nodemailer');
+import { serverLogger } from '@/app/lib/logging/logger.server';
 
 export async function POST(request: NextRequest) {
   const host = process.env.NEXT_PUBLIC_EMAIL_HOST
@@ -38,9 +39,14 @@ try {
     return NextResponse.json({ message: "Success: email was sent" })
 
 } catch (error) {
-    console.log(error)
-    NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 })
-
+    await serverLogger.error('Email route error', error, { 
+      replyTo, 
+      subject, 
+      toEmail,
+      host,
+      port 
+    });
+    return NextResponse.json({ error: 'COULD NOT SEND MESSAGE' }, { status: 500 });
 }
 
 }
