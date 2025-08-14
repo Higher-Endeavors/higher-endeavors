@@ -11,6 +11,10 @@ interface HeartRateZone {
   color: string;
 }
 
+interface ActivityZones {
+  [activity: string]: HeartRateZone[];
+}
+
 interface HeartRateZonesProps {
   onZonesChange?: (zones: HeartRateZone[]) => void;
   initialZones?: HeartRateZone[];
@@ -62,21 +66,46 @@ const defaultZones: HeartRateZone[] = [
   }
 ];
 
+const activityOptions = [
+  { value: 'running', label: 'Running' },
+  { value: 'cycling', label: 'Cycling' },
+  { value: 'swimming', label: 'Swimming' },
+  { value: 'rowing', label: 'Rowing' },
+];
+
 export default function HeartRateZones({ onZonesChange, initialZones, userAge }: HeartRateZonesProps) {
   const [zones, setZones] = useState<HeartRateZone[]>(initialZones || defaultZones);
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('age');
   const [maxHeartRate, setMaxHeartRate] = useState<number>(0);
   const [restingHeartRate, setRestingHeartRate] = useState<number>(0);
   const [customMaxHR, setCustomMaxHR] = useState<number>(0);
+  
+  // Multi-activity custom zones
+  const [enableMultiActivity, setEnableMultiActivity] = useState<boolean>(false);
+  const [selectedActivity, setSelectedActivity] = useState<string>('');
+  const [activityZones, setActivityZones] = useState<ActivityZones>({});
+  const [activeActivityTab, setActiveActivityTab] = useState<string>('general');
 
-  const handleZoneChange = (zoneId: number, field: 'minBpm' | 'maxBpm', value: number) => {
-    const updatedZones = zones.map(zone => 
-      zone.id === zoneId ? { ...zone, [field]: value } : zone
-    );
-    setZones(updatedZones);
-    
-    if (onZonesChange) {
-      onZonesChange(updatedZones);
+  const handleZoneChange = (zoneId: number, field: 'minBpm' | 'maxBpm', value: number, activity: string = 'general') => {
+    if (activity === 'general') {
+      const updatedZones = zones.map(zone => 
+        zone.id === zoneId ? { ...zone, [field]: value } : zone
+      );
+      setZones(updatedZones);
+      
+      if (onZonesChange) {
+        onZonesChange(updatedZones);
+      }
+    } else {
+      const currentActivityZones = activityZones[activity] || [...defaultZones];
+      const updatedActivityZones = currentActivityZones.map(zone => 
+        zone.id === zoneId ? { ...zone, [field]: value } : zone
+      );
+      
+      setActivityZones(prev => ({
+        ...prev,
+        [activity]: updatedActivityZones
+      }));
     }
   };
 
@@ -199,6 +228,34 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
     }
   };
 
+  const handleAddActivity = () => {
+    if (selectedActivity && !activityZones[selectedActivity]) {
+      setActivityZones(prev => ({
+        ...prev,
+        [selectedActivity]: [...defaultZones]
+      }));
+      setActiveActivityTab(selectedActivity);
+      setSelectedActivity('');
+    }
+  };
+
+  const handleRemoveActivity = (activity: string) => {
+    const newActivityZones = { ...activityZones };
+    delete newActivityZones[activity];
+    setActivityZones(newActivityZones);
+    
+    if (activeActivityTab === activity) {
+      setActiveActivityTab('general');
+    }
+  };
+
+  const getCurrentZones = () => {
+    if (activeActivityTab === 'general') {
+      return zones;
+    }
+    return activityZones[activeActivityTab] || [...defaultZones];
+  };
+
   const renderCalculationInputs = () => {
     switch (calculationMethod) {
       case 'age':
@@ -299,11 +356,97 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
 
       case 'custom':
         return (
-          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-            <p className="text-sm text-gray-600">
-              <strong>Custom Mode:</strong> Manually set each zone's heart rate ranges below. 
-              This allows you to input your own specific values or use values from fitness testing.
-            </p>
+          <div className="space-y-4">
+            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-gray-600">
+                <strong>Custom Mode:</strong> Manually set each zone's heart rate ranges below. 
+                This allows you to input your own specific values or use values from fitness testing.
+              </p>
+            </div>
+            
+            {/* Multi-activity checkbox */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="enableMultiActivity"
+                checked={enableMultiActivity}
+                onChange={(e) => setEnableMultiActivity(e.target.checked)}
+                className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <label htmlFor="enableMultiActivity" className="text-sm font-medium text-gray-600">
+                Customize HR Zones for Different Activities
+              </label>
+            </div>
+            
+            {/* Activity selection */}
+            {enableMultiActivity && (
+              <div className="space-y-3">
+                <div className="flex space-x-2">
+                  <select
+                    value={selectedActivity}
+                    onChange={(e) => setSelectedActivity(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600"
+                  >
+                    <option value="">Select an activity...</option>
+                    {activityOptions.map(option => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={handleAddActivity}
+                    disabled={!selectedActivity}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    Add
+                  </button>
+                </div>
+                
+                {/* Activity tabs */}
+                {Object.keys(activityZones).length > 0 && (
+                  <div className="border-b border-gray-200">
+                    <nav className="flex flex-wrap -mb-px">
+                      <button
+                        type="button"
+                        onClick={() => setActiveActivityTab('general')}
+                        className={`py-2 px-3 text-sm font-medium ${
+                          activeActivityTab === 'general'
+                            ? 'border-b-2 border-purple-500 text-purple-600'
+                            : 'text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        General
+                      </button>
+                      {Object.keys(activityZones).map(activity => (
+                        <div key={activity} className="flex items-center">
+                          <button
+                            type="button"
+                            onClick={() => setActiveActivityTab(activity)}
+                            className={`py-2 px-3 text-sm font-medium ${
+                              activeActivityTab === activity
+                                ? 'border-b-2 border-purple-500 text-purple-600'
+                                : 'text-gray-500 hover:text-gray-700'
+                            }`}
+                          >
+                            {activityOptions.find(opt => opt.value === activity)?.label}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveActivity(activity)}
+                            className="ml-2 p-1 text-gray-400 hover:text-red-500"
+                            title="Remove activity"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </nav>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
 
@@ -311,6 +454,8 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
         return null;
     }
   };
+
+  const currentZones = getCurrentZones();
 
   return (
     <div className="space-y-6">
@@ -345,9 +490,16 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
 
       {/* Zones Display and Editing */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-600">Zone Configuration</h3>
+        <h3 className="text-lg font-medium text-gray-600">
+          Zone Configuration
+          {activeActivityTab !== 'general' && (
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              - {activityOptions.find(opt => opt.value === activeActivityTab)?.label}
+            </span>
+          )}
+        </h3>
         
-        {zones.map((zone) => (
+        {currentZones.map((zone) => (
           <div
             key={zone.id}
             className={`p-4 border-2 rounded-lg ${zone.color}`}
@@ -368,7 +520,7 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
                   type="number"
                   id={`min-${zone.id}`}
                   value={zone.minBpm || ''}
-                  onChange={(e) => handleZoneChange(zone.id, 'minBpm', Number(e.target.value))}
+                  onChange={(e) => handleZoneChange(zone.id, 'minBpm', Number(e.target.value), activeActivityTab)}
                   placeholder="Min BPM"
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600"
                 />
@@ -383,7 +535,7 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
                   id={`max-${zone.id}`}
                   value={zone.maxBpm || ''}
                   placeholder="Max BPM"
-                  onChange={(e) => handleZoneChange(zone.id, 'maxBpm', Number(e.target.value))}
+                  onChange={(e) => handleZoneChange(zone.id, 'maxBpm', Number(e.target.value), activeActivityTab)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-600"
                 />
               </div>
@@ -403,9 +555,16 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
 
       {/* Summary */}
       <div className="bg-blue-50 rounded-lg p-4">
-        <h3 className="text-lg font-medium text-gray-600 mb-2">Zone Summary</h3>
+        <h3 className="text-lg font-medium text-gray-600 mb-2">
+          Zone Summary
+          {activeActivityTab !== 'general' && (
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              - {activityOptions.find(opt => opt.value === activeActivityTab)?.label}
+            </span>
+          )}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
-          {zones.map((zone) => (
+          {currentZones.map((zone) => (
             <div key={zone.id} className="text-center">
               <div className={`w-full h-3 rounded-t ${zone.color.split(' ')[0]} border-t border-l border-r ${zone.color.split(' ')[1]}`}></div>
               <div className="p-2 bg-white border border-gray-200 rounded-b">
