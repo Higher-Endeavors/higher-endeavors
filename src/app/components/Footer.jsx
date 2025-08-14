@@ -17,6 +17,9 @@ const Footer = () => {
         </ul>
         <ul>
           {session?.user && (
+            <li className="hover:text-[#CBAACB] pb-4"><a href="/news-updates">News & Updates</a></li>
+          )}
+          {session?.user && (
             <li className="hover:text-[#CBAACB]"><a href="/tools/feature-roadmap">Feature Roadmap</a></li>
           )}
         </ul>
