@@ -5,6 +5,7 @@ import { UserSettingsProvider } from './context/UserSettingsContext';
 import { getUserSettings } from './lib/actions/userSettings';
 import GoogleAnalytics from './components/GoogleAnalytics';
 import { ErrorBoundary } from '@/app/components/error-boundary.client'
+import { ToastProvider } from './lib/toast';
 
 
 export const metadata: Metadata = {
@@ -30,7 +31,9 @@ export default async function RootLayout({
         {gaId && <GoogleAnalytics gaId={gaId} />}
         <ErrorBoundary>
           <UserSettingsProvider userSettings={userSettings}>
-            {children}
+            <ToastProvider>
+              {children}
+            </ToastProvider>
           </UserSettingsProvider>
         </ErrorBoundary>
       </body>

@@ -1,0 +1,386 @@
+# Toast System Implementation Guide
+
+## Overview
+
+The Toast system provides consistent, accessible notifications across the application for user feedback. This guide covers how to implement and use toasts in new tools, pages, and components.
+
+## Quick Start
+
+### 1. Import the Hook
+```tsx
+import { useToast } from '@/app/lib/toast';
+```
+
+### 2. Use in Component
+```tsx
+export default function MyComponent() {
+  const toast = useToast();
+  
+  const handleAction = async () => {
+    try {
+      await performAction();
+      toast.success('Action completed successfully!');
+    } catch (error) {
+      toast.error('Action failed: ' + error.message);
+    }
+  };
+}
+```
+
+## Toast Types & Use Cases
+
+### Success Toast
+**When to use:** Confirmations, successful operations, data saved
+```tsx
+toast.success('Program saved successfully!');
+toast.success('Data updated successfully!');
+toast.success('Operation completed!');
+```
+
+### Error Toast
+**When to use:** Failed operations, API errors, validation failures
+```tsx
+toast.error('Failed to save program');
+toast.error('Error updating data: ' + specificError);
+toast.error('Network connection failed');
+```
+
+### Warning Toast
+**When to use:** User guidance, validation issues, required actions
+```tsx
+toast.warning('Please enter a program name');
+toast.warning('Please select at least one category');
+toast.warning('Changes will be lost if you continue');
+```
+
+### Info Toast
+**When to use:** Important information, tips, status updates
+```tsx
+toast.info('Data is being processed');
+toast.info('New features available');
+toast.info('Sync completed');
+```
+
+## Implementation Patterns
+
+### Save/Update Operations
+```tsx
+const handleSave = async () => {
+  try {
+    const result = await saveData();
+    if (result.success) {
+      toast.success('Data saved successfully!');
+    } else {
+      toast.error('Save failed: ' + result.error);
+    }
+  } catch (error) {
+    toast.error('Save failed: ' + error.message);
+  }
+};
+```
+
+### Form Validation
+```tsx
+const handleSubmit = () => {
+  if (!formData.name) {
+    toast.warning('Please enter a name');
+    return;
+  }
+  if (!formData.email) {
+    toast.warning('Please enter an email address');
+    return;
+  }
+  // Proceed with submission
+};
+```
+
+### API Operations
+```tsx
+const handleApiCall = async () => {
+  try {
+    const response = await api.post('/endpoint', data);
+    toast.success('Operation completed successfully!');
+  } catch (error) {
+    if (error.response?.status === 400) {
+      toast.warning('Please check your input data');
+    } else if (error.response?.status === 500) {
+      toast.error('Server error. Please try again later.');
+    } else {
+      toast.error('Operation failed: ' + error.message);
+    }
+  }
+};
+```
+
+### Loading States with Toast
+```tsx
+const handleAction = async () => {
+  const button = document.querySelector('[data-action-button]');
+  if (button) {
+    button.textContent = 'Processing...';
+    button.setAttribute('disabled', 'true');
+  }
+  
+  try {
+    await performAction();
+    toast.success('Action completed!');
+  } catch (error) {
+    toast.error('Action failed: ' + error.message);
+  } finally {
+    if (button) {
+      button.textContent = 'Submit';
+      button.removeAttribute('disabled');
+    }
+  }
+};
+```
+
+## Customization Options
+
+### Duration
+```tsx
+// Default: 5 seconds
+toast.success('Standard message');
+
+// Custom duration: 10 seconds
+toast.success('Long message', 10000);
+
+// No auto-dismiss
+toast.info('Important info', 0);
+```
+
+### Multiple Toasts
+```tsx
+// Show multiple toasts simultaneously
+toast.success('First operation completed');
+toast.info('Second operation in progress');
+toast.success('Third operation completed');
+```
+
+## Best Practices
+
+### ✅ Do's
+- **Be specific:** Include relevant details in error messages
+- **Use appropriate types:** Match toast type to message content
+- **Keep messages concise:** One clear action or status per toast
+- **Provide guidance:** Use warnings to guide user actions
+- **Handle errors gracefully:** Show specific error messages when possible
+
+### ❌ Don'ts
+- **Don't overuse:** Reserve toasts for important feedback
+- **Don't be vague:** Avoid generic messages like "Something went wrong"
+- **Don't duplicate feedback:** If UI changes are immediately visible, skip the toast
+- **Don't ignore errors:** Always provide user feedback for failed operations
+
+## Common Implementation Scenarios
+
+### Tool/Page Save Operations
+```tsx
+const handleSaveTool = async () => {
+  if (!validateData()) {
+    toast.warning('Please complete all required fields');
+    return;
+  }
+  
+  try {
+    const result = await saveToolData();
+    if (result.success) {
+      toast.success('Tool settings saved successfully!');
+    } else {
+      toast.error('Save failed: ' + result.error);
+    }
+  } catch (error) {
+    toast.error('Save failed: ' + error.message);
+  }
+};
+```
+
+### Data Import/Export
+```tsx
+const handleImport = async (file: File) => {
+  try {
+    const result = await importData(file);
+    toast.success(`Successfully imported ${result.count} items`);
+  } catch (error) {
+    toast.error('Import failed: ' + error.message);
+  }
+};
+
+const handleExport = async () => {
+  try {
+    await exportData();
+    toast.success('Data exported successfully!');
+  } catch (error) {
+    toast.error('Export failed: ' + error.message);
+  }
+};
+```
+
+### User Settings
+```tsx
+const handleSettingsUpdate = async (settings: UserSettings) => {
+  try {
+    await updateUserSettings(settings);
+    toast.success('Settings updated successfully!');
+  } catch (error) {
+    toast.error('Failed to update settings: ' + error.message);
+  }
+};
+```
+
+### Authentication Operations
+```tsx
+const handleLogin = async (credentials: LoginCredentials) => {
+  try {
+    await signIn(credentials);
+    toast.success('Welcome back!');
+  } catch (error) {
+    toast.error('Login failed: ' + error.message);
+  }
+};
+
+const handleLogout = () => {
+  signOut();
+  toast.info('You have been signed out');
+};
+```
+
+## Error Handling Patterns
+
+### Network Errors
+```tsx
+const handleNetworkOperation = async () => {
+  try {
+    const result = await apiCall();
+    toast.success('Operation completed!');
+  } catch (error) {
+    if (error.code === 'NETWORK_ERROR') {
+      toast.error('Network connection failed. Please check your internet connection.');
+    } else if (error.code === 'TIMEOUT') {
+      toast.error('Request timed out. Please try again.');
+    } else {
+      toast.error('Operation failed: ' + error.message);
+    }
+  }
+};
+```
+
+### Validation Errors
+```tsx
+const handleValidation = (data: FormData) => {
+  const errors = validateForm(data);
+  
+  if (errors.length > 0) {
+    // Show first validation error
+    toast.warning(errors[0]);
+    return false;
+  }
+  
+  return true;
+};
+```
+
+### Permission Errors
+```tsx
+const handlePermissionOperation = async () => {
+  try {
+    await performAction();
+    toast.success('Action completed!');
+  } catch (error) {
+    if (error.code === 'PERMISSION_DENIED') {
+      toast.warning('You do not have permission to perform this action');
+    } else {
+      toast.error('Operation failed: ' + error.message);
+    }
+  }
+};
+```
+
+## Testing Toast Implementation
+
+### Manual Testing
+1. **Success scenarios:** Verify success toasts appear and auto-dismiss
+2. **Error scenarios:** Verify error toasts show correct messages
+3. **Warning scenarios:** Verify warning toasts guide user actions
+4. **Multiple toasts:** Verify stacking behavior works correctly
+5. **Accessibility:** Test with screen readers
+
+### Common Issues
+- **Toast not showing:** Check ToastProvider is in layout
+- **Multiple toasts not stacking:** Verify maxToasts setting
+- **Styling conflicts:** Check for CSS conflicts in component
+- **Memory leaks:** Ensure proper cleanup in useEffect
+
+## Migration from Old Systems
+
+### Replacing Alert/Console
+```tsx
+// Old way
+alert('Save successful!');
+console.error('Save failed:', error);
+
+// New way
+toast.success('Save successful!');
+toast.error('Save failed: ' + error.message);
+```
+
+### Replacing Inline Messages
+```tsx
+// Old way
+{showMessage && (
+  <div className="message">{message}</div>
+)}
+
+// New way
+useEffect(() => {
+  if (showMessage) {
+    toast.success(message);
+    setShowMessage(false);
+  }
+}, [showMessage, message]);
+```
+
+## File Structure Reference
+
+```
+src/app/lib/
+├── toast.tsx              # Core toast implementation
+├── Toast.mdc              # This implementation guide
+└── README_TOAST.md        # Technical documentation
+```
+
+## Quick Reference
+
+### Basic Usage
+```tsx
+const toast = useToast();
+
+// Success
+toast.success('Operation completed!');
+
+// Error
+toast.error('Operation failed: ' + error.message);
+
+// Warning
+toast.warning('Please check your input');
+
+// Info
+toast.info('Processing your request...');
+
+// Custom duration
+toast.success('Long message', 10000);
+```
+
+### Common Patterns
+- **Save operations:** `toast.success('Saved successfully!')`
+- **Validation:** `toast.warning('Please complete required fields')`
+- **API errors:** `toast.error('Request failed: ' + error.message)`
+- **User guidance:** `toast.info('Changes will be applied shortly')`
+
+---
+
+*This guide should be updated as new patterns and best practices emerge. For technical details, see `README_TOAST.md`.*
+description:
+globs:
+alwaysApply: false
+---

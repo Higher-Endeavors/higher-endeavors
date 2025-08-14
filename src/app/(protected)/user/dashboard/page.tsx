@@ -6,8 +6,10 @@ import PillarColumn from './components/PillarColumn';
 import ToolCard from './components/ToolCard';
 import StructuralBalanceMini from './components/StructuralBalanceMini';
 import { getRecentArticles, getRecentRecipes } from '@/app/lib/cmsAdapter';
+import { getRecentUpdates } from '@/app/lib/cmsAdapter.js';
 import RecentContent from '../../guide/components/RecentContent';
 import RecentRecipes from '../../guide/components/RecentRecipes';
+import RecentNews from './components/RecentNews';
 import Link from 'next/link';
 import type { Recipe } from '../../guide/components/RecentRecipes';
 import { serverLogger } from '@/app/lib/logging/logger.server';
@@ -15,6 +17,7 @@ import { serverLogger } from '@/app/lib/logging/logger.server';
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
   const recentRecipes: Recipe[] = await getRecentRecipes();
+  const recentUpdates = await getRecentUpdates();
   
   serverLogger.info('Dashboard rendered', { 
     component: 'Dashboard',
@@ -81,7 +84,10 @@ export default async function Dashboard() {
         <hr className="border-gray-500 my-8" />
 
         {/* Guide Content Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div>
+            <RecentNews updates={recentUpdates} />
+          </div>
           <div>
             <Suspense fallback={<div>Loading recent articles...</div>}>
               <RecentContent articles={recentArticles} />
