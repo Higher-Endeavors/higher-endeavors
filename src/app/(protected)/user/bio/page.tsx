@@ -6,10 +6,13 @@ import Header from '@/app/components/Header';
 import Footer from '@/app/components/Footer';
 import BioForm from './components/BioForm';
 import HeartRateZones from './components/HeartRateZones';
+import { getHeartRateZones, type HeartRateZoneData } from './lib/actions/saveHeartRateZones';
 
 export default function UserBioPage() {
   const [userAge, setUserAge] = useState<number | undefined>(undefined);
   const [activeTab, setActiveTab] = useState('bio');
+  const [heartRateZones, setHeartRateZones] = useState<HeartRateZoneData[] | null>(null);
+  const [isLoadingHRZones, setIsLoadingHRZones] = useState(true);
 
   // Fetch user age from bio data
   useEffect(() => {
@@ -36,6 +39,25 @@ export default function UserBioPage() {
     };
 
     fetchUserAge();
+  }, []);
+
+  // Fetch heart rate zones data
+  useEffect(() => {
+    const fetchHeartRateZones = async () => {
+      try {
+        setIsLoadingHRZones(true);
+        const result = await getHeartRateZones();
+        if (result.success) {
+          setHeartRateZones(result.data || null);
+        }
+      } catch (error) {
+        console.error('Error fetching heart rate zones:', error);
+      } finally {
+        setIsLoadingHRZones(false);
+      }
+    };
+
+    fetchHeartRateZones();
   }, []);
 
   const tabs = [
@@ -81,7 +103,11 @@ export default function UserBioPage() {
               
               {activeTab === 'heart-rate' && (
                 <div className="p-6">
-                  <HeartRateZones userAge={userAge} />
+                  <HeartRateZones 
+                    userAge={userAge} 
+                    initialHeartRateZones={heartRateZones}
+                    isLoading={isLoadingHRZones}
+                  />
                 </div>
               )}
             </div>

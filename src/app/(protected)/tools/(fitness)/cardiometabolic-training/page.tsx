@@ -12,6 +12,7 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import CardiometabolicTrainingClient from "./components/CMETraining.client";
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
+import DemoBanner from "../../(components)/DemoBanner";
 
 export default async function CardiometabolicTrainingPage() {
   const session = await auth();
@@ -38,6 +39,7 @@ export default async function CardiometabolicTrainingPage() {
       <div className="container mx-auto px-4 py-8">
         <Header />
         <h1 className="text-3xl font-bold my-8">CardioMetabolic Endurance Training Program Planning</h1>
+        <DemoBanner />
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Main Content */}

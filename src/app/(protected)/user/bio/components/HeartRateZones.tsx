@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Toast } from 'flowbite-react';
+import { HiCheck, HiX } from 'react-icons/hi';
+import { saveHeartRateZones, deleteHeartRateZones, type HeartRateZoneData } from '../lib/actions/saveHeartRateZones';
 
 interface HeartRateZone {
   id: number;
@@ -19,6 +22,8 @@ interface HeartRateZonesProps {
   onZonesChange?: (zones: HeartRateZone[]) => void;
   initialZones?: HeartRateZone[];
   userAge?: number;
+  initialHeartRateZones?: HeartRateZoneData[] | null;
+  isLoading?: boolean;
 }
 
 type CalculationMethod = 'age' | 'manual' | 'karvonen' | 'custom';
@@ -73,7 +78,13 @@ const activityOptions = [
   { value: 'rowing', label: 'Rowing' },
 ];
 
-export default function HeartRateZones({ onZonesChange, initialZones, userAge }: HeartRateZonesProps) {
+export default function HeartRateZones({ 
+  onZonesChange, 
+  initialZones, 
+  userAge, 
+  initialHeartRateZones, 
+  isLoading = false 
+}: HeartRateZonesProps) {
   const [zones, setZones] = useState<HeartRateZone[]>(initialZones || defaultZones);
   const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('age');
   const [maxHeartRate, setMaxHeartRate] = useState<number>(0);
@@ -85,6 +96,104 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
   const [selectedActivity, setSelectedActivity] = useState<string>('');
   const [activityZones, setActivityZones] = useState<ActivityZones>({});
   const [activeActivityTab, setActiveActivityTab] = useState<string>('general');
+
+  // UI state
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [showSuccessToast, setShowSuccessToast] = useState<boolean>(false);
+  const [showErrorToast, setShowErrorToast] = useState<boolean>(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+
+  // Define the initialization function first
+  const initializeFromData = (zonesData: HeartRateZoneData[]) => {
+    // Find the most complete/appropriate calculation method first
+    const generalZones = zonesData.find(d => d.activityType === 'general');
+    if (generalZones) {
+      const { calculationMethod, maxHeartRate, restingHeartRate, zones } = generalZones;
+      
+      // Check if zones have actual BPM values (not just defaults)
+      const hasValidZones = zones.some(zone => zone.minBpm > 0 && zone.maxBpm > 0);
+      
+      if (hasValidZones) {
+        // Immediately set the calculation method and restore values
+        setCalculationMethod(calculationMethod);
+        setMaxHeartRate(maxHeartRate || 0);
+        setRestingHeartRate(restingHeartRate || 0);
+        
+        // For manual method, set customMaxHR
+        if (calculationMethod === 'manual' && maxHeartRate) {
+          setCustomMaxHR(maxHeartRate);
+        }
+        
+        // Set the zones
+        setZones(zones);
+      }
+    }
+
+    // Set activity-specific zones
+    const activityData: ActivityZones = {};
+    zonesData.forEach(item => {
+      if (item.activityType !== 'general') {
+        activityData[item.activityType] = item.zones;
+      }
+    });
+    setActivityZones(activityData);
+
+    // Enable multi-activity if there are activity-specific zones
+    if (Object.keys(activityData).length > 0) {
+      setEnableMultiActivity(true);
+    }
+
+    // If the calculation method is custom and we have activities, ensure multi-activity is enabled
+    if (generalZones && generalZones.calculationMethod === 'custom' && Object.keys(activityData).length > 0) {
+      setEnableMultiActivity(true);
+    }
+  };
+
+  // Use a ref to track if we've already initialized to avoid re-initialization
+  const hasInitialized = React.useRef(false);
+
+  // Initialize data when initialHeartRateZones becomes available
+  if (initialHeartRateZones && initialHeartRateZones.length > 0 && !hasInitialized.current) {
+    hasInitialized.current = true;
+    initializeFromData(initialHeartRateZones);
+  }
+
+  const saveZonesToDatabase = async (activityType: string = 'general') => {
+    try {
+      setIsSaving(true);
+      setShowErrorToast(false);
+      setShowSuccessToast(false);
+
+      const zonesToSave = activityType === 'general' ? zones : activityZones[activityType];
+      if (!zonesToSave) return;
+
+      const zoneData: HeartRateZoneData = {
+        calculationMethod,
+        activityType: activityType as any,
+        zones: zonesToSave,
+        maxHeartRate: maxHeartRate > 0 ? maxHeartRate : undefined,
+        restingHeartRate: restingHeartRate > 0 ? restingHeartRate : undefined
+      };
+
+      const result = await saveHeartRateZones(zoneData);
+      
+      if (result.success) {
+        setShowSuccessToast(true);
+        setTimeout(() => setShowSuccessToast(false), 3000);
+      } else {
+        setErrorMessage(result.error || 'Failed to save heart rate zones');
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving heart rate zones:', error);
+      setErrorMessage('An unexpected error occurred while saving');
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const handleZoneChange = (zoneId: number, field: 'minBpm' | 'maxBpm', value: number, activity: string = 'general') => {
     if (activity === 'general') {
@@ -239,13 +348,27 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
     }
   };
 
-  const handleRemoveActivity = (activity: string) => {
-    const newActivityZones = { ...activityZones };
-    delete newActivityZones[activity];
-    setActivityZones(newActivityZones);
-    
-    if (activeActivityTab === activity) {
-      setActiveActivityTab('general');
+  const handleRemoveActivity = async (activity: string) => {
+    try {
+      const result = await deleteHeartRateZones(activity);
+      if (result.success) {
+        const newActivityZones = { ...activityZones };
+        delete newActivityZones[activity];
+        setActivityZones(newActivityZones);
+        
+        if (activeActivityTab === activity) {
+          setActiveActivityTab('general');
+        }
+      } else {
+        setErrorMessage(result.error || 'Failed to delete activity zones');
+        setShowErrorToast(true);
+        setTimeout(() => setShowErrorToast(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error deleting activity zones:', error);
+      setErrorMessage('Failed to delete activity zones');
+      setShowErrorToast(true);
+      setTimeout(() => setShowErrorToast(false), 3000);
     }
   };
 
@@ -315,7 +438,7 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
             {maxHeartRate > 0 && (
               <div className="mt-2 p-2 bg-green-50 rounded text-sm">
                 <span className="font-medium text-gray-600">Calculated Max HR: </span>
-                <span className="text-gray-600">{maxHeartRate} BPM</span>
+                <span className="text-gray-700">{maxHeartRate} BPM</span>
               </div>
             )}
           </div>
@@ -457,9 +580,41 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
 
   const currentZones = getCurrentZones();
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-600">Heart Rate Zones</h2>
+      
+      {/* Success Toast */}
+      {showSuccessToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
+              <HiCheck className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">Heart rate zones saved successfully</div>
+          </Toast>
+        </div>
+      )}
+
+      {/* Error Toast */}
+      {showErrorToast && (
+        <div className="fixed top-4 right-4 z-50">
+          <Toast>
+            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
+              <HiX className="h-5 w-5" />
+            </div>
+            <div className="ml-3 text-sm font-normal">{errorMessage}</div>
+          </Toast>
+        </div>
+      )}
       
       {/* Calculation Method Selection */}
       <div className="bg-gray-50 rounded-lg p-4 space-y-4">
@@ -480,6 +635,19 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
             <option value="manual">Max HR (BPM)</option>
             <option value="custom">Custom Zone Ranges</option>
           </select>
+          
+          {/* Auto-load indicator */}
+          {maxHeartRate > 0 && (
+            <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-800">
+                <strong>✓ Auto-loaded:</strong> Your {calculationMethod === 'age' ? 'age-based' : 
+                  calculationMethod === 'karvonen' ? 'Karvonen method' : 
+                  calculationMethod === 'manual' ? 'manual max HR' : 'custom'} zones have been loaded.
+                {maxHeartRate > 0 && ` Max HR: ${maxHeartRate} BPM`}
+                {restingHeartRate > 0 && ` Resting HR: ${restingHeartRate} BPM`}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Input Fields */}
@@ -490,14 +658,30 @@ export default function HeartRateZones({ onZonesChange, initialZones, userAge }:
 
       {/* Zones Display and Editing */}
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-gray-600">
-          Zone Configuration
-          {activeActivityTab !== 'general' && (
-            <span className="text-sm font-normal text-gray-500 ml-2">
-              - {activityOptions.find(opt => opt.value === activeActivityTab)?.label}
-            </span>
-          )}
-        </h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-medium text-gray-600">
+            Zone Configuration
+            {activeActivityTab !== 'general' && (
+              <span className="text-sm font-normal text-gray-500 ml-2">
+                - {activityOptions.find(opt => opt.value === activeActivityTab)?.label}
+              </span>
+            )}
+          </h3>
+          
+          {/* Save Button */}
+          <button
+            type="button"
+            onClick={() => saveZonesToDatabase(activeActivityTab)}
+            disabled={isSaving}
+            className={`px-4 py-2 text-sm font-medium rounded-md text-white ${
+              isSaving 
+                ? 'bg-gray-400 cursor-not-allowed' 
+                : 'bg-purple-600 hover:bg-purple-700'
+            } focus:outline-none focus:ring-2 focus:ring-purple-500`}
+          >
+            {isSaving ? 'Saving...' : 'Save Zones'}
+          </button>
+        </div>
         
         {currentZones.map((zone) => (
           <div
