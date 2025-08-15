@@ -15,6 +15,7 @@ import DailyNutritionSettings from "./components/DailyNutritionSettings";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import RelatedContent from "../../(components)/RelatedContent";
 import DateSelector from "../../../components/DateSelector";
+import DemoBanner from "../../(components)/DemoBanner";
 
 export default function NutritionTrackerPage() {
     const nutritionTrackerArticles = [
@@ -36,6 +37,7 @@ export default function NutritionTrackerPage() {
         <div className="container mx-auto px-4 py-8">
             <Header />
             <h1 className="text-3xl font-bold my-8">Nutrition Tracker</h1>
+            <DemoBanner />
 
         <div className="flex flex-col lg:flex-row gap-6">
             {/* Main Content */}
