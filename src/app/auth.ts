@@ -4,6 +4,7 @@ import type { Provider } from "next-auth/providers";
 import Cognito from "next-auth/providers/cognito";
 import PostgresAdapter from "@auth/pg-adapter";
 import { pool, SingleQuery } from "@/app/lib/dbAdapter";
+import { adminNoticeEmail } from "@/app/lib/adminNoticeEmail";
 
 const providers: Provider[] = [
   Cognito({
@@ -56,8 +57,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const firstName = `${profile?.given_name}`;
       const lastName = `${profile?.family_name}`;
       const name = `${profile?.given_name} ${profile?.family_name}`;
+      const email = `${profile?.email}`;
       if (isNewUser) {
       const result = await pool.query(`UPDATE users SET first_name = '${firstName}', last_name = '${lastName}', name = '${name}' WHERE id = ${user.id};`);
+      await adminNoticeEmail(
+        "noreply@higherendeavors.com",
+        `New User Sign Up`,
+        `
+        <p>${name} just created a new account with email: ${email}</p>
+      `
+      );
+
       }
     },
   },
