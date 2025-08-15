@@ -60,6 +60,16 @@ export default function UserBioPage() {
     fetchHeartRateZones();
   }, []);
 
+  // Extract preferred calculation method from heart rate zones data
+  const preferredCalculationMethod = React.useMemo(() => {
+    if (heartRateZones && heartRateZones.length > 0) {
+      // Find any zones data to get the calculation method - user might only have activity-specific zones
+      const anyZones = heartRateZones[0]; // Take the first available zones data
+      return anyZones?.calculationMethod || 'age';
+    }
+    return 'age';
+  }, [heartRateZones]);
+
   const tabs = [
     { id: 'bio', label: 'Personal Information' },
     { id: 'heart-rate', label: 'Heart Rate Zones' },
@@ -107,6 +117,7 @@ export default function UserBioPage() {
                     userAge={userAge} 
                     initialHeartRateZones={heartRateZones}
                     isLoading={isLoadingHRZones}
+                    preferredCalculationMethod={preferredCalculationMethod}
                   />
                 </div>
               )}

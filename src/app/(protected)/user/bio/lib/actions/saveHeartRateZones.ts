@@ -34,6 +34,20 @@ interface DatabaseZoneData {
   maxBpm: number;
 }
 
+// Interface for database row structure
+interface DatabaseRow {
+  calculation_method: string;
+  activity_type: string;
+  zone_ranges: DatabaseZoneData[];
+  max_heart_rate: number | null;
+  resting_heart_rate: number | null;
+}
+
+// Interface for database rows that return hr_zone_id
+interface DatabaseRowWithId {
+  hr_zone_id: number;
+}
+
 // Convert full zone data to database format (only essential data)
 const convertZonesToDatabaseFormat = (zones: HeartRateZone[]): DatabaseZoneData[] => {
   return zones.map(zone => ({
@@ -117,7 +131,7 @@ export async function saveHeartRateZones(data: HeartRateZoneData): Promise<SaveH
 
       return {
         success: true,
-        hrZoneId: result.rows[0].hr_zone_id
+        hrZoneId: (result.rows[0] as DatabaseRowWithId).hr_zone_id
       };
     } else {
       // Insert new zones
@@ -142,7 +156,7 @@ export async function saveHeartRateZones(data: HeartRateZoneData): Promise<SaveH
 
       return {
         success: true,
-        hrZoneId: result.rows[0].hr_zone_id
+        hrZoneId: (result.rows[0] as DatabaseRowWithId).hr_zone_id
       };
     }
   } catch (error) {
@@ -179,7 +193,7 @@ export async function getHeartRateZones(): Promise<{
       return { success: true, data: [] };
     }
 
-    const zonesData: HeartRateZoneData[] = result.rows.map(row => ({
+    const zonesData: HeartRateZoneData[] = result.rows.map((row: DatabaseRow) => ({
       calculationMethod: row.calculation_method,
       activityType: row.activity_type,
       zones: convertDatabaseZonesToFullFormat(row.zone_ranges),

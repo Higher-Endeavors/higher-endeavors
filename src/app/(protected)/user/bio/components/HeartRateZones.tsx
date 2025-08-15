@@ -24,6 +24,7 @@ interface HeartRateZonesProps {
   userAge?: number;
   initialHeartRateZones?: HeartRateZoneData[] | null;
   isLoading?: boolean;
+  preferredCalculationMethod?: CalculationMethod;
 }
 
 type CalculationMethod = 'age' | 'manual' | 'karvonen' | 'custom';
@@ -72,6 +73,7 @@ const defaultZones: HeartRateZone[] = [
 ];
 
 const activityOptions = [
+  { value: 'general', label: 'General' },
   { value: 'running', label: 'Running' },
   { value: 'cycling', label: 'Cycling' },
   { value: 'swimming', label: 'Swimming' },
@@ -83,10 +85,11 @@ export default function HeartRateZones({
   initialZones, 
   userAge, 
   initialHeartRateZones, 
-  isLoading = false 
+  isLoading = false,
+  preferredCalculationMethod 
 }: HeartRateZonesProps) {
   const [zones, setZones] = useState<HeartRateZone[]>(initialZones || defaultZones);
-  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>('age');
+  const [calculationMethod, setCalculationMethod] = useState<CalculationMethod>(preferredCalculationMethod || 'age');
   const [maxHeartRate, setMaxHeartRate] = useState<number>(0);
   const [restingHeartRate, setRestingHeartRate] = useState<number>(0);
   const [customMaxHR, setCustomMaxHR] = useState<number>(0);
@@ -103,60 +106,52 @@ export default function HeartRateZones({
   const [showErrorToast, setShowErrorToast] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // Define the initialization function first
-  const initializeFromData = (zonesData: HeartRateZoneData[]) => {
-    // Find the most complete/appropriate calculation method first
-    const generalZones = zonesData.find(d => d.activityType === 'general');
-    if (generalZones) {
-      const { calculationMethod, maxHeartRate, restingHeartRate, zones } = generalZones;
+  // Initialize zones and other data from props when they become available
+  React.useEffect(() => {
+    if (initialHeartRateZones && initialHeartRateZones.length > 0) {
+      // Find any zones data to get the calculation method and other values
+      const anyZones = initialHeartRateZones[0];
       
-      // Check if zones have actual BPM values (not just defaults)
-      const hasValidZones = zones.some(zone => zone.minBpm > 0 && zone.maxBpm > 0);
-      
-      if (hasValidZones) {
-        // Immediately set the calculation method and restore values
-        setCalculationMethod(calculationMethod);
-        setMaxHeartRate(maxHeartRate || 0);
-        setRestingHeartRate(restingHeartRate || 0);
+      if (anyZones) {
+        // Set the calculation method from the data
+        setCalculationMethod(anyZones.calculationMethod);
+        setMaxHeartRate(anyZones.maxHeartRate || 0);
+        setRestingHeartRate(anyZones.restingHeartRate || 0);
         
         // For manual method, set customMaxHR
-        if (calculationMethod === 'manual' && maxHeartRate) {
-          setCustomMaxHR(maxHeartRate);
+        if (anyZones.calculationMethod === 'manual' && anyZones.maxHeartRate) {
+          setCustomMaxHR(anyZones.maxHeartRate);
         }
+      }
+
+      // Handle zones data - user might have general zones or only activity-specific zones
+      const generalZones = initialHeartRateZones.find(d => d.activityType === 'general');
+      if (generalZones && generalZones.zones) {
+        setZones(generalZones.zones);
+      }
+
+      // Set activity-specific zones
+      const activityData: ActivityZones = {};
+      initialHeartRateZones.forEach(item => {
+        if (item.activityType !== 'general') {
+          activityData[item.activityType] = item.zones;
+        }
+      });
+      setActivityZones(activityData);
+
+      // Enable multi-activity if there are activity-specific zones
+      if (Object.keys(activityData).length > 0) {
+        setEnableMultiActivity(true);
         
-        // Set the zones
-        setZones(zones);
+        // Set the first activity as active (no more automatic 'general' tab)
+        const firstActivity = Object.keys(activityData)[0];
+        setActiveActivityTab(firstActivity);
+      } else if (generalZones && generalZones.zones && generalZones.zones.some(zone => zone.minBpm > 0)) {
+        // Only set general as active if we actually have general zones with data
+        setActiveActivityTab('general');
       }
     }
-
-    // Set activity-specific zones
-    const activityData: ActivityZones = {};
-    zonesData.forEach(item => {
-      if (item.activityType !== 'general') {
-        activityData[item.activityType] = item.zones;
-      }
-    });
-    setActivityZones(activityData);
-
-    // Enable multi-activity if there are activity-specific zones
-    if (Object.keys(activityData).length > 0) {
-      setEnableMultiActivity(true);
-    }
-
-    // If the calculation method is custom and we have activities, ensure multi-activity is enabled
-    if (generalZones && generalZones.calculationMethod === 'custom' && Object.keys(activityData).length > 0) {
-      setEnableMultiActivity(true);
-    }
-  };
-
-  // Use a ref to track if we've already initialized to avoid re-initialization
-  const hasInitialized = React.useRef(false);
-
-  // Initialize data when initialHeartRateZones becomes available
-  if (initialHeartRateZones && initialHeartRateZones.length > 0 && !hasInitialized.current) {
-    hasInitialized.current = true;
-    initializeFromData(initialHeartRateZones);
-  }
+  }, [initialHeartRateZones]);
 
   const saveZonesToDatabase = async (activityType: string = 'general') => {
     try {
@@ -356,8 +351,15 @@ export default function HeartRateZones({
         delete newActivityZones[activity];
         setActivityZones(newActivityZones);
         
+        // If we're removing the currently active tab, switch to another available one
         if (activeActivityTab === activity) {
-          setActiveActivityTab('general');
+          const remainingActivities = Object.keys(newActivityZones);
+          if (remainingActivities.length > 0) {
+            setActiveActivityTab(remainingActivities[0]);
+          } else {
+            // If no activities left, check if we have general zones, otherwise stay on 'general' with empty zones
+            setActiveActivityTab('general');
+          }
         }
       } else {
         setErrorMessage(result.error || 'Failed to delete activity zones');
@@ -374,7 +376,12 @@ export default function HeartRateZones({
 
   const getCurrentZones = () => {
     if (activeActivityTab === 'general') {
-      return zones;
+      // Check if we have general zones with actual data
+      if (zones.some(zone => zone.minBpm > 0)) {
+        return zones;
+      }
+      // If no general zones exist, return default zones
+      return [...defaultZones];
     }
     return activityZones[activeActivityTab] || [...defaultZones];
   };
@@ -531,17 +538,20 @@ export default function HeartRateZones({
                 {Object.keys(activityZones).length > 0 && (
                   <div className="border-b border-gray-200">
                     <nav className="flex flex-wrap -mb-px">
-                      <button
-                        type="button"
-                        onClick={() => setActiveActivityTab('general')}
-                        className={`py-2 px-3 text-sm font-medium ${
-                          activeActivityTab === 'general'
-                            ? 'border-b-2 border-purple-500 text-purple-600'
-                            : 'text-gray-500 hover:text-gray-700'
-                        }`}
-                      >
-                        General
-                      </button>
+                      {/* Only show General tab if we have general zones or if no other activities exist */}
+                      {(zones.some(zone => zone.minBpm > 0) || Object.keys(activityZones).length === 0) && (
+                        <button
+                          type="button"
+                          onClick={() => setActiveActivityTab('general')}
+                          className={`py-2 px-3 text-sm font-medium ${
+                            activeActivityTab === 'general'
+                              ? 'border-b-2 border-purple-500 text-purple-600'
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          General
+                        </button>
+                      )}
                       {Object.keys(activityZones).map(activity => (
                         <div key={activity} className="flex items-center">
                           <button
@@ -645,6 +655,20 @@ export default function HeartRateZones({
                   calculationMethod === 'manual' ? 'manual max HR' : 'custom'} zones have been loaded.
                 {maxHeartRate > 0 && ` Max HR: ${maxHeartRate} BPM`}
                 {restingHeartRate > 0 && ` Resting HR: ${restingHeartRate} BPM`}
+                {Object.keys(activityZones).length > 0 && (
+                  <span> Activity zones: {Object.keys(activityZones).map(activity => 
+                    activityOptions.find(opt => opt.value === activity)?.label || activity
+                  ).join(', ')}</span>
+                )}
+              </p>
+            </div>
+          )}
+          
+          {/* Show when preferred method is loaded */}
+          {preferredCalculationMethod && preferredCalculationMethod !== 'age' && (
+            <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-800">
+                <strong>✓ Method loaded:</strong> Your preferred calculation method ({preferredCalculationMethod}) has been automatically selected.
               </p>
             </div>
           )}
