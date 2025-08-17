@@ -2,15 +2,108 @@
 
 import { useState } from 'react';
 
-export default function SessionSummary() {
+interface CMEExercise {
+  activityId: number;
+  activityName: string;
+  activitySource: 'library' | 'user';
+  useIntervals: boolean;
+  intervals: Array<{
+    stepType: string;
+    duration: number;
+    intensity: string;
+    intensityMetric: string;
+    notes: string;
+  }>;
+  notes: string;
+  createdAt: string;
+  userId: number;
+}
+
+interface SessionSummaryProps {
+  exercises: CMEExercise[];
+}
+
+export default function SessionSummary({ exercises }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Placeholder data for UI demonstration
-  const placeholderSummary = {
-    total_duration: '24 minutes',
-    total_work_duration: '4 minutes',
-    total_intervals: '2',
-    average_intensity: '180 bpm',
+  // Calculate real-time statistics from actual exercise data
+  const calculateSessionStats = () => {
+    if (exercises.length === 0) {
+      return {
+        totalExercises: 0,
+        totalDuration: 0,
+        totalWorkDuration: 0,
+        totalIntervals: 0,
+        averageIntensity: 'N/A',
+        estimatedDuration: '0 min'
+      };
+    }
+
+    let totalDuration = 0;
+    let totalWorkDuration = 0;
+    let totalIntervals = 0;
+    let intensityValues: string[] = [];
+
+    exercises.forEach(exercise => {
+      if (exercise.useIntervals && exercise.intervals.length > 0) {
+        // Interval training
+        exercise.intervals.forEach(interval => {
+          totalDuration += interval.duration;
+          totalIntervals++;
+          
+          if (interval.stepType === 'Work') {
+            totalWorkDuration += interval.duration;
+          }
+          
+          if (interval.intensity) {
+            intensityValues.push(`${interval.intensity} ${interval.intensityMetric}`);
+          }
+        });
+      } else {
+        // Steady state
+        totalDuration += exercise.intervals[0]?.duration || 0;
+        if (exercise.intervals[0]?.intensity) {
+          intensityValues.push(`${exercise.intervals[0].intensity} ${exercise.intervals[0].intensityMetric}`);
+        }
+      }
+    });
+
+    // Calculate average intensity (most common intensity metric)
+    const intensityCounts: { [key: string]: number } = {};
+    intensityValues.forEach(intensity => {
+      intensityCounts[intensity] = (intensityCounts[intensity] || 0) + 1;
+    });
+
+    let averageIntensity = 'N/A';
+    if (Object.keys(intensityCounts).length > 0) {
+      const mostCommon = Object.entries(intensityCounts).reduce((a, b) => 
+        intensityCounts[a[0]] > intensityCounts[b[0]] ? a : b
+      );
+      averageIntensity = mostCommon[0];
+    }
+
+    // Estimate total session duration (add 10% for transitions/rest)
+    const estimatedDuration = Math.round(totalDuration * 1.1);
+
+    return {
+      totalExercises: exercises.length,
+      totalDuration,
+      totalWorkDuration,
+      totalIntervals,
+      averageIntensity,
+      estimatedDuration: `${estimatedDuration} min`
+    };
+  };
+
+  const sessionStats = calculateSessionStats();
+
+  const summaryData = {
+    'Total Exercises': { value: sessionStats.totalExercises.toString(), color: '' },
+    'Total Duration': { value: `${sessionStats.totalDuration} min`, color: '' },
+    'Total Work Time': { value: `${sessionStats.totalWorkDuration} min`, color: '' },
+    'Total Intervals': { value: sessionStats.totalIntervals.toString(), color: '' },
+    'Average Intensity': { value: sessionStats.averageIntensity, color: '' },
+    'Estimated Session': { value: sessionStats.estimatedDuration, color: '' }
   };
 
   return (
@@ -29,14 +122,14 @@ export default function SessionSummary() {
 
       {isOpen && (
         <div className="mt-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {Object.entries(placeholderSummary).map(([key, value]) => (
-              <div key={key} className="bg-white dark:bg-white p-4 rounded-lg shadow">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+            {Object.entries(summaryData).map(([key, data]) => (
+              <div key={key} className="bg-white dark:bg-white p-3 sm:p-4 rounded-lg shadow">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                  {key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+                  {key}
                 </p>
-                <p className="text-lg font-semibold text-gray-900 dark:text-slate-900">
-                  {value}
+                <p className={`text-base sm:text-lg font-semibold ${data.color ? `${data.color} px-2 py-1 rounded-full inline-block` : 'text-gray-900 dark:text-slate-900'}`}>
+                  {data.value || '0'}
                 </p>
               </div>
             ))}
