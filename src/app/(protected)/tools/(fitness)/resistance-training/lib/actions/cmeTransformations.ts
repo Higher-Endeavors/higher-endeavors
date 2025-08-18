@@ -1,4 +1,4 @@
-import { CMEActivityLibraryItem } from '../../../cardiometabolic-training/types/cme-training.zod';
+import { CMEActivityLibraryItem } from '../../../cardiometabolic-training/types/cme.zod';
 import { ExerciseLibraryItem } from '../../types/resistance-training.zod';
 
 /**

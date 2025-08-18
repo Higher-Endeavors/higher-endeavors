@@ -8,6 +8,7 @@ import Select from 'react-select';
 import { HiOutlineTrash } from 'react-icons/hi';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
+import { getCMEActivityFamilyConfig, getDefaultMetricsForActivityFamily } from '../lib/cmeMetricsConfig';
 
 // Components
 
@@ -34,6 +35,18 @@ interface ExerciseOption {
   source: 'cme_library' | 'user';
 }
 
+interface MetricField {
+  name: string;
+  type: 'number' | 'text' | 'select';
+  label: string;
+  placeholder?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
+  required?: boolean;
+}
+
 export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId, editingExercise }: AddExerciseModalProps) {
   // CardioMetabolic Endurance Training fields
   const [exerciseName, setExerciseName] = useState('');
@@ -50,18 +63,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   const [selectedActivity, setSelectedActivity] = useState<ExerciseOption | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // CME Metrics state
+  const [selectedMetrics, setSelectedMetrics] = useState<Record<string, any>>({});
+  const [availableMetrics, setAvailableMetrics] = useState<MetricField[]>([]);
+
   const stepTypeOptions = [
     { value: 'Warm-Up', label: 'Warm-Up' },
     { value: 'Work', label: 'Work' },
     { value: 'Recovery', label: 'Recovery' },
     { value: 'Cool-Down', label: 'Cool-Down' },
-  ];
-  
-  const intensityMetricOptions = [
-    { value: 'Pace', label: 'Pace' },
-    { value: 'Heart Rate', label: 'Heart Rate' },
-    { value: 'Watts', label: 'Watts' },
-    { value: 'Other', label: 'Other' },
   ];
 
   // Fetch CME activities from the library
@@ -138,8 +148,35 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
       setUseIntervals(false);
       setIntervals([{ stepType: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }]);
       setSelectedActivity(null);
+      setSelectedMetrics({});
+      setAvailableMetrics([]);
     }
   }, [editingExercise, cmeActivities, userActivities]);
+
+  // Update available metrics when activity changes
+  useEffect(() => {
+    if (selectedActivity?.activity?.activity_family) {
+      const activityFamily = selectedActivity.activity.activity_family;
+      const config = getCMEActivityFamilyConfig(activityFamily);
+      
+      if (config) {
+        setAvailableMetrics(config.metrics);
+        // Initialize selected metrics with default values
+        const defaultMetrics = getDefaultMetricsForActivityFamily(activityFamily);
+        const initialMetrics: Record<string, any> = {};
+        defaultMetrics.forEach(metricName => {
+          const metric = config.metrics.find(m => m.name === metricName);
+          if (metric) {
+            initialMetrics[metricName] = '';
+          }
+        });
+        setSelectedMetrics(initialMetrics);
+      }
+    } else {
+      setAvailableMetrics([]);
+      setSelectedMetrics({});
+    }
+  }, [selectedActivity]);
 
   // Create exercise options for dropdown
   const exerciseOptions: ExerciseOption[] = [
@@ -186,6 +223,13 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
     }
   };
 
+  const handleMetricChange = (metricName: string, value: any) => {
+    setSelectedMetrics(prev => ({
+      ...prev,
+      [metricName]: value
+    }));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -196,8 +240,10 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
       activityId: selectedActivity.value,
       activityName: selectedActivity.activity.name,
       activitySource: selectedActivity.source,
+      activityFamily: selectedActivity.activity.activity_family,
       useIntervals,
       intervals: useIntervals ? intervals : [intervals[0]], // If not using intervals, just use the first one
+      metrics: selectedMetrics, // Include the selected metrics
       notes: exerciseName !== selectedActivity.activity.name ? exerciseName : '', // Use custom name if different from selected
       createdAt: new Date().toISOString(),
       userId: currentUserId
@@ -211,6 +257,57 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
     setSelectedActivity(null);
     setIntervals([{ stepType: 'Work', duration: 5, intensity: '', intensityMetric: 'Pace', notes: '' }]);
     setUseIntervals(true);
+    setSelectedMetrics({});
+    setAvailableMetrics([]);
+  };
+
+  const renderMetricField = (metric: MetricField) => {
+    const value = selectedMetrics[metric.name] || '';
+
+    switch (metric.type) {
+      case 'number':
+        return (
+          <input
+            type="number"
+            value={value}
+            onChange={(e) => handleMetricChange(metric.name, e.target.value)}
+            placeholder={metric.placeholder}
+            min={metric.min}
+            max={metric.max}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+          />
+        );
+      
+      case 'text':
+        return (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => handleMetricChange(metric.name, e.target.value)}
+            placeholder={metric.placeholder}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+          />
+        );
+      
+      case 'select':
+        return (
+          <select
+            value={value}
+            onChange={(e) => handleMetricChange(metric.name, e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
+          >
+            <option value="">Select {metric.label}</option>
+            {metric.options?.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        );
+      
+      default:
+        return null;
+    }
   };
 
   return (
@@ -283,36 +380,59 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
               </div>
             )}
 
-            {/* Step Type - only show if not using intervals */}
-            {!useIntervals && (
-              <div>
-                <label htmlFor="pairing" className="block text-sm font-medium dark:text-white">
-                  Step Type
-                </label>
-                <Select
-                  id="stepType"
-                  options={stepTypeOptions}
-                  value={stepTypeOptions.find(opt => opt.value === stepType)}
-                  onChange={opt => setStepType(opt?.value || 'Work')}
-                  classNamePrefix="select"
-                  className="mt-1 text-gray-600"
-                />
+            {/* Step Type and Intervals - moved here below Exercise Name */}
+            <div className="col-span-2">
+              <div className="flex items-center space-x-6">
+                {/* Step Type - only show if not using intervals */}
+                {!useIntervals && (
+                  <div className="flex-1">
+                    <label htmlFor="stepType" className="block text-sm font-medium dark:text-white">
+                      Step Type
+                    </label>
+                    <Select
+                      id="stepType"
+                      options={stepTypeOptions}
+                      value={stepTypeOptions.find(opt => opt.value === stepType)}
+                      onChange={opt => setStepType(opt?.value || 'Work')}
+                      classNamePrefix="select"
+                      className="mt-1 text-gray-600"
+                    />
+                  </div>
+                )}
+
+                {/* Intervals Checkbox */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="useIntervals"
+                    checked={useIntervals}
+                    onChange={e => setUseIntervals(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <label htmlFor="useIntervals" className="text-sm font-medium dark:text-white">
+                    Intervals
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* CME Metrics Fields */}
+            {availableMetrics.length > 0 && (
+              <div className="col-span-2">
+                <h3 className="text-lg font-medium dark:text-white mb-3">Activity Metrics</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableMetrics.map(metric => (
+                    <div key={metric.name}>
+                      <label className="block text-sm font-medium dark:text-white">
+                        {metric.label}
+                        {metric.required && <span className="text-red-500 ml-1">*</span>}
+                      </label>
+                      {renderMetricField(metric)}
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-
-            {/* Intervals Checkbox */}
-            <div className="flex items-center space-x-2 mt-6">
-              <input
-                type="checkbox"
-                id="useIntervals"
-                checked={useIntervals}
-                onChange={e => setUseIntervals(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <label htmlFor="useIntervals" className="text-sm font-medium dark:text-white">
-                Intervals
-              </label>
-            </div>
           </div>
 
           {/* Intervals Card Layout (Varied Sets style) */}
@@ -380,8 +500,13 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
                     <div>
                       <label className="block text-sm font-medium dark:text-white">Intensity Metric</label>
                       <Select
-                        options={intensityMetricOptions}
-                        value={intensityMetricOptions.find(opt => opt.value === interval.intensityMetric)}
+                        options={[
+                          { value: 'Pace', label: 'Pace' },
+                          { value: 'Heart Rate', label: 'Heart Rate' },
+                          { value: 'Watts', label: 'Watts' },
+                          { value: 'Other', label: 'Other' },
+                        ]}
+                        value={[{ value: 'Pace', label: 'Pace' }].find(opt => opt.value === interval.intensityMetric)}
                         onChange={opt => handleIntervalChange(idx, 'intensityMetric', opt?.value || 'Pace')}
                         className="mt-1 text-gray-600"
                         styles={{ menu: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minWidth: 120, width: '100%' }) }}
@@ -403,38 +528,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium dark:text-white">Duration (min)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={intervals[0].duration}
-                    onChange={e => handleIntervalChange(0, 'duration', Number(e.target.value))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium dark:text-white">Intensity</label>
-                  <input
-                    type="text"
-                    value={intervals[0].intensity}
-                    onChange={e => handleIntervalChange(0, 'intensity', e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium dark:text-white">Intensity Metric</label>
-                  <Select
-                    options={intensityMetricOptions}
-                    value={intensityMetricOptions.find(opt => opt.value === intervals[0].intensityMetric)}
-                    onChange={opt => handleIntervalChange(0, 'intensityMetric', opt?.value || 'Pace')}
-                    classNamePrefix="select"
-                    className="mt-1 text-gray-600"
-                    styles={{ menu: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minWidth: 120, width: '100%' }) }}
-                  />
-                </div>
-              </div>
+              {/* Notes field - always visible when not using intervals */}
               <div className="mt-2">
                 <label className="block text-sm font-medium dark:text-white">Notes</label>
                 <input

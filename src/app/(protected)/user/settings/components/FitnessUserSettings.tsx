@@ -40,7 +40,12 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
   
   // CME Metrics state
   const [selectedActivityFamily, setSelectedActivityFamily] = useState<string>('');
-  const [activeActivityTab, setActiveActivityTab] = useState<string>('');
+  const [activeActivityTab, setActiveActivityTab] = useState<string>(() => {
+    // Initialize active tab from props using useState initializer
+    const initialCMEMetrics = fitness.cardioMetabolic?.cmeMetrics || {};
+    const configuredFamilies = Object.keys(initialCMEMetrics);
+    return configuredFamilies.length > 0 ? configuredFamilies[0] : '';
+  });
 
   useEffect(() => {
     let isMounted = true;
@@ -79,16 +84,6 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
     fetchActivityFamilies();
     return () => { isMounted = false; };
   }, []);
-
-  // Initialize active tab when component mounts
-  useEffect(() => {
-    const currentCMEMetrics = fitness.cardioMetabolic?.cmeMetrics || {};
-    const configuredFamilies = Object.keys(currentCMEMetrics);
-    
-    if (configuredFamilies.length > 0) {
-      setActiveActivityTab(configuredFamilies[0]);
-    }
-  }, [fitness.cardioMetabolic?.cmeMetrics]);
 
   // Handler for updating resistanceTraining or cardioMetabolic settings
   const handlePillarSettingChange = <T extends keyof FitnessSettings, K extends keyof NonNullable<FitnessSettings[T]>>(
@@ -292,19 +287,7 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
           <h3 className="text-lg font-medium text-gray-700">CardioMetabolic Endurance</h3>
         </div>
         <div className="p-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Running Speed Units</label>
-            <select
-              value={cardioMetabolic.speedUnit || 'mph'}
-              onChange={e => handlePillarSettingChange('cardioMetabolic', 'speedUnit', e.target.value)}
-              className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600"
-            >
-              <option value="mph">Miles per Hour (mph)</option>
-              <option value="kph">Kilometers per Hour (kph)</option>
-              <option value="min_mile">Minutes per Mile</option>
-              <option value="min_km">Minutes per Kilometer</option>
-            </select>
-          </div>
+          <p className="text-sm text-gray-600">Configure your CME metrics below to customize tracking preferences for each activity family.</p>
         </div>
       </div>
       
@@ -376,19 +359,73 @@ function FitnessUserSettings({ setValue, fitness }: FitnessUserSettingsProps) {
           {activeActivityTab && currentCMEMetrics[activeActivityTab] && (
             <div className="border rounded-lg p-3">
               <h4 className="font-medium text-gray-700 mb-3">{activeActivityTab}</h4>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                 {CME_METRICS.map(metric => {
+                  // Skip Strokes metric for activities where it's not relevant
+                  if (metric === 'Strokes' && !['Swimming', 'Rowing', 'Watersport'].includes(activeActivityTab)) {
+                    return null;
+                  }
+                  
+                  // Skip Weight metric for activities where it's not relevant
+                  if (metric === 'Weight' && !['Running', 'Walking'].includes(activeActivityTab)) {
+                    return null;
+                  }
+                  
                   const isChecked = currentCMEMetrics[activeActivityTab].includes(metric);
+                  const showUnitSelector = (metric === 'Pace' || metric === 'Speed') && isChecked;
+                  const showDistanceUnitSelector = metric === 'Distance' && isChecked;
+                  
                   return (
-                    <label key={metric} className="inline-flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={e => handleCMEMetricChange(activeActivityTab, metric, e.target.checked)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-600">{metric}</span>
-                    </label>
+                    <div key={metric} className="flex items-center space-x-3">
+                      <label className="inline-flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={e => handleCMEMetricChange(activeActivityTab, metric, e.target.checked)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="ml-2 text-sm text-gray-600">{metric}</span>
+                      </label>
+                      
+                      {/* Unit selector for Pace/Speed */}
+                      {showUnitSelector && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Units:</span>
+                          <select
+                            value={cardioMetabolic.speedUnit || 'mph'}
+                            onChange={e => handlePillarSettingChange('cardioMetabolic', 'speedUnit', e.target.value)}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-slate-600"
+                          >
+                            {metric === 'Pace' ? (
+                              <>
+                                <option value="min_mile">min/mile</option>
+                                <option value="min_km">min/km</option>
+                              </>
+                            ) : (
+                              <>
+                                <option value="mph">mph</option>
+                                <option value="kph">kph</option>
+                              </>
+                            )}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Unit selector for Distance */}
+                      {showDistanceUnitSelector && (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">Units:</span>
+                          <select
+                            value={cardioMetabolic.distanceUnit || 'imperial'}
+                            onChange={e => handlePillarSettingChange('cardioMetabolic', 'distanceUnit', e.target.value)}
+                            className="px-2 py-1 text-xs border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 dark:text-slate-600"
+                          >
+                            <option value="imperial">Imperial (miles, yards)</option>
+                            <option value="metric">Metric (km, meters)</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

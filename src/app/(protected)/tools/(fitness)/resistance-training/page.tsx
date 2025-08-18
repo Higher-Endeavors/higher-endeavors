@@ -8,7 +8,7 @@ import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
 import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
 import { transformCMEActivitiesToExerciseLibrary } from './lib/actions/cmeTransformations';
 import { ExerciseLibraryItem } from '../resistance-training/types/resistance-training.zod';
-import { CMEActivityLibraryItem } from '../cardiometabolic-training/types/cme-training.zod';
+import { CMEActivityLibraryItem } from '../cardiometabolic-training/types/cme.zod';
 import RelatedContent from "../../(components)/RelatedContent";
 import OnboardingChecklist from "../../(components)/OnboardingChecklist";
 import ResistanceTrainingClient from "./components/ResistanceTraining.client";

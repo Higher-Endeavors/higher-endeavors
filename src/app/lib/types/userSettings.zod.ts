@@ -64,6 +64,7 @@ export const ResistanceTrainingSchema = z.object({
 
 export const CardioMetabolicSchema = z.object({
   speedUnit: z.string().optional(),
+  distanceUnit: z.enum(['imperial', 'metric']).optional(),
   cmeMetrics: z.record(z.array(z.string())).optional(), // Activity family -> array of metric names
 });
 
