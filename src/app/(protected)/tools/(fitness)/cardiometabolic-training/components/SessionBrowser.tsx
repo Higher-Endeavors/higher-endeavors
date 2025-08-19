@@ -1,29 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import type { CMESessionItem } from '../types/cme.zod';
 
 // How many sessions to show per page
 const ITEMS_PER_PAGE = 5;
-
-interface CMESessionItem {
-  sessionId: number;
-  sessionName: string;
-  createdAt: string;
-  duration: number; // in minutes
-  intensity: string; // Low, Moderate, High
-  activityType: string; // Running, Cycling, Swimming, etc.
-  targetHeartRate?: number;
-  notes?: string;
-  userId: number;
-  templateInfo?: {
-    difficultyLevel: string;
-    categories: Array<{ name: string }>;
-  };
-}
 
 interface ProgramBrowserProps {
   onSessionSelect?: (session: CMESessionItem) => void;

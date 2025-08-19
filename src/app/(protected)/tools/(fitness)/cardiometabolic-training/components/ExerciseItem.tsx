@@ -2,28 +2,12 @@
 
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-
-interface CMEExercise {
-  activityId: number;
-  activityName: string;
-  activitySource: 'library' | 'user';
-  useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
-  notes: string;
-  createdAt: string;
-  userId: number;
-}
+import type { CMEExercise } from '../types/cme.zod';
 
 interface ExerciseItemProps {
   exercise: CMEExercise;
-  onEdit: (id: number) => void;
-  onDelete: (id: number) => void;
+  onEdit: (exerciseId: number) => void;
+  onDelete: (exerciseId: number) => void;
 }
 
 export default function ExerciseItem({ exercise, onEdit, onDelete }: ExerciseItemProps) {

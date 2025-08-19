@@ -5,104 +5,101 @@ export const CME_ACTIVITY_FAMILY_CONFIG: Record<string, CMEActivityFamilyConfig>
     name: 'Running',
     metrics: [
       { name: 'Pace', type: 'text', label: 'Pace', placeholder: 'e.g., 8:30/mile' },
+      { name: 'Speed', type: 'number', label: 'Speed', placeholder: 'Enter speed', min: 0.1, max: 15 },
       { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
       { name: 'Cadence', type: 'number', label: 'Cadence (spm)', placeholder: 'Steps per minute', min: 120, max: 200 },
+      { name: 'Weight', type: 'number', label: 'Weight (lbs)', placeholder: 'Enter weight carried', min: 0, max: 100 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Heart Rate Target']
   },
 
   'Cycling': {
     name: 'Cycling',
     metrics: [
+      { name: 'Pace', type: 'text', label: 'Pace', placeholder: 'e.g., 3:45/km' },
       { name: 'Speed', type: 'number', label: 'Speed', placeholder: 'Enter speed', min: 0.1, max: 50 },
       { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
       { name: 'Cadence', type: 'number', label: 'Cadence (rpm)', placeholder: 'Revolutions per minute', min: 40, max: 120 },
       { name: 'Power', type: 'number', label: 'Power (watts)', placeholder: 'Enter power output', min: 0, max: 1000 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Speed', 'Cadence', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Speed', 'Cadence', 'Heart Rate Target']
   },
 
   'Swimming': {
     name: 'Swimming',
     metrics: [
-      { name: 'Pace', type: 'text', label: 'Pace', placeholder: 'e.g., 1:45/100m' },
-      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 25 },
+      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
-      { name: 'Strokes', type: 'number', label: 'Strokes', placeholder: 'Enter stroke count', min: 1 },
+      { name: 'Strokes', type: 'number', label: 'Strokes per length', placeholder: 'Enter stroke count', min: 1, max: 50 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Strokes', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Heart Rate Target']
   },
 
   'Rowing': {
     name: 'Rowing',
     metrics: [
-      { name: 'Pace', type: 'text', label: 'Pace', placeholder: 'e.g., 2:00/500m' },
-      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 100 },
+      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
-      { name: 'Strokes', type: 'number', label: 'Strokes', placeholder: 'Enter stroke count', min: 1 },
+      { name: 'Strokes', type: 'number', label: 'Strokes per minute', placeholder: 'Enter stroke rate', min: 15, max: 40 },
       { name: 'Power', type: 'number', label: 'Power (watts)', placeholder: 'Enter power output', min: 0, max: 1000 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Strokes', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Heart Rate Target']
   },
 
   'Walking': {
     name: 'Walking',
     metrics: [
-      { name: 'Speed', type: 'number', label: 'Speed', placeholder: 'Enter speed', min: 0.1, max: 8 },
       { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
-      { name: 'Cadence', type: 'number', label: 'Cadence (spm)', placeholder: 'Steps per minute', min: 80, max: 140 },
+      { name: 'Weight', type: 'number', label: 'Weight (lbs)', placeholder: 'Enter weight carried', min: 0, max: 100 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Heart Rate Target']
   },
 
   'General': {
     name: 'General',
     metrics: [
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
     ],
-    defaultMetrics: ['Duration', 'Heart Rate']
+    defaultMetrics: ['Duration', 'Heart Rate Target']
   },
 
   'Nordic & Snow': {
     name: 'Nordic & Snow',
     metrics: [
-      { name: 'Pace', type: 'text', label: 'Pace', placeholder: 'e.g., 6:00/km' },
-      { name: 'Speed', type: 'number', label: 'Speed', placeholder: 'Enter speed', min: 0.1, max: 25 },
       { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
-      { name: 'Cadence', type: 'number', label: 'Cadence (spm)', placeholder: 'Strides per minute', min: 60, max: 180 },
+      { name: 'Power', type: 'number', label: 'Power (watts)', placeholder: 'Enter power output', min: 0, max: 1000 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Heart Rate Target']
   },
 
   'Watersport': {
     name: 'Watersport',
     metrics: [
-      { name: 'Speed', type: 'number', label: 'Speed', placeholder: 'Enter speed', min: 0.1, max: 15 },
-      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 25 },
+      { name: 'Distance', type: 'number', label: 'Distance', placeholder: 'Enter distance', min: 0.1 },
       { name: 'Duration', type: 'number', label: 'Duration (minutes)', placeholder: 'Enter duration', min: 1 },
-      { name: 'Heart Rate', type: 'number', label: 'Heart Rate (BPM)', placeholder: 'Enter heart rate', min: 40, max: 220 },
+      { name: 'Heart Rate Target', type: 'heartRateTarget', label: 'Heart Rate Target', placeholder: 'Select target type' },
       { name: 'Calories', type: 'number', label: 'Calories', placeholder: 'Enter calories burned', min: 0 },
-      { name: 'Strokes', type: 'number', label: 'Strokes', placeholder: 'Enter stroke count', min: 1 },
+      { name: 'Strokes', type: 'number', label: 'Strokes per minute', placeholder: 'Enter stroke rate', min: 15, max: 60 },
     ],
-    defaultMetrics: ['Distance', 'Duration', 'Pace', 'Heart Rate']
+    defaultMetrics: ['Distance', 'Duration', 'Heart Rate Target']
   }
 };
 

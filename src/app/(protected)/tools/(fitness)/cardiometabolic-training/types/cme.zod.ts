@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export const CMEMetricSchema = z.object({
   name: z.string(),
-  type: z.enum(['number', 'text', 'select']),
+  type: z.enum(['number', 'text', 'select', 'heartRateTarget']),
   label: z.string(),
   placeholder: z.string().optional(),
   unit: z.string().optional(),
@@ -32,6 +32,77 @@ export const CMEActivityLibraryItemSchema = z.object({
   activity_family: z.string().optional(),
   equipment: z.string().optional(),
 }).strict();
+
+// Interface for CME Activity Items (used in modals and components)
+export interface CMEActivityItem {
+  cme_activity_library_id: number;
+  name: string;
+  source: 'cme_library' | 'user';
+  activity_family?: string;
+  equipment?: string;
+}
+
+// Interface for exercise options in dropdowns
+export interface ExerciseOption {
+  value: number;
+  label: string;
+  activity: CMEActivityItem;
+  source: 'cme_library' | 'user';
+}
+
+// Interface for CME exercise intervals
+export interface Interval {
+  stepType: string;
+  notes: string;
+}
+
+// Interface for CME metric fields
+export interface MetricField {
+  name: string;
+  type: 'number' | 'text' | 'select' | 'heartRateTarget';
+  label: string;
+  placeholder?: string;
+  unit?: string;
+  min?: number;
+  max?: number;
+  options?: { value: string; label: string }[];
+  required?: boolean;
+}
+
+// Interface for CME exercises
+export interface CMEExercise {
+  activityId: number;
+  activityName: string;
+  activitySource: 'library' | 'user';
+  useIntervals: boolean;
+  intervals: Array<{
+    stepType: string;
+    duration: number;
+    intensity: string;
+    intensityMetric: string;
+    notes: string;
+  }>;
+  notes: string;
+  createdAt: string;
+  userId: number;
+}
+
+// Interface for CME session items
+export interface CMESessionItem {
+  sessionId: number;
+  sessionName: string;
+  createdAt: string;
+  duration: number;
+  intensity: string;
+  activityType: string;
+  targetHeartRate?: number;
+  notes?: string;
+  userId: number;
+  templateInfo?: {
+    difficultyLevel: string;
+    categories: Array<{ name: string }>;
+  };
+}
 
 // --- Program Schemas ---
 

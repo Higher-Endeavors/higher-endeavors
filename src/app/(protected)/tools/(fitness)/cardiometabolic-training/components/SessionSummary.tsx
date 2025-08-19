@@ -1,23 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-
-interface CMEExercise {
-  activityId: number;
-  activityName: string;
-  activitySource: 'library' | 'user';
-  useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
-  notes: string;
-  createdAt: string;
-  userId: number;
-}
+import React, { useState } from 'react';
+import type { CMEExercise } from '../types/cme.zod';
 
 interface SessionSummaryProps {
   exercises: CMEExercise[];

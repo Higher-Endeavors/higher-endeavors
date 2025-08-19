@@ -1,25 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import React from 'react';
+import { HiOutlinePlus } from 'react-icons/hi';
 import ExerciseItem from './ExerciseItem';
+import type { CMEExercise } from '../types/cme.zod';
 import { clientLogger } from '@/app/lib/logging/logger.client';
-
-interface CMEExercise {
-  activityId: number;
-  activityName: string;
-  activitySource: 'library' | 'user';
-  useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
-  notes: string;
-  createdAt: string;
-  userId: number;
-}
 
 interface ExerciseListProps {
   exercises: CMEExercise[];

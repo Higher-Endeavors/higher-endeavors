@@ -1,62 +1,43 @@
 'use client';
 
 import React, { useState } from 'react';
+import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
+import type { CMEActivityItem, CMEExercise, CMESessionItem } from '../types/cme.zod';
+import { getUserSettingsById } from '@/app/lib/actions/userSettings';
+import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
+
+// Components
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './SessionBrowser';
 import SessionSettings from './SessionSettings';
 import ExerciseList from './ExerciseList';
 import SessionSummary from './SessionSummary';
 import AddExerciseModal from '../modals/AddExerciseModal';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-
-interface CMEExercise {
-  activityId: number;
-  activityName: string;
-  activitySource: 'library' | 'user';
-  useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
-  notes: string;
-  createdAt: string;
-  userId: number;
-}
-
-interface CMESessionItem {
-  sessionId: number;
-  sessionName: string;
-  createdAt: string;
-  duration: number;
-  intensity: string;
-  activityType: string;
-  targetHeartRate?: number;
-  notes?: string;
-  userId: number;
-  templateInfo?: {
-    difficultyLevel: string;
-    categories: Array<{ name: string }>;
-  };
-}
 
 export default function CardiometabolicTrainingClient({
   initialUserId,
   userId,
   fitnessSettings,
+  userHeartRateZones,
+  activities,
 }: {
   initialUserId: number;
   userId: number;
   fitnessSettings?: FitnessSettings;
+  userHeartRateZones?: any[];
+  activities: CMEActivityItem[];
 }) {
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedSession, setSelectedSession] = useState<CMESessionItem | null>(null);
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
 
-  // Session settings state
+  // User preferences state - initialized from props
+  const [selectedUserFitnessSettings, setSelectedUserFitnessSettings] = useState<FitnessSettings | undefined>(() => fitnessSettings);
+  const [selectedUserHeartRateZones, setSelectedUserHeartRateZones] = useState<any[]>(() => userHeartRateZones || []);
+  const [preferencesError, setPreferencesError] = useState<string | null>(null);
+
+  // Session state
   const [sessionName, setSessionName] = useState('');
   const [macrocyclePhase, setMacrocyclePhase] = useState('');
   const [focusBlock, setFocusBlock] = useState('');
@@ -64,10 +45,28 @@ export default function CardiometabolicTrainingClient({
   const [difficultyLevel, setDifficultyLevel] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
-  // Exercise management state
+  // Exercise state
   const [exercises, setExercises] = useState<CMEExercise[]>([]);
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<CMEExercise | null>(null);
+
+  // Fetch user preferences when user changes
+  const fetchUserPreferences = async (userId: number) => {
+    try {
+      setPreferencesError(null);
+      const [userSettings, userHRZones] = await Promise.all([
+        getUserSettingsById(userId),
+        getHeartRateZonesById(userId)
+      ]);
+      setSelectedUserFitnessSettings(userSettings?.fitness);
+      setSelectedUserHeartRateZones(userHRZones?.data || []);
+    } catch (error) {
+      console.error('Error fetching user preferences:', error);
+      setPreferencesError('Failed to load user preferences. Using default settings.');
+      setSelectedUserFitnessSettings(fitnessSettings); // Fallback
+      setSelectedUserHeartRateZones(userHeartRateZones || []); // Fallback
+    }
+  };
 
   const handleUserSelect = (userId: number | null) => {
     if (userId) {
@@ -84,6 +83,8 @@ export default function CardiometabolicTrainingClient({
       // Reset exercises when user changes
       setExercises([]);
       setEditingExercise(null);
+      // Fetch new user preferences
+      fetchUserPreferences(userId);
     }
   };
 
@@ -172,6 +173,16 @@ export default function CardiometabolicTrainingClient({
           onAdminStatusChange={handleAdminStatusChange}
         />
       </div>
+      
+      {/* Error Display */}
+      {preferencesError && (
+        <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-700">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            ⚠️ {preferencesError}
+          </p>
+        </div>
+      )}
+      
       <ProgramBrowser
         onSessionSelect={handleSessionSelect}
         currentUserId={selectedUserId}
@@ -224,11 +235,16 @@ export default function CardiometabolicTrainingClient({
       <SessionSummary exercises={exercises} />
       
       <AddExerciseModal
+        key={editingExercise?.activityId || 'new'}
         isOpen={isAddExerciseModalOpen}
         onClose={handleCloseAddExerciseModal}
         onAdd={handleAddExercise}
         currentUserId={selectedUserId}
+        selectedUserId={selectedUserId}
         editingExercise={editingExercise}
+        fitnessSettings={selectedUserFitnessSettings}
+        userHeartRateZones={selectedUserHeartRateZones}
+        activities={activities}
       />
     </>
   );

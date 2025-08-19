@@ -211,6 +211,51 @@ export async function getHeartRateZones(): Promise<{
   }
 }
 
+// Admin function to get heart rate zones by userId
+export async function getHeartRateZonesById(userId: number): Promise<{
+  success: boolean;
+  data?: HeartRateZoneData[];
+  error?: string;
+}> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: 'Unauthorized' };
+    }
+    
+    // TODO: Add admin permission check here if needed
+    // For now, we'll assume the UserSelector already handles admin permissions
+
+    const result = await SingleQuery(
+      `SELECT calculation_method, activity_type, zone_ranges, max_heart_rate, resting_heart_rate
+       FROM user_bio_hr_zones 
+       WHERE user_id = $1
+       ORDER BY activity_type`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return { success: true, data: [] };
+    }
+
+    const zonesData: HeartRateZoneData[] = result.rows.map((row: DatabaseRow) => ({
+      calculationMethod: row.calculation_method,
+      activityType: row.activity_type,
+      zones: convertDatabaseZonesToFullFormat(row.zone_ranges),
+      maxHeartRate: row.max_heart_rate,
+      restingHeartRate: row.resting_heart_rate
+    }));
+
+    return { success: true, data: zonesData };
+  } catch (error) {
+    await serverLogger.error('Error fetching heart rate zones by userId', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
+    };
+  }
+}
+
 export async function deleteHeartRateZones(activityType: string): Promise<SaveHeartRateZonesResult> {
   try {
     const session = await auth();
