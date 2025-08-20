@@ -11,13 +11,21 @@ interface ExerciseListProps {
   onAddExercise: () => void;
   onEditExercise: (exerciseId: number) => void;
   onDeleteExercise: (exerciseId: number) => void;
+  userHeartRateZones?: any[]; // Add this prop for heart rate zone data
 }
 
-export default function ExerciseList({ exercises, onAddExercise, onEditExercise, onDeleteExercise }: ExerciseListProps) {
+export default function ExerciseList({ exercises, onAddExercise, onEditExercise, onDeleteExercise, userHeartRateZones }: ExerciseListProps) {
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Exercise List</h2>
+        <button
+          onClick={onAddExercise}
+          className="px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+        >
+          <HiOutlinePlus className="inline w-4 h-4 mr-1" />
+          Add Exercise
+        </button>
       </div>
 
       {exercises.length === 0 ? (
@@ -36,6 +44,7 @@ export default function ExerciseList({ exercises, onAddExercise, onEditExercise,
               exercise={exercise}
               onEdit={onEditExercise}
               onDelete={onDeleteExercise}
+              userHeartRateZones={userHeartRateZones}
             />
           ))}
         </div>

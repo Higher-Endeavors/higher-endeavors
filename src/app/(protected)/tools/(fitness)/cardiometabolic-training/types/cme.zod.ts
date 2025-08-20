@@ -4,7 +4,7 @@ import { z } from 'zod';
 
 export const CMEMetricSchema = z.object({
   name: z.string(),
-  type: z.enum(['number', 'text', 'select', 'heartRateTarget']),
+  type: z.enum(['number', 'text', 'select', 'heartRateTarget', 'distance']),
   label: z.string(),
   placeholder: z.string().optional(),
   unit: z.string().optional(),
@@ -53,13 +53,25 @@ export interface ExerciseOption {
 // Interface for CME exercise intervals
 export interface Interval {
   stepType: string;
+  duration: number;
+  metrics: Record<string, string | number>;
   notes: string;
+  heartRateData?: {
+    type: 'zone' | 'custom';
+    value: string;
+    min?: string;
+    max?: string;
+  };
+  isRepeatBlock?: boolean; // Whether this interval is part of a repeatable block
+  blockId?: number; // Unique ID for grouping intervals in a repeatable block
+  repeatCount?: string | number; // How many times this block should repeat (string for input, number for storage)
+  isBlockHeader?: boolean; // Whether this is the header for a repeat block
 }
 
 // Interface for CME metric fields
 export interface MetricField {
   name: string;
-  type: 'number' | 'text' | 'select' | 'heartRateTarget';
+  type: 'number' | 'text' | 'select' | 'heartRateTarget' | 'distance';
   label: string;
   placeholder?: string;
   unit?: string;
@@ -74,17 +86,19 @@ export interface CMEExercise {
   activityId: number;
   activityName: string;
   activitySource: 'library' | 'user';
+  activityFamily?: string; // Add activity family for HR zone lookup
   useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
+  intervals: Interval[];
   notes: string;
   createdAt: string;
   userId: number;
+  totalRepeatCount?: number; // Total number of repeats from all repeat blocks
+  heartRateData?: {
+    type: 'zone' | 'custom';
+    value: string;
+    min?: string;
+    max?: string;
+  };
 }
 
 // Interface for CME session items
