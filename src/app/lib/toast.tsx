@@ -116,11 +116,23 @@ interface ToastContainerProps {
 }
 
 function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
-  // Use portal to render toasts at the top level
-  if (typeof window === 'undefined') return null;
+  // Always render the container div on both server and client
+  // Content will only appear when there are toasts
+  return (
+    <div className="fixed top-4 right-4 z-50 space-y-2">
+      {toasts.length > 0 && toasts.map((toast) => (
+        <ToastItem key={toast.id} toast={toast} onRemove={onRemove} />
+      ))}
+    </div>
+  );
+}
 
-  const toastContainer = document.getElementById('toast-container') || document.body;
+interface ToastItemProps {
+  toast: Toast;
+  onRemove: (id: string) => void;
+}
 
+function ToastItem({ toast, onRemove }: ToastItemProps) {
   const getToastStyles = (type: ToastType) => {
     const baseStyles = "flex items-center w-full max-w-xs p-4 mb-4 text-gray-500 bg-white rounded-lg shadow dark:bg-gray-800 dark:text-gray-400";
     
@@ -167,37 +179,32 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
     }
   };
 
-  return createPortal(
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <div
-          key={toast.id}
-          className={`${getToastStyles(toast.type)} transform transition-all duration-300 ease-out`}
-          style={{
-            animation: 'slideInRight 0.3s ease-out',
-          }}
-          role="alert"
-          aria-live="assertive"
-          aria-atomic="true"
-        >
-          <div className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-lg">
-            {getIcon(toast.type)}
-          </div>
-          <div className="ml-3 text-sm font-normal flex-1">
-            {toast.message}
-          </div>
-          <button
-            type="button"
-            className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 items-center justify-center dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-            aria-label="Close"
-            onClick={() => onRemove(toast.id)}
-          >
-            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      ))}
+  return (
+    <div
+      className={`${getToastStyles(toast.type)} transform transition-all duration-300 ease-out`}
+      style={{
+        animation: 'slideInRight 0.3s ease-out',
+      }}
+      role="alert"
+      aria-live="assertive"
+      aria-atomic="true"
+    >
+      <div className="inline-flex items-center justify-center flex-shrink-0 w-8 h-8 text-lg">
+        {getIcon(toast.type)}
+      </div>
+      <div className="ml-3 text-sm font-normal flex-1">
+        {toast.message}
+      </div>
+      <button
+        type="button"
+        className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 items-center justify-center dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
+        aria-label="Close"
+        onClick={() => onRemove(toast.id)}
+      >
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
       <style jsx>{`
         @keyframes slideInRight {
           from {
@@ -210,7 +217,6 @@ function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
           }
         }
       `}</style>
-    </div>,
-    toastContainer
+    </div>
   );
 }

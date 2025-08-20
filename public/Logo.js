@@ -2,7 +2,7 @@ import * as React from "react";
 
 function Logo(props) {
   return (
-    <svg viewBox="0 0 419.4 62.8" width="48em" height="em" {...props}>
+    <svg viewBox="0 0 419.4 62.8" width="48em" height="" {...props}>
       <defs>
         <style>
           {
