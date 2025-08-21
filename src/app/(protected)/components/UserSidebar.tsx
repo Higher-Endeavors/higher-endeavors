@@ -235,11 +235,18 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             onClick={() => setHealthOpen((prev) => !prev)}
           />
           {healthOpen && expanded && (
+            <>
+            <Link href="/tools/breathing">
+              <div className="ml-8">
+                <SidebarLink expanded={expanded} icon={null} label="Breathing" isSubLink />
+              </div>
+            </Link>
             <Link href="/tools/body-composition">
               <div className="ml-8">
                 <SidebarLink expanded={expanded} icon={null} label="Body Composition Tracker" isSubLink />
               </div>
             </Link>
+            </>
           )}
           <SidebarLink
             expanded={expanded}
