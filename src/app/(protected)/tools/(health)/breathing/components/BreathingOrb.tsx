@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { BreathTiming } from '../types/breathing';
 
 interface BreathingOrbProps {
@@ -40,12 +40,54 @@ export function BreathingOrb({
   const speechUtterance = useRef<SpeechSynthesisUtterance | null>(null);
   const animateBreathingRef = useRef<(() => void) | null>(null);
   const checkFinalCycleRef = useRef<((currentBreathCount: number) => void) | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  // Initialize speech synthesis
-  if (typeof window !== 'undefined' && !speechSynthesis.current) {
-    speechSynthesis.current = window.speechSynthesis;
-  }
+  // Initialize speech synthesis - single responsibility
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      speechSynthesis.current = window.speechSynthesis;
+      speechUtterance.current = new SpeechSynthesisUtterance();
+      speechUtterance.current.rate = 0.8;
+      speechUtterance.current.pitch = 1.0;
+      speechUtterance.current.volume = 0.8;
+    }
+  }, []); // No dependencies needed for initialization
 
+  // Handle breathing cycle start/stop based on isActive changes - single responsibility
+  useEffect(() => {
+    if (isActive && !animationFrameId.current) {
+      // Schedule the start for the next tick to avoid render issues
+      const timer = setTimeout(() => {
+        if (isActive && !animationFrameId.current) {
+          startBreathingCycle();
+        }
+      }, 0);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    if (!isActive && animationFrameId.current) {
+      // Stop breathing cycle
+      if (animationFrameId.current !== undefined) {
+        cancelAnimationFrame(animationFrameId.current);
+        animationFrameId.current = undefined;
+      }
+      setCurrentPhase('inhale');
+      setPhaseProgress(0);
+      setOrbSize(200);
+    }
+  }, [isActive]); // Only depend on isActive, startBreathingCycle is defined below
+
+  // Cleanup animation frame on unmount - single responsibility
+  useEffect(() => {
+    return () => {
+      if (animationFrameId.current !== undefined) {
+        cancelAnimationFrame(animationFrameId.current);
+      }
+    };
+  }, []); // No dependencies needed for cleanup
+
+  // Speech synthesis function
   const speak = useCallback((text: string) => {
     if (speechSynthesis.current && speechUtterance.current) {
       speechUtterance.current.text = text;
@@ -107,6 +149,21 @@ export function BreathingOrb({
     
     // Keep orb at fixed size for now
     return 200;
+  }, []);
+
+  const getNextPhase = useCallback((current: string): 'inhale' | 'pause1' | 'exhale' | 'pause2' => {
+    switch (current) {
+      case 'inhale':
+        return 'pause1';
+      case 'pause1':
+        return 'exhale';
+      case 'exhale':
+        return 'pause2';
+      case 'pause2':
+        return 'inhale';
+      default:
+        return 'inhale';
+    }
   }, []);
 
   const startBreathingCycle = useCallback(() => {
@@ -203,56 +260,13 @@ export function BreathingOrb({
     onSessionUpdate,
     getPhaseInstruction,
     speak,
-    breathCount
+    breathCount,
+    getNextPhase
   ]);
 
   // Store the function in the ref to avoid circular dependencies
   animateBreathingRef.current = animateBreathing;
   checkFinalCycleRef.current = onCheckFinalCycle;
-
-  const getNextPhase = useCallback((current: string): 'inhale' | 'pause1' | 'exhale' | 'pause2' => {
-    switch (current) {
-      case 'inhale':
-        return 'pause1';
-      case 'pause1':
-        return 'exhale';
-      case 'exhale':
-        return 'pause2';
-      case 'pause2':
-        return 'inhale';
-      default:
-        return 'inhale';
-    }
-  }, []);
-
-  // Initialize speech utterance
-  if (typeof window !== 'undefined' && !speechUtterance.current) {
-    speechUtterance.current = new SpeechSynthesisUtterance();
-    speechUtterance.current.rate = 0.8;
-    speechUtterance.current.pitch = 1;
-    speechUtterance.current.volume = 0.8;
-  }
-
-  // Simple state management for breathing cycle
-  if (isActive && !animationFrameId.current) {
-    // Schedule the start for the next tick to avoid render issues
-    Promise.resolve().then(() => {
-      if (isActive && !animationFrameId.current) {
-        startBreathingCycle();
-      }
-    });
-  }
-
-  if (!isActive && animationFrameId.current) {
-    // Stop breathing cycle
-    if (animationFrameId.current !== undefined) {
-      cancelAnimationFrame(animationFrameId.current);
-    }
-    animationFrameId.current = undefined;
-    setCurrentPhase('inhale');
-    setPhaseProgress(0);
-    setOrbSize(200);
-  }
 
   return (
     <div className="relative flex flex-col items-center">

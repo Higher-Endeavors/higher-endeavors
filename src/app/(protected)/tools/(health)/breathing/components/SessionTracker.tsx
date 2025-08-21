@@ -2,38 +2,29 @@ interface SessionTrackerProps {
   breathCount: number;
   sessionDuration: number;
   isActive: boolean;
+  wakeLockActive?: boolean;
+  wakeLockSupported?: boolean;
 }
 
-export function SessionTracker({ breathCount, sessionDuration, isActive }: SessionTrackerProps) {
-  const formatDuration = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+export function SessionTracker({ breathCount, sessionDuration, isActive, wakeLockActive, wakeLockSupported }: SessionTrackerProps) {
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Session Progress</h2>
       
-      <div className="grid grid-cols-2 gap-6">
-        {/* Breath Count */}
+      <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="text-center">
-          <div className="text-3xl font-bold text-blue-600 mb-2">
-            {breathCount}
-          </div>
-          <div className="text-sm text-gray-600">
-            Breath{breathCount !== 1 ? 'es' : ''} Completed
-          </div>
+          <div className="text-2xl font-bold text-blue-600">{breathCount}</div>
+          <div className="text-sm text-gray-600">Breaths Completed</div>
         </div>
-
-        {/* Session Duration */}
         <div className="text-center">
-          <div className="text-3xl font-bold text-green-600 mb-2">
-            {formatDuration(sessionDuration)}
-          </div>
-          <div className="text-sm text-gray-600">
-            Session Duration
-          </div>
+          <div className="text-2xl font-bold text-green-600">{formatDuration(sessionDuration)}</div>
+          <div className="text-sm text-gray-600">Session Duration</div>
         </div>
       </div>
 
