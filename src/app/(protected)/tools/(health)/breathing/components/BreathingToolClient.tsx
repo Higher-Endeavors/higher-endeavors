@@ -1,12 +1,22 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BreathingOrb } from './BreathingOrb';
 import { SessionControls } from './SessionControls';
 import { SessionTracker } from './SessionTracker';
 import { BreathPattern } from '../types/breathing';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 
+/**
+ * Server-Friendly Logging Strategy:
+ * - console.log: Debug information (stays completely local, no server requests)
+ * - clientLogger.info: Important events sent to server (session start/stop, completion)
+ * - clientLogger.warn: Warnings sent to server for debugging
+ * - clientLogger.error: Errors sent to server for monitoring
+ * 
+ * This approach minimizes server load by keeping frequent debug logs local while
+ * maintaining important event logging for monitoring and analytics.
+ */
 export default function BreathingToolClient() {
   const [selectedPattern, setSelectedPattern] = useState<BreathPattern>('pranayama');
   const [customPattern, setCustomPattern] = useState<{ inhale: number | null; pause1: number | null; exhale: number | null; pause2: number | null }>({ inhale: 4, pause1: 4, exhale: 4, pause2: 4 });
@@ -23,6 +33,133 @@ export default function BreathingToolClient() {
   // Ref to track session state immediately (avoid async state update issues)
   const sessionEndingRef = useRef<boolean>(false);
 
+  // Wake Lock API support
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const [wakeLockSupported, setWakeLockSupported] = useState(false);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+
+  // Page visibility tracking
+  const [isPageVisible, setIsPageVisible] = useState(true);
+
+  // Fallback keep-alive mechanism for devices without wake lock support
+  const keepAliveIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Initialize wake lock support
+  useEffect(() => {
+    // Check if Wake Lock API is supported
+    if ('wakeLock' in navigator) {
+      setWakeLockSupported(true);
+      clientLogger.info('Wake Lock API supported', {}, 'BreathingTool');
+    } else {
+      clientLogger.warn('Wake Lock API not supported - device may sleep during sessions', {}, 'BreathingTool');
+    }
+  }, []); // No dependencies needed for this initialization
+
+  // Set up page visibility change listener
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setIsPageVisible(isVisible);
+      
+      if (isVisible && isActive) {
+        // Important event - log to server
+        clientLogger.info('Page became visible, resuming session', { breathCount, sessionDuration }, 'BreathingTool');
+        // Resume audio context if it was suspended
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume();
+          // Debug info - stays completely local
+          console.log('Audio context resumed after page visibility change');
+        }
+      } else if (!isVisible && isActive) {
+        // Debug info - stays completely local
+        console.log('Page became hidden, session continues in background');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isActive, breathCount, sessionDuration]); // Explicit dependencies
+
+  // Request wake lock when session starts
+  const requestWakeLock = async () => {
+    if (!wakeLockSupported || wakeLockRef.current) return;
+
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+      setWakeLockActive(true);
+      clientLogger.info('Wake lock acquired successfully', {}, 'BreathingTool');
+      
+      // Listen for wake lock release
+      wakeLockRef.current.addEventListener('release', () => {
+        setWakeLockActive(false);
+        clientLogger.warn('Wake lock was released', {}, 'BreathingTool');
+      });
+    } catch (error) {
+      clientLogger.error('Failed to acquire wake lock', error, {}, 'BreathingTool');
+    }
+  };
+
+  // Release wake lock when session stops
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current) {
+      try {
+        await wakeLockRef.current.release();
+        wakeLockRef.current = null;
+        setWakeLockActive(false);
+        clientLogger.info('Wake lock released successfully', {}, 'BreathingTool');
+      } catch (error) {
+        clientLogger.error('Failed to release wake lock', error, {}, 'BreathingTool');
+      }
+    }
+  };
+
+  // Cleanup wake lock on component unmount
+  useEffect(() => {
+    return () => {
+      if (wakeLockRef.current) {
+        releaseWakeLock();
+      }
+    };
+  }, []); // No dependencies needed for cleanup
+
+  // Start keep-alive mechanism when session starts (fallback for non-wake-lock devices)
+  const startKeepAlive = () => {
+    if (wakeLockSupported) return; // Only use fallback if wake lock not supported
+    
+    keepAliveIntervalRef.current = setInterval(() => {
+      if (isActive && audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume();
+        // Debug info - stays completely local
+        console.log('Keep-alive: Audio context resumed');
+      }
+    }, 30000); // Every 30 seconds
+    
+    // Important event - log to server
+    clientLogger.info('Keep-alive mechanism started (fallback for non-wake-lock devices)', {}, 'BreathingTool');
+  };
+
+  // Stop keep-alive mechanism when session stops
+  const stopKeepAlive = () => {
+    if (keepAliveIntervalRef.current) {
+      clearInterval(keepAliveIntervalRef.current);
+      keepAliveIntervalRef.current = null;
+      // Debug info - stays completely local
+      console.log('Keep-alive mechanism stopped');
+    }
+  };
+
+  // Cleanup keep-alive on component unmount
+  useEffect(() => {
+    return () => {
+      if (keepAliveIntervalRef.current) {
+        clearInterval(keepAliveIntervalRef.current);
+      }
+    };
+  }, []); // No dependencies needed for cleanup
+
   const playCompletionSound = () => {
     try {
       // Create audio context if it doesn't exist
@@ -31,6 +168,13 @@ export default function BreathingToolClient() {
       }
 
       const audioContext = audioContextRef.current;
+      
+      // Resume audio context if it's suspended (common when page becomes hidden)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+        // Debug info - stays completely local
+        console.log('Audio context resumed before playing completion sound');
+      }
       
       // Create a gentle, calming completion sound
       const oscillator = audioContext.createOscillator();
@@ -96,17 +240,20 @@ export default function BreathingToolClient() {
   // Handle breath completion - now just updates the count, doesn't trigger session ending
   const handleBreathComplete = () => {
     const newBreathCount = breathCount + 1;
-    clientLogger.debug('Breath completed', { 
+    
+    // Debug info - stays completely local, no server requests
+    console.log('Breath completed', { 
       oldBreathCount: breathCount, 
       newBreathCount, 
       sessionType, 
       sessionValue 
-    }, 'BreathingTool');
+    });
     
     setBreathCount(newBreathCount);
     
     // Check if we've reached the target breath count
     if (sessionType === 'breaths' && sessionValue && newBreathCount >= sessionValue) {
+      // This is important - log to server
       clientLogger.info('Target breath count reached, stopping session', { 
         breathCount: newBreathCount, 
         sessionValue, 
@@ -116,23 +263,26 @@ export default function BreathingToolClient() {
       // Play completion sound immediately
       playCompletionSound();
     } else {
-      clientLogger.debug('Breath count updated, continuing session', { 
+      // Debug info - stays completely local
+      console.log('Breath count updated, continuing session', { 
         breathCount: newBreathCount, 
         sessionType, 
         sessionValue 
-      }, 'BreathingTool');
+      });
     }
   };
 
   // Check if we're starting the final breath cycle - called when transitioning to 'inhale'
   const checkIfStartingFinalCycle = (currentBreathCount: number) => {
-    clientLogger.debug('Checking if starting final breath cycle', { 
+    // Debug info - stays completely local
+    console.log('Checking if starting final breath cycle', { 
       currentBreathCount, 
       sessionValue, 
       sessionType 
-    }, 'BreathingTool');
+    });
     
     if (sessionType === 'breaths' && sessionValue && currentBreathCount >= sessionValue) {
+      // Important event - log to server
       clientLogger.info('Final breath cycle starting', { 
         currentBreathCount, 
         sessionValue, 
@@ -142,26 +292,29 @@ export default function BreathingToolClient() {
       return true;
     }
     
-    clientLogger.debug('Not final cycle', { 
+    // Debug info - stays completely local
+    console.log('Not final cycle', { 
       currentBreathCount, 
       sessionValue, 
       sessionType 
-    }, 'BreathingTool');
+    });
     return false;
   };
 
   const handleSessionUpdate = (duration: number) => {
-    clientLogger.debug('Session duration updated', { 
+    // Debug info - stays completely local (called frequently during sessions)
+    console.log('Session duration updated', { 
       duration, 
       sessionType, 
       sessionValue, 
       isActive 
-    }, 'BreathingTool');
+    });
     
     setSessionDuration(duration);
     
     // Check if session should end based on duration
     if (sessionType === 'duration' && sessionValue && duration >= sessionValue * 60) {
+      // Important event - log to server
       clientLogger.info('Duration limit reached, stopping session', { 
         duration, 
         sessionValue: sessionValue * 60, 
@@ -175,14 +328,16 @@ export default function BreathingToolClient() {
 
   // Handle session completion after the final breath cycle finishes
   const handleFinalBreathComplete = () => {
-    clientLogger.debug('Final breath complete handler called', { 
+    // Debug info - stays completely local
+    console.log('Final breath complete handler called', { 
       breathCount, 
       sessionType, 
       sessionValue, 
       sessionDuration 
-    }, 'BreathingTool');
+    });
     
     if (sessionType === 'breaths' && sessionValue && breathCount >= sessionValue) {
+      // Important event - log to server
       clientLogger.info('Playing completion sound for breath count', { 
         breathCount, 
         sessionValue, 
@@ -190,6 +345,7 @@ export default function BreathingToolClient() {
       }, 'BreathingTool');
       playCompletionSound();
     } else if (sessionType === 'duration' && sessionValue && sessionDuration >= sessionValue * 60) {
+      // Important event - log to server
       clientLogger.info('Playing completion sound for duration', { 
         sessionDuration, 
         sessionValue: sessionValue * 60, 
@@ -197,6 +353,7 @@ export default function BreathingToolClient() {
       }, 'BreathingTool');
       playCompletionSound();
     } else {
+      // Warning - log to server for debugging
       clientLogger.warn('No completion sound conditions met', { 
         breathCount, 
         sessionDuration, 
@@ -216,6 +373,8 @@ export default function BreathingToolClient() {
     setBreathCount(0);
     setSessionDuration(0);
     sessionEndingRef.current = false; // Reset the ending flag
+    requestWakeLock(); // Request wake lock when session starts
+    startKeepAlive(); // Start keep-alive mechanism
   };
 
   const handleStopSession = () => {
@@ -228,6 +387,8 @@ export default function BreathingToolClient() {
     
     setIsActive(false);
     sessionEndingRef.current = false;
+    releaseWakeLock(); // Release wake lock when session stops
+    stopKeepAlive(); // Stop keep-alive mechanism
   };
 
   return (
@@ -273,6 +434,8 @@ export default function BreathingToolClient() {
             breathCount={breathCount}
             sessionDuration={sessionDuration}
             isActive={isActive}
+            wakeLockActive={wakeLockActive}
+            wakeLockSupported={wakeLockSupported}
           />
         </div>
       </div>
