@@ -10,6 +10,7 @@ interface BreathingOrbProps {
   onSessionUpdate: (duration: number) => void;
   breathCount: number;
   onStartSession: () => void;
+  onStopSession: () => void;
   onFinalBreathComplete: () => void;
   sessionEnding: boolean;
   onCheckFinalCycle: (currentBreathCount: number) => void;
@@ -22,6 +23,7 @@ export function BreathingOrb({
   onSessionUpdate,
   breathCount,
   onStartSession,
+  onStopSession,
   onFinalBreathComplete,
   sessionEnding,
   onCheckFinalCycle
@@ -264,6 +266,8 @@ export function BreathingOrb({
         onClick={() => {
           if (!isActive) {
             onStartSession();
+          } else {
+            onStopSession();
           }
         }}
       >

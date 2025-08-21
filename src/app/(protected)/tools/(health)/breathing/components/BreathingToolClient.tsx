@@ -244,6 +244,7 @@ export default function BreathingToolClient() {
             onSessionUpdate={handleSessionUpdate}
             breathCount={breathCount}
             onStartSession={handleStartSession}
+            onStopSession={handleStopSession}
             onFinalBreathComplete={handleFinalBreathComplete}
             sessionEnding={sessionEndingRef.current}
             onCheckFinalCycle={checkIfStartingFinalCycle}
