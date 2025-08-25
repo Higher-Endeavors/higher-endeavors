@@ -642,7 +642,6 @@ export default function ResistanceTrainingClient({
               setBaseWeekExercises([]);
               setActiveDay(1);
               setLockedWeeks(new Set());
-              setSaveResult(null);
               setIsTemplateProgram(false);
             }
           }}
