@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './ProgramBrowser';
 import ProgramSettings from './ProgramSettings';
@@ -17,11 +17,61 @@ import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram'
 import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
 import { updateResistanceSession } from '../lib/actions/updateResistanceSession';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
+import { getUserExerciseLibrary } from '../../lib/hooks/getUserExerciseLibrary';
+import { getExerciseLibrary } from '../../lib/hooks/getExerciseLibrary';
+import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from '../lib/actions/cmeTransformations';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { useToast } from '@/app/lib/toast';
 
+// Custom hook for exercise management
+const useExerciseManager = (userId: number, initialExercises: ExerciseLibraryItem[]) => {
+  const [exercises, setExercises] = useState<ExerciseLibraryItem[]>(initialExercises);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  const fetchExercisesForUser = useCallback(async (targetUserId: number) => {
+    setIsLoadingExercises(true);
+    try {
+      const [libraryExercises, userExercises, cmeActivities] = await Promise.all([
+        getExerciseLibrary(),
+        getUserExerciseLibrary(userId, targetUserId),
+        getCMEActivityLibrary()
+      ]);
+
+      const transformedCMEActivities = transformCMEActivitiesToExerciseLibrary(cmeActivities);
+      const allExercises = [...userExercises, ...libraryExercises, ...transformedCMEActivities];
+      setExercises(allExercises);
+    } catch (error) {
+      clientLogger.error('Error fetching exercises for user:', error);
+      setExercises(initialExercises);
+    } finally {
+      setIsLoadingExercises(false);
+    }
+  }, [userId, initialExercises]);
+
+  const loadInitialExercises = useCallback(async () => {
+    if (initialExercises.length > 0) {
+      setExercises(initialExercises);
+      return;
+    }
+    
+    await fetchExercisesForUser(userId);
+  }, [userId, initialExercises, fetchExercisesForUser]);
+
+  // Load initial exercises on mount
+  useEffect(() => {
+    loadInitialExercises();
+  }, [loadInitialExercises]);
+
+  return {
+    exercises,
+    isLoadingExercises,
+    fetchExercisesForUser
+  };
+};
+
 export default function ResistanceTrainingClient({
-  exercises,
+  exercises: initialExercises,
   initialUserId,
   userId,
   fitnessSettings,
@@ -81,6 +131,9 @@ export default function ResistanceTrainingClient({
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   // Add state to track if current program is a template
   const [isTemplateProgram, setIsTemplateProgram] = useState(false);
+
+  // Use the custom hook for exercise management
+  const { exercises, isLoadingExercises, fetchExercisesForUser } = useExerciseManager(userId, initialExercises);
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -573,7 +626,25 @@ export default function ResistanceTrainingClient({
       <div className="max-w-md">
         <UserSelector
           onUserSelect={userId => {
-            if (userId !== null) setSelectedUserId(userId);
+            if (userId !== null && userId !== selectedUserId) {
+              setSelectedUserId(userId);
+              // Fetch exercises for the new user
+              fetchExercisesForUser(userId);
+              // Clear program state when switching users
+              setEditingProgramId(null);
+              setProgramName('');
+              setPhaseFocus('');
+              setPeriodizationType('None');
+              setProgressionRulesState({});
+              setProgramDuration(4);
+              setNotes('');
+              setWeeklyExercises([[]]);
+              setBaseWeekExercises([]);
+              setActiveDay(1);
+              setLockedWeeks(new Set());
+              setSaveResult(null);
+              setIsTemplateProgram(false);
+            }
           }}
           currentUserId={selectedUserId}
           showAdminFeatures={true}
@@ -637,7 +708,7 @@ export default function ResistanceTrainingClient({
       />
       <ExerciseList
         exercises={exercises}
-        isLoading={false}
+        isLoading={isLoadingExercises}
         userId={selectedUserId}
         plannedExercises={
           mode === 'plan' 

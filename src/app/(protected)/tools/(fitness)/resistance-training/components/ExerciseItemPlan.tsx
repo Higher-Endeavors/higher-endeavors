@@ -18,9 +18,15 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
   const getLoadUnit = (set: any) => set.loadUnit || 'lbs';
   const formatLoad = (load: string, unit?: string) => {
     if (!load || load === '0') return '0';
-    if (load.toLowerCase().includes('bw') || load.toLowerCase().includes('band') || load.toLowerCase().includes('kg') || load.toLowerCase().includes('lbs')) {
+    
+    // Check if it's already a numeric value
+    const numericValue = parseFloat(load);
+    if (isNaN(numericValue)) {
+      // Non-numeric value (BW, band colors, etc.), don't add unit
       return load;
     }
+    
+    // Numeric value, add unit
     return `${load} ${unit || 'lbs'}`;
   };
   const getExerciseName = () => {
@@ -35,6 +41,12 @@ export default function ExerciseItemPlan({ exercise, exercises, onEdit, onDelete
         return ex.exerciseLibraryId === exercise.exerciseLibraryId && ex.source === 'library';
       }
     });
+    
+    if (exerciseData?.source === 'user' && exerciseData?.createdByUserName && exerciseData?.createdByUserId !== exerciseData?.userExerciseLibraryId) {
+      // Show user attribution for admin viewing other users' exercises
+      return `${exerciseData.name} (User: ${exerciseData.createdByUserName})`;
+    }
+    
     return exerciseData?.name || `Exercise ${exercise.exerciseLibraryId || exercise.userExerciseLibraryId}`;
   };
   const formatNumberWithCommas = (x: number) => x.toLocaleString();

@@ -224,9 +224,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, exercises, us
       value = exercise.exerciseLibraryId || 0;
     }
     
+    // Add user attribution to label for admin clarity
+    let label = exercise.name;
+    if (exercise.source === 'user' && exercise.createdByUserName && exercise.createdByUserId !== exercise.userExerciseLibraryId) {
+      label = `${exercise.name} (User: ${exercise.createdByUserName})`;
+    }
+    
     return {
       value,
-      label: exercise.name,
+      label,
       exercise,
       source: exercise.source || 'library'
     };
