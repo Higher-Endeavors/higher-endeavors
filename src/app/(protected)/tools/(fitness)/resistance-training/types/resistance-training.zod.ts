@@ -137,6 +137,9 @@ export const ExerciseLibraryItemSchema = z.object({
   source: z.enum(['library', 'user', 'cme_library']),
   exercise_family: z.string().optional(),
   exercise_family_id: z.number().int().optional(),
+  // User attribution fields for admin clarity when viewing other users' exercises
+  createdByUserId: z.number().int().optional(),
+  createdByUserName: z.string().optional(),
 }).strict();
 
 // Program list item for browser display
