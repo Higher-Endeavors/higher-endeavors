@@ -58,3 +58,26 @@ export async function getRecentRecipes() {
   );
   return data;
 }
+
+// News & Updates
+export async function getUpdates() {
+  // Fetch all updates (no field restrictions yet to avoid assumptions about the content model)
+  const data = await fetchAPI(
+    `/api/updates?sort[0]=createdAt:desc`
+  );
+  return { data };
+}
+
+export async function getUpdateBySlug(slug) {
+  const data = await fetchAPI(
+    `/api/updates?filters[slug][$eq]=${slug}`
+  );
+  return data;
+}
+
+export async function getRecentUpdates() {
+  const data = await fetchAPI(
+    `/api/updates?sort[0]=createdAt:desc&pagination[limit]=5`
+  );
+  return data;
+}

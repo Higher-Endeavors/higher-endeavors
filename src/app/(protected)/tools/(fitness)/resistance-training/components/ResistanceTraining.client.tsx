@@ -566,23 +566,23 @@ export default function ResistanceTrainingClient({
       }
 
       // Then create the template using the newly saved program
-      const templateResult = await saveResistanceTemplate({
+      const result = await saveResistanceTemplate({
         userId: selectedUserId,
         templateName: programName,
         phaseFocus,
         periodizationType,
         progressionRules: progressionSettings,
-        difficultyLevel: difficultyLevel || 'Fit',
+        tierContinuumId: 1, // Default to Healthy tier
         notes,
         selectedCategories,
         weeklyExercises,
-        programId: programResult.programId, // Use the newly created program ID
+        programId: programResult.programId
       });
       
-      if (templateResult.success) {
+      if (result.success) {
         setTemplateSaveResult('Template saved successfully!');
       } else {
-        setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
+        setTemplateSaveResult('Error saving template: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Template save error:', error);
@@ -695,8 +695,8 @@ export default function ResistanceTrainingClient({
         setPeriodizationType={setPeriodizationType}
         notes={notes}
         setNotes={setNotes}
-        difficultyLevel={difficultyLevel}
-        setDifficultyLevel={setDifficultyLevel}
+        tierContinuumId={1}
+        setTierContinuumId={() => {}} // No-op function since this is for regular programs, not templates
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
         isAdmin={isAdmin}

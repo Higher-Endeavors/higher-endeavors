@@ -7,7 +7,7 @@ import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplic
 import { ProgramListItem } from '../types/resistance-training.zod';
 import { getResistancePrograms } from '../lib/hooks/getResistancePrograms';
 import { useResistanceTemplates } from '../lib/hooks/useResistanceTemplates';
-import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
+import { useTemplateCategories } from '../lib/hooks/useTemplateData';
 import { deleteResistanceProgram } from '../lib/actions/deleteResistanceProgram';
 import { duplicateResistanceProgram } from '../lib/actions/duplicateResistanceProgram';
 import { clientLogger } from '@/app/lib/logging/logger.client';
@@ -36,7 +36,7 @@ interface FilterState {
   sortBy: 'newest' | 'oldest' | 'name';
   showTemplates: boolean;
   hideOwnPrograms: boolean;
-  difficultyLevel: string;
+  tierContinuumId: number | '';
   templateCategory: string;
 }
 
@@ -81,7 +81,7 @@ export default function ProgramBrowser({
     sortBy: 'newest',
     showTemplates: false,
     hideOwnPrograms: false,
-    difficultyLevel: '',
+    tierContinuumId: '',
     templateCategory: ''
   });
 
@@ -174,9 +174,9 @@ export default function ProgramBrowser({
       }
 
       // Template-specific filtering
-      if (filters.difficultyLevel && isTemplate(item)) {
-        const templateDifficulty = item.templateInfo?.difficultyLevel;
-        if (templateDifficulty !== filters.difficultyLevel) {
+      if (filters.tierContinuumId && isTemplate(item)) {
+        const templateTierContinuumId = item.templateInfo?.tierContinuumId;
+        if (templateTierContinuumId !== filters.tierContinuumId) {
           return false;
         }
       }
@@ -474,13 +474,13 @@ export default function ProgramBrowser({
               <div className="grid grid-cols-2 gap-4">
                 <select
                   className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                  value={filters.difficultyLevel}
-                  onChange={(e) => setFilters({ ...filters, difficultyLevel: e.target.value })}
+                  value={filters.tierContinuumId}
+                  onChange={(e) => setFilters({ ...filters, tierContinuumId: e.target.value ? Number(e.target.value) : '' })}
                 >
-                  <option value="">All Template Difficulty Levels</option>
-                  <option value="Healthy">Healthy</option>
-                  <option value="Fit">Fit</option>
-                  <option value="HighEnd">HighEnd</option>
+                  <option value="">All Template Tier Levels</option>
+                  <option value={1}>Healthy</option>
+                  <option value={2}>Fit</option>
+                  <option value={3}>HighEnd</option>
                 </select>
 
                 <select
@@ -613,8 +613,8 @@ export default function ProgramBrowser({
                           {/* Template-specific information */}
                           {isTemplateItem && item.templateInfo && (
                             <div className="flex space-x-4">
-                              {item.templateInfo.difficultyLevel && (
-                                <span>Difficulty: {item.templateInfo.difficultyLevel}</span>
+                              {item.templateInfo.tierContinuumName && (
+                                <span>Tier: {item.templateInfo.tierContinuumName}</span>
                               )}
                               {item.templateInfo.categories && item.templateInfo.categories.length > 0 && (
                                 <span>Categories: {item.templateInfo.categories.map(cat => cat.name).join(', ')}</span>
