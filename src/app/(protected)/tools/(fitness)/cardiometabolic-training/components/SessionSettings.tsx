@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
-import { useTemplateCategories } from '../../resistance-training/lib/hooks/useTemplateCategories';
+import { useTemplateCategories } from '../../resistance-training/lib/hooks/useTemplateData';
 
 interface SessionSettingsProps {
   sessionName: string;

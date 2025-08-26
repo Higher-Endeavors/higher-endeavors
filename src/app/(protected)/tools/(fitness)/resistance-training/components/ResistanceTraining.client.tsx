@@ -576,10 +576,10 @@ export default function ResistanceTrainingClient({
         programId: programResult.programId
       });
       
-      if (templateResult.success) {
+      if (result.success) {
         toast.success('Template saved successfully!');
       } else {
-        toast.error('Error saving template: ' + (templateResult.error || 'Unknown error'));
+        toast.error('Error saving template: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Template save error:', error);
