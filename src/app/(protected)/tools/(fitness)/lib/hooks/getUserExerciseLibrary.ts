@@ -4,7 +4,7 @@ export async function getUserExerciseLibrary(userId: number, targetUserId?: numb
   // Use targetUserId if provided (for admin access), otherwise use the current userId
   const effectiveUserId = targetUserId || userId;
   
-  const res = await fetch(`http://localhost:3000/api/user-exercise-library?user_id=${effectiveUserId}`);
+  const res = await fetch(`/api/user-exercise-library?user_id=${effectiveUserId}`);
   if (!res.ok) {
     throw new Error(`Failed to fetch user exercise library: ${res.status} ${res.statusText}`);
   }
