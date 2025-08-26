@@ -1,7 +1,6 @@
 // Core
 
 import { SessionProvider } from "next-auth/react";
-import { useEffect } from "react";
 import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
 import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
@@ -16,13 +15,6 @@ import ResistanceTrainingClient from "./components/ResistanceTraining.client";
 import { auth } from '@/app/auth';
 import { getUserSettings } from '@/app/lib/actions/userSettings';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-
-// Components
-import UserSelector from "../../../components/UserSelector";
-import ProgramBrowser from "./components/ProgramBrowser";
-import ProgramSettings from "./components/ProgramSettings";
-import ExerciseList from "./components/ExerciseList";
-import SessionSummary from "./components/SessionSummary";
 
 export default async function ResistanceTrainingPage() {
   const session = await auth();
