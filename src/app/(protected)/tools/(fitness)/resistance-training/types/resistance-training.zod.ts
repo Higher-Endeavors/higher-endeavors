@@ -1,5 +1,16 @@
 import { z } from 'zod';
 
+// --- Template Info Schema ---
+export const TemplateInfoSchema = z.object({
+  tierContinuumId: z.number().int().optional(),
+  tierContinuumName: z.string().optional(),
+  categories: z.array(z.object({
+    id: z.number().int(),
+    name: z.string(),
+    description: z.string().optional()
+  })).optional()
+});
+
 // --- Program Schemas ---
 
 export const ResistanceProgramSchema = z.object({
@@ -164,14 +175,7 @@ export const ProgramListItemSchema = z.object({
     }))
   }).optional(),
   // Template information (only for templates)
-  templateInfo: z.object({
-    difficultyLevel: z.string().optional(),
-    categories: z.array(z.object({
-      id: z.number().int(),
-      name: z.string(),
-      description: z.string().optional()
-    })).optional()
-  }).optional(),
+  templateInfo: TemplateInfoSchema.optional(),
 }).strict();
 
 // --- Action Schemas ---
@@ -215,3 +219,4 @@ export type ProgramListItem = z.infer<typeof ProgramListItemSchema>;
 export type UpdateResistanceProgramInput = z.infer<typeof UpdateResistanceProgramSchema>;
 export type DuplicateResistanceProgramInput = z.infer<typeof DuplicateResistanceProgramSchema>;
 export type DeleteResistanceProgramInput = z.infer<typeof DeleteResistanceProgramSchema>; 
+

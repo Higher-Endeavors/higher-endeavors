@@ -128,7 +128,8 @@ export async function GET(request: Request) {
           CASE 
             WHEN p.user_id = 1 THEN COALESCE((
               SELECT json_build_object(
-                'difficultyLevel', COALESCE(rpt.difficulty_level, ''),
+                'tierContinuumId', COALESCE(rpt.tier_continuum_id, 1),
+                'tierContinuumName', COALESCE(htc.tier_continuum_name, 'Healthy'),
                 'categories', COALESCE((
                   SELECT json_agg(jsonb_build_object(
                     'id', rptc.resist_program_template_categories_id,
@@ -141,8 +142,9 @@ export async function GET(request: Request) {
                 ), '[]'::json)
               )
               FROM resist_program_templates rpt
+              LEFT JOIN highend_tier_continuum htc ON rpt.tier_continuum_id = htc.tier_continuum_id
               WHERE rpt.program_id = p.program_id
-            ), '{"difficultyLevel": "", "categories": []}'::json)
+            ), '{"tierContinuumId": 1, "tierContinuumName": "Healthy", "categories": []}'::json)
             ELSE NULL
           END as template_info
         FROM resist_programs p
