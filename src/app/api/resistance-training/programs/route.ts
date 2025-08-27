@@ -20,20 +20,43 @@ export async function GET(request: Request) {
       // Fetch specific program first
       const programQuery = `
         SELECT 
-          program_id,
-          user_id,
-          program_name,
-          phase_focus,
-          periodization_type,
-          progression_rules,
-          program_duration,
-          notes,
-          start_date,
-          end_date,
-          created_at,
-          updated_at
-        FROM resist_programs
-        WHERE program_id = $1 AND user_id = $2
+          p.program_id,
+          p.user_id,
+          p.program_name,
+          p.phase_focus,
+          p.periodization_type,
+          p.progression_rules,
+          p.program_duration,
+          p.notes,
+          p.start_date,
+          p.end_date,
+          p.created_at,
+          p.updated_at,
+          -- Template information (only for templates)
+          CASE 
+            WHEN p.user_id = 1 THEN COALESCE((
+              SELECT json_build_object(
+                'tierContinuumId', COALESCE(rpt.tier_continuum_id, 1),
+                'tierContinuumName', COALESCE(htc.tier_continuum_name, 'Healthy'),
+                'categories', COALESCE((
+                  SELECT json_agg(jsonb_build_object(
+                    'id', rptc.resist_program_template_categories_id,
+                    'name', rptc.category_name,
+                    'description', rptc.description
+                  ))
+                  FROM resist_program_template_category_links rptcl
+                  JOIN resist_program_template_categories rptc ON rptcl.resist_program_template_categories_id = rptc.resist_program_template_categories_id
+                  WHERE rptcl.program_template_id = rpt.program_template_id
+                ), '[]'::json)
+              )
+              FROM resist_program_templates rpt
+              LEFT JOIN highend_tier_continuum htc ON rpt.tier_continuum_id = htc.tier_continuum_id
+              WHERE rpt.program_id = p.program_id
+            ), '{"tierContinuumId": 1, "tierContinuumName": "Healthy", "categories": []}'::json)
+            ELSE NULL
+          END as template_info
+        FROM resist_programs p
+        WHERE p.program_id = $1 AND p.user_id = $2
       `;
       const programValues = [programId, userId];
       const programResult = await SingleQuery(programQuery, programValues);
