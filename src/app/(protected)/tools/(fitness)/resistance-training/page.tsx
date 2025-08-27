@@ -20,26 +20,23 @@ export default async function ResistanceTrainingPage() {
   const session = await auth();
   const loggedInUserId = session?.user?.id ? Number(session.user.id) : 1;
 
-  let libraryExercises: ExerciseLibraryItem[] = [];
-  let userExercises: ExerciseLibraryItem[] = [];
-  let cmeActivities: CMEActivityLibraryItem[] = [];
-  let error: Error | null = null;
   let fitnessSettings: FitnessSettings | undefined = undefined;
+  let error: Error | null = null;
+  
   try {
-    libraryExercises = await getExerciseLibrary();
-    userExercises = await getUserExerciseLibrary(loggedInUserId);
-    cmeActivities = await getCMEActivityLibrary();
     const userSettings = await getUserSettings();
     fitnessSettings = userSettings?.fitness;
   } catch (err: any) {
     error = err;
   }
 
-  // Transform CME activities to match ExerciseLibraryItem format for compatibility
-  const transformedCMEActivities: ExerciseLibraryItem[] = transformCMEActivitiesToExerciseLibrary(cmeActivities);
-
-  // Combine all exercises and activities for the AddExerciseModal
-  const allExercises: ExerciseLibraryItem[] = [...userExercises, ...libraryExercises, ...transformedCMEActivities];
+  if (error) {
+    return (
+      <div className="text-red-500">
+        Error loading user settings: {error.message}
+      </div>
+    );
+  }
 
   const resistanceTrainingArticles = [
     {
@@ -49,14 +46,6 @@ export default async function ResistanceTrainingPage() {
     },
   ];
 
-  if (error) {
-    return (
-      <div className="text-red-500">
-        Error loading exercises: {error.message}
-      </div>
-    );
-  }
-
   return (
     <SessionProvider>
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
@@ -65,7 +54,7 @@ export default async function ResistanceTrainingPage() {
         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
           <div className="flex-grow space-y-4">
             <ResistanceTrainingClient
-              exercises={allExercises}
+              exercises={[]} // Empty array since we fetch dynamically
               initialUserId={loggedInUserId}
               userId={loggedInUserId}
               fitnessSettings={fitnessSettings}

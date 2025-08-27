@@ -37,15 +37,19 @@ CREATE TABLE IF NOT EXISTS public.resist_program_templates
 (
     program_template_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
     template_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
-    difficulty_level character varying(50) COLLATE pg_catalog."default",
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone,
     program_id integer NOT NULL,
+    tier_continuum_id integer NOT NULL,
     CONSTRAINT resist_program_templates_pkey PRIMARY KEY (program_template_id),
     CONSTRAINT resist_program_templates_program_id_fkey FOREIGN KEY (program_id)
         REFERENCES public.resist_programs (program_id) MATCH SIMPLE
         ON UPDATE CASCADE
-        ON DELETE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT resist_program_templates_tier_continuum_id_fkey FOREIGN KEY (tier_continuum_id)
+        REFERENCES public.highend_tier_continuum (tier_continuum_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
 )
 
 TABLESPACE pg_default;

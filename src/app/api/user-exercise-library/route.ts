@@ -56,7 +56,15 @@ export async function GET(request: Request) {
     }
 
     const result = await SingleQuery(
-      `SELECT user_exercise_library_id, exercise_name FROM resist_user_exercise_library WHERE user_id = $1`,
+      `SELECT 
+        uel.user_exercise_library_id, 
+        uel.exercise_name,
+        uel.user_id,
+        u.name as user_name,
+        u.email
+       FROM resist_user_exercise_library uel
+       JOIN users u ON uel.user_id = u.id
+       WHERE uel.user_id = $1`,
       [userId]
     );
 
@@ -65,14 +73,14 @@ export async function GET(request: Request) {
       result.rows.map((row: any) => ({
         user_exercise_library_id: row.user_exercise_library_id,
         name: row.exercise_name,
+        user_id: row.user_id,
+        user_name: row.user_name,
+        email: row.email,
         source: 'user'
       }))
     );
   } catch (error) {
     await serverLogger.error('Error fetching user exercises', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch user exercises' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch user exercises' }, { status: 500 });
   }
 } 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
-import { Toast } from 'flowbite-react';
+import { useToast } from '@/app/lib/toast';
 import { HiCheck, HiX } from 'react-icons/hi';
 import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '@/app/lib/types/userSettings.zod';
 import { useRouter } from 'next/navigation';
@@ -17,12 +17,11 @@ import { clientLogger } from '@/app/lib/logging/logger.client';
 
 const SettingsForm = () => {
   const router = useRouter();
+  const { success, error } = useToast();
   const [dbSettings, setDbSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isMutating, setIsMutating] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
-  const [showSuccessToast, setShowSuccessToast] = useState(false);
-  const [showErrorToast, setShowErrorToast] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const { refreshUserSettings } = useUserSettingsRefresh();
 
@@ -110,19 +109,14 @@ const SettingsForm = () => {
   // Save handler
   const onSubmit = async (data: UserSettings) => {
     setIsMutating(true);
-    setShowErrorToast(false);
-    setShowSuccessToast(false);
     try {
-      const result = await saveUserSettings({ settings: data });
-      if (!result.success) throw new Error(result.error || 'Failed to update settings');
-      setDbSettings(data);
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-      await refreshUserSettings(); // Refresh context after save
-    } catch (error) {
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
+      await saveUserSettings({ settings: data });
+      await refreshUserSettings();
+      success('Settings updated successfully');
+      router.push('/user/dashboard?success=settings');
+    } catch (error: any) {
       clientLogger.error('Error saving user settings', error);
+      error('Failed to update settings');
     } finally {
       setIsMutating(false);
     }
@@ -152,28 +146,6 @@ const SettingsForm = () => {
         onSubmit={handleSubmit(onSubmit)}
         className="bg-gray-50 rounded-lg shadow"
       >
-        {/* Success Toast */}
-        {showSuccessToast && (
-          <div className="fixed top-4 right-4 z-50">
-            <Toast>
-              <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
-                <HiCheck className="h-5 w-5" />
-              </div>
-              <div className="ml-3 text-sm font-normal">Settings updated successfully</div>
-            </Toast>
-          </div>
-        )}
-        {/* Error Toast */}
-        {showErrorToast && (
-          <div className="fixed top-4 right-4 z-50">
-            <Toast>
-              <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
-                <HiX className="h-5 w-5" />
-              </div>
-              <div className="ml-3 text-sm font-normal">Failed to update settings</div>
-            </Toast>
-          </div>
-        )}
         {/* Unsaved Changes Indicator */}
         {isDirty && (
           <div className="bg-yellow-50 p-4 border-l-4 border-yellow-400">

@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
-import { useTemplateCategories } from '../lib/hooks/useTemplateCategories';
+import { useTemplateCategories } from '../lib/hooks/useTemplateData';
+import { useTierContinuum } from '../lib/hooks/useTemplateData';
 
 interface ProgramSettingsProps {
   programLength: number;
@@ -34,8 +35,8 @@ interface ProgramSettingsProps {
   setPeriodizationType: (type: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
-  difficultyLevel?: string;
-  setDifficultyLevel?: (level: string) => void;
+  tierContinuumId?: number;
+  setTierContinuumId?: (id: number) => void;
   selectedCategories?: number[];
   setSelectedCategories?: (categories: number[]) => void;
   isAdmin?: boolean;
@@ -43,7 +44,7 @@ interface ProgramSettingsProps {
   isTemplateProgram?: boolean;
 }
 
-export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, difficultyLevel, setDifficultyLevel, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false, isTemplateProgram = false }: ProgramSettingsProps) {
+export default function ProgramSettings({ programLength, setProgramLength, sessionsPerWeek, setSessionsPerWeek, progressionSettings, setProgressionSettings, programName, setProgramName, phaseFocus, setPhaseFocus, periodizationType, setPeriodizationType, notes, setNotes, tierContinuumId, setTierContinuumId, selectedCategories, setSelectedCategories, isAdmin = false, isLoading = false, isTemplateProgram = false }: ProgramSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
@@ -54,6 +55,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
   
   // Template categories using custom hook
   const { categories: templateCategories, isLoading: categoriesLoading, error: categoriesError } = useTemplateCategories(isAdmin);
+  const { tiers: tierContinuumTiers, isLoading: tiersLoading, error: tiersError } = useTierContinuum(isAdmin);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -81,12 +83,11 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
     { value: 'Undulating', label: 'Undulating' }
   ];
 
-  // Difficulty options for admin users
-  const difficultyOptions = [
-    { value: 'Healthy', label: 'Healthy' },
-    { value: 'Fit', label: 'Fit' },
-    { value: 'HighEnd', label: 'HighEnd' }
-  ];
+  // Tier continuum options for admin users
+  const tierContinuumOptions = tierContinuumTiers.map(tier => ({
+    value: tier.tier_continuum_id,
+    label: tier.tier_continuum_name
+  }));
 
   // Local state for periodization type and program length
   const [autoIncrement, setAutoIncrement] = useState(progressionSettings.type !== 'None' && progressionSettings.settings.volume_increment_percentage > 0 ? 'yes' : 'no');
@@ -418,22 +419,37 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
             </p>
           </div>
 
-          {/* Difficulty Level - Admin Only */}
-          {isAdmin && setDifficultyLevel && (
+          {/* Tier Continuum - Admin Only */}
+          {isAdmin && setTierContinuumId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Difficulty Level
+                Tier Continuum
               </label>
-              <Select
-                options={difficultyOptions}
-                value={difficultyOptions.find(opt => opt.value === difficultyLevel) || null}
-                onChange={opt => setDifficultyLevel(opt?.value || '')}
-                className="basic-single dark:text-slate-700"
-                classNamePrefix="select"
-                placeholder="Select difficulty level..."
-              />
+              {tiersLoading ? (
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                  <span>Loading tiers...</span>
+                </div>
+              ) : tiersError ? (
+                <div className="text-sm text-red-500">
+                  Error loading tiers: {tiersError}
+                </div>
+              ) : (
+                <Select
+                  options={tierContinuumOptions}
+                  value={tierContinuumOptions.find(opt => opt.value === tierContinuumId) || null}
+                  onChange={opt => {
+                    if (opt?.value !== undefined) {
+                      setTierContinuumId(opt.value);
+                    }
+                  }}
+                  className="basic-single dark:text-slate-700"
+                  classNamePrefix="select"
+                  placeholder="Select tier continuum..."
+                />
+              )}
               <p className="mt-1 text-sm text-gray-500">
-                Set the difficulty level for this program template
+                Set the tier continuum level for this program template
               </p>
             </div>
           )}

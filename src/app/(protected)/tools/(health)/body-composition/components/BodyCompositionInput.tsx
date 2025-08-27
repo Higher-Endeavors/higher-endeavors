@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { calculateAllMetrics } from '../utils/calculations';
 import { validateMeasurements, type ValidationError } from '../utils/validation';
 import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
-import { Toast } from 'flowbite-react';
+import { useToast } from '@/app/lib/toast';
 import { HiCheck } from 'react-icons/hi';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
 import { clientLogger } from '@/app/lib/logging/logger.client';
@@ -77,6 +77,7 @@ interface BodyCompositionInputProps {
 }
 
 export default function BodyCompositionInput({ userId }: BodyCompositionInputProps) {
+  const { success } = useToast();
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [calculatedMetrics, setCalculatedMetrics] = useState<{
     bodyFatPercentage: number;
@@ -84,7 +85,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     fatFreeMass: number;
   } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
   const [bioData, setBioData] = useState<UserBioData | null>(null);
   const [bioError, setBioError] = useState<string | null>(null);
@@ -305,7 +306,6 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     }
 
     setIsSaving(true);
-    setShowSuccess(false);
     
     try {
       const entryData = {
@@ -341,7 +341,6 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       }
 
       setValidationErrors([]);
-      setShowSuccess(true);
       
       // Reset form to initial state
       reset({
@@ -354,10 +353,8 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
       });
       setCalculatedMetrics(null);
       
-      // Hide success message after 5 seconds
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 5000);
+      // Show success toast
+      success('Measurements saved successfully!');
       
     } catch (error) {
       clientLogger.error('Error saving body composition measurements', error);
@@ -378,19 +375,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
         </div>
       )}
 
-      {/* Success Toast */}
-      {showSuccess && (
-        <div className="fixed top-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
-              <HiCheck className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">
-              Measurements saved successfully!
-            </div>
-          </Toast>
-        </div>
-      )}
+
 
       <form 
         onSubmit={(e) => {

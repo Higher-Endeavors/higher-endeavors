@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './ProgramBrowser';
 import ProgramSettings from './ProgramSettings';
@@ -17,10 +17,61 @@ import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram'
 import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
 import { updateResistanceSession } from '../lib/actions/updateResistanceSession';
 import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
+import { getUserExerciseLibrary } from '../../lib/hooks/getUserExerciseLibrary';
+import { getExerciseLibrary } from '../../lib/hooks/getExerciseLibrary';
+import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from '../lib/actions/cmeTransformations';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import { useToast } from '@/app/lib/toast';
+
+// Custom hook for exercise management
+const useExerciseManager = (userId: number, initialExercises: ExerciseLibraryItem[]) => {
+  const [exercises, setExercises] = useState<ExerciseLibraryItem[]>(initialExercises);
+  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
+
+  const fetchExercisesForUser = useCallback(async (targetUserId: number) => {
+    setIsLoadingExercises(true);
+    try {
+      const [libraryExercises, userExercises, cmeActivities] = await Promise.all([
+        getExerciseLibrary(),
+        getUserExerciseLibrary(userId, targetUserId),
+        getCMEActivityLibrary()
+      ]);
+
+      const transformedCMEActivities = transformCMEActivitiesToExerciseLibrary(cmeActivities);
+      const allExercises = [...userExercises, ...libraryExercises, ...transformedCMEActivities];
+      setExercises(allExercises);
+    } catch (error) {
+      clientLogger.error('Error fetching exercises for user:', error);
+      setExercises(initialExercises);
+    } finally {
+      setIsLoadingExercises(false);
+    }
+  }, [userId, initialExercises]);
+
+  const loadInitialExercises = useCallback(async () => {
+    if (initialExercises.length > 0) {
+      setExercises(initialExercises);
+      return;
+    }
+    
+    await fetchExercisesForUser(userId);
+  }, [userId, initialExercises, fetchExercisesForUser]);
+
+  // Load initial exercises on mount
+  useEffect(() => {
+    loadInitialExercises();
+  }, [loadInitialExercises]);
+
+  return {
+    exercises,
+    isLoadingExercises,
+    fetchExercisesForUser
+  };
+};
 
 export default function ResistanceTrainingClient({
-  exercises,
+  exercises: initialExercises,
   initialUserId,
   userId,
   fitnessSettings,
@@ -30,6 +81,7 @@ export default function ResistanceTrainingClient({
   userId: number;
   fitnessSettings?: FitnessSettings;
 }) {
+  const toast = useToast();
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [programLength, setProgramLength] = useState(4);
   const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
@@ -55,14 +107,12 @@ export default function ResistanceTrainingClient({
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
   // Add state for programName (to be set from ProgramSettings)
   const [programName, setProgramName] = useState('');
-  const [saveWarning, setSaveWarning] = useState('');
   // Add state for phaseFocus, periodizationType, progressionRules, programDuration, notes
   const [phaseFocus, setPhaseFocus] = useState('');
   const [periodizationType, setPeriodizationType] = useState('None');
   const [progressionRulesState, setProgressionRulesState] = useState({});
   const [programDuration, setProgramDuration] = useState(programLength);
   const [notes, setNotes] = useState('');
-  const [saveResult, setSaveResult] = useState<string | null>(null);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   // Add mode state
@@ -77,11 +127,15 @@ export default function ResistanceTrainingClient({
   const [modifiedFields, setModifiedFields] = useState<{ [programExercisesPlannedId: number]: { [setIdx: number]: { reps: boolean; load: boolean; duration: boolean } } }>({});
   // Add admin state
   const [isAdmin, setIsAdmin] = useState(false);
-  const [templateSaveResult, setTemplateSaveResult] = useState<string | null>(null);
   const [difficultyLevel, setDifficultyLevel] = useState<string>('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   // Add state to track if current program is a template
   const [isTemplateProgram, setIsTemplateProgram] = useState(false);
+  // Add tier continuum state for templates
+  const [tierContinuumId, setTierContinuumId] = useState<number>(1);
+
+  // Use the custom hook for exercise management
+  const { exercises, isLoadingExercises, fetchExercisesForUser } = useExerciseManager(userId, initialExercises);
 
   // Update programDuration when programLength changes
   useEffect(() => {
@@ -119,7 +173,17 @@ export default function ResistanceTrainingClient({
       setProgressionRulesState(loadedProgram.progressionRules || {});
       setProgramDuration(loadedProgram.programDuration || 4);
       setNotes(loadedProgram.notes || '');
-      // Note: difficultyLevel is only for templates, not regular programs
+      
+      // Update template-related settings if this is a template
+      if (loadedProgram.templateInfo) {
+        setTierContinuumId(loadedProgram.templateInfo.tierContinuumId || 1);
+        setSelectedCategories(loadedProgram.templateInfo.categories?.map(cat => cat.id) || []);
+        setIsTemplateProgram(true);
+      } else {
+        setTierContinuumId(1);
+        setSelectedCategories([]);
+        setIsTemplateProgram(false);
+      }
       
       // Update program length if needed
       if (loadedProgram.programDuration && loadedProgram.programDuration !== programLength) {
@@ -250,12 +314,13 @@ export default function ResistanceTrainingClient({
         const currentProgram = { resistanceProgramId: editingProgramId, userId: selectedUserId };
         await handleLoadProgram(currentProgram);
         handleCancelSessionEdit();
+        toast.success('Session updated successfully!');
       } else {
-        alert('Error updating session: ' + (result.error || 'Unknown error'));
+        toast.error('Error updating session: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Error updating session:', error);
-      alert('Error updating session: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error updating session: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -396,7 +461,7 @@ export default function ResistanceTrainingClient({
   // Save handler
   const handleSaveProgram = async () => {
     if (!programName.trim()) {
-      setSaveWarning('Please enter a Program Name before saving.');
+      toast.warning('Please enter a Program Name before saving.');
       // Focus the program name input on mobile
       const programNameInput = document.getElementById('program-name-input');
       if (programNameInput) {
@@ -405,8 +470,6 @@ export default function ResistanceTrainingClient({
       }
       return;
     }
-    setSaveWarning('');
-    setSaveResult(null);
     
     // Show loading state
     const saveButton = document.querySelector('[data-save-button]');
@@ -446,18 +509,18 @@ export default function ResistanceTrainingClient({
       }
       
       if (result.success) {
-        setSaveResult(editingProgramId && !isTemplateProgram ? 'Program updated successfully!' : 'Program saved successfully!');
+        toast.success(editingProgramId && !isTemplateProgram ? 'Program updated successfully!' : 'Program saved successfully!');
         // Update editingProgramId if this was a new program or template-based program
         if ((!editingProgramId || isTemplateProgram) && result.programId) {
           setEditingProgramId(result.programId);
           setIsTemplateProgram(false); // No longer a template program after saving
         }
       } else {
-        setSaveResult('Error saving program: ' + (result.error || 'Unknown error'));
+        toast.error('Error saving program: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Save error:', error);
-      setSaveResult('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error saving program: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
       if (saveButton) {
@@ -470,7 +533,7 @@ export default function ResistanceTrainingClient({
   // Save template handler
   const handleSaveTemplate = async () => {
     if (!programName.trim()) {
-      setSaveWarning('Please enter a Program Name before saving as template.');
+      toast.warning('Please enter a Program Name before saving as template.');
       const programNameInput = document.getElementById('program-name-input');
       if (programNameInput) {
         programNameInput.focus();
@@ -480,12 +543,11 @@ export default function ResistanceTrainingClient({
     }
     
     if (!weeklyExercises.some(week => week.length > 0)) {
-      setSaveWarning('Please add at least one exercise before saving as template.');
+      toast.warning('Please add at least one exercise before saving as template.');
       return;
     }
     
-    setSaveWarning('');
-    setTemplateSaveResult(null);
+
     
     // Show loading state
     const templateButton = document.querySelector('[data-template-button]');
@@ -508,32 +570,32 @@ export default function ResistanceTrainingClient({
       });
 
       if (!programResult.success) {
-        setTemplateSaveResult('Error saving program: ' + (programResult.error || 'Unknown error'));
+        toast.error('Error saving program: ' + (programResult.error || 'Unknown error'));
         return;
       }
 
       // Then create the template using the newly saved program
-      const templateResult = await saveResistanceTemplate({
+      const result = await saveResistanceTemplate({
         userId: selectedUserId,
         templateName: programName,
         phaseFocus,
         periodizationType,
         progressionRules: progressionSettings,
-        difficultyLevel: difficultyLevel || 'Fit',
+        tierContinuumId: tierContinuumId,
         notes,
         selectedCategories,
         weeklyExercises,
-        programId: programResult.programId, // Use the newly created program ID
+        programId: programResult.programId
       });
       
-      if (templateResult.success) {
-        setTemplateSaveResult('Template saved successfully!');
+      if (result.success) {
+        toast.success('Template saved successfully!');
       } else {
-        setTemplateSaveResult('Error saving template: ' + (templateResult.error || 'Unknown error'));
+        toast.error('Error saving template: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       clientLogger.error('Template save error:', error);
-      setTemplateSaveResult('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       // Reset button state
       if (templateButton) {
@@ -576,7 +638,24 @@ export default function ResistanceTrainingClient({
       <div className="max-w-md">
         <UserSelector
           onUserSelect={userId => {
-            if (userId !== null) setSelectedUserId(userId);
+            if (userId !== null && userId !== selectedUserId) {
+              setSelectedUserId(userId);
+              // Fetch exercises for the new user
+              fetchExercisesForUser(userId);
+              // Clear program state when switching users
+              setEditingProgramId(null);
+              setProgramName('');
+              setPhaseFocus('');
+              setPeriodizationType('None');
+              setProgressionRulesState({});
+              setProgramDuration(4);
+              setNotes('');
+              setWeeklyExercises([[]]);
+              setBaseWeekExercises([]);
+              setActiveDay(1);
+              setLockedWeeks(new Set());
+              setIsTemplateProgram(false);
+            }
           }}
           currentUserId={selectedUserId}
           showAdminFeatures={true}
@@ -600,11 +679,11 @@ export default function ResistanceTrainingClient({
           setNotes('');
           setDifficultyLevel('');
           setSelectedCategories([]);
+          setTierContinuumId(1); // Reset to Healthy tier
           setWeeklyExercises([[]]);
           setBaseWeekExercises([]);
           setActiveDay(1);
           setLockedWeeks(new Set());
-          setSaveResult(null);
           setIsTemplateProgram(false); // Reset template state
         }}
         isProgramLoaded={!!editingProgramId}
@@ -625,8 +704,8 @@ export default function ResistanceTrainingClient({
         setPeriodizationType={setPeriodizationType}
         notes={notes}
         setNotes={setNotes}
-        difficultyLevel={difficultyLevel}
-        setDifficultyLevel={setDifficultyLevel}
+        tierContinuumId={tierContinuumId}
+        setTierContinuumId={setTierContinuumId}
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
         isAdmin={isAdmin}
@@ -641,7 +720,7 @@ export default function ResistanceTrainingClient({
       />
       <ExerciseList
         exercises={exercises}
-        isLoading={false}
+        isLoading={isLoadingExercises}
         userId={selectedUserId}
         plannedExercises={
           mode === 'plan' 
@@ -710,29 +789,8 @@ export default function ResistanceTrainingClient({
           )}
         </div>
       </div>
-      {saveWarning && (
-        <div className="text-red-600 text-center sm:text-right mt-2 p-2 bg-red-50 dark:bg-red-900/20 rounded-md border border-red-200 dark:border-red-800">
-          {saveWarning}
-        </div>
-      )}
-      {saveResult && (
-        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
-          saveResult.startsWith('Error') 
-            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
-            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-        }`}>
-          {saveResult}
-        </div>
-      )}
-      {templateSaveResult && (
-        <div className={`mt-2 text-center sm:text-right p-2 rounded-md border ${
-          templateSaveResult.startsWith('Error') 
-            ? 'text-red-600 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' 
-            : 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-        }`}>
-          {templateSaveResult}
-        </div>
-      )}
+
+
       <AddExerciseModal
         key={editingExercise?.exerciseLibraryId || editingExercise?.userExerciseLibraryId || 'new'}
         isOpen={isModalOpen}

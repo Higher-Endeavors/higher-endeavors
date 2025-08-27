@@ -13,6 +13,7 @@ import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagr
 import { MdSelfImprovement, MdDashboard } from 'react-icons/md';
 import { GiMuscleUp } from 'react-icons/gi';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 // Pillar SVGs from Pillars.jsx (updated for dark mode)
 const LifestyleIcon = () => (
@@ -81,6 +82,24 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
 
+  // Logout handler function
+  async function signOutHandler() {
+    const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
+    const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
+
+    try {
+      await fetch('/api/signout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'plain/text' },
+      });
+    } catch (error) {
+      clientLogger.error('Error signing out', error);
+      // Handle sign out error
+    }
+
+    window.open(`https://auth.higherendeavors.com/logout?client_id=${cognitoClient}&logout_uri=${cognitoAuthUrl}`, "_self");
+  }
+
   // Only use click-away to collapse on desktop (so mobile doesn't collapse on any click)
   useClickAway(sidebarRef, () => {
     if (!isDesktop) setExpanded(false);
@@ -95,7 +114,43 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
   };
   // Desktop: expand/collapse on click (only if mode is 'click')
   const handleAvatarClick = () => {
-    if (isDesktop && sidebarExpandMode === 'click') setExpanded((prev) => !prev);
+    if (isDesktop && sidebarExpandMode === 'click') {
+      if (expanded) {
+        setExpanded(false);
+        // Close all sections when collapsing
+        setLifestyleOpen(false);
+        setHealthOpen(false);
+        setNutritionOpen(false);
+        setFitnessOpen(false);
+      } else {
+        setExpanded(true);
+      }
+    }
+  };
+
+  // New function: expand sidebar when clicking any icon in "click" mode
+  const handleIconClick = (sectionName?: string) => {
+    if (isDesktop && sidebarExpandMode === 'click' && !expanded) {
+      setExpanded(true);
+      
+      // Also expand the clicked section if it has sublinks
+      if (sectionName) {
+        switch (sectionName) {
+          case 'lifestyle':
+            setLifestyleOpen(true);
+            break;
+          case 'health':
+            setHealthOpen(true);
+            break;
+          case 'nutrition':
+            setNutritionOpen(true);
+            break;
+          case 'fitness':
+            setFitnessOpen(true);
+            break;
+        }
+      }
+    }
   };
 
   // Mobile: toggle on click
@@ -108,7 +163,7 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
       {/* Hamburger menu button (mobile only, when sidebar is closed) */}
       {!expanded && !isDesktop && (
         <button
-          className="fixed top-4 left-4 z-40 p-2 rounded bg-primary text-white md:hidden"
+          className="fixed top-4 left-4 z-40 p-2 rounded bg-primary text-slate-700 dark:text-white md:hidden"
           onClick={() => setExpanded(true)}
           aria-label="Open sidebar"
         >
@@ -172,7 +227,10 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
                   </button>
                 </Link>
               </div>
-              <button className="flex items-center justify-center gap-2 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 mb-2">
+              <button 
+                className="flex items-center justify-center gap-2 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 mb-2"
+                onClick={signOutHandler}
+              >
                 <FaSignOutAlt /> Logout
               </button>
             </>
@@ -183,10 +241,19 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
         <nav className="flex-1 flex flex-col gap-1 mt-4">
           <div className="border-b border-slate-200 dark:border-slate-700 mx-4 my-2" />
           <Link href="/user/dashboard">
-            <SidebarLink expanded={expanded} icon={<MdDashboard />} label="Dashboard" />
+            <SidebarLink 
+              expanded={expanded} 
+              icon={<MdDashboard />} 
+              label="Dashboard" 
+            />
           </Link>
           <div className="border-b border-slate-200 dark:border-slate-700 mx-4 my-2" />
-          <SidebarLink expanded={expanded} icon={<FaBook />} label="Guide to Your Ideal Self" />
+          <SidebarLink 
+            expanded={expanded} 
+            icon={<FaBook />} 
+            label="Guide to Your Ideal Self" 
+            onIconClick={() => handleIconClick()}
+          />
           {expanded && (
             <>
               <Link href="/guide/table-of-contents">
@@ -211,6 +278,8 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             hasSubLinks
             open={lifestyleOpen}
             onClick={() => setLifestyleOpen((prev) => !prev)}
+            onIconClick={() => handleIconClick('lifestyle')}
+            sectionName="lifestyle"
           />
           {lifestyleOpen && expanded && (
             <>
@@ -233,13 +302,22 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             hasSubLinks
             open={healthOpen}
             onClick={() => setHealthOpen((prev) => !prev)}
+            onIconClick={() => handleIconClick('health')}
+            sectionName="health"
           />
           {healthOpen && expanded && (
+            <>
+            <Link href="/tools/breathing">
+              <div className="ml-8">
+                <SidebarLink expanded={expanded} icon={null} label="Breathing" isSubLink />
+              </div>
+            </Link>
             <Link href="/tools/body-composition">
               <div className="ml-8">
                 <SidebarLink expanded={expanded} icon={null} label="Body Composition Tracker" isSubLink />
               </div>
             </Link>
+            </>
           )}
           <SidebarLink
             expanded={expanded}
@@ -248,6 +326,8 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             hasSubLinks
             open={nutritionOpen}
             onClick={() => setNutritionOpen((prev) => !prev)}
+            onIconClick={() => handleIconClick('nutrition')}
+            sectionName="nutrition"
           />
           {nutritionOpen && expanded && (
             <Link href="/tools/nutrition-tracker">
@@ -263,6 +343,8 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             hasSubLinks
             open={fitnessOpen}
             onClick={() => setFitnessOpen((prev) => !prev)}
+            onIconClick={() => handleIconClick('fitness')}
+            sectionName="fitness"
           />
           {fitnessOpen && expanded && (
             <>
@@ -286,14 +368,29 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           <div className="border-b border-slate-200 dark:border-slate-700 mx-4 my-2" />
           
           <Link href="/contact">
-            <SidebarLink expanded={expanded} icon={<FaEnvelope />} label="Contact Us" />
+            <SidebarLink 
+              expanded={expanded} 
+              icon={<FaEnvelope />} 
+              label="Contact Us" 
+            />
           </Link>
         </nav>
         {/* Bottom expand/collapse button (desktop only) */}
         <div className="flex-1 flex flex-col justify-end">
           <button
             className="hidden md:flex items-center justify-center w-12 h-12 mb-4 mx-auto rounded-full bg-gray-400 text-white hover:bg-primary-dark transition-colors text-2xl shadow-lg"
-            onClick={() => setExpanded((prev) => !prev)}
+            onClick={() => {
+              if (expanded) {
+                setExpanded(false);
+                // Close all sections when collapsing
+                setLifestyleOpen(false);
+                setHealthOpen(false);
+                setNutritionOpen(false);
+                setFitnessOpen(false);
+              } else {
+                setExpanded(true);
+              }
+            }}
             aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
           >
             {expanded ? <FaChevronLeft /> : <FaChevronRight />}
@@ -313,9 +410,15 @@ type SidebarLinkProps = {
   onClick?: () => void;
   isSubLink?: boolean;
   children?: React.ReactNode;
+  onIconClick?: () => void;
+  sectionName?: string;
 };
 
-function SidebarLink({ expanded, icon, label, hasSubLinks, open, onClick, isSubLink, children }: SidebarLinkProps) {
+function SidebarLink({ expanded, icon, label, hasSubLinks, open, onClick, isSubLink, children, onIconClick, sectionName }: SidebarLinkProps) {
+  const { userSettings } = useUserSettings();
+  const sidebarExpandMode = userSettings?.general?.sidebarExpandMode || 'hover';
+  const isDesktop = useIsDesktop();
+  
   return (
     <div className={`flex flex-col ${isSubLink ? '' : 'px-2'}`}>
       <button
@@ -323,7 +426,22 @@ function SidebarLink({ expanded, icon, label, hasSubLinks, open, onClick, isSubL
         onClick={onClick}
         aria-expanded={!!open}
       >
-        {icon && <span className="text-xl text-slate-500 dark:text-slate-100">{icon}</span>}
+        {icon && (
+          <span 
+            className="text-xl text-slate-500 dark:text-slate-100"
+            onClick={(e) => {
+              if (onIconClick && isDesktop && sidebarExpandMode === 'click' && !expanded) {
+                e.stopPropagation();
+                onIconClick();
+              }
+            }}
+            style={{ 
+              cursor: (onIconClick && isDesktop && sidebarExpandMode === 'click' && !expanded) ? 'pointer' : 'default' 
+            }}
+          >
+            {icon}
+          </span>
+        )}
         {expanded && <span className="flex-1 text-left">{label}</span>}
         {hasSubLinks && expanded && (
           <span className="ml-auto">{open ? <FaChevronDown /> : <FaChevronLeft />}</span>

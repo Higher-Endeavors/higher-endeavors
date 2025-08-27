@@ -32,6 +32,7 @@ export async function getResistanceProgram(programId: number, userId: number): P
     endDate: data.end_date,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
+    templateInfo: data.template_info,
   };
   
   // Transform exercises from the API response

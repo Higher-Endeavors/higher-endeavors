@@ -11,7 +11,7 @@ interface SaveTemplateParams {
   phaseFocus?: string;
   periodizationType?: string;
   progressionRules?: any;
-  difficultyLevel?: string;
+  tierContinuumId?: number;
   notes?: string;
   selectedCategories?: number[];
   weeklyExercises: ProgramExercisesPlanned[][];
@@ -44,7 +44,7 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
       phaseFocus,
       periodizationType,
       progressionRules,
-      difficultyLevel,
+      tierContinuumId,
       notes,
       selectedCategories,
       weeklyExercises,
@@ -73,12 +73,12 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
       // Create the template in resist_program_templates (referencing the existing program)
       const templateResult = await client.query(
         `INSERT INTO resist_program_templates 
-         (template_name, difficulty_level, program_id)
+         (template_name, tier_continuum_id, program_id)
          VALUES ($1, $2, $3)
          RETURNING program_template_id`,
         [
           templateName.trim(),
-          difficultyLevel || null,
+          tierContinuumId || 1, // Default to Healthy (tier_continuum_id: 1)
           programId
         ]
       );
