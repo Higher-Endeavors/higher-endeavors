@@ -1,7 +1,8 @@
 import { ExerciseLibraryItem } from '../../resistance-training/types/resistance-training.zod';
+import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
 
 export async function getExerciseLibrary(): Promise<ExerciseLibraryItem[]> {
-  const res = await fetch('/api/exercises', {
+  const res = await fetch(`${getApiBaseUrl()}/api/exercises`, {
     cache: 'force-cache',
   });
   if (!res.ok) {

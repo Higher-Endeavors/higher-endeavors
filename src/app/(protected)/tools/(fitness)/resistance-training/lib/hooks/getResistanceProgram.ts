@@ -1,10 +1,11 @@
 import { ResistanceProgram, ProgramExercisesPlanned } from '../../types/resistance-training.zod';
+import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
 
 export async function getResistanceProgram(programId: number, userId: number): Promise<{
   program: ResistanceProgram;
   exercises: ProgramExercisesPlanned[];
 }> {
-  const res = await fetch(`/api/resistance-training/programs?id=${programId}&userId=${userId}`, {
+  const res = await fetch(`${getApiBaseUrl()}/api/resistance-training/programs?id=${programId}&userId=${userId}`, {
     credentials: 'include',
   });
   

@@ -1,3 +1,5 @@
+import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+
 export interface TemplateCategory {
   resist_program_template_categories_id: number;
   category_name: string;
@@ -7,7 +9,7 @@ export interface TemplateCategory {
 }
 
 export async function getTemplateCategories(): Promise<TemplateCategory[]> {
-  const res = await fetch('/api/resistance-training/template-categories', {
+  const res = await fetch(`${getApiBaseUrl()}/api/resistance-training/template-categories`, {
     cache: 'force-cache',
   });
   
