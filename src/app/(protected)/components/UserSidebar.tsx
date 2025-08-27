@@ -13,6 +13,7 @@ import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagr
 import { MdSelfImprovement, MdDashboard } from 'react-icons/md';
 import { GiMuscleUp } from 'react-icons/gi';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import { clientLogger } from '@/app/lib/logging/logger.client';
 
 // Pillar SVGs from Pillars.jsx (updated for dark mode)
 const LifestyleIcon = () => (
@@ -80,6 +81,24 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
   const [fitnessOpen, setFitnessOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
   const isDesktop = useIsDesktop();
+
+  // Logout handler function
+  async function signOutHandler() {
+    const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
+    const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
+
+    try {
+      await fetch('/api/signout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'plain/text' },
+      });
+    } catch (error) {
+      clientLogger.error('Error signing out', error);
+      // Handle sign out error
+    }
+
+    window.open(`https://auth.higherendeavors.com/logout?client_id=${cognitoClient}&logout_uri=${cognitoAuthUrl}`, "_self");
+  }
 
   // Only use click-away to collapse on desktop (so mobile doesn't collapse on any click)
   useClickAway(sidebarRef, () => {
@@ -208,7 +227,10 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
                   </button>
                 </Link>
               </div>
-              <button className="flex items-center justify-center gap-2 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 mb-2">
+              <button 
+                className="flex items-center justify-center gap-2 px-3 py-1 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 mb-2"
+                onClick={signOutHandler}
+              >
                 <FaSignOutAlt /> Logout
               </button>
             </>
