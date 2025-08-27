@@ -131,6 +131,8 @@ export default function ResistanceTrainingClient({
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   // Add state to track if current program is a template
   const [isTemplateProgram, setIsTemplateProgram] = useState(false);
+  // Add tier continuum state for templates
+  const [tierContinuumId, setTierContinuumId] = useState<number>(1);
 
   // Use the custom hook for exercise management
   const { exercises, isLoadingExercises, fetchExercisesForUser } = useExerciseManager(userId, initialExercises);
@@ -171,7 +173,17 @@ export default function ResistanceTrainingClient({
       setProgressionRulesState(loadedProgram.progressionRules || {});
       setProgramDuration(loadedProgram.programDuration || 4);
       setNotes(loadedProgram.notes || '');
-      // Note: difficultyLevel is only for templates, not regular programs
+      
+      // Update template-related settings if this is a template
+      if (loadedProgram.templateInfo) {
+        setTierContinuumId(loadedProgram.templateInfo.tierContinuumId || 1);
+        setSelectedCategories(loadedProgram.templateInfo.categories?.map(cat => cat.id) || []);
+        setIsTemplateProgram(true);
+      } else {
+        setTierContinuumId(1);
+        setSelectedCategories([]);
+        setIsTemplateProgram(false);
+      }
       
       // Update program length if needed
       if (loadedProgram.programDuration && loadedProgram.programDuration !== programLength) {
@@ -569,7 +581,7 @@ export default function ResistanceTrainingClient({
         phaseFocus,
         periodizationType,
         progressionRules: progressionSettings,
-        tierContinuumId: 1, // Default to Healthy tier
+        tierContinuumId: tierContinuumId,
         notes,
         selectedCategories,
         weeklyExercises,
@@ -667,6 +679,7 @@ export default function ResistanceTrainingClient({
           setNotes('');
           setDifficultyLevel('');
           setSelectedCategories([]);
+          setTierContinuumId(1); // Reset to Healthy tier
           setWeeklyExercises([[]]);
           setBaseWeekExercises([]);
           setActiveDay(1);
@@ -691,8 +704,8 @@ export default function ResistanceTrainingClient({
         setPeriodizationType={setPeriodizationType}
         notes={notes}
         setNotes={setNotes}
-        tierContinuumId={1}
-        setTierContinuumId={() => {}} // No-op function since this is for regular programs, not templates
+        tierContinuumId={tierContinuumId}
+        setTierContinuumId={setTierContinuumId}
         selectedCategories={selectedCategories}
         setSelectedCategories={setSelectedCategories}
         isAdmin={isAdmin}

@@ -31,6 +31,8 @@ export const ResistanceProgramSchema = z.object({
   deleted: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string().optional(),
+  // Template information (only for templates)
+  templateInfo: TemplateInfoSchema.optional(),
 }).strict();
 
 export const ResistanceProgramTemplateSchema = z.object({

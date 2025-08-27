@@ -438,7 +438,11 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
                 <Select
                   options={tierContinuumOptions}
                   value={tierContinuumOptions.find(opt => opt.value === tierContinuumId) || null}
-                  onChange={opt => setTierContinuumId(opt?.value || 1)}
+                  onChange={opt => {
+                    if (opt?.value !== undefined) {
+                      setTierContinuumId(opt.value);
+                    }
+                  }}
                   className="basic-single dark:text-slate-700"
                   classNamePrefix="select"
                   placeholder="Select tier continuum..."
