@@ -5,7 +5,6 @@ import Footer from "../../../../components/Footer";
 import { auth } from '@/app/auth';
 import { getUserSettings } from '@/app/lib/actions/userSettings';
 import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
-import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { CMEActivityItem } from './types/cme.zod';
@@ -57,16 +56,14 @@ export default async function CardiometabolicTrainingPage() {
 
   let fitnessSettings: FitnessSettings | undefined = undefined;
   let cmeActivities: CMEActivityItem[] = [];
-  let userActivities: CMEActivityItem[] = [];
   let userHeartRateZones: any[] = [];
   let error: Error | null = null;
 
   try {
     // Fetch all data at the page level
-    const [userSettings, cmeData, userData, hrZones] = await Promise.all([
+    const [userSettings, cmeData, hrZones] = await Promise.all([
       getUserSettings(),
       getCMEActivityLibrary(),
-      getUserExerciseLibrary(loggedInUserId),
       getUserHeartRateZones(loggedInUserId)
     ]);
 
@@ -81,14 +78,7 @@ export default async function CardiometabolicTrainingPage() {
       equipment: activity.equipment || undefined
     }));
 
-    // Transform user exercises
-    userActivities = userData.exercises?.map((exercise: any) => ({
-      cme_activity_library_id: exercise.userExerciseLibraryId,
-      name: exercise.name,
-      source: 'user' as const,
-      activity_family: exercise.category,
-      equipment: exercise.equipment
-    })) || [];
+
 
     userHeartRateZones = hrZones;
   } catch (err: any) {
@@ -96,8 +86,8 @@ export default async function CardiometabolicTrainingPage() {
     console.error('Error loading CME training data:', err);
   }
 
-  // Combine all activities for the AddExerciseModal
-  const allActivities: CMEActivityItem[] = [...userActivities, ...cmeActivities];
+  // All activities come from CME library only
+  const allActivities: CMEActivityItem[] = cmeActivities;
 
   const cardiometabolicTrainingArticles = [
     {

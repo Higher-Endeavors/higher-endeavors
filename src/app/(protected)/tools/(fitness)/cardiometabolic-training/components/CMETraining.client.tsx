@@ -5,6 +5,11 @@ import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { CMEActivityItem, CMEExercise, CMESessionItem } from '../types/cme.zod';
 import { getUserSettingsById } from '@/app/lib/actions/userSettings';
 import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
+import { saveCMESession } from '../lib/actions/saveCMESession';
+import { getCMESessions, getCMESession } from '../lib/hooks/getCMESessions';
+import { transformDatabaseToFrontend } from '../lib/actions/transformDatabaseToFrontend';
+import { clientLogger } from '@/app/lib/logging/logger.client';
+import { useToast } from '@/app/lib/toast';
 
 // Components
 import UserSelector from '../../../../components/UserSelector';
@@ -27,6 +32,7 @@ export default function CardiometabolicTrainingClient({
   userHeartRateZones?: any[];
   activities: CMEActivityItem[];
 }) {
+  const toast = useToast();
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedSession, setSelectedSession] = useState<CMESessionItem | null>(null);
@@ -44,6 +50,9 @@ export default function CardiometabolicTrainingClient({
   const [notes, setNotes] = useState('');
   const [difficultyLevel, setDifficultyLevel] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Exercise state
   const [exercises, setExercises] = useState<CMEExercise[]>([]);
@@ -61,7 +70,7 @@ export default function CardiometabolicTrainingClient({
       setSelectedUserFitnessSettings(userSettings?.fitness);
       setSelectedUserHeartRateZones(userHRZones?.data || []);
     } catch (error) {
-      console.error('Error fetching user preferences:', error);
+      clientLogger.error('Error fetching user preferences:', error);
       setPreferencesError('Failed to load user preferences. Using default settings.');
       setSelectedUserFitnessSettings(fitnessSettings); // Fallback
       setSelectedUserHeartRateZones(userHeartRateZones || []); // Fallback
@@ -92,15 +101,34 @@ export default function CardiometabolicTrainingClient({
     setIsAdmin(isAdmin);
   };
 
-  const handleSessionSelect = (session: CMESessionItem) => {
-    setSelectedSession(session);
-    setIsSessionLoaded(true);
-    
-    // Load session settings if available
-    if (session) {
-      setSessionName(session.sessionName);
-      setNotes(session.notes || '');
-      // TODO: Load other session settings from the session data
+  const handleSessionSelect = async (session: CMESessionItem) => {
+    try {
+      setSelectedSession(session);
+      setIsSessionLoaded(false);
+      
+      // Load the session data from the database
+      const { session: sessionData, exercises: sessionExercises } = await getCMESession(session.cme_session_id, selectedUserId);
+      
+      // Transform database exercises back to frontend format
+      const frontendExercises = sessionExercises.map(dbExercise => 
+        transformDatabaseToFrontend(dbExercise, selectedUserId)
+      );
+      
+      // Update session settings
+      setSessionName(sessionData.session_name);
+      setMacrocyclePhase(sessionData.macrocycle_phase || '');
+      setFocusBlock(sessionData.focus_block || '');
+      setNotes(sessionData.notes || '');
+      
+      // Update exercises
+      setExercises(frontendExercises);
+      
+      setIsSessionLoaded(true);
+      clientLogger.info('Session loaded successfully:', { sessionName: sessionData.session_name });
+      toast.success('Session loaded successfully!');
+    } catch (error) {
+      clientLogger.error('Error loading session:', error);
+      toast.error('Error loading session: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   };
 
@@ -163,6 +191,59 @@ export default function CardiometabolicTrainingClient({
     setEditingExercise(null);
   };
 
+  const handleSaveSession = async () => {
+    if (!sessionName.trim()) {
+      setSaveError('Session name is required');
+      return;
+    }
+
+    if (exercises.length === 0) {
+      setSaveError('At least one exercise is required');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveSuccess(false);
+
+    try {
+      const result = await saveCMESession({
+        userId: selectedUserId,
+        sessionName: sessionName.trim(),
+        macrocyclePhase: macrocyclePhase || undefined,
+        focusBlock: focusBlock || undefined,
+        notes: notes || undefined,
+        exercises: exercises.map(exercise => ({
+          ...exercise,
+          // Ensure all required fields are present
+          activityId: exercise.activityId,
+          activityName: exercise.activityName,
+          useIntervals: exercise.useIntervals,
+          intervals: exercise.intervals,
+          notes: exercise.notes,
+          totalRepeatCount: exercise.totalRepeatCount,
+          heartRateData: exercise.heartRateData,
+        })),
+      });
+
+      if (result.success) {
+        setSaveSuccess(true);
+        toast.success('Session saved successfully!');
+        // Optionally reset the form or redirect
+        setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setSaveError(result.error || 'Failed to save session');
+        toast.error('Error saving session: ' + (result.error || 'Unknown error'));
+      }
+    } catch (error) {
+      clientLogger.error('Error saving session:', error);
+      setSaveError('An unexpected error occurred while saving');
+      toast.error('Error saving session: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <>
       <div className="max-w-md">
@@ -210,14 +291,57 @@ export default function CardiometabolicTrainingClient({
       />
       <ExerciseList 
         exercises={exercises}
-        onAddExercise={handleOpenAddExerciseModal}
         onEditExercise={handleEditExercise}
         onDeleteExercise={handleDeleteExercise}
         userHeartRateZones={selectedUserHeartRateZones}
       />
       
-      <SessionSummary exercises={exercises} />
+      {/* Add Exercise and Save Session Buttons - positioned like Resistance Training */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4 touch-manipulation">
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors touch-manipulation"
+            style={{ minHeight: '44px' }}
+            onClick={handleOpenAddExerciseModal}
+            onTouchStart={(e) => e.preventDefault()}
+          >
+            Add Exercise
+          </button>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-2">
+          {exercises.length > 0 && (
+            <button
+              onClick={handleSaveSession}
+              disabled={isSaving || exercises.length === 0 || !sessionName.trim()}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
+              style={{ minWidth: '120px', minHeight: '44px' }}
+              onTouchStart={(e) => e.preventDefault()}
+            >
+              {isSaving ? 'Saving...' : 'Save Session'}
+            </button>
+          )}
+        </div>
+      </div>
       
+      {/* Error and Success Display */}
+      {saveError && (
+        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
+          <p className="text-sm text-red-800 dark:text-red-200">
+            ❌ {saveError}
+          </p>
+        </div>
+      )}
+      
+      {saveSuccess && (
+        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
+          <p className="text-sm text-green-800 dark:text-green-200">
+            ✅ Session saved successfully!
+          </p>
+        </div>
+      )}
+      
+      <SessionSummary exercises={exercises} />
       <AddExerciseModal
         key={editingExercise?.activityId || 'new'}
         isOpen={isAddExerciseModalOpen}

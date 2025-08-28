@@ -1,155 +1,92 @@
--- CME Metrics Reference Table
-CREATE TABLE IF NOT EXISTS public.cme_metrics (
-    cme_metric_id SERIAL PRIMARY KEY,
-    metric_name VARCHAR(50) NOT NULL UNIQUE
-);
+-- Table: public.cme_sessions
 
--- ENUM for Step Type
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'cme_step_type') THEN
-        CREATE TYPE cme_step_type AS ENUM ('Warm-Up', 'Work', 'Recovery', 'Cool-Down');
-    END IF;
-END$$;
+-- DROP TABLE IF EXISTS public.cme_sessions;
 
--- Table: public.cme_programs
-CREATE TABLE IF NOT EXISTS public.cme_programs (
-    cme_program_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL
-        REFERENCES public.users(id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    program_name VARCHAR(100) NOT NULL,
-    macrocycle_phase VARCHAR(50),
-    focus_block VARCHAR(50),
-    progression_rules JSONB,
-    program_duration SMALLINT,
-    notes TEXT,
-    template_id INTEGER REFERENCES public.cme_program_templates(cme_program_template_id)
-        ON UPDATE CASCADE ON DELETE SET NULL,
-    start_date DATE,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
-);
+CREATE TABLE IF NOT EXISTS public.cme_sessions
+(
+    cme_session_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    user_id integer NOT NULL,
+    session_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    macrocycle_phase character varying(100) COLLATE pg_catalog."default",
+    focus_block character varying(100) COLLATE pg_catalog."default",
+    notes text COLLATE pg_catalog."default",
+    start_date date,
+    end_date date,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone,
+    CONSTRAINT cme_sessions_pkey PRIMARY KEY (cme_session_id),
+    CONSTRAINT cme_sessions_user_id_fkey FOREIGN KEY (user_id)
+        REFERENCES public.users (id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+)
 
--- Table: public.cme_program_templates
-CREATE TABLE IF NOT EXISTS public.cme_program_templates (
-    cme_program_template_id SERIAL PRIMARY KEY,
-    template_name VARCHAR(100) NOT NULL,
-    macrocycle_phase VARCHAR(50),
-    focus_block VARCHAR(50),
-    progression_rules JSONB,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
-);
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.cme_sessions
+    OWNER to postgres;
 
 
--- Table: public.cme_program_day_sessions (planned sessions for a day)
-CREATE TABLE IF NOT EXISTS public.cme_program_day_sessions (
-    cme_program_day_session_id SERIAL PRIMARY KEY,
-    cme_program_id  INTEGER NOT NULL
-        REFERENCES public.cme_programs(cme_program_id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    week_number     SMALLINT NOT NULL CHECK (week_number > 0),
-    day_number      SMALLINT NOT NULL CHECK (day_number > 0),
-    session_type VARCHAR(50) NOT NULL, -- e.g., run, bike, swim
-    session_name VARCHAR(100),
-    planned_distance NUMERIC(6,2),
-    planned_duration INTEGER, -- seconds
-    planned_intensity JSONB, -- e.g., {"pace": "5:00/km", "hr_zone": 3, "power": 200}
-    -- Catch-all for per-step details; each object must include a "type": "Warm-Up" | "Work" | "Recovery" | "Cool-Down"
-    detail JSONB NOT NULL DEFAULT '[]',
-    notes TEXT,
-    order_index INTEGER,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
-);
+-- Table: public.cme_session_templates
+
+-- DROP TABLE IF EXISTS public.cme_session_templates;
+
+CREATE TABLE IF NOT EXISTS public.cme_session_templates
+(
+    cme_template_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    template_name character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone,
+    cme_session_id integer NOT NULL,
+    tier_continuum_id integer,
+    CONSTRAINT cme_session_templates_pkey PRIMARY KEY (cme_template_id),
+    CONSTRAINT cme_session_templates_cme_session_id_fkey FOREIGN KEY (cme_session_id)
+        REFERENCES public.cme_sessions (cme_session_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE,
+    CONSTRAINT cme_session_templates_tier_continuum_id_fkey FOREIGN KEY (tier_continuum_id)
+        REFERENCES public.highend_tier_continuum (tier_continuum_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.cme_session_templates
+    OWNER to postgres;
 
 
--- Table: public.cme_user_actual_sessions (completed session logs)
-CREATE TABLE IF NOT EXISTS public.cme_user_actual_sessions (
-    cme_user_actual_session_id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL
-        REFERENCES public.users(id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    cme_program_day_session_id INTEGER
-        REFERENCES public.cme_program_day_sessions(cme_program_day_session_id)
-        ON UPDATE CASCADE ON DELETE SET NULL,
-    session_date DATE NOT NULL,
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
-);
+-- Table: public.cme_sessions_activities
 
--- Table: public.cme_session_interval_perfs (actual performance for each interval/step)
-CREATE TABLE IF NOT EXISTS public.cme_session_interval_perfs (
-    cme_session_interval_perf_id SERIAL PRIMARY KEY,
-    cme_user_actual_session_id INTEGER NOT NULL
-        REFERENCES public.cme_user_actual_sessions(cme_user_actual_session_id)
-        ON UPDATE CASCADE ON DELETE CASCADE,
-    step_number SMALLINT NOT NULL CHECK (step_number > 0),
-    step_type cme_step_type NOT NULL,
-    actual_duration INTEGER, -- seconds
-    actual_distance       NUMERIC(8,2),    -- e.g. meters or miles
-    actual_intensity NUMERIC(10,2),
-    actual_avg_speed      NUMERIC(6,3),    -- m/s or min/km (convert as needed)
-    actual_active_calories INTEGER,        -- kcal
-    actual_avg_heart_rate SMALLINT,        -- bpm
-    cme_metric_id INTEGER REFERENCES public.cme_metrics(cme_metric_id),
-    actual_tempo VARCHAR(20),
-    actual_rest INTEGER, -- seconds
-    detail JSONB NOT NULL DEFAULT '[]',
-    notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    updated_at TIMESTAMPTZ
-);
+-- DROP TABLE IF EXISTS public.cme_sessions_activities;
 
+CREATE TABLE IF NOT EXISTS public.cme_sessions_activities
+(
+    cme_session_activity_id integer NOT NULL GENERATED ALWAYS AS IDENTITY ( INCREMENT 1 START 1 MINVALUE 1 MAXVALUE 2147483647 CACHE 1 ),
+    cme_session_id integer NOT NULL,
+    cme_activity_family_id integer,
+    cme_activity_library_id integer,
+    planned_steps jsonb DEFAULT '[]'::jsonb,
+    actual_steps jsonb DEFAULT '[]'::jsonb,
+    notes text COLLATE pg_catalog."default",
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone,
+    CONSTRAINT cme_sessions_activities_pkey PRIMARY KEY (cme_session_activity_id),
+    CONSTRAINT cme_sessions_activities_cme_activity_family_id_fkey FOREIGN KEY (cme_activity_family_id)
+        REFERENCES public.cme_activity_family (cme_activity_family_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
+    CONSTRAINT cme_sessions_activities_cme_activity_library_id_fkey FOREIGN KEY (cme_activity_library_id)
+        REFERENCES public.cme_activity_library (cme_activity_library_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE SET NULL,
+    CONSTRAINT cme_sessions_activities_cme_session_id_fkey FOREIGN KEY (cme_session_id)
+        REFERENCES public.cme_sessions (cme_session_id) MATCH SIMPLE
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+)
 
-CREATE TABLE public.cme_interval_metrics (
-  metric_id                         SERIAL PRIMARY KEY,
-  cme_session_interval_perf_id      INTEGER NOT NULL
-    REFERENCES public.cme_session_interval_perfs(cme_session_interval_perf_id)
-      ON UPDATE CASCADE ON DELETE CASCADE,
-  cme_metric_id                     INTEGER     NOT NULL
-    REFERENCES public.cme_metrics(cme_metric_id)
-      ON UPDATE CASCADE
-      ON DELETE RESTRICT,
-  metric_value                      NUMERIC(10,3) NOT NULL,
-  metric_unit                       VARCHAR(20),           -- 'bpm','W','rpm','m/s'
-  recorded_offset_seconds           INTEGER,               -- sec since interval start
-  source                            VARCHAR(50),           -- 'Garmin','Apple','manual'
-  created_at                        TIMESTAMPTZ DEFAULT now()
-);
+TABLESPACE pg_default;
 
--- function to auto-update `updated_at`
-CREATE OR REPLACE FUNCTION public.trigger_set_timestamp()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = now();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Attach triggers to update `updated_at` on change
-DO $$
-DECLARE
-  tbl TEXT;
-BEGIN
-  FOR tbl IN ARRAY[
-    'cme_programs',
-    'cme_program_templates',
-    'cme_program_day_sessions',
-    'cme_user_actual_sessions',
-    'cme_session_interval_perfs'
-  ] LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS set_%s_timestamp ON public.%s;', tbl, tbl);
-    EXECUTE format('
-      CREATE TRIGGER set_%s_timestamp
-      BEFORE UPDATE ON public.%s
-      FOR EACH ROW
-      EXECUTE PROCEDURE public.trigger_set_timestamp();',
-      tbl, tbl
-    );
-  END LOOP;
-END;
-$$;
+ALTER TABLE IF EXISTS public.cme_sessions_activities
+    OWNER to postgres;

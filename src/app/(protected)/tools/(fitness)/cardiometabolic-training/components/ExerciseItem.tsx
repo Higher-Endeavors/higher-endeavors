@@ -50,7 +50,16 @@ export default function ExerciseItem({ exercise, onEdit, onDelete, userHeartRate
     exercise.intervals.forEach(interval => {
       if (interval.metrics) {
         Object.keys(interval.metrics).forEach(metricName => {
-          if (metricName && metricName !== '') {
+          // Filter out internal metadata fields that shouldn't be displayed as columns
+          if (metricName && 
+              metricName !== '' && 
+              !metricName.endsWith('_type') && 
+              !metricName.endsWith('_min') && 
+              !metricName.endsWith('_max') &&
+              metricName !== 'Duration' && // Skip Duration since we have Duration (min)
+              metricName !== 'Heart Rate Target_type' &&
+              metricName !== 'Heart Rate Target_min' &&
+              metricName !== 'Heart Rate Target_max') {
             metrics.add(metricName);
           }
         });
@@ -83,11 +92,6 @@ export default function ExerciseItem({ exercise, onEdit, onDelete, userHeartRate
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <span className="font-medium dark:text-slate-900">{exercise.activityName}</span>
-          {exercise.activitySource === 'user' && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-200 dark:text-blue-900">
-              Custom
-            </span>
-          )}
         </div>
         <div className="relative">
           <button
@@ -242,8 +246,17 @@ export default function ExerciseItem({ exercise, onEdit, onDelete, userHeartRate
                           `${interval.heartRateData.min}-${interval.heartRateData.max} BPM`
                         )
                       ) : (
-                        // Regular metrics
-                        interval.metrics && interval.metrics[metric] !== undefined ? interval.metrics[metric] || '-' : '-'
+                        // Regular metrics - filter out internal metadata fields
+                        interval.metrics && 
+                        interval.metrics[metric] !== undefined && 
+                        !metric.endsWith('_type') && 
+                        !metric.endsWith('_min') && 
+                        !metric.endsWith('_max') &&
+                        metric !== 'Duration' &&
+                        metric !== 'Heart Rate Target_type' &&
+                        metric !== 'Heart Rate Target_min' &&
+                        metric !== 'Heart Rate Target_max' ? 
+                          interval.metrics[metric] || '-' : '-'
                       )}
                     </span>
                   </div>
