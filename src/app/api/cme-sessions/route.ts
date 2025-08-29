@@ -109,7 +109,20 @@ export async function GET(request: Request) {
             COALESCE(cal.activity, 'Unknown Activity'), 
             ', ' 
             ORDER BY sa.created_at
-          ) as exercise_summary
+          ) as exercise_summary,
+          -- Template information (only for templates)
+          CASE 
+            WHEN s.user_id = 1 THEN COALESCE((
+              SELECT json_build_object(
+                'tierContinuumId', COALESCE(cst.tier_continuum_id, 1),
+                'tierContinuumName', COALESCE(htc.tier_continuum_name, 'Healthy')
+              )
+              FROM cme_session_templates cst
+              LEFT JOIN highend_tier_continuum htc ON cst.tier_continuum_id = htc.tier_continuum_id
+              WHERE cst.cme_session_id = s.cme_session_id
+            ), '{"tierContinuumId": 1, "tierContinuumName": "Healthy"}'::json)
+            ELSE NULL
+          END as template_info
         FROM cme_sessions s
         LEFT JOIN cme_sessions_activities sa ON s.cme_session_id = sa.cme_session_id
         LEFT JOIN cme_activity_library cal ON sa.cme_activity_library_id = cal.cme_activity_library_id
@@ -133,6 +146,8 @@ export async function GET(request: Request) {
         updated_at: session.updated_at,
         exercise_count: parseInt(session.exercise_count) || 0,
         exercise_summary: session.exercise_summary || 'No exercises',
+        // Template information (only for templates)
+        templateInfo: session.template_info || null,
       }));
 
       return NextResponse.json({ sessions });

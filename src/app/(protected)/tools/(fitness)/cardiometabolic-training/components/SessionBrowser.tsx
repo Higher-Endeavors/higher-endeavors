@@ -6,7 +6,8 @@ import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import type { CMESessionItem } from '../types/cme.zod';
-import { getCMESessions, type CMESessionListItem } from '../lib/hooks/getCMESessions';
+import { getCMESessions, type CMESessionListItem, useCMETemplates } from '../lib/hooks/getCMESessions';
+import { useTemplateData } from '../lib/hooks/useTemplateData';
 
 // How many sessions to show per page
 const ITEMS_PER_PAGE = 5;
@@ -62,8 +63,12 @@ export default function ProgramBrowser({
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
-  // Templates state - will be populated from database later
-  const [templates, setTemplates] = useState<CMESessionListItem[]>([]);
+  // Use custom hook for templates
+  const { templates, isLoading: templatesLoading, error: templatesError } = useCMETemplates();
+
+  // Use custom hook for template data
+  const { data: templateData, isLoading: tiersLoading } = useTemplateData(isAdmin);
+  const { tiers } = templateData;
 
   // Fetch sessions from the server
   const fetchSessions = useCallback(async () => {
@@ -157,16 +162,15 @@ export default function ProgramBrowser({
       // Note: intensity and activityType filters are not available in the new database structure
       // These filters will be disabled or removed in the UI
 
-      // Template-specific filtering (placeholder for future implementation)
+      // Template-specific filtering
       if (filters.tierContinuum && isTemplate(item)) {
-        // TODO: Implement tier continuum filtering when templates are added
-        return false;
+        const templateTierContinuumId = item.templateInfo?.tierContinuumId;
+        if (templateTierContinuumId !== parseInt(filters.tierContinuum)) {
+          return false;
+        }
       }
 
-      if (filters.templateCategory && isTemplate(item)) {
-        // TODO: Implement category filtering when templates are added
-        return false;
-      }
+      // Note: CME templates don't use categories, so templateCategory filter is not needed
 
       // Date range filtering
       if (filters.dateRange !== 'all') {
@@ -453,24 +457,15 @@ export default function ProgramBrowser({
                   value={filters.tierContinuum}
                   onChange={(e) => setFilters({ ...filters, tierContinuum: e.target.value })}
                 >
-                  <option value="">All Template Tier Continuum</option>
-                  <option value="Healthy">Healthy</option>
-                  <option value="Fit">Fit</option>
-                  <option value="HighEnd">HighEnd</option>
+                  <option value="">All Template Tier Levels</option>
+                  {tiers.map((tier) => (
+                    <option key={tier.tier_continuum_id} value={tier.tier_continuum_id.toString()}>
+                      {tier.tier_continuum_name}
+                    </option>
+                  ))}
                 </select>
-
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                  value={filters.templateCategory}
-                  onChange={(e) => setFilters({ ...filters, templateCategory: e.target.value })}
-                >
-                  <option value="">All Template Categories</option>
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                  <option value="Endurance">Endurance</option>
-                  <option value="HIIT">HIIT</option>
-                </select>
+                
+                {/* CME templates don't use categories, so this filter is removed */}
               </div>
             )}
           </div>

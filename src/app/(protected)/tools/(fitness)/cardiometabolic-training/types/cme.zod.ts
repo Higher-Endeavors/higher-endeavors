@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// --- Template Info Schema ---
+export const TemplateInfoSchema = z.object({
+  tierContinuumId: z.number().int().optional(),
+  tierContinuumName: z.string().optional(),
+});
+
 // --- CME Metrics Schemas ---
 
 export const CMEMetricSchema = z.object({
@@ -114,6 +120,11 @@ export interface CMESessionItem {
   updated_at?: string;
   exercise_count: number;
   exercise_summary: string;
+  // Template information (only for templates)
+  templateInfo?: {
+    tierContinuumId?: number;
+    tierContinuumName?: string;
+  };
   // Legacy fields for backward compatibility
   sessionId?: number;
   sessionName?: string;
@@ -123,13 +134,10 @@ export interface CMESessionItem {
   activityType?: string;
   targetHeartRate?: number;
   userId?: number;
-  templateInfo?: {
-    difficultyLevel: string;
-    categories: Array<{ name: string }>;
-  };
 }
 
 // --- Types (Inferred from Zod Schemas) ---
 export type CMEMetric = z.infer<typeof CMEMetricSchema>;
 export type CMEActivityFamilyConfig = z.infer<typeof CMEActivityFamilyConfigSchema>;
 export type CMEActivityLibraryItem = z.infer<typeof CMEActivityLibraryItemSchema>;
+export type TemplateInfo = z.infer<typeof TemplateInfoSchema>;

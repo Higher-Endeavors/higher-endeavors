@@ -1,4 +1,6 @@
 import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { clientLogger } from '@/app/lib/logging/logger.client';
+import { useState, useEffect, useCallback } from 'react';
 
 export interface CMESessionListItem {
   cme_session_id: number;
@@ -13,6 +15,11 @@ export interface CMESessionListItem {
   updated_at?: string;
   exercise_count: number;
   exercise_summary: string;
+  // Template information (only for templates)
+  templateInfo?: {
+    tierContinuumId?: number;
+    tierContinuumName?: string;
+  };
 }
 
 export async function getCMESessions(userId: number): Promise<CMESessionListItem[]> {
@@ -122,4 +129,59 @@ export async function getCMESession(sessionId: number, userId: number): Promise<
   }));
   
   return { session, exercises };
+}
+
+export async function getCMETemplates(): Promise<CMESessionListItem[]> {
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/api/cme-sessions?userId=1`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch templates: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.sessions || [];
+  } catch (error) {
+    clientLogger.error('Error fetching CME templates:', error);
+    throw error;
+  }
+}
+
+export function useCMETemplates() {
+  const [templates, setTemplates] = useState<CMESessionListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchTemplates = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const fetchedTemplates = await getCMETemplates();
+
+        if (isMounted) {
+          setTemplates(fetchedTemplates);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to fetch templates');
+          clientLogger.error('Error fetching CME templates:', err);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchTemplates();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  return { templates, isLoading, error };
 }

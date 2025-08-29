@@ -1,15 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { CMEActivityItem, CMEExercise, CMESessionItem } from '../types/cme.zod';
 import { getUserSettingsById } from '@/app/lib/actions/userSettings';
 import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
 import { saveCMESession } from '../lib/actions/saveCMESession';
+import { saveCMETemplate } from '../lib/actions/saveCMETemplate';
 import { getCMESessions, getCMESession } from '../lib/hooks/getCMESessions';
 import { transformDatabaseToFrontend } from '../lib/actions/transformDatabaseToFrontend';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { useToast } from '@/app/lib/toast';
+
 
 // Components
 import UserSelector from '../../../../components/UserSelector';
@@ -37,6 +39,9 @@ export default function CardiometabolicTrainingClient({
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedSession, setSelectedSession] = useState<CMESessionItem | null>(null);
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
+  
+  // Add state to track if current session is a template
+  const [isTemplateSession, setIsTemplateSession] = useState(false);
 
   // User preferences state - initialized from props
   const [selectedUserFitnessSettings, setSelectedUserFitnessSettings] = useState<FitnessSettings | undefined>(() => fitnessSettings);
@@ -48,16 +53,22 @@ export default function CardiometabolicTrainingClient({
   const [macrocyclePhase, setMacrocyclePhase] = useState('');
   const [focusBlock, setFocusBlock] = useState('');
   const [notes, setNotes] = useState('');
-  const [difficultyLevel, setDifficultyLevel] = useState('');
-  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [tierContinuumId, setTierContinuumId] = useState<number>(1); // Default to Healthy
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  
+  // Template saving state
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [templateSaveError, setTemplateSaveError] = useState<string | null>(null);
+  const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
 
   // Exercise state
   const [exercises, setExercises] = useState<CMEExercise[]>([]);
   const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
   const [editingExercise, setEditingExercise] = useState<CMEExercise | null>(null);
+
+
 
   // Fetch user preferences when user changes
   const fetchUserPreferences = async (userId: number) => {
@@ -82,13 +93,13 @@ export default function CardiometabolicTrainingClient({
       setSelectedUserId(userId);
       setSelectedSession(null);
       setIsSessionLoaded(false);
+      setIsTemplateSession(false);
       // Reset session settings when user changes
       setSessionName('');
       setMacrocyclePhase('');
       setFocusBlock('');
       setNotes('');
-      setDifficultyLevel('');
-      setSelectedCategories([]);
+      setTierContinuumId(1); // Reset to Healthy
       // Reset exercises when user changes
       setExercises([]);
       setEditingExercise(null);
@@ -97,9 +108,9 @@ export default function CardiometabolicTrainingClient({
     }
   };
 
-  const handleAdminStatusChange = (isAdmin: boolean) => {
+  const handleAdminStatusChange = useCallback((isAdmin: boolean) => {
     setIsAdmin(isAdmin);
-  };
+  }, []);
 
   const handleSessionSelect = async (session: CMESessionItem) => {
     try {
@@ -123,6 +134,13 @@ export default function CardiometabolicTrainingClient({
       // Update exercises
       setExercises(frontendExercises);
       
+      // Update template-related settings if this is a template
+      if (session.templateInfo) {
+        setIsTemplateSession(true);
+      } else {
+        setIsTemplateSession(false);
+      }
+      
       setIsSessionLoaded(true);
       clientLogger.info('Session loaded successfully:', { sessionName: sessionData.session_name });
       toast.success('Session loaded successfully!');
@@ -142,13 +160,13 @@ export default function CardiometabolicTrainingClient({
   const handleNewSession = () => {
     setSelectedSession(null);
     setIsSessionLoaded(false);
+    setIsTemplateSession(false);
     // Reset session settings for new session
     setSessionName('');
     setMacrocyclePhase('');
     setFocusBlock('');
     setNotes('');
-    setDifficultyLevel('');
-    setSelectedCategories([]);
+          setTierContinuumId(1); // Reset to Healthy
     // Reset exercises for new session
     setExercises([]);
     setEditingExercise(null);
@@ -228,7 +246,9 @@ export default function CardiometabolicTrainingClient({
 
       if (result.success) {
         setSaveSuccess(true);
-        toast.success('Session saved successfully!');
+        toast.success(isTemplateSession ? 'Session created from template successfully!' : 'Session saved successfully!');
+        // Reset template state after saving (template becomes a regular session)
+        setIsTemplateSession(false);
         // Optionally reset the form or redirect
         setTimeout(() => setSaveSuccess(false), 3000);
       } else {
@@ -241,6 +261,61 @@ export default function CardiometabolicTrainingClient({
       toast.error('Error saving session: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!sessionName.trim()) {
+      setTemplateSaveError('Session name is required');
+      return;
+    }
+
+    if (exercises.length === 0) {
+      setTemplateSaveError('At least one exercise is required');
+      return;
+    }
+
+    setIsSavingTemplate(true);
+    setTemplateSaveError(null);
+    setTemplateSaveSuccess(false);
+
+    try {
+      // Create template directly from current exercise data (no need to save session first)
+      const templateResult = await saveCMETemplate({
+        userId: selectedUserId,
+        templateName: sessionName.trim(),
+        tierContinuumId: 1, // Default to Healthy
+        notes: notes || undefined,
+        macrocyclePhase: macrocyclePhase || undefined,
+        focusBlock: focusBlock || undefined,
+        exercises: exercises.map(exercise => ({
+          ...exercise,
+          // Ensure all required fields are present
+          activityId: exercise.activityId,
+          activityName: exercise.activityName,
+          useIntervals: exercise.useIntervals,
+          intervals: exercise.intervals,
+          notes: exercise.notes,
+          totalRepeatCount: exercise.totalRepeatCount,
+          heartRateData: exercise.heartRateData,
+        })),
+      });
+
+      if (templateResult.success) {
+        setTemplateSaveSuccess(true);
+        toast.success('Template saved successfully!');
+        // Reset success message after 3 seconds
+        setTimeout(() => setTemplateSaveSuccess(false), 3000);
+      } else {
+        setTemplateSaveError(templateResult.error || 'Failed to save template');
+        toast.error('Error saving template: ' + (templateResult.error || 'Unknown error'));
+      }
+    } catch (error) {
+      clientLogger.error('Error saving template:', error);
+      setTemplateSaveError('An unexpected error occurred while saving template');
+      toast.error('Error saving template: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    } finally {
+      setIsSavingTemplate(false);
     }
   };
 
@@ -281,13 +356,13 @@ export default function CardiometabolicTrainingClient({
         setFocusBlock={setFocusBlock}
         notes={notes}
         setNotes={setNotes}
-        difficultyLevel={difficultyLevel}
-        setDifficultyLevel={setDifficultyLevel}
-        selectedCategories={selectedCategories}
-        setSelectedCategories={setSelectedCategories}
+        tierContinuumId={tierContinuumId}
+        setTierContinuumId={setTierContinuumId}
+
         isAdmin={isAdmin}
         isLoading={false}
-        isTemplateSession={false}
+        isTemplateSession={isTemplateSession}
+
       />
       <ExerciseList 
         exercises={exercises}
@@ -311,36 +386,33 @@ export default function CardiometabolicTrainingClient({
         
         <div className="flex flex-col sm:flex-row gap-2">
           {exercises.length > 0 && (
-            <button
-              onClick={handleSaveSession}
-              disabled={isSaving || exercises.length === 0 || !sessionName.trim()}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
-              style={{ minWidth: '120px', minHeight: '44px' }}
-              onTouchStart={(e) => e.preventDefault()}
-            >
-              {isSaving ? 'Saving...' : 'Save Session'}
-            </button>
+            <>
+              <button
+                onClick={handleSaveSession}
+                disabled={isSaving || exercises.length === 0 || !sessionName.trim()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
+                style={{ minWidth: '120px', minHeight: '44px' }}
+                onTouchStart={(e) => e.preventDefault()}
+              >
+                {isSaving ? 'Saving...' : 'Save Session'}
+              </button>
+              
+              {isAdmin && exercises.length > 0 && (
+                <button
+                  onClick={handleSaveTemplate}
+                  disabled={isSavingTemplate || exercises.length === 0 || !sessionName.trim()}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
+                  style={{ minWidth: '120px', minHeight: '44px' }}
+                  onTouchStart={(e) => e.preventDefault()}
+                >
+                  {isSavingTemplate ? 'Saving...' : 'Save Template'}
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
-      
-      {/* Error and Success Display */}
-      {saveError && (
-        <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-700">
-          <p className="text-sm text-red-800 dark:text-red-200">
-            ❌ {saveError}
-          </p>
-        </div>
-      )}
-      
-      {saveSuccess && (
-        <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-700">
-          <p className="text-sm text-green-800 dark:text-green-200">
-            ✅ Session saved successfully!
-          </p>
-        </div>
-      )}
-      
+       
       <SessionSummary exercises={exercises} />
       <AddExerciseModal
         key={editingExercise?.activityId || 'new'}
