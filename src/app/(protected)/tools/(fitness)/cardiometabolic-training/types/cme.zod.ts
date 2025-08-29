@@ -48,7 +48,7 @@ export interface CMEActivityItem {
   equipment?: string;
 }
 
-// Interface for exercise options in dropdowns
+// Interface for activity options in dropdowns
 export interface ExerciseOption {
   value: number;
   label: string;
@@ -56,7 +56,7 @@ export interface ExerciseOption {
   source: 'cme_library' | 'user';
 }
 
-// Interface for CME exercise intervals
+// Interface for CME activity intervals
 export interface Interval {
   stepType: string;
   duration: number;
@@ -87,7 +87,7 @@ export interface MetricField {
   required?: boolean;
 }
 
-// Interface for CME exercises
+// Interface for CME activities
 export interface CMEExercise {
   activityId: number;
   activityName: string;
@@ -106,34 +106,157 @@ export interface CMEExercise {
   };
 }
 
-// Interface for CME session items (matches database structure)
+// --- CME Session Schemas ---
+
+export const CMESessionSchema = z.object({
+  cme_session_id: z.number().int(),
+  user_id: z.number().int(),
+  session_name: z.string(),
+  session_date: z.string(),
+  macrocycle_phase: z.string().optional(),
+  focus_block: z.string().optional(),
+  notes: z.string().optional(),
+  tier_continuum_id: z.number().int().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const CMESessionItemSchema = z.object({
+  cme_session_id: z.number().int(),
+  user_id: z.number().int(),
+  session_name: z.string(),
+  session_date: z.string(),
+  macrocycle_phase: z.string().optional(),
+  focus_block: z.string().optional(),
+  notes: z.string().optional(),
+  tier_continuum_id: z.number().int().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
 export interface CMESessionItem {
   cme_session_id: number;
   user_id: number;
   session_name: string;
+  session_date: string;
   macrocycle_phase?: string;
   focus_block?: string;
   notes?: string;
-  start_date?: string;
-  end_date?: string;
+  tier_continuum_id?: number;
   created_at: string;
-  updated_at?: string;
-  exercise_count: number;
-  exercise_summary: string;
-  // Template information (only for templates)
-  templateInfo?: {
-    tierContinuumId?: number;
-    tierContinuumName?: string;
-  };
-  // Legacy fields for backward compatibility
-  sessionId?: number;
-  sessionName?: string;
-  createdAt?: string;
-  duration?: number;
-  intensity?: string;
-  activityType?: string;
-  targetHeartRate?: number;
-  userId?: number;
+  updated_at: string;
+}
+
+// --- CME Template Schemas ---
+
+export const CMETemplateSchema = z.object({
+  cme_template_id: z.number().int(),
+  user_id: z.number().int(),
+  template_name: z.string(),
+  tier_continuum_id: z.number().int(),
+  notes: z.string().optional(),
+  macrocycle_phase: z.string().optional(),
+  focus_block: z.string().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export interface CMETemplateItem {
+  cme_template_id: number;
+  user_id: number;
+  template_name: string;
+  tier_continuum_id: number;
+  notes?: string;
+  macrocycle_phase?: string;
+  focus_block?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// --- CME Session Exercise Schema ---
+
+export const CMESessionExerciseSchema = z.object({
+  cme_session_exercise_id: z.number().int(),
+  cme_session_id: z.number().int(),
+  cme_activity_library_id: z.number().int(),
+  activity_name: z.string(),
+  use_intervals: z.boolean(),
+  intervals: z.string(), // JSON string
+  notes: z.string().optional(),
+  total_repeat_count: z.number().int().optional(),
+  heart_rate_data: z.string().optional(), // JSON string
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export interface CMESessionActivityItem {
+  cme_session_activity_id: number;
+  cme_session_id: number;
+  cme_activity_library_id: number;
+  activity_name: string;
+  use_intervals: boolean;
+  intervals: string; // JSON string
+  notes?: string;
+  total_repeat_count?: number;
+  heart_rate_data?: string; // JSON string
+  created_at: string;
+  updated_at: string;
+}
+
+// --- CME Template Exercise Schema ---
+
+export const CMETemplateExerciseSchema = z.object({
+  cme_template_exercise_id: z.number().int(),
+  cme_template_id: z.number().int(),
+  cme_activity_library_id: z.number().int(),
+  activity_name: z.string(),
+  use_intervals: z.boolean(),
+  intervals: z.string(), // JSON string
+  notes: z.string().optional(),
+  total_repeat_count: z.number().int().optional(),
+  heart_rate_data: z.string().optional(), // JSON string
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export interface CMETemplateActivityItem {
+  cme_template_activity_id: number;
+  cme_template_id: number;
+  cme_activity_library_id: number;
+  activity_name: string;
+  use_intervals: boolean;
+  intervals: string; // JSON string
+  notes?: string;
+  total_repeat_count?: number;
+  heart_rate_data?: string; // JSON string
+  created_at: string;
+  updated_at: string;
+}
+
+// --- CME Session Summary Schema ---
+
+export const CMESessionSummarySchema = z.object({
+  session_id: z.number().int(),
+  session_name: z.string(),
+  session_date: z.string(),
+  activity_count: z.number().int(),
+  activity_summary: z.string(),
+  total_duration: z.number(),
+  total_work_duration: z.number(),
+  total_intervals: z.number().int(),
+  created_at: z.string(),
+});
+
+export interface CMESessionSummaryItem {
+  session_id: number;
+  session_name: string;
+  session_date: string;
+  activity_count: number;
+  activity_summary: string;
+  total_duration: number;
+  total_work_duration: number;
+  total_intervals: number;
+  created_at: string;
 }
 
 // --- Types (Inferred from Zod Schemas) ---

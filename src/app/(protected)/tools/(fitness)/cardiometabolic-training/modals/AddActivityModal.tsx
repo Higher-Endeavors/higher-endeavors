@@ -12,19 +12,19 @@ import type { CMEActivityItem, ExerciseOption, Interval, MetricField } from '../
 
 // Components
 
-interface AddExerciseModalProps {
+interface AddActivityModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (exercise: any) => void; // TODO: Define proper CME exercise type
+  onAdd: (activity: any) => void; // TODO: Define proper CME activity type
   currentUserId: number;
   selectedUserId: number; // ID of the user whose preferences are being displayed
-  editingExercise?: any | null;
+  editingActivity?: any | null;
   fitnessSettings?: FitnessSettings;
   userHeartRateZones?: any[]; // Add this prop for user's HR zones
   activities: CMEActivityItem[]; // Activities passed from parent component
 }
 
-export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId, selectedUserId, editingExercise, fitnessSettings, userHeartRateZones, activities }: AddExerciseModalProps) {
+export default function AddActivityModal({ isOpen, onClose, onAdd, currentUserId, selectedUserId, editingActivity, fitnessSettings, userHeartRateZones, activities }: AddActivityModalProps) {
   // Helper function to format duration from decimal minutes to MM:SS for input
   const formatDurationForInput = (duration: number) => {
     if (!duration || duration <= 0) return '';
@@ -34,13 +34,13 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   };
 
   // CardioMetabolic Endurance Training fields
-  const [exerciseName, setExerciseName] = useState(() => editingExercise?.activityName || '');
-  const [stepType, setStepType] = useState(() => editingExercise?.stepType || 'Work');
-  const [useIntervals, setUseIntervals] = useState(() => editingExercise?.useIntervals || false);
+  const [activityName, setActivityName] = useState(() => editingActivity?.activityName || '');
+  const [stepType, setStepType] = useState(() => editingActivity?.stepType || 'Work');
+  const [useIntervals, setUseIntervals] = useState(() => editingActivity?.useIntervals || false);
   const [intervals, setIntervals] = useState<Interval[]>(() => {
-    if (editingExercise?.intervals) {
+    if (editingActivity?.intervals) {
       // When editing, load the existing intervals
-      return editingExercise.intervals.map((interval: any) => ({
+      return editingActivity.intervals.map((interval: any) => ({
         ...interval,
         // Ensure all required properties are present
         stepType: interval.stepType || 'Work',
@@ -62,7 +62,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
     }];
   });
 
-  // Exercise library state - now using props instead of local state
+  // Activity library state - now using props instead of local state
   const [isLoadingActivities, setIsLoadingActivities] = useState(false);
   // Helper function to determine which metrics to show for an activity family
   const getMetricsForActivityFamily = useCallback((activityFamily: string) => {
@@ -116,9 +116,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   }, [fitnessSettings]);
 
   const [selectedActivity, setSelectedActivity] = useState<ExerciseOption | null>(() => {
-    if (editingExercise) {
+    if (editingActivity) {
       const activityToSelect = activities.find(activity => 
-        activity.name === editingExercise.activityName
+        activity.name === editingActivity.activityName
       );
       
       if (activityToSelect) {
@@ -134,17 +134,17 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   });
   const [searchTerm, setSearchTerm] = useState('');
 
-  // CME Metrics state - initialized based on editingExercise data
+  // CME Metrics state - initialized based on editingActivity data
   const [selectedMetrics, setSelectedMetrics] = useState<Record<string, any>>(() => {
     try {
-      if (editingExercise?.activityFamily) {
-        // If editing, populate with existing metric values from the exercise
-        if (editingExercise.intervals && editingExercise.intervals.length > 0) {
+      if (editingActivity?.activityFamily) {
+        // If editing, populate with existing metric values from the activity
+        if (editingActivity.intervals && editingActivity.intervals.length > 0) {
           const existingMetrics: Record<string, any> = {};
           
-          // Get the first interval's metrics (for non-interval exercises) or collect from all intervals
-          if (!editingExercise.useIntervals && editingExercise.intervals[0]) {
-            const firstInterval = editingExercise.intervals[0];
+          // Get the first interval's metrics (for non-interval activities) or collect from all intervals
+          if (!editingActivity.useIntervals && editingActivity.intervals[0]) {
+            const firstInterval = editingActivity.intervals[0];
             
             // Map duration back to Duration field
             if (firstInterval.duration > 0) {
@@ -175,9 +175,9 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
               existingMetrics['Heart Rate Target_min'] = firstInterval.heartRateData.min;
               existingMetrics['Heart Rate Target_max'] = firstInterval.heartRateData.max;
             }
-          } else if (editingExercise.useIntervals) {
-            // For interval exercises, collect metrics from all intervals
-            editingExercise.intervals.forEach((interval: any) => {
+          } else if (editingActivity.useIntervals) {
+            // For interval activities, collect metrics from all intervals
+            editingActivity.intervals.forEach((interval: any) => {
               // Always include Duration if this interval has duration
               if (interval.duration > 0) {
                 const formattedDuration = formatDurationForInput(interval.duration);
@@ -214,11 +214,11 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
         }
         
         // Fallback to empty metrics if no intervals
-        const { initialMetrics } = getMetricsForActivityFamily(editingExercise.activityFamily);
+        const { initialMetrics } = getMetricsForActivityFamily(editingActivity.activityFamily);
         return initialMetrics;
       }
     } catch (error) {
-      console.warn('Error initializing metrics from editingExercise:', error);
+      console.warn('Error initializing metrics from editingActivity:', error);
     }
     return {};
   });
@@ -245,8 +245,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   }, [distanceUnit]);
   
   const [availableMetrics, setAvailableMetrics] = useState<MetricField[]>(() => {
-    if (editingExercise?.activityFamily) {
-      const { metrics } = getMetricsForActivityFamily(editingExercise.activityFamily);
+    if (editingActivity?.activityFamily) {
+      const { metrics } = getMetricsForActivityFamily(editingActivity.activityFamily);
       return metrics;
     }
     return [];
@@ -291,8 +291,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
 
 
 
-  // Create exercise options for dropdown
-  const exerciseOptions: ExerciseOption[] = activities.map(activity => ({
+  // Create activity options for dropdown
+  const activityOptions: ExerciseOption[] = activities.map(activity => ({
     value: activity.cme_activity_library_id,
     label: activity.source === 'user' ? `${activity.name} (Custom)` : activity.name,
     activity,
@@ -300,7 +300,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   }));
 
   // Filter options based on search term
-  const filteredOptions = exerciseOptions.filter(option =>
+  const filteredOptions = activityOptions.filter(option =>
     option.label.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -332,7 +332,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   const handleActivitySelect = (option: ExerciseOption | null) => {
     setSelectedActivity(option);
     if (option) {
-      setExerciseName(option.activity.name);
+      setActivityName(option.activity.name);
       
       // Always update metrics when an activity is selected, whether editing or creating new
       // This ensures consistent metric display based on user configuration or defaults
@@ -341,7 +341,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
         setAvailableMetrics(metrics);
         
         // If editing, preserve existing values for metrics that are still available
-        if (editingExercise) {
+        if (editingActivity) {
           const preservedMetrics = { ...initialMetrics };
           Object.keys(selectedMetrics).forEach(key => {
             if (metrics.some(metric => metric.name === key)) {
@@ -460,7 +460,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
         
         return expandedIntervals;
       } else {
-        // For single exercise, create one interval with all metrics
+        // For single activity, create one interval with all metrics
         const intervalData: any = {
           stepType: stepType,
           notes: intervals[0].notes,
@@ -514,15 +514,15 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
       }
     };
 
-    // Create the exercise object with proper structure
-    const exercise = {
+    // Create the activity object with proper structure
+    const activity = {
       activityId: selectedActivity.value,
       activityName: selectedActivity.activity.name,
       activitySource: selectedActivity.source === 'cme_library' ? 'library' : 'user',
       activityFamily: selectedActivity.activity.activity_family, // Add activity family for HR zone lookup
       useIntervals,
       intervals: transformMetricsToIntervals(selectedMetrics, useIntervals),
-      notes: exerciseName !== selectedActivity.activity.name ? exerciseName : '',
+      notes: activityName !== selectedActivity.activity.name ? activityName : '',
       createdAt: new Date().toISOString(),
       userId: selectedUserId,
       // Calculate total repeat count from all repeat blocks
@@ -559,7 +559,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
           } : undefined)
     };
 
-    onAdd(exercise);
+    onAdd(activity);
     onClose();
     
     // Reset form - the key prop will force a remount with fresh state
@@ -818,14 +818,14 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
   return (
     <Modal show={isOpen} onClose={onClose} size="xl">
       <Modal.Header className="dark:text-white">
-        {editingExercise ? 'Edit Exercise' : 'Add CardioMetabolic Exercise'}
+        {editingActivity ? 'Edit Activity' : 'Add CardioMetabolic Activity'}
       </Modal.Header>
       <Modal.Body>
         {/* User Preferences Display */}
         {selectedUserId !== currentUserId && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
             <p className="text-sm text-blue-800 dark:text-blue-200">
-              <strong>Creating exercise for User ID:</strong> {selectedUserId}
+              <strong>Creating activity for User ID:</strong> {selectedUserId}
               {fitnessSettings?.cardioMetabolic?.cmeMetrics && (
                 <span className="ml-2">• Using their configured CME metrics</span>
               )}
@@ -838,19 +838,19 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Exercise Selection */}
+            {/* Activity Selection */}
             <div className="col-span-2">
-              <label htmlFor="exercise-select" className="block text-sm font-medium text-gray-700 dark:text-slate-200">
-                Exercise Name
+              <label htmlFor="activity-select" className="block text-sm font-medium text-gray-700 dark:text-slate-200">
+                Activity Name
               </label>
               <Select
-                id="exercise-select"
+                id="activity-select"
                 options={filteredOptions}
                 value={selectedActivity}
                 onChange={handleActivitySelect}
                 onInputChange={setSearchTerm}
                 inputValue={searchTerm}
-                placeholder="Search and select an exercise..."
+                placeholder="Search and select an activity..."
                 isLoading={isLoadingActivities}
                 isClearable
                 className="mt-1 text-gray-600"
@@ -859,8 +859,8 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
                   menu: base => ({ ...base, zIndex: 9999 }), 
                   control: base => ({ ...base, minWidth: 120, width: '100%' }) 
                 }}
-                noOptionsMessage={() => "No exercises found"}
-                loadingMessage={() => "Loading exercises..."}
+                noOptionsMessage={() => "No activities found"}
+                loadingMessage={() => "Loading activities..."}
               />
               {selectedActivity && (
                 <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
@@ -871,31 +871,31 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
                   )}
                   {selectedActivity.source === 'user' && (
                     <p className="text-sm text-gray-600">
-                      <strong>Type:</strong> Custom Exercise
+                      <strong>Type:</strong> Custom Activity
                     </p>
                   )}
                 </div>
               )}
             </div>
 
-            {/* Custom Exercise Name (only show if different from selected) */}
-            {selectedActivity && exerciseName !== selectedActivity.activity.name && (
+            {/* Custom Activity Name (only show if different from selected) */}
+            {selectedActivity && activityName !== selectedActivity.activity.name && (
               <div className="col-span-2">
-                <label htmlFor="custom-exercise-name" className="block text-sm font-medium text-gray-700 dark:text-slate-200">
-                  Custom Exercise Name
+                <label htmlFor="custom-activity-name" className="block text-sm font-medium text-gray-700 dark:text-slate-200">
+                  Custom Activity Name
                 </label>
                 <input
-                  id="custom-exercise-name"
+                  id="custom-activity-name"
                   type="text"
-                  value={exerciseName}
-                  onChange={e => setExerciseName(e.target.value)}
-                  placeholder="Enter custom exercise name (optional)"
+                  value={activityName}
+                  onChange={e => setActivityName(e.target.value)}
+                  placeholder="Enter custom activity name (optional)"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-black p-2"
                 />
               </div>
             )}
 
-            {/* Step Type and Intervals - moved here below Exercise Name */}
+            {/* Step Type and Intervals - moved here below Activity Name */}
             <div className="col-span-2">
               <div className="flex items-center space-x-6">
                 {/* Step Type - only show if not using intervals */}
@@ -1236,7 +1236,7 @@ export default function AddExerciseModal({ isOpen, onClose, onAdd, currentUserId
             className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
             onClick={handleSubmit}
           >
-            {editingExercise ? 'Update Exercise' : 'Add Exercise'}
+            {editingActivity ? 'Update Activity' : 'Add Activity'}
           </button>
         </div>
       </Modal.Body>

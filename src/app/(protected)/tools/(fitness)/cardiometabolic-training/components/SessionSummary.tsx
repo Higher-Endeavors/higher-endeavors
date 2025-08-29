@@ -4,10 +4,10 @@ import React, { useState } from 'react';
 import type { CMEExercise } from '../types/cme.zod';
 
 interface SessionSummaryProps {
-  exercises: CMEExercise[];
+  activities: CMEExercise[];
 }
 
-export default function SessionSummary({ exercises }: SessionSummaryProps) {
+export default function SessionSummary({ activities }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
 
   // Helper function to format duration consistently
@@ -24,9 +24,9 @@ export default function SessionSummary({ exercises }: SessionSummaryProps) {
     }
   };
 
-  // Calculate real-time statistics from actual exercise data
+  // Calculate real-time statistics from actual activity data
   const calculateSessionStats = () => {
-    if (exercises.length === 0) {
+    if (activities.length === 0) {
       return {
         totalSteps: 0,
         totalSessionDuration: 0,
@@ -40,10 +40,10 @@ export default function SessionSummary({ exercises }: SessionSummaryProps) {
     let totalIntervals = 0;
     let totalSteps = 0;
 
-    exercises.forEach(exercise => {
-      if (exercise.useIntervals && exercise.intervals.length > 0) {
+    activities.forEach(activity => {
+      if (activity.useIntervals && activity.intervals.length > 0) {
         // Interval training
-        exercise.intervals.forEach(interval => {
+        activity.intervals.forEach(interval => {
           totalDuration += interval.duration;
           totalSteps++;
           
@@ -53,13 +53,13 @@ export default function SessionSummary({ exercises }: SessionSummaryProps) {
         });
         
         // Add interval count from repeat blocks
-        if (exercise.totalRepeatCount) {
-          totalIntervals += exercise.totalRepeatCount;
+        if (activity.totalRepeatCount) {
+          totalIntervals += activity.totalRepeatCount;
         }
       } else {
         // Steady state
-        totalDuration += exercise.intervals[0]?.duration || 0;
-        totalSteps += exercise.intervals.length;
+        totalDuration += activity.intervals[0]?.duration || 0;
+        totalSteps += activity.intervals.length;
       }
     });
 

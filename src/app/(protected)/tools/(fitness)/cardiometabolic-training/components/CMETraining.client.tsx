@@ -2,7 +2,8 @@
 
 import React, { useState, useCallback } from 'react';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { CMEActivityItem, CMEExercise, CMESessionItem } from '../types/cme.zod';
+import type { CMEActivityItem, CMEExercise } from '../types/cme.zod';
+import type { CMESessionListItem } from '../lib/hooks/getCMESessions';
 import { getUserSettingsById } from '@/app/lib/actions/userSettings';
 import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
 import { saveCMESession } from '../lib/actions/saveCMESession';
@@ -17,9 +18,9 @@ import { useToast } from '@/app/lib/toast';
 import UserSelector from '../../../../components/UserSelector';
 import ProgramBrowser from './SessionBrowser';
 import SessionSettings from './SessionSettings';
-import ExerciseList from './ExerciseList';
+import ActivityList from './ActivityList';
 import SessionSummary from './SessionSummary';
-import AddExerciseModal from '../modals/AddExerciseModal';
+import AddActivityModal from '../modals/AddActivityModal';
 
 export default function CardiometabolicTrainingClient({
   initialUserId,
@@ -37,7 +38,7 @@ export default function CardiometabolicTrainingClient({
   const toast = useToast();
   const [selectedUserId, setSelectedUserId] = useState(userId);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [selectedSession, setSelectedSession] = useState<CMESessionItem | null>(null);
+  const [selectedSession, setSelectedSession] = useState<CMESessionListItem | null>(null);
   const [isSessionLoaded, setIsSessionLoaded] = useState(false);
   
   // Add state to track if current session is a template
@@ -63,10 +64,10 @@ export default function CardiometabolicTrainingClient({
   const [templateSaveError, setTemplateSaveError] = useState<string | null>(null);
   const [templateSaveSuccess, setTemplateSaveSuccess] = useState(false);
 
-  // Exercise state
-  const [exercises, setExercises] = useState<CMEExercise[]>([]);
-  const [isAddExerciseModalOpen, setIsAddExerciseModalOpen] = useState(false);
-  const [editingExercise, setEditingExercise] = useState<CMEExercise | null>(null);
+  // Activity state
+  const [sessionActivities, setSessionActivities] = useState<CMEExercise[]>([]);
+  const [isAddActivityModalOpen, setIsAddActivityModalOpen] = useState(false);
+  const [editingActivity, setEditingActivity] = useState<CMEExercise | null>(null);
 
 
 
@@ -100,9 +101,9 @@ export default function CardiometabolicTrainingClient({
       setFocusBlock('');
       setNotes('');
       setTierContinuumId(1); // Reset to Healthy
-      // Reset exercises when user changes
-      setExercises([]);
-      setEditingExercise(null);
+      // Reset activities when user changes
+      setSessionActivities([]);
+      setEditingActivity(null);
       // Fetch new user preferences
       fetchUserPreferences(userId);
     }
@@ -112,17 +113,17 @@ export default function CardiometabolicTrainingClient({
     setIsAdmin(isAdmin);
   }, []);
 
-  const handleSessionSelect = async (session: CMESessionItem) => {
+  const handleSessionSelect = async (session: CMESessionListItem) => {
     try {
       setSelectedSession(session);
       setIsSessionLoaded(false);
       
       // Load the session data from the database
-      const { session: sessionData, exercises: sessionExercises } = await getCMESession(session.cme_session_id, selectedUserId);
+      const { session: sessionData, activities: sessionActivities } = await getCMESession(session.cme_session_id, selectedUserId);
       
-      // Transform database exercises back to frontend format
-      const frontendExercises = sessionExercises.map(dbExercise => 
-        transformDatabaseToFrontend(dbExercise, selectedUserId)
+      // Transform database activities back to frontend format
+      const frontendActivities = sessionActivities.map(dbActivity => 
+        transformDatabaseToFrontend(dbActivity, selectedUserId)
       );
       
       // Update session settings
@@ -131,8 +132,8 @@ export default function CardiometabolicTrainingClient({
       setFocusBlock(sessionData.focus_block || '');
       setNotes(sessionData.notes || '');
       
-      // Update exercises
-      setExercises(frontendExercises);
+              // Update activities
+        setSessionActivities(frontendActivities);
       
       // Update template-related settings if this is a template
       if (session.templateInfo) {
@@ -151,7 +152,7 @@ export default function CardiometabolicTrainingClient({
   };
 
   const handleSessionDelete = (sessionId: number) => {
-    if (selectedSession?.sessionId === sessionId) {
+    if (selectedSession?.cme_session_id === sessionId) {
       setSelectedSession(null);
       setIsSessionLoaded(false);
     }
@@ -167,46 +168,46 @@ export default function CardiometabolicTrainingClient({
     setFocusBlock('');
     setNotes('');
           setTierContinuumId(1); // Reset to Healthy
-    // Reset exercises for new session
-    setExercises([]);
-    setEditingExercise(null);
+          // Reset activities for new session
+      setSessionActivities([]);
+      setEditingActivity(null);
     // TODO: Implement new session creation logic
   };
 
-  const handleAddExercise = (exercise: CMEExercise) => {
-    if (editingExercise) {
-      // Update existing exercise
-      setExercises(prev => prev.map(ex => 
-        ex.activityId === editingExercise.activityId ? exercise : ex
+  const handleAddActivity = (activity: CMEExercise) => {
+    if (editingActivity) {
+      // Update existing activity
+      setSessionActivities(prev => prev.map(act => 
+        act.activityId === editingActivity.activityId ? activity : act
       ));
-      setEditingExercise(null);
+      setEditingActivity(null);
     } else {
-      // Add new exercise
-      setExercises(prev => [...prev, exercise]);
+      // Add new activity
+      setSessionActivities(prev => [...prev, activity]);
     }
-    setIsAddExerciseModalOpen(false);
+    setIsAddActivityModalOpen(false);
   };
 
-  const handleEditExercise = (exerciseId: number) => {
-    const exerciseToEdit = exercises.find(ex => ex.activityId === exerciseId);
-    if (exerciseToEdit) {
-      setEditingExercise(exerciseToEdit);
-      setIsAddExerciseModalOpen(true);
+  const handleEditActivity = (activityId: number) => {
+    const activityToEdit = sessionActivities.find(act => act.activityId === activityId);
+    if (activityToEdit) {
+      setEditingActivity(activityToEdit);
+      setIsAddActivityModalOpen(true);
     }
   };
 
-  const handleDeleteExercise = (exerciseId: number) => {
-    setExercises(prev => prev.filter(ex => ex.activityId !== exerciseId));
+  const handleDeleteActivity = (activityId: number) => {
+    setSessionActivities(prev => prev.filter(act => act.activityId !== activityId));
   };
 
-  const handleOpenAddExerciseModal = () => {
-    setEditingExercise(null);
-    setIsAddExerciseModalOpen(true);
+  const handleOpenAddActivityModal = () => {
+    setEditingActivity(null);
+    setIsAddActivityModalOpen(true);
   };
 
-  const handleCloseAddExerciseModal = () => {
-    setIsAddExerciseModalOpen(false);
-    setEditingExercise(null);
+  const handleCloseAddActivityModal = () => {
+    setIsAddActivityModalOpen(false);
+    setEditingActivity(null);
   };
 
   const handleSaveSession = async () => {
@@ -215,8 +216,8 @@ export default function CardiometabolicTrainingClient({
       return;
     }
 
-    if (exercises.length === 0) {
-      setSaveError('At least one exercise is required');
+    if (sessionActivities.length === 0) {
+      setSaveError('At least one activity is required');
       return;
     }
 
@@ -231,16 +232,16 @@ export default function CardiometabolicTrainingClient({
         macrocyclePhase: macrocyclePhase || undefined,
         focusBlock: focusBlock || undefined,
         notes: notes || undefined,
-        exercises: exercises.map(exercise => ({
-          ...exercise,
+        activities: sessionActivities.map(activity => ({
+          ...activity,
           // Ensure all required fields are present
-          activityId: exercise.activityId,
-          activityName: exercise.activityName,
-          useIntervals: exercise.useIntervals,
-          intervals: exercise.intervals,
-          notes: exercise.notes,
-          totalRepeatCount: exercise.totalRepeatCount,
-          heartRateData: exercise.heartRateData,
+          activityId: activity.activityId,
+          activityName: activity.activityName,
+          useIntervals: activity.useIntervals,
+          intervals: activity.intervals,
+          notes: activity.notes,
+          totalRepeatCount: activity.totalRepeatCount,
+          heartRateData: activity.heartRateData,
         })),
       });
 
@@ -270,8 +271,8 @@ export default function CardiometabolicTrainingClient({
       return;
     }
 
-    if (exercises.length === 0) {
-      setTemplateSaveError('At least one exercise is required');
+    if (sessionActivities.length === 0) {
+      setTemplateSaveError('At least one activity is required');
       return;
     }
 
@@ -280,7 +281,7 @@ export default function CardiometabolicTrainingClient({
     setTemplateSaveSuccess(false);
 
     try {
-      // Create template directly from current exercise data (no need to save session first)
+      // Create template directly from current activity data (no need to save session first)
       const templateResult = await saveCMETemplate({
         userId: selectedUserId,
         templateName: sessionName.trim(),
@@ -288,16 +289,16 @@ export default function CardiometabolicTrainingClient({
         notes: notes || undefined,
         macrocyclePhase: macrocyclePhase || undefined,
         focusBlock: focusBlock || undefined,
-        exercises: exercises.map(exercise => ({
-          ...exercise,
+        activities: sessionActivities.map(activity => ({
+          ...activity,
           // Ensure all required fields are present
-          activityId: exercise.activityId,
-          activityName: exercise.activityName,
-          useIntervals: exercise.useIntervals,
-          intervals: exercise.intervals,
-          notes: exercise.notes,
-          totalRepeatCount: exercise.totalRepeatCount,
-          heartRateData: exercise.heartRateData,
+          activityId: activity.activityId,
+          activityName: activity.activityName,
+          useIntervals: activity.useIntervals,
+          intervals: activity.intervals,
+          notes: activity.notes,
+          totalRepeatCount: activity.totalRepeatCount,
+          heartRateData: activity.heartRateData,
         })),
       });
 
@@ -364,32 +365,32 @@ export default function CardiometabolicTrainingClient({
         isTemplateSession={isTemplateSession}
 
       />
-      <ExerciseList 
-        exercises={exercises}
-        onEditExercise={handleEditExercise}
-        onDeleteExercise={handleDeleteExercise}
-        userHeartRateZones={selectedUserHeartRateZones}
-      />
+             <ActivityList 
+         activities={sessionActivities}
+         onEditActivity={handleEditActivity}
+         onDeleteActivity={handleDeleteActivity}
+         userHeartRateZones={selectedUserHeartRateZones}
+       />
       
-      {/* Add Exercise and Save Session Buttons - positioned like Resistance Training */}
+      {/* Add Activity and Save Session Buttons - positioned like Resistance Training */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mt-4 touch-manipulation">
         <div className="flex flex-col sm:flex-row gap-2">
           <button
             className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors touch-manipulation"
             style={{ minHeight: '44px' }}
-            onClick={handleOpenAddExerciseModal}
+            onClick={handleOpenAddActivityModal}
             onTouchStart={(e) => e.preventDefault()}
           >
-            Add Exercise
+            Add Activity
           </button>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-2">
-          {exercises.length > 0 && (
+                     {sessionActivities.length > 0 && (
             <>
               <button
                 onClick={handleSaveSession}
-                disabled={isSaving || exercises.length === 0 || !sessionName.trim()}
+                                 disabled={isSaving || sessionActivities.length === 0 || !sessionName.trim()}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
                 style={{ minWidth: '120px', minHeight: '44px' }}
                 onTouchStart={(e) => e.preventDefault()}
@@ -397,10 +398,10 @@ export default function CardiometabolicTrainingClient({
                 {isSaving ? 'Saving...' : 'Save Session'}
               </button>
               
-              {isAdmin && exercises.length > 0 && (
+                             {isAdmin && sessionActivities.length > 0 && (
                 <button
                   onClick={handleSaveTemplate}
-                  disabled={isSavingTemplate || exercises.length === 0 || !sessionName.trim()}
+                                     disabled={isSavingTemplate || sessionActivities.length === 0 || !sessionName.trim()}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto touch-manipulation"
                   style={{ minWidth: '120px', minHeight: '44px' }}
                   onTouchStart={(e) => e.preventDefault()}
@@ -413,15 +414,15 @@ export default function CardiometabolicTrainingClient({
         </div>
       </div>
        
-      <SessionSummary exercises={exercises} />
-      <AddExerciseModal
-        key={editingExercise?.activityId || 'new'}
-        isOpen={isAddExerciseModalOpen}
-        onClose={handleCloseAddExerciseModal}
-        onAdd={handleAddExercise}
+             <SessionSummary activities={sessionActivities} />
+      <AddActivityModal
+        key={editingActivity?.activityId || 'new'}
+        isOpen={isAddActivityModalOpen}
+        onClose={handleCloseAddActivityModal}
+        onAdd={handleAddActivity}
         currentUserId={selectedUserId}
         selectedUserId={selectedUserId}
-        editingExercise={editingExercise}
+        editingActivity={editingActivity}
         fitnessSettings={selectedUserFitnessSettings}
         userHeartRateZones={selectedUserHeartRateZones}
         activities={activities}

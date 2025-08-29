@@ -5,7 +5,6 @@ import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { clientLogger } from '@/app/lib/logging/logger.client';
-import type { CMESessionItem } from '../types/cme.zod';
 import { getCMESessions, type CMESessionListItem, useCMETemplates } from '../lib/hooks/getCMESessions';
 import { useTemplateData } from '../lib/hooks/useTemplateData';
 
@@ -13,7 +12,7 @@ import { useTemplateData } from '../lib/hooks/useTemplateData';
 const ITEMS_PER_PAGE = 5;
 
 interface ProgramBrowserProps {
-  onSessionSelect?: (session: CMESessionItem) => void;
+  onSessionSelect?: (session: CMESessionListItem) => void;
   currentUserId: number;
   isAdmin?: boolean;
   onSessionDelete?: (sessionId: number) => void;
@@ -150,11 +149,11 @@ export default function ProgramBrowser({
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
         const itemNameMatch = item.session_name.toLowerCase().includes(searchTerm);
-        const exerciseSummaryMatch = item.exercise_summary.toLowerCase().includes(searchTerm);
+        const activitySummaryMatch = item.activity_summary.toLowerCase().includes(searchTerm);
         const notesMatch = item.notes?.toLowerCase().includes(searchTerm);
         
         // Return false if nothing matches
-        if (!itemNameMatch && !exerciseSummaryMatch && !notesMatch) {
+        if (!itemNameMatch && !activitySummaryMatch && !notesMatch) {
           return false;
         }
       }
@@ -303,8 +302,8 @@ export default function ProgramBrowser({
         session_name: newSessionName.trim(),
         created_at: new Date().toISOString(),
         user_id: currentUserId,
-        exercise_count: 0,
-        exercise_summary: 'Duplicated session'
+        activity_count: 0,
+        activity_summary: 'Duplicated session'
       };
       
       setSessions(prev => [...prev, newSession]);
@@ -578,8 +577,8 @@ export default function ProgramBrowser({
                       <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
                         <div className="flex flex-col space-y-1">
                           <div className="flex space-x-4">
-                            <span>Exercises: {item.exercise_count}</span>
-                            <span>Summary: {item.exercise_summary}</span>
+                            <span>Activities: {item.activity_count}</span>
+                            <span>Summary: {item.activity_summary}</span>
                           </div>
                           {item.notes && (
                             <span>Notes: {item.notes}</span>

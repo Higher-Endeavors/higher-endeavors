@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId') || session.user.id;
 
     if (sessionId) {
-      // Fetch specific session with exercises
+      // Fetch specific session with activities
       const sessionQuery = `
         SELECT 
           s.cme_session_id,
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
           s.created_at,
           s.updated_at
         FROM cme_sessions s
-        WHERE s.cme_session_id = $1 AND s.user_id = $2
+        WHERE s.cme_session_id = $1 AND (s.user_id = $2 OR s.user_id = 1)
       `;
       const sessionValues = [sessionId, userId];
       const sessionResult = await SingleQuery(sessionQuery, sessionValues);
@@ -38,8 +38,8 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
 
-      // Fetch exercises separately
-      const exercisesQuery = `
+      // Fetch activities separately
+      const activitiesQuery = `
         SELECT 
           sa.cme_session_activity_id,
           sa.cme_session_id,
@@ -58,12 +58,12 @@ export async function GET(request: Request) {
         WHERE sa.cme_session_id = $1
         ORDER BY sa.created_at
       `;
-      const exercisesValues = [sessionId];
-      const exercisesResult = await SingleQuery(exercisesQuery, exercisesValues);
+      const activitiesValues = [sessionId];
+      const activitiesResult = await SingleQuery(activitiesQuery, activitiesValues);
 
-      // Combine session and exercises
+      // Combine session and activities
       const sessionData = sessionResult.rows[0];
-      const exercises = exercisesResult.rows.map((ex: any) => ({
+      const activities = activitiesResult.rows.map((ex: any) => ({
         cme_session_activity_id: ex.cme_session_activity_id,
         cme_session_id: ex.cme_session_id,
         cme_activity_family_id: ex.cme_activity_family_id,
@@ -77,6 +77,26 @@ export async function GET(request: Request) {
         activity_family: ex.activity_family,
       }));
 
+      // Get template information if this is a template session
+      let templateInfo = null;
+      if (sessionData.user_id === 1) {
+        const templateQuery = `
+          SELECT 
+            cst.tier_continuum_id,
+            htc.tier_continuum_name
+          FROM cme_session_templates cst
+          LEFT JOIN highend_tier_continuum htc ON cst.tier_continuum_id = htc.tier_continuum_id
+          WHERE cst.cme_session_id = $1
+        `;
+        const templateResult = await SingleQuery(templateQuery, [sessionId]);
+        if (templateResult.rows.length > 0) {
+          templateInfo = {
+            tierContinuumId: templateResult.rows[0].tier_continuum_id,
+            tierContinuumName: templateResult.rows[0].tier_continuum_name
+          };
+        }
+      }
+
       return NextResponse.json({
         session_id: sessionData.cme_session_id,
         user_id: sessionData.user_id,
@@ -88,7 +108,8 @@ export async function GET(request: Request) {
         end_date: sessionData.end_date,
         created_at: sessionData.created_at,
         updated_at: sessionData.updated_at,
-        exercises,
+        activities,
+        templateInfo,
       });
     } else {
       // Fetch list of sessions for the user
@@ -104,12 +125,12 @@ export async function GET(request: Request) {
           s.end_date,
           s.created_at,
           s.updated_at,
-          COUNT(sa.cme_session_activity_id) as exercise_count,
+          COUNT(sa.cme_session_activity_id) as activity_count,
           STRING_AGG(
             COALESCE(cal.activity, 'Unknown Activity'), 
             ', ' 
             ORDER BY sa.created_at
-          ) as exercise_summary,
+          ) as activity_summary,
           -- Template information (only for templates)
           CASE 
             WHEN s.user_id = 1 THEN COALESCE((
@@ -144,8 +165,8 @@ export async function GET(request: Request) {
         end_date: session.end_date,
         created_at: session.created_at,
         updated_at: session.updated_at,
-        exercise_count: parseInt(session.exercise_count) || 0,
-        exercise_summary: session.exercise_summary || 'No exercises',
+        activity_count: parseInt(session.activity_count) || 0,
+        activity_summary: session.activity_summary || 'No activities',
         // Template information (only for templates)
         templateInfo: session.template_info || null,
       }));

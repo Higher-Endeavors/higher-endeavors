@@ -1,42 +1,42 @@
 import type { CMEExercise, Interval } from '../../types/cme.zod';
-import type { CMESessionExercise } from '../hooks/getCMESessions';
+import type { CMESessionActivity } from '../hooks/getCMESessions';
 
 /**
- * Transform database exercise format back to frontend CMEExercise format
- * This reverses the transformation done in transformExerciseToPlannedSteps
+ * Transform database activity format back to frontend CMEExercise format
+ * This reverses the transformation done in transformActivityToPlannedSteps
  */
 export function transformDatabaseToFrontend(
-  dbExercise: CMESessionExercise,
+  dbActivity: CMESessionActivity,
   userId: number
 ): CMEExercise {
-  // Extract the planned steps (which contain our exercise structure)
-  const plannedSteps = dbExercise.planned_steps || [];
+  // Extract the planned steps (which contain our activity structure)
+  const plannedSteps = dbActivity.planned_steps || [];
   
   if (plannedSteps.length === 0) {
-    // Fallback: create a basic exercise structure
+    // Fallback: create a basic activity structure
     return {
-      activityId: dbExercise.cme_activity_library_id || 0,
-      activityName: dbExercise.activityName || 'Unknown Activity',
-      activityFamily: dbExercise.activityFamily,
+      activityId: dbActivity.cme_activity_library_id || 0,
+      activityName: dbActivity.activityName || 'Unknown Activity',
+      activityFamily: dbActivity.activityFamily,
       useIntervals: false,
       intervals: [],
-      notes: dbExercise.notes || '',
-      createdAt: dbExercise.created_at,
+      notes: dbActivity.notes || '',
+      createdAt: dbActivity.created_at,
       userId,
     };
   }
 
-  // Check if this is an interval exercise by looking for repeat block information
+  // Check if this is an interval activity by looking for repeat block information
   const hasRepeatBlocks = plannedSteps.some((step: any) => step.repeatBlock);
   const useIntervals = plannedSteps.length > 1 || hasRepeatBlocks;
 
   if (!useIntervals) {
-    // Single exercise - extract from first step
+    // Single activity - extract from first step
     const step = plannedSteps[0];
     return {
-      activityId: dbExercise.cme_activity_library_id || 0,
-      activityName: dbExercise.activityName || 'Unknown Activity',
-      activityFamily: dbExercise.activityFamily,
+      activityId: dbActivity.cme_activity_library_id || 0,
+      activityName: dbActivity.activityName || 'Unknown Activity',
+      activityFamily: dbActivity.activityFamily,
       useIntervals: false,
       intervals: [{
         stepType: step.stepType || 'Work',
@@ -45,13 +45,13 @@ export function transformDatabaseToFrontend(
         notes: step.notes || '',
         heartRateData: step.heartRateData,
       }],
-      notes: dbExercise.notes || '',
-      createdAt: dbExercise.created_at,
+      notes: dbActivity.notes || '',
+      createdAt: dbActivity.created_at,
       userId,
     };
   }
 
-  // Interval exercise - reconstruct intervals from planned steps
+  // Interval activity - reconstruct intervals from planned steps
   const intervals: Interval[] = [];
   const repeatBlocks = new Map<number, { header: any; steps: any[] }>();
 
@@ -146,13 +146,13 @@ export function transformDatabaseToFrontend(
   }
 
   return {
-    activityId: dbExercise.cme_activity_library_id || 0,
-    activityName: dbExercise.activityName || 'Unknown Activity',
-    activityFamily: dbExercise.activityFamily,
+    activityId: dbActivity.cme_activity_library_id || 0,
+    activityName: dbActivity.activityName || 'Unknown Activity',
+    activityFamily: dbActivity.activityFamily,
     useIntervals: true,
     intervals,
-    notes: dbExercise.notes || '',
-    createdAt: dbExercise.created_at,
+    notes: dbActivity.notes || '',
+    createdAt: dbActivity.created_at,
     userId,
   };
 }

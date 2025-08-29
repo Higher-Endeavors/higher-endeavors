@@ -11,7 +11,7 @@ interface SaveCMETemplateParams {
   notes?: string;
   macrocyclePhase?: string;
   focusBlock?: string;
-  exercises: any[]; // Exercise data to save directly
+  activities: any[]; // Activity data to save directly
 }
 
 interface SaveCMETemplateResult {
@@ -40,7 +40,7 @@ export async function saveCMETemplate(params: SaveCMETemplateParams): Promise<Sa
       notes,
       macrocyclePhase,
       focusBlock,
-      exercises
+      activities
     } = params;
 
     // Validate required fields
@@ -48,8 +48,8 @@ export async function saveCMETemplate(params: SaveCMETemplateParams): Promise<Sa
       return { success: false, error: 'Template name is required' };
     }
 
-    if (!exercises || exercises.length === 0) {
-      return { success: false, error: 'At least one exercise is required' };
+    if (!activities || activities.length === 0) {
+      return { success: false, error: 'At least one activity is required' };
     }
 
     // Start transaction
@@ -75,8 +75,8 @@ export async function saveCMETemplate(params: SaveCMETemplateParams): Promise<Sa
 
       const templateSessionId = sessionResult.rows[0].cme_session_id;
 
-      // Insert all exercises as session activities
-      for (const exercise of exercises) {
+      // Insert all activities as session activities
+      for (const activity of activities) {
         // We need to get the activity family ID from the activity library
         // For now, we'll insert with the activity library ID and derive family ID later
         await client.query(
@@ -85,9 +85,9 @@ export async function saveCMETemplate(params: SaveCMETemplateParams): Promise<Sa
            VALUES ($1, $2, $3, $4)`,
           [
             templateSessionId,
-            exercise.activityId,
-            JSON.stringify(exercise.intervals || []),
-            exercise.notes || null
+            activity.activityId,
+            JSON.stringify(activity.intervals || []),
+            activity.notes || null
           ]
         );
       }

@@ -13,8 +13,8 @@ export interface CMESessionListItem {
   end_date?: string;
   created_at: string;
   updated_at?: string;
-  exercise_count: number;
-  exercise_summary: string;
+  activity_count: number;
+  activity_summary: string;
   // Template information (only for templates)
   templateInfo?: {
     tierContinuumId?: number;
@@ -48,8 +48,8 @@ export async function getCMESessions(userId: number): Promise<CMESessionListItem
     end_date: session.end_date,
     created_at: session.created_at,
     updated_at: session.updated_at,
-    exercise_count: session.exercise_count,
-    exercise_summary: session.exercise_summary,
+    activity_count: session.activity_count,
+    activity_summary: session.activity_summary,
   }));
 }
 
@@ -66,7 +66,7 @@ export interface CMESession {
   updated_at?: string;
 }
 
-export interface CMESessionExercise {
+export interface CMESessionActivity {
   cme_session_activity_id: number;
   cme_session_id: number;
   cme_activity_family_id?: number;
@@ -83,7 +83,7 @@ export interface CMESessionExercise {
 
 export async function getCMESession(sessionId: number, userId: number): Promise<{
   session: CMESession;
-  exercises: CMESessionExercise[];
+  activities: CMESessionActivity[];
 }> {
   const res = await fetch(`${getApiBaseUrl()}/api/cme-sessions?id=${sessionId}&userId=${userId}`, {
     credentials: 'include',
@@ -113,22 +113,22 @@ export async function getCMESession(sessionId: number, userId: number): Promise<
     updated_at: data.updated_at,
   };
   
-  // Transform exercises from the API response
-  const exercises: CMESessionExercise[] = (data.exercises || []).map((ex: any) => ({
-    cme_session_activity_id: ex.cme_session_activity_id,
-    cme_session_id: ex.cme_session_id,
-    cme_activity_family_id: ex.cme_activity_family_id,
-    cme_activity_library_id: ex.cme_activity_library_id,
-    planned_steps: ex.planned_steps,
-    actual_steps: ex.actual_steps,
-    notes: ex.notes,
-    created_at: ex.created_at,
-    updated_at: ex.updated_at,
-    activityName: ex.activity_name,
-    activityFamily: ex.activity_family,
+  // Transform activities from the API response
+  const activities: CMESessionActivity[] = (data.activities || []).map((act: any) => ({
+    cme_session_activity_id: act.cme_session_activity_id,
+    cme_session_id: act.cme_session_id,
+    cme_activity_family_id: act.cme_activity_family_id,
+    cme_activity_library_id: act.cme_activity_library_id,
+    planned_steps: act.planned_steps,
+    actual_steps: act.actual_steps,
+    notes: act.notes,
+    created_at: act.created_at,
+    updated_at: act.updated_at,
+    activityName: act.activity_name,
+    activityFamily: act.activity_family,
   }));
   
-  return { session, exercises };
+  return { session, activities };
 }
 
 export async function getCMETemplates(): Promise<CMESessionListItem[]> {
@@ -140,7 +140,23 @@ export async function getCMETemplates(): Promise<CMESessionListItem[]> {
     }
 
     const data = await response.json();
-    return data.sessions || [];
+    
+    // Map the API response to match CMESessionListItem interface
+    return (data.sessions || []).map((session: any) => ({
+      cme_session_id: session.cme_session_id,
+      user_id: session.user_id,
+      session_name: session.session_name,
+      macrocycle_phase: session.macrocycle_phase,
+      focus_block: session.focus_block,
+      notes: session.notes,
+      start_date: session.start_date,
+      end_date: session.end_date,
+      created_at: session.created_at,
+      updated_at: session.updated_at,
+      activity_count: session.activity_count,
+      activity_summary: session.activity_summary,
+      templateInfo: session.templateInfo,
+    }));
   } catch (error) {
     clientLogger.error('Error fetching CME templates:', error);
     throw error;

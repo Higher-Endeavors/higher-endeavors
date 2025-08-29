@@ -10,7 +10,7 @@ const SaveCMESessionActualsInput = z.object({
   macrocyclePhase: z.string().optional(),
   focusBlock: z.string().optional(),
   notes: z.string().optional(),
-  exercises: z.array(z.object({
+  activities: z.array(z.object({
     activityId: z.number().int(),
     activityName: z.string(),
 
@@ -62,7 +62,7 @@ export async function saveCMESessionActuals(input: z.infer<typeof SaveCMESession
     macrocyclePhase, 
     focusBlock, 
     notes, 
-    exercises,
+    activities,
     sessionDate,
     actualDuration,
     actualDistance,
@@ -101,14 +101,14 @@ export async function saveCMESessionActuals(input: z.infer<typeof SaveCMESession
     const sessionId = sessionRes.rows[0].cme_session_id;
 
     // 2. Insert session activities with actual steps
-    for (const exercise of exercises) {
-      // Transform the exercise data into the actual_steps JSONB structure
-      const actualSteps = transformExerciseToActualSteps(exercise);
+    for (const activity of activities) {
+      // Transform the activity data into the actual_steps JSONB structure
+      const actualSteps = transformActivityToActualSteps(activity);
 
       // Get the activity library ID and derive the family ID from the relationship
       const activityRes = await client.query(
         'SELECT cme_activity_library_id, activity_family FROM cme_activity_library WHERE activity = $1',
-        [exercise.activityName]
+        [activity.activityName]
       );
       
       const activityLibraryId = activityRes.rows[0]?.cme_activity_library_id || null;
@@ -130,7 +130,7 @@ export async function saveCMESessionActuals(input: z.infer<typeof SaveCMESession
           activityLibraryId,
           JSON.stringify([]), // Empty planned_steps for actual sessions
           JSON.stringify(actualSteps), // Actual performance data
-          exercise.notes || null,
+          activity.notes || null,
         ]
       );
     }
@@ -153,38 +153,38 @@ export async function saveCMESessionActuals(input: z.infer<typeof SaveCMESession
   }
 }
 
-// Helper function to transform exercise data into actual_steps JSONB structure
-function transformExerciseToActualSteps(exercise: any) {
-  if (!exercise.useIntervals) {
-    // Single exercise - create one step
+// Helper function to transform activity data into actual_steps JSONB structure
+function transformActivityToActualSteps(activity: any) {
+  if (!activity.useIntervals) {
+    // Single activity - create one step
     const step = {
-      stepType: exercise.intervals[0]?.stepType || 'Work',
-      duration: exercise.intervals[0]?.duration || 0,
-      metrics: { ...exercise.intervals[0]?.metrics },
-      notes: exercise.intervals[0]?.notes || '',
-      heartRateData: exercise.intervals[0]?.heartRateData,
+      stepType: activity.intervals[0]?.stepType || 'Work',
+      duration: activity.intervals[0]?.duration || 0,
+      metrics: { ...activity.intervals[0]?.metrics },
+      notes: activity.intervals[0]?.notes || '',
+      heartRateData: activity.intervals[0]?.heartRateData,
       // Add actual performance tracking fields
-      actualDuration: exercise.intervals[0]?.duration || 0,
-      actualDistance: exercise.intervals[0]?.metrics?.Distance || null,
-      actualPace: exercise.intervals[0]?.metrics?.Pace || null,
-      actualHeartRate: exercise.intervals[0]?.heartRateData || null,
+      actualDuration: activity.intervals[0]?.duration || 0,
+      actualDistance: activity.intervals[0]?.metrics?.Distance || null,
+      actualPace: activity.intervals[0]?.metrics?.Pace || null,
+      actualHeartRate: activity.intervals[0]?.heartRateData || null,
     };
 
     // Add duration to metrics if it exists
-    if (exercise.intervals[0]?.duration > 0) {
-      step.metrics['Duration'] = exercise.intervals[0].duration;
+    if (activity.intervals[0]?.duration > 0) {
+      step.metrics['Duration'] = activity.intervals[0].duration;
     }
 
     return [step];
   }
 
-  // Interval exercise - handle repeat blocks and expand them
+  // Interval activity - handle repeat blocks and expand them
   const expandedSteps: any[] = [];
   
-  exercise.intervals.forEach((interval: any) => {
+  activity.intervals.forEach((interval: any) => {
     if (interval.isBlockHeader && interval.blockId) {
       // This is a repeat block header - expand the block
-      const blockSteps = exercise.intervals.filter((int: any) => 
+      const blockSteps = activity.intervals.filter((int: any) => 
         int.blockId === interval.blockId && !int.isBlockHeader
       );
       const repeatCount = Number(interval.repeatCount) || 2;
