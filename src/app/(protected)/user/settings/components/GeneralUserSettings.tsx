@@ -1,17 +1,97 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { UseFormRegister, Control } from 'react-hook-form';
+import { signIn } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
-  /* import { UseFormRegister, Controller, Control } from 'react-hook-form';
-  import type { UserSettings } from '../types/settings'; */
+import { getStravaConnectionStatus, syncStravaData, disconnectStravaAccount } from '../lib/actions/stravaActions';
+import { useToast } from '@/app/lib/toast';
+import StravaDebugViewer from './StravaDebugViewer';
 
 interface GeneralUserSettingsProps {
   register: UseFormRegister<UserSettings>;
   control: Control<UserSettings>;
 }
 
-const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) => (
-  <div className="space-y-6">
-    <h2 className="text-xl font-semibold dark:text-slate-600">General Settings</h2>
+const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) => {
+  const { data: session } = useSession();
+  const { success, error } = useToast();
+  const [stravaStatus, setStravaStatus] = useState<{
+    connected: boolean;
+    lastSync: string | null;
+    athleteId: number | null;
+  }>({
+    connected: false,
+    lastSync: null,
+    athleteId: null,
+  });
+  const [isLoadingStrava, setIsLoadingStrava] = useState(false);
+
+  // Check Strava connection status on mount
+  useEffect(() => {
+    const checkStravaStatus = async () => {
+      try {
+        const status = await getStravaConnectionStatus();
+        setStravaStatus(status);
+      } catch (err) {
+        console.error('Error checking Strava status:', err);
+      }
+    };
+    checkStravaStatus();
+  }, []);
+
+  const handleConnectStrava = () => {
+    signIn('strava', { 
+      callbackUrl: '/user/settings?strava=connected' 
+    });
+  };
+
+  const handleSyncStrava = async () => {
+    setIsLoadingStrava(true);
+    try {
+      const result = await syncStravaData();
+      if (result.success) {
+        success(result.message);
+        // Refresh status after sync
+        const status = await getStravaConnectionStatus();
+        setStravaStatus(status);
+      } else {
+        error(result.message);
+      }
+    } catch (err) {
+      error('Failed to sync Strava data');
+    } finally {
+      setIsLoadingStrava(false);
+    }
+  };
+
+  const handleDisconnectStrava = async () => {
+    if (!confirm('Are you sure you want to disconnect your Strava account? This will stop syncing your activities.')) {
+      return;
+    }
+
+    setIsLoadingStrava(true);
+    try {
+      const result = await disconnectStravaAccount();
+      if (result.success) {
+        success(result.message);
+        setStravaStatus({
+          connected: false,
+          lastSync: null,
+          athleteId: null,
+        });
+      } else {
+        error(result.message);
+      }
+    } catch (err) {
+      error('Failed to disconnect Strava account');
+    } finally {
+      setIsLoadingStrava(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-xl font-semibold dark:text-slate-600">General Settings</h2>
     {/* Height Unit */}
     <div>
       <label className="block text-sm font-medium text-gray-700">Height Unit</label>
@@ -84,7 +164,72 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
         </div>
       </div>
     </div>
+
+    {/* Third Party Apps Section */}
+    <div className="pt-4 border-t border-gray-200">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Third Party Apps</h3>
+      
+      {/* Strava Connection */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-sm">S</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">Strava</h4>
+              <p className="text-xs text-gray-500">
+                {stravaStatus.connected 
+                  ? `Connected • Last sync: ${stravaStatus.lastSync ? new Date(stravaStatus.lastSync).toLocaleDateString() : 'Never'}`
+                  : 'Connect your Strava account to sync activities'
+                }
+              </p>
+            </div>
+          </div>
+          
+          <div className="flex space-x-2">
+            {stravaStatus.connected ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleSyncStrava}
+                  disabled={isLoadingStrava}
+                  className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 disabled:opacity-50"
+                >
+                  {isLoadingStrava ? 'Syncing...' : 'Sync Now'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDisconnectStrava}
+                  disabled={isLoadingStrava}
+                  className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 disabled:opacity-50"
+                >
+                  Disconnect
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={handleConnectStrava}
+                className="px-3 py-1 text-xs font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
+              >
+                Connect
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {/* Debug Section - Remove this after fixing the issue */}
+    {stravaStatus.connected && (
+      <div className="pt-4 border-t border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">Debug: Raw Strava Data</h3>
+        <StravaDebugViewer />
+      </div>
+    )}
   </div>
-);
+  );
+};
 
 export default GeneralUserSettings;
