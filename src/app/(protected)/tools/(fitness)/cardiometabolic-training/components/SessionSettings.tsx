@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
-import { useTemplateCategories } from '../../resistance-training/lib/hooks/useTemplateData';
+// Template categories are now passed as props from parent component
 
 interface SessionSettingsProps {
   sessionName: string;
@@ -14,10 +14,8 @@ interface SessionSettingsProps {
   setFocusBlock: (focus: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
-  difficultyLevel?: string;
-  setDifficultyLevel?: (level: string) => void;
-  selectedCategories?: number[];
-  setSelectedCategories?: (categories: number[]) => void;
+  tierContinuumId?: number;
+  setTierContinuumId?: (id: number) => void;
   isAdmin?: boolean;
   isLoading?: boolean;
   isTemplateSession?: boolean;
@@ -32,20 +30,15 @@ export default function SessionSettings({
   setFocusBlock, 
   notes, 
   setNotes, 
-  difficultyLevel, 
-  setDifficultyLevel, 
-  selectedCategories, 
-  setSelectedCategories, 
+  tierContinuumId, 
+  setTierContinuumId, 
   isAdmin = false, 
   isLoading = false, 
-  isTemplateSession = false 
+  isTemplateSession = false
 }: SessionSettingsProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [showCustomPhaseFocus, setShowCustomPhaseFocus] = useState(false);
   const [customPhaseFocus, setCustomPhaseFocus] = useState('');
-  
-  // Template categories using custom hook
-  const { categories: templateCategories, isLoading: categoriesLoading, error: categoriesError } = useTemplateCategories(isAdmin);
 
   const macrocyclePhaseOptions = [
     { value: 'Base', label: 'Base' },
@@ -75,12 +68,7 @@ export default function SessionSettings({
     { value: 'Other', label: 'Other' }
   ];
 
-  // Difficulty options for admin users
-  const difficultyOptions = [
-    { value: 'Healthy', label: 'Healthy' },
-    { value: 'Fit', label: 'Fit' },
-    { value: 'HighEnd', label: 'HighEnd' }
-  ];
+
 
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -180,78 +168,39 @@ export default function SessionSettings({
             </p>
           </div>
 
-          {/* Difficulty Level - Admin Only */}
-          {isAdmin && setDifficultyLevel && (
+          {/* Tier Continuum - Admin Only */}
+          {isAdmin && setTierContinuumId && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Difficulty Level
+                Tier Continuum
               </label>
               <Select
-                options={difficultyOptions}
-                value={difficultyOptions.find(opt => opt.value === difficultyLevel) || null}
-                onChange={opt => setDifficultyLevel(opt?.value || '')}
+                options={[
+                  { value: 1, label: 'Healthy' },
+                  { value: 2, label: 'Fit' },
+                  { value: 3, label: 'HighEnd' }
+                ]}
+                value={[
+                  { value: 1, label: 'Healthy' },
+                  { value: 2, label: 'Fit' },
+                  { value: 3, label: 'HighEnd' }
+                ].find(opt => opt.value === tierContinuumId) || null}
+                onChange={opt => {
+                  if (opt?.value !== undefined) {
+                    setTierContinuumId(opt.value);
+                  }
+                }}
                 className="basic-single dark:text-slate-700"
                 classNamePrefix="select"
-                placeholder="Select difficulty level..."
+                placeholder="Select tier continuum..."
               />
               <p className="mt-1 text-sm text-gray-500">
-                Set the difficulty level for this session template
+                Set the tier continuum level for this session template
               </p>
             </div>
           )}
 
-          {/* Template Categories - Admin Only */}
-          {isAdmin && setSelectedCategories && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Template Categories
-              </label>
-              {categoriesLoading ? (
-                <div className="flex items-center space-x-2 text-sm text-gray-500">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span>Loading categories...</span>
-                </div>
-              ) : categoriesError ? (
-                <div className="text-sm text-red-500">
-                  Error loading categories: {categoriesError}
-                </div>
-              ) : templateCategories.length > 0 ? (
-                <div className="space-y-2">
-                  {templateCategories.map((category) => (
-                    <label key={category.resist_program_template_categories_id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedCategories?.includes(category.resist_program_template_categories_id) || false}
-                        onChange={(e) => {
-                          if (setSelectedCategories) {
-                            if (e.target.checked) {
-                              setSelectedCategories([...(selectedCategories || []), category.resist_program_template_categories_id]);
-                            } else {
-                              setSelectedCategories((selectedCategories || []).filter(id => id !== category.resist_program_template_categories_id));
-                            }
-                          }
-                        }}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-700">
-                        {category.category_name}
-                        {category.description && (
-                          <span className="text-xs text-gray-500 ml-1">
-                            - {category.description}
-                          </span>
-                        )}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-gray-500">No categories available</p>
-              )}
-              <p className="mt-1 text-sm text-gray-500">
-                Select the categories this template belongs to
-              </p>
-            </div>
-          )}
+
         </form>
       )}
     </div>

@@ -1,32 +1,18 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import { getCMESessions, type CMESessionListItem, useCMETemplates } from '../lib/hooks/getCMESessions';
+import { useTemplateData } from '../lib/hooks/useTemplateData';
 
 // How many sessions to show per page
 const ITEMS_PER_PAGE = 5;
 
-interface CMESessionItem {
-  sessionId: number;
-  sessionName: string;
-  createdAt: string;
-  duration: number; // in minutes
-  intensity: string; // Low, Moderate, High
-  activityType: string; // Running, Cycling, Swimming, etc.
-  targetHeartRate?: number;
-  notes?: string;
-  userId: number;
-  templateInfo?: {
-    difficultyLevel: string;
-    categories: Array<{ name: string }>;
-  };
-}
-
 interface ProgramBrowserProps {
-  onSessionSelect?: (session: CMESessionItem) => void;
+  onSessionSelect?: (session: CMESessionListItem) => void;
   currentUserId: number;
   isAdmin?: boolean;
   onSessionDelete?: (sessionId: number) => void;
@@ -46,7 +32,7 @@ interface FilterState {
   sortBy: 'newest' | 'oldest' | 'name';
   showTemplates: boolean;
   hideOwnSessions: boolean;
-  difficultyLevel: string;
+  tierContinuum: string;
   templateCategory: string;
 }
 
@@ -59,12 +45,12 @@ export default function ProgramBrowser({
   isSessionLoaded
 }: ProgramBrowserProps) {
   // State management
-  const [sessions, setSessions] = useState<CMESessionItem[]>([]);
+  const [sessions, setSessions] = useState<CMESessionListItem[]>([]);
   const [menuState, setMenuState] = useState<MenuState>({});
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [sessionToDelete, setSessionToDelete] = useState<CMESessionItem | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<CMESessionListItem | null>(null);
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
-  const [sessionToDuplicate, setSessionToDuplicate] = useState<CMESessionItem | null>(null);
+  const [sessionToDuplicate, setSessionToDuplicate] = useState<CMESessionListItem | null>(null);
   const [newSessionName, setNewSessionName] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isLoading, setIsLoading] = useState({
@@ -76,66 +62,23 @@ export default function ProgramBrowser({
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
 
-  // Mock data for now - replace with actual API calls
-  const [templates] = useState<CMESessionItem[]>([
-    {
-      sessionId: 1,
-      sessionName: "Beginner Cardio Session",
-      createdAt: new Date().toISOString(),
-      duration: 30,
-      intensity: "Low",
-      activityType: "Running",
-      targetHeartRate: 120,
-      notes: "Perfect for beginners starting their cardio journey",
-      userId: 1,
-      templateInfo: {
-        difficultyLevel: "Healthy",
-        categories: [{ name: "Beginner" }]
-      }
-    },
-    {
-      sessionId: 2,
-      sessionName: "High Intensity Interval Training",
-      createdAt: new Date().toISOString(),
-      duration: 45,
-      intensity: "High",
-      activityType: "Cycling",
-      targetHeartRate: 160,
-      notes: "Advanced HIIT session for experienced athletes",
-      userId: 1,
-      templateInfo: {
-        difficultyLevel: "HighEnd",
-        categories: [{ name: "Advanced" }]
-      }
-    }
-  ]);
+  // Use custom hook for templates
+  const { templates, isLoading: templatesLoading, error: templatesError } = useCMETemplates();
 
-  // Search and filter settings
-  const [filters, setFilters] = useState<FilterState>({
-    search: '',
-    dateRange: 'all',
-    intensity: '',
-    activityType: '',
-    sortBy: 'newest',
-    showTemplates: false,
-    hideOwnSessions: false,
-    difficultyLevel: '',
-    templateCategory: ''
-  });
+  // Use custom hook for template data
+  const { data: templateData, isLoading: tiersLoading } = useTemplateData(isAdmin);
+  const { tiers } = templateData;
 
-  // Fetch sessions from the server (placeholder for now)
+  // Fetch sessions from the server
   const fetchSessions = useCallback(async () => {
     try {
       setIsLoading(prev => ({ ...prev, sessions: true }));
       setHasAttemptedLoad(false);
       setError(null);
       
-      // TODO: Replace with actual API call
-      // const fetchedSessions = await getCMESessions(currentUserId);
-      // setSessions(fetchedSessions);
-      
-      // Mock data for now
-      setSessions([]);
+      const fetchedSessions = await getCMESessions(currentUserId);
+      console.log('Fetched CME sessions:', fetchedSessions); // Debug log
+      setSessions(fetchedSessions);
       
     } catch (error) {
       clientLogger.error('Error fetching CME sessions', error);
@@ -154,6 +97,21 @@ export default function ProgramBrowser({
     fetchSessions();
   }, [currentUserId, fetchSessions]);
 
+  // Search and filter settings
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    dateRange: 'all',
+    intensity: '',
+    activityType: '',
+    sortBy: 'newest',
+    showTemplates: false,
+    hideOwnSessions: false,
+    tierContinuum: '',
+    templateCategory: ''
+  });
+
+
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -164,7 +122,7 @@ export default function ProgramBrowser({
 
   // Determine which items to show based on filters
   const itemsToShow = useMemo(() => {
-    let items: CMESessionItem[] = [];
+    let items: CMESessionListItem[] = [];
     
     // Add user's own sessions if not hiding them
     if (!filters.hideOwnSessions) {
@@ -176,12 +134,13 @@ export default function ProgramBrowser({
       items.push(...templates);
     }
     
+    console.log('Items to show:', items); // Debug log
     return items;
   }, [sessions, templates, filters.hideOwnSessions, filters.showTemplates]);
 
   // Helper function to determine if an item is a template
-  const isTemplate = useCallback((item: CMESessionItem) => {
-    return item.userId === 1; // Higher Endeavors user ID
+  const isTemplate = useCallback((item: CMESessionListItem) => {
+    return item.user_id === 1; // Higher Endeavors user ID
   }, []);
 
   // Filter logic
@@ -189,43 +148,32 @@ export default function ProgramBrowser({
     return itemsToShow.filter(item => {
       if (filters.search) {
         const searchTerm = filters.search.toLowerCase();
-        const itemNameMatch = item.sessionName.toLowerCase().includes(searchTerm);
-        const activityTypeMatch = item.activityType.toLowerCase().includes(searchTerm);
+        const itemNameMatch = item.session_name.toLowerCase().includes(searchTerm);
+        const activitySummaryMatch = item.activity_summary.toLowerCase().includes(searchTerm);
         const notesMatch = item.notes?.toLowerCase().includes(searchTerm);
         
         // Return false if nothing matches
-        if (!itemNameMatch && !activityTypeMatch && !notesMatch) {
+        if (!itemNameMatch && !activitySummaryMatch && !notesMatch) {
           return false;
         }
       }
 
-      if (filters.intensity && item.intensity !== filters.intensity) {
-        return false;
-      }
-
-      if (filters.activityType && item.activityType !== filters.activityType) {
-        return false;
-      }
+      // Note: intensity and activityType filters are not available in the new database structure
+      // These filters will be disabled or removed in the UI
 
       // Template-specific filtering
-      if (filters.difficultyLevel && isTemplate(item)) {
-        const templateDifficulty = item.templateInfo?.difficultyLevel;
-        if (templateDifficulty !== filters.difficultyLevel) {
+      if (filters.tierContinuum && isTemplate(item)) {
+        const templateTierContinuumId = item.templateInfo?.tierContinuumId;
+        if (templateTierContinuumId !== parseInt(filters.tierContinuum)) {
           return false;
         }
       }
 
-      if (filters.templateCategory && isTemplate(item)) {
-        const templateCategories = item.templateInfo?.categories || [];
-        const hasCategory = templateCategories.some(cat => cat.name === filters.templateCategory);
-        if (!hasCategory) {
-          return false;
-        }
-      }
+      // Note: CME templates don't use categories, so templateCategory filter is not needed
 
       // Date range filtering
       if (filters.dateRange !== 'all') {
-        const date = new Date(item.createdAt);
+        const date = new Date(item.created_at);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const days = diff / (1000 * 60 * 60 * 24);
@@ -247,11 +195,11 @@ export default function ProgramBrowser({
     }).sort((a, b) => {
       switch (filters.sortBy) {
         case 'newest':
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
         case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
         case 'name':
-          return a.sessionName.localeCompare(b.sessionName);
+          return a.session_name.localeCompare(b.session_name);
         default:
           return 0;
       }
@@ -280,35 +228,35 @@ export default function ProgramBrowser({
     }));
   }, []);
 
-  const handleViewEdit = useCallback((e: React.MouseEvent, item: CMESessionItem) => {
+  const handleViewEdit = useCallback((e: React.MouseEvent, item: CMESessionListItem) => {
     e.stopPropagation();
     if (onSessionSelect) {
-      onSessionSelect(item);
+      onSessionSelect(item as any); // Type cast for backward compatibility
     }
-    setMenuState(prev => ({ ...prev, [item.sessionId]: false }));
+    setMenuState(prev => ({ ...prev, [item.cme_session_id]: false }));
   }, [onSessionSelect]);
 
-  const handleUseTemplate = useCallback((e: React.MouseEvent, template: CMESessionItem) => {
+  const handleUseTemplate = useCallback((e: React.MouseEvent, template: CMESessionListItem) => {
     e.stopPropagation();
     if (onSessionSelect) {
-      onSessionSelect(template);
+      onSessionSelect(template as any); // Type cast for backward compatibility
     }
-    setMenuState(prev => ({ ...prev, [template.sessionId]: false }));
+    setMenuState(prev => ({ ...prev, [template.cme_session_id]: false }));
   }, [onSessionSelect]);
 
-  const handleDuplicateClick = useCallback((e: React.MouseEvent, item: CMESessionItem) => {
+  const handleDuplicateClick = useCallback((e: React.MouseEvent, item: CMESessionListItem) => {
     e.stopPropagation();
     setSessionToDuplicate(item);
-    setNewSessionName(`${item.sessionName} (Copy)`);
+    setNewSessionName(`${item.session_name} (Copy)`);
     setShowDuplicateModal(true);
-    setMenuState(prev => ({ ...prev, [item.sessionId]: false }));
+    setMenuState(prev => ({ ...prev, [item.cme_session_id]: false }));
   }, []);
 
-  const handleDeleteClick = useCallback((e: React.MouseEvent, item: CMESessionItem) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent, item: CMESessionListItem) => {
     e.stopPropagation();
     setSessionToDelete(item);
     setShowDeleteConfirm(true);
-    setMenuState(prev => ({ ...prev, [item.sessionId]: false }));
+    setMenuState(prev => ({ ...prev, [item.cme_session_id]: false }));
   }, []);
 
   const handleDeleteConfirm = async () => {
@@ -318,14 +266,14 @@ export default function ProgramBrowser({
       setIsLoading(prev => ({ ...prev, delete: true }));
       
       // TODO: Replace with actual delete API call
-      // const result = await deleteCMESession(sessionToDelete.sessionId, currentUserId);
+      // const result = await deleteCMESession(sessionToDelete.cme_session_id, currentUserId);
       
       // Mock deletion for now
-      const updatedSessions = sessions.filter(s => s.sessionId !== sessionToDelete.sessionId);
+      const updatedSessions = sessions.filter(s => s.cme_session_id !== sessionToDelete.cme_session_id);
       setSessions(updatedSessions);
       
       if (onSessionDelete) {
-        onSessionDelete(sessionToDelete.sessionId);
+        onSessionDelete(sessionToDelete.cme_session_id);
       }
       
       setShowDeleteConfirm(false);
@@ -345,15 +293,17 @@ export default function ProgramBrowser({
       setIsLoading(prev => ({ ...prev, duplicate: true }));
       
       // TODO: Replace with actual duplicate API call
-      // const result = await duplicateCMESession(sessionToDuplicate.sessionId, newSessionName.trim(), currentUserId);
+      // const result = await duplicateCMESession(sessionToDuplicate.cme_session_id, newSessionName.trim(), currentUserId);
       
       // Mock duplication for now
-      const newSession: CMESessionItem = {
+      const newSession: CMESessionListItem = {
         ...sessionToDuplicate,
-        sessionId: Date.now(), // Generate new ID
-        sessionName: newSessionName.trim(),
-        createdAt: new Date().toISOString(),
-        userId: currentUserId
+        cme_session_id: Date.now(), // Generate new ID
+        session_name: newSessionName.trim(),
+        created_at: new Date().toISOString(),
+        user_id: currentUserId,
+        activity_count: 0,
+        activity_summary: 'Duplicated session'
       };
       
       setSessions(prev => [...prev, newSession]);
@@ -373,9 +323,9 @@ export default function ProgramBrowser({
     setCurrentPage(pageNumber);
   }, []);
 
-  const handleItemClick = useCallback((item: CMESessionItem) => {
+  const handleItemClick = useCallback((item: CMESessionListItem) => {
     if (onSessionSelect) {
-      onSessionSelect(item);
+      onSessionSelect(item as any); // Type cast for backward compatibility
     }
   }, [onSessionSelect]);
 
@@ -503,27 +453,18 @@ export default function ProgramBrowser({
               <div className="grid grid-cols-2 gap-4">
                 <select
                   className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                  value={filters.difficultyLevel}
-                  onChange={(e) => setFilters({ ...filters, difficultyLevel: e.target.value })}
+                  value={filters.tierContinuum}
+                  onChange={(e) => setFilters({ ...filters, tierContinuum: e.target.value })}
                 >
-                  <option value="">All Template Difficulty Levels</option>
-                  <option value="Healthy">Healthy</option>
-                  <option value="Fit">Fit</option>
-                  <option value="HighEnd">HighEnd</option>
+                  <option value="">All Template Tier Levels</option>
+                  {tiers.map((tier) => (
+                    <option key={tier.tier_continuum_id} value={tier.tier_continuum_id.toString()}>
+                      {tier.tier_continuum_name}
+                    </option>
+                  ))}
                 </select>
-
-                <select
-                  className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                  value={filters.templateCategory}
-                  onChange={(e) => setFilters({ ...filters, templateCategory: e.target.value })}
-                >
-                  <option value="">All Template Categories</option>
-                  <option value="Beginner">Beginner</option>
-                  <option value="Intermediate">Intermediate</option>
-                  <option value="Advanced">Advanced</option>
-                  <option value="Endurance">Endurance</option>
-                  <option value="HIIT">HIIT</option>
-                </select>
+                
+                {/* CME templates don't use categories, so this filter is removed */}
               </div>
             )}
           </div>
@@ -557,7 +498,7 @@ export default function ProgramBrowser({
                   const isTemplateItem = isTemplate(item);
                   return (
                     <div
-                      key={item.sessionId}
+                      key={item.cme_session_id}
                       className={`border rounded-md p-4 hover:bg-gray-50 dark:hover:bg-gray-100 cursor-pointer relative ${
                         isTemplateItem 
                           ? 'border-purple-200 bg-purple-50 dark:bg-purple-50 dark:border-purple-300' 
@@ -569,7 +510,7 @@ export default function ProgramBrowser({
                         <div className="flex flex-col">
                           <div className="flex items-center space-x-2">
                             <h3 className={`font-medium ${isTemplateItem ? 'text-purple-900 dark:text-purple-900' : 'text-gray-900 dark:text-slate-900'}`}>
-                              {item.sessionName}
+                              {item.session_name}
                             </h3>
                             {isTemplateItem && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-200 dark:text-purple-900">
@@ -578,12 +519,12 @@ export default function ProgramBrowser({
                             )}
                           </div>
                           <span className={`text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
-                            {format(new Date(item.createdAt), 'MMM d, yyyy')}
+                            {format(new Date(item.created_at), 'MMM d, yyyy')}
                           </span>
                         </div>
                         <div className="relative">
                           <button
-                            onClick={(e) => handleMenuClick(e, item.sessionId)}
+                            onClick={(e) => handleMenuClick(e, item.cme_session_id)}
                             className={`p-2 rounded-full ${
                               isTemplateItem 
                                 ? 'hover:bg-purple-100 dark:hover:bg-purple-200' 
@@ -592,7 +533,7 @@ export default function ProgramBrowser({
                           >
                             <HiOutlineDotsVertical className={`w-5 h-5 ${isTemplateItem ? 'text-purple-500 dark:text-purple-600' : 'text-gray-500 dark:text-slate-600'}`} />
                           </button>
-                          {menuState[item.sessionId] && (
+                          {menuState[item.cme_session_id] && (
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-white rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-300">
                               <div className="py-1">
                                 {isTemplateItem ? (
@@ -636,22 +577,16 @@ export default function ProgramBrowser({
                       <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
                         <div className="flex flex-col space-y-1">
                           <div className="flex space-x-4">
-                            <span>Duration: {item.duration} min</span>
-                            <span>Intensity: {item.intensity}</span>
-                            <span>Activity: {item.activityType}</span>
+                            <span>Activities: {item.activity_count}</span>
+                            <span>Summary: {item.activity_summary}</span>
                           </div>
-                          {item.targetHeartRate && (
-                            <span>Target HR: {item.targetHeartRate} bpm</span>
+                          {item.notes && (
+                            <span>Notes: {item.notes}</span>
                           )}
                           {/* Template-specific information */}
-                          {isTemplateItem && item.templateInfo && (
+                          {isTemplateItem && (
                             <div className="flex space-x-4">
-                              {item.templateInfo.difficultyLevel && (
-                                <span>Difficulty: {item.templateInfo.difficultyLevel}</span>
-                              )}
-                              {item.templateInfo.categories && item.templateInfo.categories.length > 0 && (
-                                <span>Categories: {item.templateInfo.categories.map(cat => cat.name).join(', ')}</span>
-                              )}
+                              <span>Template Session</span>
                             </div>
                           )}
                           {item.notes && (
@@ -729,7 +664,7 @@ export default function ProgramBrowser({
         <Modal.Body>
           <div className="space-y-4">
             <p className="text-gray-700 dark:text-gray-100">
-              Are you sure you want to delete "{sessionToDelete?.sessionName}"? This action cannot be undone.
+              Are you sure you want to delete "{sessionToDelete?.session_name}"? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button

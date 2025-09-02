@@ -7,6 +7,7 @@ import Footer from '@/app/components/Footer';
 import FeatureRoadmap from '@/app/(protected)/tools/feature-roadmap/components/FeatureRoadmap';
 import RelatedContent from '@/app/(protected)/tools/(components)/RelatedContent';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
 
 type RefLift = {
   id: number;
@@ -59,7 +60,7 @@ export default async function BalancedLiftsPage() {
 
   const getRefLifts = async (): Promise<RefLifts> => {
     try {
-      const response = await fetch('http://localhost:3000/api/reference-lifts', {
+      const response = await fetch(`${getApiBaseUrl()}/api/reference-lifts`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
 //        cache: 'force-cache',

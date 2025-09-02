@@ -216,14 +216,14 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
                   : fullName || "User name"}
               </div>
               <div className="flex gap-2 mb-2">
-                <Link href="/user/settings">
-                  <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Settings">
-                    <FaCog className="w-5 h-5 text-slate-500 dark:text-slate-300" />
-                  </button>
-                </Link>
                 <Link href="/user/bio">
                   <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Bio">
                     <FaIdBadge className="w-5 h-5 text-slate-500 dark:text-slate-300" />
+                  </button>
+                </Link>
+                <Link href="/user/settings">
+                  <button className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800" title="User Settings">
+                    <FaCog className="w-5 h-5 text-slate-500 dark:text-slate-300" />
                   </button>
                 </Link>
               </div>

@@ -1,109 +1,83 @@
 'use client';
 
-import { useState } from 'react';
-
-interface CMEExercise {
-  activityId: number;
-  activityName: string;
-  activitySource: 'library' | 'user';
-  useIntervals: boolean;
-  intervals: Array<{
-    stepType: string;
-    duration: number;
-    intensity: string;
-    intensityMetric: string;
-    notes: string;
-  }>;
-  notes: string;
-  createdAt: string;
-  userId: number;
-}
+import React, { useState } from 'react';
+import type { CMEExercise } from '../types/cme.zod';
 
 interface SessionSummaryProps {
-  exercises: CMEExercise[];
+  activities: CMEExercise[];
 }
 
-export default function SessionSummary({ exercises }: SessionSummaryProps) {
+export default function SessionSummary({ activities }: SessionSummaryProps) {
   const [isOpen, setIsOpen] = useState(true);
 
-  // Calculate real-time statistics from actual exercise data
+  // Helper function to format duration consistently
+  const formatDuration = (minutes: number) => {
+    if (!minutes || minutes <= 0) return '0 min';
+    
+    const wholeMinutes = Math.floor(minutes);
+    const seconds = Math.round((minutes - wholeMinutes) * 60);
+    
+    if (seconds === 0) {
+      return `${wholeMinutes} min`;
+    } else {
+      return `${wholeMinutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  };
+
+  // Calculate real-time statistics from actual activity data
   const calculateSessionStats = () => {
-    if (exercises.length === 0) {
+    if (activities.length === 0) {
       return {
-        totalExercises: 0,
-        totalDuration: 0,
+        totalSteps: 0,
+        totalSessionDuration: 0,
         totalWorkDuration: 0,
-        totalIntervals: 0,
-        averageIntensity: 'N/A',
-        estimatedDuration: '0 min'
+        totalIntervals: 0
       };
     }
 
     let totalDuration = 0;
     let totalWorkDuration = 0;
     let totalIntervals = 0;
-    let intensityValues: string[] = [];
+    let totalSteps = 0;
 
-    exercises.forEach(exercise => {
-      if (exercise.useIntervals && exercise.intervals.length > 0) {
+    activities.forEach(activity => {
+      if (activity.useIntervals && activity.intervals.length > 0) {
         // Interval training
-        exercise.intervals.forEach(interval => {
+        activity.intervals.forEach(interval => {
           totalDuration += interval.duration;
-          totalIntervals++;
+          totalSteps++;
           
           if (interval.stepType === 'Work') {
             totalWorkDuration += interval.duration;
           }
-          
-          if (interval.intensity) {
-            intensityValues.push(`${interval.intensity} ${interval.intensityMetric}`);
-          }
         });
+        
+        // Add interval count from repeat blocks
+        if (activity.totalRepeatCount) {
+          totalIntervals += activity.totalRepeatCount;
+        }
       } else {
         // Steady state
-        totalDuration += exercise.intervals[0]?.duration || 0;
-        if (exercise.intervals[0]?.intensity) {
-          intensityValues.push(`${exercise.intervals[0].intensity} ${exercise.intervals[0].intensityMetric}`);
-        }
+        totalDuration += activity.intervals[0]?.duration || 0;
+        totalSteps += activity.intervals.length;
       }
     });
 
-    // Calculate average intensity (most common intensity metric)
-    const intensityCounts: { [key: string]: number } = {};
-    intensityValues.forEach(intensity => {
-      intensityCounts[intensity] = (intensityCounts[intensity] || 0) + 1;
-    });
-
-    let averageIntensity = 'N/A';
-    if (Object.keys(intensityCounts).length > 0) {
-      const mostCommon = Object.entries(intensityCounts).reduce((a, b) => 
-        intensityCounts[a[0]] > intensityCounts[b[0]] ? a : b
-      );
-      averageIntensity = mostCommon[0];
-    }
-
-    // Estimate total session duration (add 10% for transitions/rest)
-    const estimatedDuration = Math.round(totalDuration * 1.1);
-
     return {
-      totalExercises: exercises.length,
-      totalDuration,
+      totalSteps,
+      totalSessionDuration: totalDuration,
       totalWorkDuration,
-      totalIntervals,
-      averageIntensity,
-      estimatedDuration: `${estimatedDuration} min`
+      totalIntervals
     };
   };
 
   const sessionStats = calculateSessionStats();
 
   const summaryData = {
-    'Total Exercises': { value: sessionStats.totalExercises.toString(), color: '' },
-    'Total Duration': { value: `${sessionStats.totalDuration} min`, color: '' },
-    'Total Work Time': { value: `${sessionStats.totalWorkDuration} min`, color: '' },
-    'Total Intervals': { value: sessionStats.totalIntervals.toString(), color: '' },
-    'Average Intensity': { value: sessionStats.averageIntensity, color: '' },
-    'Estimated Session': { value: sessionStats.estimatedDuration, color: '' }
+    'Total Steps': { value: sessionStats.totalSteps.toString(), color: '' },
+    'Total Session Duration': { value: formatDuration(sessionStats.totalSessionDuration), color: '' },
+    'Total Work Time': { value: formatDuration(sessionStats.totalWorkDuration), color: '' },
+    'Total Intervals': { value: sessionStats.totalIntervals.toString(), color: '' }
   };
 
   return (
@@ -122,7 +96,7 @@ export default function SessionSummary({ exercises }: SessionSummaryProps) {
 
       {isOpen && (
         <div className="mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {Object.entries(summaryData).map(([key, data]) => (
               <div key={key} className="bg-white dark:bg-white p-3 sm:p-4 rounded-lg shadow">
                 <p className="text-sm font-medium text-gray-500 dark:text-gray-400">

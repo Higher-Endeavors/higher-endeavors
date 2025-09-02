@@ -33,6 +33,38 @@ export async function getUserSettings(): Promise<UserSettings | null> {
   };
 }
 
+// Admin function to get user settings by userId
+export async function getUserSettingsById(userId: number): Promise<UserSettings | null> {
+  const session = await auth();
+  if (!session?.user?.id) return null;
+  
+  // TODO: Add admin permission check here if needed
+  // For now, we'll assume the UserSelector already handles admin permissions
+  
+  const query = 'SELECT * FROM user_settings WHERE user_id = $1';
+  const result = await SingleQuery(query, [userId]);
+  if (result.rows.length === 0) return null;
+  const db = result.rows[0];
+  return {
+    general: {
+      heightUnit: db.height_unit,
+      weightUnit: db.weight_unit,
+      temperatureUnit: db.temperature_unit,
+      timeFormat: db.time_format,
+      dateFormat: db.date_format,
+      language: db.language,
+      sidebarExpandMode: db.sidebar_expand_mode,
+      notificationsEmail: db.notifications_email,
+      notificationsText: db.notifications_text,
+      notificationsApp: db.notifications_app,
+    },
+    fitness: db.fitness_settings,
+    health: db.health_settings,
+    lifestyle: db.lifestyle_settings,
+    nutrition: db.nutrition_settings,
+  };
+}
+
 export async function updateUserSettings(data: Partial<UserSettings>): Promise<UserSettings> {
   const session = await auth();
   if (!session?.user?.id) throw new Error('Unauthorized');
