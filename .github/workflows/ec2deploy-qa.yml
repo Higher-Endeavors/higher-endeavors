@@ -1,4 +1,4 @@
-name: Deploy to AWS EC2
+name: Deploy to AWS EC2 QA
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 env:
   PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-  HOSTNAME: ${{secrets.SSH_HOST}}
+  HOSTNAME: ${{secrets.QA_SSH_HOST}}
   USER_NAME: ${{secrets.USER_NAME}}
 
 jobs:
@@ -27,5 +27,5 @@ jobs:
 
         # Now we have got the access of EC2 and we will start the deploy .
         cd /opt/ &&
-        sudo -u mark ./github-deploy.sh
+        sudo -u mark ./github-deploy-qa.sh
         '
