@@ -3,9 +3,10 @@ import { UseFormRegister, Control } from 'react-hook-form';
 import { signIn } from 'next-auth/react';
 import { useSession } from 'next-auth/react';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
-import { getStravaConnectionStatus, syncStravaData, disconnectStravaAccount } from '../lib/actions/stravaActions';
+import { syncStravaData, disconnectStravaAccount } from '../lib/actions/stravaActions';
+import { setupStravaWebhookSubscription, getStravaWebhookStatus, getEnvironmentMode } from '../lib/actions/stravaWebhookActions';
 import { useToast } from '@/app/lib/toast';
-import StravaDebugViewer from './StravaDebugViewer';
+import { useStravaConnection } from '@/app/lib/hooks/useStravaConnection';
 
 interface GeneralUserSettingsProps {
   register: UseFormRegister<UserSettings>;
@@ -15,29 +16,16 @@ interface GeneralUserSettingsProps {
 const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) => {
   const { data: session } = useSession();
   const { success, error } = useToast();
-  const [stravaStatus, setStravaStatus] = useState<{
-    connected: boolean;
-    lastSync: string | null;
-    athleteId: number | null;
+  const { status: stravaStatus, isLoading: isLoadingStrava, refreshStatus } = useStravaConnection();
+  const [isLoadingStravaAction, setIsLoadingStravaAction] = useState(false);
+  const [webhookStatus, setWebhookStatus] = useState<{
+    active: boolean;
+    subscription: any;
   }>({
-    connected: false,
-    lastSync: null,
-    athleteId: null,
+    active: false,
+    subscription: null,
   });
-  const [isLoadingStrava, setIsLoadingStrava] = useState(false);
-
-  // Check Strava connection status on mount
-  useEffect(() => {
-    const checkStravaStatus = async () => {
-      try {
-        const status = await getStravaConnectionStatus();
-        setStravaStatus(status);
-      } catch (err) {
-        console.error('Error checking Strava status:', err);
-      }
-    };
-    checkStravaStatus();
-  }, []);
+  const [isDevelopment, setIsDevelopment] = useState(false);
 
   const handleConnectStrava = () => {
     signIn('strava', { 
@@ -45,22 +33,70 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
     });
   };
 
+  const checkWebhookStatus = async () => {
+    try {
+      const result = await getStravaWebhookStatus();
+      if (result.success) {
+        setWebhookStatus({
+          active: !!result.subscription,
+          subscription: result.subscription,
+        });
+      }
+    } catch (err) {
+      console.error('Error checking webhook status:', err);
+    }
+  };
+
+  // Check environment mode and webhook status when Strava is connected
+  useEffect(() => {
+    const checkEnvironment = async () => {
+      try {
+        const envMode = await getEnvironmentMode();
+        setIsDevelopment(envMode.isDevelopment ?? false);
+        
+        if (stravaStatus.connected && !(envMode.isDevelopment ?? false)) {
+          checkWebhookStatus();
+        }
+      } catch (err) {
+        console.error('Error checking environment mode:', err);
+      }
+    };
+    
+    checkEnvironment();
+  }, [stravaStatus.connected]);
+
   const handleSyncStrava = async () => {
-    setIsLoadingStrava(true);
+    setIsLoadingStravaAction(true);
     try {
       const result = await syncStravaData();
       if (result.success) {
         success(result.message);
         // Refresh status after sync
-        const status = await getStravaConnectionStatus();
-        setStravaStatus(status);
+        await refreshStatus();
       } else {
         error(result.message);
       }
     } catch (err) {
       error('Failed to sync Strava data');
     } finally {
-      setIsLoadingStrava(false);
+      setIsLoadingStravaAction(false);
+    }
+  };
+
+  const handleSetupWebhook = async () => {
+    setIsLoadingStravaAction(true);
+    try {
+      const result = await setupStravaWebhookSubscription();
+      if (result.success) {
+        success(result.message);
+        await checkWebhookStatus();
+      } else {
+        error(result.message);
+      }
+    } catch (err: any) {
+      error(err.message || 'Failed to setup webhook');
+    } finally {
+      setIsLoadingStravaAction(false);
     }
   };
 
@@ -69,23 +105,20 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
       return;
     }
 
-    setIsLoadingStrava(true);
+    setIsLoadingStravaAction(true);
     try {
       const result = await disconnectStravaAccount();
       if (result.success) {
         success(result.message);
-        setStravaStatus({
-          connected: false,
-          lastSync: null,
-          athleteId: null,
-        });
+        // Refresh status after disconnect
+        await refreshStatus();
       } else {
         error(result.message);
       }
     } catch (err) {
       error('Failed to disconnect Strava account');
     } finally {
-      setIsLoadingStrava(false);
+      setIsLoadingStravaAction(false);
     }
   };
 
@@ -171,37 +204,48 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
       
       {/* Strava Connection */}
       <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
-              <span className="text-white font-bold text-sm">S</span>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="flex-shrink-0">
+              <img 
+                src="/api_logo_pwrdBy_strava_horiz_orange.svg" 
+                alt="Strava" 
+                className="h-5 sm:h-6 w-auto max-w-[120px] sm:max-w-[150px]"
+              />
             </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">Strava</h4>
-              <p className="text-xs text-gray-500">
-                {stravaStatus.connected 
-                  ? `Connected • Last sync: ${stravaStatus.lastSync ? new Date(stravaStatus.lastSync).toLocaleDateString() : 'Never'}`
-                  : 'Connect your Strava account to sync activities'
-                }
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 flex-shrink min-w-0">
+              {stravaStatus.connected 
+                ? `Connected • ${isDevelopment ? 'Manual sync (dev mode)' : (webhookStatus.active ? 'Auto-sync enabled' : 'Manual sync only')} • Last sync: ${stravaStatus.lastSync ? new Date(stravaStatus.lastSync).toLocaleDateString() : 'Never'}`
+                : 'Connect your Strava account to sync activities'
+              }
+            </p>
           </div>
           
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap gap-2 sm:flex-nowrap">
             {stravaStatus.connected ? (
               <>
+                {!isDevelopment && !webhookStatus.active && (
+                  <button
+                    type="button"
+                    onClick={handleSetupWebhook}
+                    disabled={isLoadingStravaAction}
+                    className="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 disabled:opacity-50"
+                  >
+                    {isLoadingStravaAction ? 'Setting up...' : 'Enable Auto-sync'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={handleSyncStrava}
-                  disabled={isLoadingStrava}
+                  disabled={isLoadingStravaAction}
                   className="px-3 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 disabled:opacity-50"
                 >
-                  {isLoadingStrava ? 'Syncing...' : 'Sync Now'}
+                  {isLoadingStravaAction ? 'Syncing...' : (isDevelopment ? 'Sync Now' : 'Manual Sync')}
                 </button>
                 <button
                   type="button"
                   onClick={handleDisconnectStrava}
-                  disabled={isLoadingStrava}
+                  disabled={isLoadingStravaAction}
                   className="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 disabled:opacity-50"
                 >
                   Disconnect
@@ -211,23 +255,20 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
               <button
                 type="button"
                 onClick={handleConnectStrava}
-                className="px-3 py-1 text-xs font-medium text-white bg-orange-500 rounded-md hover:bg-orange-600"
+                className="inline-flex items-center"
               >
-                Connect
+                <img 
+                  src="/btn_strava_connect_with_white.svg" 
+                  alt="Connect with Strava" 
+                  className="h-12 w-auto"
+                />
               </button>
             )}
           </div>
         </div>
+
       </div>
     </div>
-
-    {/* Debug Section - Remove this after fixing the issue */}
-    {stravaStatus.connected && (
-      <div className="pt-4 border-t border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Debug: Raw Strava Data</h3>
-        <StravaDebugViewer />
-      </div>
-    )}
   </div>
   );
 };

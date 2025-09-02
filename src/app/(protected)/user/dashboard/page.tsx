@@ -10,14 +10,17 @@ import { getRecentUpdates } from '@/app/lib/cmsAdapter.js';
 import RecentContent from '../../guide/components/RecentContent';
 import RecentRecipes from '../../guide/components/RecentRecipes';
 import RecentNews from './components/RecentNews';
+import StravaActivitiesWidget from './components/StravaActivitiesWidget';
 import Link from 'next/link';
 import type { Recipe } from '../../guide/components/RecentRecipes';
 import { serverLogger } from '@/app/lib/logging/logger.server';
+import { getRecentStravaActivities } from './lib/actions/stravaActions';
 
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
   const recentRecipes: Recipe[] = await getRecentRecipes();
   const recentUpdates = await getRecentUpdates();
+  const stravaData = await getRecentStravaActivities();
   
   serverLogger.info('Dashboard rendered', { 
     component: 'Dashboard',
@@ -62,21 +65,22 @@ export default async function Dashboard() {
             <div className="text-gray-500">Nutrition tools coming soon...</div>
           </PillarColumn>
           <PillarColumn title="Fitness">
-            {/* <ToolCard 
-              title="Structural Balance"
-              description="Calculate balanced lift loads based on your master lift"
-            >
-              <StructuralBalanceMini />
-            </ToolCard> */}
-            <Link 
-              href="/tools/structural-balance" 
-              className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
-            >
-              <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
-                Structural Balance Tool →
-              </h3>
-              <p className="text-gray-600">Access the complete structural balance calculator with additional features</p>
-            </Link>
+            <div className="space-y-4">
+              <Link 
+                href="/tools/structural-balance" 
+                className="block p-4 border rounded-lg bg-white dark:bg-[#e0e0e0] shadow-sm hover:shadow-md transition-shadow"
+              >
+                <h3 className="text-lg font-semibold text-blue-600 hover:text-blue-800">
+                  Structural Balance Tool →
+                </h3>
+                <p className="text-gray-600">Access the complete structural balance calculator with additional features</p>
+              </Link>
+              <StravaActivitiesWidget 
+                activities={stravaData.activities}
+                isLoading={false}
+                error={stravaData.error}
+              />
+            </div>
           </PillarColumn>
         </div>
 
