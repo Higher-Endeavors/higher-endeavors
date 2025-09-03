@@ -17,7 +17,7 @@ import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.j
 import AssessmentReview from './AssessmentReview';
 import UserSelector from '../../../../components/UserSelector.jsx';
 import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 
 ChartJS.register(
   CategoryScale,
@@ -54,8 +54,9 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
       try {
         setIsLoading(true);
         setError(null);
-        
-        const response = await fetch(`${getApiBaseUrl()}/api/body-composition?userId=${userId}`, {
+        const baseURL = await getFetchBaseUrl();
+        const fetchURL = `${baseURL}/api/body-composition?userId=${userId}`;
+        const response = await fetch(fetchURL, {
           credentials: 'include'
         });
         
@@ -87,7 +88,9 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
   useEffect(() => {
     const fetchUserSettings = async () => {
       try {
-        const response = await fetch(`${getApiBaseUrl()}/api/user-settings?userId=${userId}`, {
+        const baseURL = await getFetchBaseUrl();
+        const fetchURL = `${baseURL}/api/user-settings?userId=${userId}`;
+        const response = await fetch(fetchURL, {
           credentials: 'include'
         });
         

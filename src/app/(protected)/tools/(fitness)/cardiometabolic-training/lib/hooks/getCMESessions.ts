@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -23,7 +23,9 @@ export interface CMESessionListItem {
 }
 
 export async function getCMESessions(userId: number): Promise<CMESessionListItem[]> {
-  const res = await fetch(`${getApiBaseUrl()}/api/cme-sessions?userId=${userId}`, {
+  const baseURL = await getFetchBaseUrl();
+  const fetchURL = `${baseURL}/api/cme-sessions?userId=${userId}`;
+  const res = await fetch(fetchURL, {
     credentials: 'include',
   });
   
@@ -85,7 +87,9 @@ export async function getCMESession(sessionId: number, userId: number): Promise<
   session: CMESession;
   activities: CMESessionActivity[];
 }> {
-  const res = await fetch(`${getApiBaseUrl()}/api/cme-sessions?id=${sessionId}&userId=${userId}`, {
+  const baseURL = await getFetchBaseUrl();
+  const fetchURL = `${baseURL}/api/cme-sessions?id=${sessionId}&userId=${userId}`;
+  const res = await fetch(fetchURL, {
     credentials: 'include',
   });
   
@@ -133,7 +137,11 @@ export async function getCMESession(sessionId: number, userId: number): Promise<
 
 export async function getCMETemplates(): Promise<CMESessionListItem[]> {
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/cme-sessions?userId=1`);
+    const baseURL = await getFetchBaseUrl();
+    const fetchURL = `${baseURL}/api/cme-sessions?userId=1`;
+    const response = await fetch(fetchURL, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch templates: ${response.statusText}`);
