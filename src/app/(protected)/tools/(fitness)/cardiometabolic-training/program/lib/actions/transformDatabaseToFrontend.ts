@@ -1,4 +1,4 @@
-import type { CMEExercise, Interval } from '../../types/cme.zod';
+import type { CMEExercise, Interval } from '../../../lib/types/cme.zod';
 import type { CMESessionActivity } from '../hooks/getCMESessions';
 
 /**

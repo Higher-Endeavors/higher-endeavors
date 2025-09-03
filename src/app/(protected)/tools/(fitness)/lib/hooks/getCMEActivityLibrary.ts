@@ -1,4 +1,4 @@
-import { CMEActivityLibraryItem } from '../../cardiometabolic-training/types/cme.zod';
+import { CMEActivityLibraryItem } from '../../cardiometabolic-training/lib/types/cme.zod';
 import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
 
 export async function getCMEActivityLibrary(): Promise<CMEActivityLibraryItem[]> {

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import type { CMEExercise } from '../types/cme.zod';
+import type { CMEExercise } from '../../lib/types/cme.zod';
 
 interface SessionSummaryProps {
   activities: CMEExercise[];

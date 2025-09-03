@@ -1,137 +1,76 @@
-// Core
-import { SessionProvider } from "next-auth/react";
+import Link from 'next/link';
 import Header from "../../../../components/Header";
 import Footer from "../../../../components/Footer";
-import { auth } from '@/app/auth';
-import { getUserSettings } from '@/app/lib/actions/userSettings';
-import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { CMEActivityItem } from './types/cme.zod';
 
-// Components
-import CardiometabolicTrainingClient from "./components/CMETraining.client";
-import RelatedContent from "../../(components)/RelatedContent";
-import OnboardingChecklist from "../../(components)/OnboardingChecklist";
-import DemoBanner from "../../(components)/DemoBanner";
-
-// Function to fetch user's heart rate zones
-async function getUserHeartRateZones(userId: number) {
-  try {
-    const result = await SingleQuery(
-      `SELECT 
-        hr_zone_id,
-        calculation_method,
-        activity_type,
-        zone_ranges,
-        max_heart_rate,
-        resting_heart_rate
-      FROM user_bio_hr_zones 
-      WHERE user_id = $1
-      ORDER BY activity_type, hr_zone_id`,
-      [userId]
-    );
-
-    if (result.rows.length === 0) {
-      return [];
-    }
-
-    return result.rows.map((row: any) => ({
-      hrZoneId: row.hr_zone_id,
-      calculationMethod: row.calculation_method,
-      activityType: row.activity_type,
-      zones: row.zone_ranges || [], // This is already parsed JSON from the database
-      maxHeartRate: row.max_heart_rate,
-      restingHeartRate: row.resting_heart_rate
-    }));
-  } catch (error) {
-    console.error('Error fetching heart rate zones:', error);
-    return [];
-  }
-}
-
-export default async function CardiometabolicTrainingPage() {
-  const session = await auth();
-  const loggedInUserId = session?.user?.id ? Number(session.user.id) : 1;
-
-  let fitnessSettings: FitnessSettings | undefined = undefined;
-  let cmeActivities: CMEActivityItem[] = [];
-  let userHeartRateZones: any[] = [];
-  let error: Error | null = null;
-
-  try {
-    // Fetch all data at the page level
-    const [userSettings, cmeData, hrZones] = await Promise.all([
-      getUserSettings(),
-      getCMEActivityLibrary(),
-      getUserHeartRateZones(loggedInUserId)
-    ]);
-
-    fitnessSettings = userSettings?.fitness;
-    
-    // Transform CME library activities
-    cmeActivities = cmeData.map((activity: any) => ({
-      cme_activity_library_id: activity.cme_activity_library_id,
-      name: activity.name,
-      source: 'cme_library' as const,
-      activity_family: activity.activity_family || undefined,
-      equipment: activity.equipment || undefined
-    }));
-
-
-
-    userHeartRateZones = hrZones;
-  } catch (err: any) {
-    error = err;
-    console.error('Error loading CME training data:', err);
-  }
-
-  // All activities come from CME library only
-  const allActivities: CMEActivityItem[] = cmeActivities;
-
-  const cardiometabolicTrainingArticles = [
+export default function CardiometabolicTrainingDashboard() {
+  const phases = [
     {
-      title: "Tempo Overview",
-      description: "Learn how to use tempo to improve your training.",
-      href: "/guide/tempo-overview"
+      name: 'Plan',
+      description: 'Set goals, assess current fitness, and create your training plan',
+      href: '/tools/cardiometabolic-training/plan',
+      icon: '📋',
+      color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
     },
+    {
+      name: 'Program',
+      description: 'Design and customize your CME training sessions',
+      href: '/tools/cardiometabolic-training/program',
+      icon: '🏃‍♂️',
+      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+    },
+    {
+      name: 'Act',
+      description: 'Execute your workouts with real-time tracking',
+      href: '/tools/cardiometabolic-training/act',
+      icon: '⚡',
+      color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
+    },
+    {
+      name: 'Analyze',
+      description: 'Review performance data and track your progress',
+      href: '/tools/cardiometabolic-training/analyze',
+      icon: '📊',
+      color: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700'
+    }
   ];
 
-  if (error) {
-    return (
-      <div className="text-red-500">
-        Error loading CME training data: {error.message}
-      </div>
-    );
-  }
-
   return (
-    <SessionProvider>
-      <div className="container mx-auto px-4 py-8">
-        <Header />
-        <h1 className="text-3xl font-bold my-8">CardioMetabolic Endurance Training Programming</h1>
-        <DemoBanner />
+    <div className="container mx-auto px-4 py-8">
+      <Header />
+      <div className="max-w-4xl mx-auto">
+        <h1 className="text-4xl font-bold text-center mb-4">CardioMetabolic Endurance Training</h1>
+        <p className="text-lg text-gray-600 dark:text-gray-400 text-center mb-12">
+          A comprehensive four-phase approach to CME training
+        </p>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Main Content */}
-          <div className="flex-grow space-y-4">
-            <CardiometabolicTrainingClient
-              initialUserId={loggedInUserId}
-              userId={loggedInUserId}
-              fitnessSettings={fitnessSettings}
-              userHeartRateZones={userHeartRateZones}
-              activities={allActivities}
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          {phases.map((phase) => (
+            <Link
+              key={phase.name}
+              href={phase.href}
+              className={`block p-6 rounded-lg border-2 transition-all duration-200 hover:shadow-lg hover:scale-105 ${phase.color}`}
+            >
+              <div className="flex items-center mb-4">
+                <span className="text-3xl mr-4">{phase.icon}</span>
+                <h2 className="text-2xl font-bold">{phase.name}</h2>
+              </div>
+              <p className="text-gray-600 dark:text-gray-400">
+                {phase.description}
+              </p>
+            </Link>
+          ))}
+        </div>
 
-          {/* Sidebar */}
-          <div className="lg:w-80 flex-shrink-0">
-            <OnboardingChecklist />
-            <RelatedContent articles={cardiometabolicTrainingArticles} />
-          </div>
+        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
+          <h3 className="text-xl font-semibold mb-4">Training Philosophy</h3>
+          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+            Our four-phase approach ensures comprehensive development of your cardiometabolic endurance. 
+            Start with planning your goals, design your program, execute with precision, and analyze your progress 
+            to continuously improve your performance.
+          </p>
         </div>
       </div>
       <Footer />
-    </SessionProvider>
+    </div>
   );
 }

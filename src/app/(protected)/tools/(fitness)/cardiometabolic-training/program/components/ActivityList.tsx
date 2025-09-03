@@ -2,7 +2,7 @@
 
 import React from 'react';
 import ActivityItem from './ActivityItem';
-import type { CMEExercise } from '../types/cme.zod';
+import type { CMEExercise } from '../../lib/types/cme.zod';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 
 interface ActivityListProps {

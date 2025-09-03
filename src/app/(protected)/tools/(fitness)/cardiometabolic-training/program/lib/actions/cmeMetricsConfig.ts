@@ -1,4 +1,4 @@
-import type { CMEMetric, CMEActivityFamilyConfig } from '../types/cme.zod';
+import type { CMEMetric, CMEActivityFamilyConfig } from '../../../lib/types/cme.zod';
 
 export const CME_ACTIVITY_FAMILY_CONFIG: Record<string, CMEActivityFamilyConfig> = {
   'Running': {

@@ -2,25 +2,25 @@
 
 import React, { useState, useCallback } from 'react';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { CMEActivityItem, CMEExercise } from '../types/cme.zod';
-import type { CMESessionListItem } from '../lib/hooks/getCMESessions';
+import type { CMEActivityItem, CMEExercise } from '../lib/types/cme.zod';
+import type { CMESessionListItem } from '../program/lib/hooks/getCMESessions';
 import { getUserSettingsById } from '@/app/lib/actions/userSettings';
 import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
-import { saveCMESession } from '../lib/actions/saveCMESession';
-import { saveCMETemplate } from '../lib/actions/saveCMETemplate';
-import { getCMESessions, getCMESession } from '../lib/hooks/getCMESessions';
-import { transformDatabaseToFrontend } from '../lib/actions/transformDatabaseToFrontend';
+import { saveCMESession } from '../program/lib/actions/saveCMESession';
+import { saveCMETemplate } from '../program/lib/actions/saveCMETemplate';
+import { getCMESessions, getCMESession } from '../program/lib/hooks/getCMESessions';
+import { transformDatabaseToFrontend } from '../program/lib/actions/transformDatabaseToFrontend';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { useToast } from '@/app/lib/toast';
 
 
 // Components
 import UserSelector from '../../../../components/UserSelector';
-import ProgramBrowser from './SessionBrowser';
-import SessionSettings from './SessionSettings';
-import ActivityList from './ActivityList';
-import SessionSummary from './SessionSummary';
-import AddActivityModal from '../modals/AddActivityModal';
+import ProgramBrowser from '../program/components/SessionBrowser';
+import SessionSettings from '../program/components/SessionSettings';
+import ActivityList from '../program/components/ActivityList';
+import SessionSummary from '../program/components/SessionSummary';
+import AddActivityModal from '../program/lib/modals/AddActivityModal';
 
 export default function CardiometabolicTrainingClient({
   initialUserId,

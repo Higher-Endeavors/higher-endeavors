@@ -2,7 +2,7 @@
 
 import { getClient } from '@/app/lib/dbAdapter';
 import { z } from 'zod';
-import type { CMEExercise } from '../../types/cme.zod';
+import type { CMEExercise } from '../../../lib/types/cme.zod';
 
 // Input validation schema for saving CME sessions
 const SaveCMESessionInput = z.object({
