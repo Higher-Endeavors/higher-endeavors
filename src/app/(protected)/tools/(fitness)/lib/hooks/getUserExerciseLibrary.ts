@@ -1,11 +1,15 @@
 import { ExerciseLibraryItem } from '../../resistance-training/types/resistance-training.zod';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 
 export async function getUserExerciseLibrary(userId: number, targetUserId?: number): Promise<ExerciseLibraryItem[]> {
   // Use targetUserId if provided (for admin access), otherwise use the current userId
   const effectiveUserId = targetUserId || userId;
   
-  const res = await fetch(`${getApiBaseUrl()}/api/user-exercise-library?user_id=${effectiveUserId}`);
+  const baseURL = await getFetchBaseUrl();
+  const fetchURL = `${baseURL}/api/user-exercise-library?user_id=${effectiveUserId}`;
+  const res = await fetch(fetchURL, {
+    credentials: 'include',
+  });
   if (!res.ok) {
     throw new Error(`Failed to fetch user exercise library: ${res.status} ${res.statusText}`);
   }

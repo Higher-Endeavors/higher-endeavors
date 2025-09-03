@@ -1,6 +1,9 @@
 // Utility function to get the base URL for API calls
-export function getApiBaseUrl(): string {
-  return process.env.RUNTIME_ENV === 'prod' 
-    ? process.env.NEXT_PUBLIC_BASE_URL || 'https://higherendeavors.com'
-    : 'http://localhost:3000';
+import { headers } from "next/headers";
+
+export async function getApiBaseUrl(): Promise<string> {
+  const host = (await headers()).get("host");
+  const protocol = host?.includes("localhost") ? "http" : "https";
+
+  return `${protocol}://${host}`;
 }
