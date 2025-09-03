@@ -1,8 +1,10 @@
 import { CMEActivityLibraryItem } from '../../cardiometabolic-training/types/cme.zod';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 
 export async function getCMEActivityLibrary(): Promise<CMEActivityLibraryItem[]> {
-  const res = await fetch(`${getApiBaseUrl()}/api/cme-activity-library`, {
+  const baseURL = await getFetchBaseUrl();
+  const fetchURL = `${baseURL}/api/cme-activity-library`;
+  const res = await fetch(fetchURL, {
     cache: 'force-cache',
   });
   if (!res.ok) {

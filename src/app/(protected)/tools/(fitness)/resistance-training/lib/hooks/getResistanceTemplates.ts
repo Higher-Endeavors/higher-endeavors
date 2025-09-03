@@ -1,10 +1,14 @@
 import { ProgramListItem } from '../../types/resistance-training.zod';
 import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 
 export async function  getResistanceTemplates(): Promise<ProgramListItem[]> {
   try {
-    const response = await fetch(`${getApiBaseUrl()}/api/resistance-training/programs?userId=1`);
+    const baseURL = await getFetchBaseUrl();
+    const fetchURL = `${baseURL}/api/resistance-training/programs?userId=1`;
+    const response = await fetch(fetchURL, {
+      credentials: 'include',
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch templates: ${response.statusText}`);
