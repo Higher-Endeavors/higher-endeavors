@@ -4,6 +4,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+
 
 //Components
 
@@ -85,7 +87,7 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
   // Logout handler function
   async function signOutHandler() {
     const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
-    const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
+    const cognitoAuthUrl = await getFetchBaseUrl();
 
     try {
       await fetch('/api/signout', {
