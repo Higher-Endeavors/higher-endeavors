@@ -29,7 +29,7 @@ export default function PlanCanvasWireframe() {
 
 
   return (
-    <div className="w-full min-h-screen bg-slate-50 p-4">
+    <div className="w-full min-h-screen p-4">
       {/* App Shell Grid */}
       <div className="mx-auto max-w-[1400px] space-y-4">
         <DemoBanner />

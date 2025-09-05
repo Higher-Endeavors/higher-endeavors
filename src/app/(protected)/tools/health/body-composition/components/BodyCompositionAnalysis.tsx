@@ -13,9 +13,9 @@ import {
   Legend,
   ChartOptions
 } from 'chart.js';
-import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types.js';
+import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types';
 import AssessmentReview from './AssessmentReview';
-import UserSelector from '../../../../components/UserSelector.jsx';
+import UserSelector from '../../../../components/UserSelector';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
 

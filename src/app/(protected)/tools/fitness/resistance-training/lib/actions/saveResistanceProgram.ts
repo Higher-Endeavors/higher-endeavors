@@ -2,7 +2,7 @@
 
 import { getClient } from '@/app/lib/dbAdapter';
 import { serverLogger } from '@/app/lib/logging/logger.server';
-import { ProgramExercisesPlanned } from '../../../resistance-training/types/resistance-training.zod';
+import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
 
 interface SaveResistanceProgramInput {
   userId: number;

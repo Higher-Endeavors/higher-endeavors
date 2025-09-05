@@ -122,7 +122,7 @@ export default function GanttChart({ plan, onPlanChange }: GanttChartProps) {
     if (plan.settings.showResistance) {
       rows.push({
         id: 'resistance',
-        name: 'Resistance Training',
+        name: 'Resistance',
         type: 'resistance' as const,
         phases: plan.phases.filter(p => p.type === 'resistance'),
         color: 'bg-blue-100 border-blue-300',
@@ -134,7 +134,7 @@ export default function GanttChart({ plan, onPlanChange }: GanttChartProps) {
     if (plan.settings.showCME) {
       rows.push({
         id: 'cme',
-        name: 'Cardiometabolic Exercise',
+        name: 'CardioMetabolic Endurance',
         type: 'cme' as const,
         phases: plan.phases.filter(p => p.type === 'cme'),
         color: 'bg-green-100 border-green-300',
