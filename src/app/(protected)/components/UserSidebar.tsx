@@ -285,12 +285,12 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           />
           {lifestyleOpen && expanded && (
             <>
-              <Link href="/tools/goal-tracker">
+              <Link href="/tools/lifestyle/goal-tracker">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Goal Tracker" isSubLink />
                 </div>
               </Link>
-              <Link href="/tools/sleep-quiz">
+              <Link href="/tools/health/sleep-quiz">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Sleep Quality Assessment" isSubLink />
                 </div>
@@ -309,12 +309,12 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           />
           {healthOpen && expanded && (
             <>
-            <Link href="/tools/breathing">
+            <Link href="/tools/health/breathing">
               <div className="ml-8">
                 <SidebarLink expanded={expanded} icon={null} label="Breathing" isSubLink />
               </div>
             </Link>
-            <Link href="/tools/body-composition">
+            <Link href="/tools/health/body-composition">
               <div className="ml-8">
                 <SidebarLink expanded={expanded} icon={null} label="Body Composition Tracker" isSubLink />
               </div>
@@ -332,7 +332,7 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
             sectionName="nutrition"
           />
           {nutritionOpen && expanded && (
-            <Link href="/tools/nutrition-tracker">
+            <Link href="/tools/nutrition/nutrition-tracker">
               <div className="ml-8">
                 <SidebarLink expanded={expanded} icon={null} label="Nutrition Tracker" isSubLink />
               </div>
@@ -350,17 +350,22 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           />
           {fitnessOpen && expanded && (
             <>
-              <Link href="/tools/resistance-training">
+              <Link href="/tools/fitness/plan">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Fitness Planning" isSubLink />
+                </div>
+              </Link>
+              <Link href="/tools/fitness/resistance-training">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Resistance Training" isSubLink />
                 </div>
               </Link>
-              <Link href="/tools/cardiometabolic-training">
+              <Link href="/tools/fitness/cardiometabolic-training">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Cardiometabolic Endurance Training" isSubLink />
                 </div>
               </Link>
-              <Link href="/tools/structural-balance">
+              <Link href="/tools/fitness/structural-balance">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Structural Balance" isSubLink />
                 </div>
