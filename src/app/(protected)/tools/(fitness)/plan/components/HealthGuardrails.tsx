@@ -3,7 +3,6 @@ import Section from './Section';
 export default function HealthGuardrails() {
   return (
     <Section 
-      annotation="B7" 
       title="Health Guardrails" 
       subtitle="Optional risk controls"
     >

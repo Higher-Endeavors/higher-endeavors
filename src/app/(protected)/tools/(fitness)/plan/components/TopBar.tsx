@@ -1,41 +1,54 @@
 import { useState } from 'react';
 import Section from './Section';
-import PhaseNavigation from './PhaseNavigation';
 import Toggle from './Toggle';
+import Chip from './Chip';
 
-export default function TopBar() {
+interface TopBarProps {
+  onSave: () => void;
+  planName: string;
+  totalWeeks: number;
+}
+
+export default function TopBar({ onSave, planName, totalWeeks }: TopBarProps) {
   const [scenarioCompare, setScenarioCompare] = useState(false);
 
   return (
     <>
       <Section 
-        annotation="A" 
-        title="CardioMetabolic Endurance - Planning Dashboard" 
+        title="Fitness Planning Dashboard" 
         subtitle="Plan → Program → Act → Analyze"
       >
         <div className="flex flex-wrap items-center gap-3">
-          <PhaseNavigation currentPhase="plan" />
           <div className="flex-1" />
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-600">Plan Profile</span>
               <select className="text-sm text-slate-700 border rounded-md px-2 py-1">
-                <option>Marathon A-race (Nov)</option>
+                <option>{planName}</option>
                 <option>Base Season</option>
                 <option>Custom</option>
               </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <Chip label={`${totalWeeks} weeks`} kind="info" />
             </div>
             <Toggle 
               checked={scenarioCompare} 
               onChange={setScenarioCompare} 
               label="Scenario Compare" 
             />
-            <button className="px-3 py-1.5 rounded-xl bg-sky-600 text-white text-sm shadow">
-              Recalculate
+            <button
+              onClick={onSave}
+              className="px-3 py-1.5 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-sm shadow transition-colors"
+            >
+              Save Plan
             </button>
-            <button className="px-3 py-1.5 rounded-xl bg-white border text-sm">
-              Export Plan
-            </button>
+            <a
+              href="/tools/fitness/plan/settings"
+              className="px-3 py-1.5 rounded-xl bg-white border hover:bg-slate-50 text-slate-700 text-sm transition-colors"
+            >
+              Settings
+            </a>
           </div>
         </div>
       </Section>

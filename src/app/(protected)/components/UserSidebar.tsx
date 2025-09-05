@@ -348,6 +348,11 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
           />
           {fitnessOpen && expanded && (
             <>
+              <Link href="/tools/plan">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Fitness Planning" isSubLink />
+                </div>
+              </Link>
               <Link href="/tools/resistance-training">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Resistance Training" isSubLink />

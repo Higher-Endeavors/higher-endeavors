@@ -10,7 +10,6 @@ export default function ConflictsWarnings() {
 
   return (
     <Section 
-      annotation="D2" 
       title="Conflicts & Warnings" 
       subtitle="Click a warning to jump to the week"
     >

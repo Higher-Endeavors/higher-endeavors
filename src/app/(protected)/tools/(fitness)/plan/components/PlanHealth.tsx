@@ -4,7 +4,6 @@ import ProgressRing from './ProgressRing';
 export default function PlanHealth() {
   return (
     <Section 
-      annotation="D1" 
       title="Plan Health" 
       subtitle="Composite score across guardrails"
     >

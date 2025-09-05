@@ -22,7 +22,6 @@ export default function Calendar() {
 
   return (
     <Section 
-      annotation="E1" 
       title="Calendar — Week View" 
       subtitle="Drop Key Session Placeholders; Program will fulfill details"
     >

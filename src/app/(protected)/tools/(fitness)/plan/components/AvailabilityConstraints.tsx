@@ -4,7 +4,6 @@ import Chip from './Chip';
 export default function AvailabilityConstraints() {
   return (
     <Section 
-      annotation="B6" 
       title="Availability & Constraints" 
       subtitle="Recurring windows, blackout dates, equipment"
     >

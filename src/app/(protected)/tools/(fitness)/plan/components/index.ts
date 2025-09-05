@@ -15,7 +15,7 @@ export { default as TopBar } from './TopBar';
 export { default as GoalsAndTimeline } from './GoalsAndTimeline';
 export { default as PeriodizationStyle } from './PeriodizationStyle';
 export { default as VolumeRampDeload } from './VolumeRampDeload';
-export { default as ModalityMix } from './ModalityMix';
+
 export { default as ZoneModel } from './ZoneModel';
 export { default as AvailabilityConstraints } from './AvailabilityConstraints';
 export { default as HealthGuardrails } from './HealthGuardrails';
@@ -28,3 +28,4 @@ export { default as AuditTrail } from './AuditTrail';
 export { default as Calendar } from './Calendar';
 export { default as TIZTargets } from './TIZTargets';
 export { default as LegendNotes } from './LegendNotes';
+export { default as WeeklySchedule } from './WeeklySchedule';
