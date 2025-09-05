@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useSession } from "next-auth/react"
 import Select from 'react-select';
 import BalancedLiftsList from './BalancedLiftsList';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 
 type FormData = {
   id: number
@@ -86,7 +86,9 @@ export default function BalancedLiftsForm({ refLifts }: { refLifts: RefLifts }) 
   const onSubmit = async (data: FormData) => {
     const userId = session?.user.id;
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/balanced-lifts`, {
+      const baseURL = await getFetchBaseUrl();
+      const fetchURL = `${baseURL}/api/balanced-lifts`;
+      const response = await fetch(fetchURL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

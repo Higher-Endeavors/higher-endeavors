@@ -5,8 +5,8 @@ import { signInHandler } from "@/app/lib/signInHandler";
 import { useSession } from "next-auth/react";
 import Link from 'next/link';
 import { usePathname } from "next/navigation";
-import React, { useState, useRef, useEffect } from 'react';
-import { signOut } from 'next-auth/react';
+import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import React from 'react';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 
 export default function DropdownMenu() {
@@ -34,7 +34,8 @@ export default function DropdownMenu() {
 
     async function signOutHandler() {
         const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT;
-        const cognitoAuthUrl = process.env.NEXT_PUBLIC_COGNITO_AUTH_URL;
+        const cognitoAuthUrl = await getFetchBaseUrl();
+
 
         try {
             await fetch('/api/signout', {
