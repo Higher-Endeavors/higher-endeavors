@@ -88,3 +88,89 @@ body {
     --background-end-rgb: 59, 57, 56;
   }
 }
+
+/* Environment-specific styling */
+.qa-environment {
+  position: relative;
+}
+
+.qa-environment::before {
+  content: "QA ENVIRONMENT";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #ff6b6b, #ff8e8e, #ff6b6b);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-align: center;
+  padding: 4px 0;
+  z-index: 9999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: qa-pulse 2s ease-in-out infinite;
+}
+
+.qa-environment body {
+  margin-top: 24px; /* Account for the QA banner */
+}
+
+.qa-environment .qa-banner-offset {
+  margin-top: 24px;
+}
+
+@keyframes qa-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+/* QA-specific background pattern */
+.qa-environment body {
+  background: 
+    linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb)),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 10px,
+      rgba(255, 107, 107, 0.03) 10px,
+      rgba(255, 107, 107, 0.03) 20px
+    );
+}
+
+/* Development environment styling */
+.dev-environment {
+  position: relative;
+}
+
+.dev-environment::before {
+  content: "DEVELOPMENT";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #4ecdc4, #44a08d, #4ecdc4);
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-align: center;
+  padding: 4px 0;
+  z-index: 9999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dev-environment body {
+  margin-top: 24px; /* Account for the dev banner */
+}
+
+.dev-environment .dev-banner-offset {
+  margin-top: 24px;
+}
