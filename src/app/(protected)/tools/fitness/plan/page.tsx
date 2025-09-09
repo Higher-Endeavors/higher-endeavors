@@ -15,6 +15,8 @@ import {
   Calendar
 } from './components';
 
+import CalendarWidget from '@/app/(protected)/user/dashboard/components/CalendarWidget';
+
 export default function PlanCanvasWireframe() {
   const [plan, setPlan] = useState<PeriodizationPlan>(mockPlanData);
 
@@ -51,6 +53,7 @@ export default function PlanCanvasWireframe() {
 
         {/* === CALENDAR & TIZ TARGETS === */}
         <div className="grid grid-cols-1 gap-4">
+          <CalendarWidget />
           <Calendar />
         </div>
 
