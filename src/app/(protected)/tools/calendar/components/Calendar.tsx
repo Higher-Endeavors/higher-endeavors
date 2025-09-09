@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import WeekView from './WeekView';
+import MonthView from './MonthView';
 import EventModal from './EventModal';
 import type { CalendarEvent } from '../types/calendar.zod';
 
@@ -128,16 +129,37 @@ export default function Calendar({
         </div>
       )}
 
-      <WeekView
-        events={events}
-        currentDate={currentDate}
-        onEventClick={handleEventClick}
-        onEventCreate={handleEventCreate}
-        onEventUpdate={handleEventUpdate}
-        onEventDelete={handleEventDelete}
-        onDateChange={handleDateChange}
-        onNavigate={handleNavigate}
-      />
+      {viewMode === 'week' && (
+        <WeekView
+          events={events}
+          currentDate={currentDate}
+          onEventClick={handleEventClick}
+          onEventCreate={handleEventCreate}
+          onEventUpdate={handleEventUpdate}
+          onEventDelete={handleEventDelete}
+          onDateChange={handleDateChange}
+          onNavigate={handleNavigate}
+        />
+      )}
+
+      {viewMode === 'month' && (
+        <MonthView
+          events={events}
+          currentDate={currentDate}
+          onEventClick={handleEventClick}
+          onEventCreate={handleEventCreate}
+          onEventUpdate={handleEventUpdate}
+          onEventDelete={handleEventDelete}
+          onDateChange={handleDateChange}
+          onNavigate={handleNavigate}
+        />
+      )}
+
+      {viewMode === 'day' && (
+        <div className="p-8 text-center text-slate-500">
+          <p>Day view coming soon...</p>
+        </div>
+      )}
 
       <EventModal
         key={editingEvent?.id || 'new'}

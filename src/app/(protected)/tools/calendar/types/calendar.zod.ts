@@ -109,6 +109,17 @@ export interface WeekViewProps {
   onNavigate: (direction: 'prev' | 'next') => void;
 }
 
+export interface MonthViewProps {
+  events: CalendarEvent[];
+  currentDate: Date;
+  onEventClick: (event: CalendarEvent) => void;
+  onEventCreate: (date: Date, time: string) => void;
+  onEventUpdate: (event: CalendarEvent) => void;
+  onEventDelete: (eventId: string) => void;
+  onDateChange: (date: Date) => void;
+  onNavigate: (direction: 'prev' | 'next') => void;
+}
+
 export interface CalendarContextType {
   events: CalendarEvent[];
   currentDate: Date;
