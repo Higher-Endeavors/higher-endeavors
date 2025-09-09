@@ -362,27 +362,18 @@ export default function WeekView({
               ref={(el) => { scrollRefs.current[0] = el; }}
             >
               <div className="relative">
-                {timeSlots.map((slot, index) => {
-                  const currentTimePos = getCurrentTimePosition();
-                  const isCurrentTimeSlot = currentTimePos.isInCurrentWeek && 
-                    slot.hour === currentTimePos.currentHour && 
-                    Math.abs(slot.minute - currentTimePos.currentMinute) < 30;
-                  
-                  return (
-                    <div
-                      key={index}
-                      className="h-8 flex items-end justify-end pr-2 pb-6"
-                    >
-                      {slot.display && (
-                        <span className={`text-xs ${
-                          isCurrentTimeSlot ? 'text-red-600 font-semibold' : 'text-slate-500'
-                        }`}>
-                          {isCurrentTimeSlot ? currentTimePos.timeString : slot.display}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                {timeSlots.map((slot, index) => (
+                  <div
+                    key={index}
+                    className="h-8 flex items-end justify-end pr-2 pb-6"
+                  >
+                    {slot.display && (
+                      <span className="text-xs text-slate-500">
+                        {slot.display}
+                      </span>
+                    )}
+                  </div>
+                ))}
                 
                 {/* Current Time Label - positioned absolutely */}
                 {(() => {
