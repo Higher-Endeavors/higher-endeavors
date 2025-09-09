@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useCalendar } from '../context/CalendarContext';
 import WeekView from './WeekView';
 import MonthView from './MonthView';
+import DayView from './DayView';
 import EventModal from './EventModal';
 import type { CalendarEvent } from '../types/calendar.zod';
 
@@ -95,6 +96,16 @@ export default function Calendar({
           <div className="flex justify-end">
             <div className="flex items-center gap-1 bg-slate-100 rounded-md p-1">
               <button
+                onClick={() => setViewMode('day')}
+                className={`px-3 py-1 text-sm rounded transition-colors ${
+                  viewMode === 'day'
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-600 hover:text-slate-800'
+                }`}
+              >
+                Day
+              </button>
+              <button
                 onClick={() => setViewMode('week')}
                 className={`px-3 py-1 text-sm rounded transition-colors ${
                   viewMode === 'week'
@@ -113,16 +124,6 @@ export default function Calendar({
                 }`}
               >
                 Month
-              </button>
-              <button
-                onClick={() => setViewMode('day')}
-                className={`px-3 py-1 text-sm rounded transition-colors ${
-                  viewMode === 'day'
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-600 hover:text-slate-800'
-                }`}
-              >
-                Day
               </button>
             </div>
           </div>
@@ -156,9 +157,16 @@ export default function Calendar({
       )}
 
       {viewMode === 'day' && (
-        <div className="p-8 text-center text-slate-500">
-          <p>Day view coming soon...</p>
-        </div>
+        <DayView
+          events={events}
+          currentDate={currentDate}
+          onEventClick={handleEventClick}
+          onEventCreate={handleEventCreate}
+          onEventUpdate={handleEventUpdate}
+          onEventDelete={handleEventDelete}
+          onDateChange={handleDateChange}
+          onNavigate={handleNavigate}
+        />
       )}
 
       <EventModal

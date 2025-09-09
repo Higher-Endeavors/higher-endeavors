@@ -27,7 +27,7 @@ const initialState: CalendarState = {
   events: [],
   currentDate: new Date(),
   selectedEvent: null,
-  viewMode: 'week',
+  viewMode: 'day',
   isLoading: false,
   error: null,
 };
