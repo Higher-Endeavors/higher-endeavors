@@ -21,6 +21,7 @@ export default function GanttChart({ plan, onPlanChange }: GanttChartProps) {
   const [expandedPhase, setExpandedPhase] = useState<Phase | null>(null);
   const [expandedCMEWeek, setExpandedCMEWeek] = useState<{phaseId: string, weekNumber: number, weekVolumes: any[]} | null>(null);
   const [expandedProgram, setExpandedProgram] = useState<{phase: Phase, program: any, weekNumber: number} | null>(null);
+  const [highlightedWeek, setHighlightedWeek] = useState<number | null>(null);
   const scrollRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const weekWidth = 60; // Width of each week column in pixels
@@ -169,6 +170,100 @@ export default function GanttChart({ plan, onPlanChange }: GanttChartProps) {
     scrollRefs.current = new Array(totalScrollableAreas).fill(null);
   }, [totalScrollableAreas]);
 
+  // Calculate and set highlighted week
+  useEffect(() => {
+    const now = new Date();
+    
+    // Get current week of the year (1-52)
+    const getWeekOfYear = (date: Date) => {
+      const startOfYear = new Date(date.getFullYear(), 0, 1);
+      const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+    };
+    
+    const currentWeekOfYear = getWeekOfYear(now);
+    const planStartWeekOfYear = getWeekOfYear(plan.startDate);
+    
+    // Calculate which week of the plan we're in (0-based)
+    let currentPlanWeek = currentWeekOfYear - planStartWeekOfYear;
+    
+    // Handle year boundary crossing
+    if (currentPlanWeek < 0) {
+      currentPlanWeek += 52; // Add 52 weeks for next year
+    }
+    
+    // Set highlighted week for visual indication
+    if (currentPlanWeek >= 0 && currentPlanWeek < plan.totalWeeks) {
+      setHighlightedWeek(currentPlanWeek);
+    } else {
+      setHighlightedWeek(null);
+    }
+  }, [plan.startDate, plan.totalWeeks]);
+
+  // Auto-scroll to current week on mount
+  useEffect(() => {
+    const now = new Date();
+    
+    // Get current week of the year (1-52)
+    const getWeekOfYear = (date: Date) => {
+      const startOfYear = new Date(date.getFullYear(), 0, 1);
+      const days = Math.floor((date.getTime() - startOfYear.getTime()) / (24 * 60 * 60 * 1000));
+      return Math.ceil((days + startOfYear.getDay() + 1) / 7);
+    };
+    
+    const currentWeekOfYear = getWeekOfYear(now);
+    const planStartWeekOfYear = getWeekOfYear(plan.startDate);
+    
+    // Calculate which week of the plan we're in (0-based)
+    let currentPlanWeek = currentWeekOfYear - planStartWeekOfYear;
+    
+    // Handle year boundary crossing
+    if (currentPlanWeek < 0) {
+      currentPlanWeek += 52; // Add 52 weeks for next year
+    }
+    
+    console.log('Gantt Chart Auto-scroll Debug:', {
+      now: now.toISOString(),
+      currentWeekOfYear,
+      planStartWeekOfYear,
+      currentPlanWeek,
+      totalWeeks: plan.totalWeeks,
+      weekWidth
+    });
+    
+    // Only scroll if current week is within the plan duration
+    if (currentPlanWeek >= 0 && currentPlanWeek < plan.totalWeeks) {
+      const scrollToWeek = Math.max(0, currentPlanWeek - 4); // Show current week ± 4 weeks
+      const scrollPosition = scrollToWeek * weekWidth;
+      
+      console.log('Scrolling to:', { scrollToWeek, scrollPosition });
+      
+      // Scroll all areas to current week
+      const scrollAll = () => {
+        let scrolledCount = 0;
+        scrollRefs.current.forEach((ref) => {
+          if (ref) {
+            ref.scrollLeft = scrollPosition;
+            scrolledCount++;
+          }
+        });
+        if (scrollBarRef.current) {
+          scrollBarRef.current.scrollLeft = scrollPosition;
+          scrolledCount++;
+        }
+        console.log('Scrolled', scrolledCount, 'areas to position', scrollPosition);
+      };
+      
+      // Try multiple times to ensure refs are set
+      scrollAll();
+      setTimeout(scrollAll, 100);
+      setTimeout(scrollAll, 300);
+      setTimeout(scrollAll, 500);
+    } else {
+      console.log('Current plan week', currentPlanWeek, 'is outside plan range (0 to', plan.totalWeeks - 1, ')');
+    }
+  }, [plan.startDate, plan.totalWeeks, weekWidth, scrollRefs, scrollBarRef]);
+
   return (
     <Section 
       title="Periodization Gantt Chart" 
@@ -191,11 +286,27 @@ export default function GanttChart({ plan, onPlanChange }: GanttChartProps) {
             >
               <div className="flex" style={{ width: `${totalContentWidth}px` }}>
                 {weeks.map((week) => (
-                  <div key={week.id} className="flex-shrink-0 border-r border-slate-200" style={{ width: `${weekWidth}px` }}>
-                    <div className="h-12 flex items-center justify-center text-xs text-slate-600 bg-slate-50 border-b border-slate-200">
+                  <div 
+                    key={week.id} 
+                    className={`flex-shrink-0 border-r border-slate-200 ${
+                      highlightedWeek === week.id ? 'bg-sky-50 border-sky-200' : ''
+                    }`} 
+                    style={{ width: `${weekWidth}px` }}
+                  >
+                    <div className={`h-12 flex items-center justify-center text-xs text-slate-600 border-b border-slate-200 ${
+                      highlightedWeek === week.id 
+                        ? 'bg-sky-100 border-sky-200' 
+                        : 'bg-slate-50'
+                    }`}>
                       <div className="text-center">
-                        <div className="font-medium">{week.label}</div>
-                        <div className="text-xs text-slate-500">
+                        <div className={`font-medium ${
+                          highlightedWeek === week.id ? 'text-sky-700' : 'text-slate-600'
+                        }`}>
+                          {week.label}
+                        </div>
+                        <div className={`text-xs ${
+                          highlightedWeek === week.id ? 'text-sky-600' : 'text-slate-500'
+                        }`}>
                           {week.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </div>
                       </div>

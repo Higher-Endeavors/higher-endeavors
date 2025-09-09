@@ -5,6 +5,7 @@ import Footer from '@/app/components/Footer';
 import PillarColumn from './components/PillarColumn';
 import ToolCard from './components/ToolCard';
 import StructuralBalanceMini from './components/StructuralBalanceMini';
+import CalendarWidget from './components/CalendarWidget';
 import { getRecentArticles, getRecentRecipes } from '@/app/lib/cmsAdapter';
 import { getRecentUpdates } from '@/app/lib/cmsAdapter.js';
 import RecentContent from '../../guide/components/RecentContent';
@@ -28,10 +29,9 @@ export default async function Dashboard() {
     <SessionProvider>
       <Header />
       <main className="min-h-screen py-4 md:py-8 mx-5">
-        {/* Calendar Placeholder */}
-        <div className="mb-8 p-4 border rounded-lg bg-gray-50 dark:bg-[#e0e0e0]">
-          <h2 className="text-xl text-gray-800 font-semibold">Calendar</h2>
-          <p className="text-gray-600">Calendar functionality coming soon...</p>
+        {/* Calendar Widget */}
+        <div className="mb-8">
+          <CalendarWidget />
         </div>
 
         {/* Four Pillars Grid */}
