@@ -6,13 +6,12 @@ import { mockPlanData } from '../components/MockPlanData';
 import DemoBanner from "../../../(components)/DemoBanner";
 
 // Import settings components
-import {
-  PeriodizationStyle,
-  VolumeRampDeload,
-  AvailabilityConstraints,
-  HealthGuardrails,
-  WeeklySchedule
-} from '../components';
+import PeriodizationStyle from '../components/PeriodizationStyle';
+import AvailabilityConstraints from '../components/AvailabilityConstraints';
+import HealthGuardrails from '../components/HealthGuardrails';
+import WeeklySchedule from '../components/WeeklySchedule';
+import CMEVolumes from '../components/cme-volumes/CMEVolumes';
+import { calculateCurrentWeek } from '../components/cme-volumes/utils';
 
 interface TrainingSession {
   id: string;
@@ -81,9 +80,54 @@ export default function PlanSettingsPage() {
         />
 
         {/* Settings Components */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6">
           <PeriodizationStyle />
-          <VolumeRampDeload />
+          <CMEVolumes
+            settings={{
+              baselineVolume: 180,
+              peakVolume: 360,
+              rampRate: 8,
+              deloadEvery: 3,
+              deloadReduction: 20,
+              phaseDuration: 4,
+              periodizationStyle: 'Linear',
+              activities: [
+                {
+                  id: 'running',
+                  name: 'Running',
+                  modality: 'running',
+                  baseVolume: 120,
+                  volumePercentage: 60,
+                  color: 'bg-red-100 text-red-700',
+                  icon: '🏃',
+                },
+                {
+                  id: 'cycling',
+                  name: 'Cycling',
+                  modality: 'cycling',
+                  baseVolume: 60,
+                  volumePercentage: 40,
+                  color: 'bg-blue-100 text-blue-700',
+                  icon: '🚴',
+                },
+              ],
+              tizTargets: {
+                z1: 108,
+                z2: 45,
+                z3: 18,
+                z4: 7,
+                z5: 2,
+                total: 180,
+              },
+            }}
+            onSettingsChange={(settings) => console.log('CME Settings changed:', settings)}
+            planContext={{
+              planStartDate: plan.startDate,
+              totalWeeks: plan.totalWeeks,
+              currentWeek: calculateCurrentWeek(plan.startDate, plan.totalWeeks),
+            }}
+            showPreview={true}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-6">

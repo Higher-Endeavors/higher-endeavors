@@ -6,14 +6,12 @@ import { mockPlanData } from './components/MockPlanData';
 import DemoBanner from "../../(components)/DemoBanner";
 
 // Import all the new components
-import {
-  TopBar,
-  GoalsAndTimeline,
-  GanttChart,
-  PlanHealth,
-  ConflictsWarnings,
-  Calendar
-} from './components';
+import TopBar from './components/TopBar';
+import GoalsAndTimeline from './components/GoalsAndTimeline';
+import GanttChart from './components/GanttChart';
+import PlanHealth from './components/PlanHealth';
+import ConflictsWarnings from './components/ConflictsWarnings';
+import Calendar from './components/Calendar';
 
 import CalendarWidget from '@/app/(protected)/user/dashboard/components/CalendarWidget';
 
