@@ -1,9 +1,9 @@
-import CaloriesBurnedWidget from '../../../widgets/CaloriesBurnedWidget';
-import StepsWidget from '../../../widgets/StepsWidget';
-import SleepWidget from '../../../widgets/SleepWidget';
-import HeartRateWidget from '../../../widgets/HeartRateWidget';
-import MetricCard from '../../../widgets/MetricCard';
-import type { WidgetData, Trend } from '../../../widgets/types';
+import CaloriesBurnedWidget from '../../widgets/CaloriesBurnedWidget';
+import StepsWidget from '../../widgets/StepsWidget';
+import SleepWidget from '../../widgets/SleepWidget';
+import HeartRateWidget from '../../widgets/HeartRateWidget';
+import MetricCard from '../../widgets/MetricCard';
+import type { WidgetData, Trend } from '../../widgets/types';
 
 // Additional metrics for the dashboard
 const additionalMetrics: WidgetData[] = [
@@ -70,9 +70,12 @@ export default function MetricsDashboard({ className = '' }: MetricsDashboardPro
           <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">At a Glance</h2>
           <p className="text-slate-600 dark:text-slate-400">Your daily Pillar metrics</p>
         </div>
-        <button className="text-sky-600 hover:text-sky-800 font-medium text-sm">
-          See All →
-        </button>
+        <a 
+          href="/user/widgets"
+          className="text-sky-600 hover:text-sky-800 font-medium text-sm transition-colors"
+        >
+          Customize Widgets →
+        </a>
       </div>
 
       {/* Metrics Grid - 4 columns on desktop, 2 on mobile */}

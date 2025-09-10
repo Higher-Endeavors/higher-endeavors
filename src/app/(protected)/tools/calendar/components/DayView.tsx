@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { CalendarEvent, DayViewProps, TimeSlot } from '../types/calendar.zod';
 import CalendarEventComponent from './CalendarEvent';
-import DailyMetrics from '../../../widgets/DailyMetrics';
+import DailyMetrics from '../../../user/widgets/DailyMetrics';
 
 export default function DayView({
   events,
@@ -16,7 +16,8 @@ export default function DayView({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const scrollBarRef = useRef<HTMLDivElement>(null);
 
   // Generate all 24 hours of time slots with half-hour marks
   const timeSlots: TimeSlot[] = useMemo(() => {
@@ -110,6 +111,13 @@ export default function DayView({
     const target = e.target as HTMLDivElement;
     const scrollTop = target.scrollTop;
     setScrollPosition(scrollTop);
+    
+    // Synchronize all other scrollable areas
+    scrollRefs.current.forEach((ref) => {
+      if (ref && ref !== target) {
+        ref.scrollTop = scrollTop;
+      }
+    });
   }, []);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
@@ -117,9 +125,11 @@ export default function DayView({
     if (Math.abs(e.deltaY) > 0) {
       e.preventDefault();
       e.stopPropagation();
-      if (scrollRef.current) {
+      // Find the scrollable area (main content area) and scroll it
+      const scrollableRef = scrollRefs.current[1]; // Main content area index
+      if (scrollableRef) {
         const delta = e.deltaY;
-        scrollRef.current.scrollTop += delta;
+        scrollableRef.scrollTop += delta;
       }
     }
   }, []);
@@ -142,7 +152,7 @@ export default function DayView({
 
   // Calculate current time position and check if it's the current day
   const getCurrentTimePosition = () => {
-    const now = currentTime;
+    const now = new Date(); // Use actual current time instead of state
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
@@ -167,7 +177,12 @@ export default function DayView({
     };
   };
 
-  // Update current time every minute
+  // Initialize scroll refs array
+  useEffect(() => {
+    scrollRefs.current = new Array(2).fill(null); // Time column + Main content area
+  }, []);
+
+  // Update current time every minute to trigger re-renders
   useEffect(() => {
     const updateTime = () => {
       setCurrentTime(new Date());
@@ -193,19 +208,21 @@ export default function DayView({
     const scrollToMinutes = Math.max(0, totalMinutes - 150); // 2.5 hours = 150 minutes
     const scrollPosition = (scrollToMinutes / 30) * 32; // 30 minutes per slot, 32px per slot
     
-    // Scroll to current time
-    const scrollToCurrentTime = () => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollTop = scrollPosition;
-      }
+    // Scroll all areas to current time
+    const scrollAll = () => {
+      scrollRefs.current.forEach((ref) => {
+        if (ref) {
+          ref.scrollTop = scrollPosition;
+        }
+      });
     };
     
-    // Try multiple times to ensure ref is set
-    scrollToCurrentTime();
-    setTimeout(scrollToCurrentTime, 50);
-    setTimeout(scrollToCurrentTime, 100);
-    setTimeout(scrollToCurrentTime, 200);
-  }, [currentDate]);
+    // Try multiple times to ensure refs are set
+    scrollAll();
+    setTimeout(scrollAll, 50);
+    setTimeout(scrollAll, 100);
+    setTimeout(scrollAll, 200);
+  }, [scrollRefs, currentDate]);
 
   const formatDateHeader = (date: Date) => {
     const today = new Date();
@@ -268,16 +285,15 @@ export default function DayView({
         {/* Calendar - Left Side */}
         <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
           <div 
-            className="overflow-hidden"
+            className="border border-slate-200 rounded-lg bg-white overflow-hidden"
             onWheel={handleWheel}
           >
             <div className="flex">
               {/* Time Column */}
               <div className="w-16 flex-shrink-0 border-r border-slate-200 bg-slate-50">
                 <div 
-                  className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 max-h-96"
-                  ref={scrollRef}
-                  onScroll={handleScroll}
+                  className="overflow-hidden max-h-96"
+                  ref={(el) => { scrollRefs.current[0] = el; }}
                 >
                   <div className="relative">
                     {timeSlots.map((slot, index) => (
@@ -315,8 +331,8 @@ export default function DayView({
               {/* Main Content Area */}
               <div className="flex-1 relative">
                 <div 
-                  className="overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100 max-h-96"
-                  ref={scrollRef}
+                  className="relative max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 scrollbar-track-slate-100"
+                  ref={(el) => { scrollRefs.current[1] = el; }}
                   onScroll={handleScroll}
                 >
                   <div className="relative">
