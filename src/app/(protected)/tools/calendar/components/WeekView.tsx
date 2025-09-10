@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import type { CalendarEvent, WeekViewProps, TimeSlot } from '../types/calendar.zod';
 import CalendarEventComponent from './CalendarEvent';
+import FitnessDashboard from './WeeklyMetrics';
 
 export default function WeekView({
   events,
@@ -261,59 +262,61 @@ export default function WeekView({
   }, [scrollRefs]);
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
-        <div className="flex items-center gap-4">
-          <h2 className="text-lg font-semibold text-slate-800">
-            {currentDate.toLocaleDateString('en-US', { 
-              month: 'long', 
-              year: 'numeric' 
-            })}
-          </h2>
+    <div className="space-y-6">
+      {/* Calendar Section */}
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex items-center gap-4">
+            <h2 className="text-lg font-semibold text-slate-800">
+              {currentDate.toLocaleDateString('en-US', { 
+                month: 'long', 
+                year: 'numeric' 
+              })}
+            </h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onNavigate('prev')}
+                className="p-2 hover:bg-slate-200 rounded-md transition-colors text-slate-700 hover:text-slate-900"
+              >
+                ←
+              </button>
+              <button
+                onClick={() => onDateChange(new Date())}
+                className="px-3 py-1 text-sm bg-sky-600 text-white rounded-md hover:bg-sky-700 transition-colors"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => onNavigate('next')}
+                className="p-2 hover:bg-slate-200 rounded-md transition-colors text-slate-700 hover:text-slate-900"
+              >
+                →
+              </button>
+            </div>
+          </div>
+          
           <div className="flex items-center gap-2">
+            <div className="text-sm text-slate-600">
+              Week of {weekDates[0].toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              })} - {weekDates[6].toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+              })}
+            </div>
             <button
-              onClick={() => onNavigate('prev')}
-              className="p-2 hover:bg-slate-200 rounded-md transition-colors text-slate-700 hover:text-slate-900"
+              onClick={handleDatePickerToggle}
+              className="p-1.5 hover:bg-slate-200 rounded-md transition-colors text-slate-600 hover:text-slate-800"
+              title="Select date"
             >
-              ←
-            </button>
-            <button
-              onClick={() => onDateChange(new Date())}
-              className="px-3 py-1 text-sm bg-sky-600 text-white rounded-md hover:bg-sky-700 transition-colors"
-            >
-              Today
-            </button>
-            <button
-              onClick={() => onNavigate('next')}
-              className="p-2 hover:bg-slate-200 rounded-md transition-colors text-slate-700 hover:text-slate-900"
-            >
-              →
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
             </button>
           </div>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="text-sm text-slate-600">
-            Week of {weekDates[0].toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric' 
-            })} - {weekDates[6].toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric' 
-            })}
-          </div>
-          <button
-            onClick={handleDatePickerToggle}
-            className="p-1.5 hover:bg-slate-200 rounded-md transition-colors text-slate-600 hover:text-slate-800"
-            title="Select date"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </button>
-        </div>
-      </div>
 
       {/* Calendar Grid */}
       <div 
@@ -483,6 +486,10 @@ export default function WeekView({
           </div>
         </div>
       </div>
+      </div>
+
+      {/* Fitness Dashboard */}
+      <FitnessDashboard />
 
       {/* Date Picker Popup */}
       {isDatePickerOpen && (
