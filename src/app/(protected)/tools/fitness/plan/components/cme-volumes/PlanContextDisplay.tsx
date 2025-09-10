@@ -11,7 +11,7 @@ export default function PlanContextDisplay({ planContext }: PlanContextDisplayPr
 
 
   const getCurrentWeekInfo = () => {
-    if (planContext.currentWeek === undefined || planContext.currentWeek === null) return null;
+    if (planContext.currentWeek === undefined) return null;
     
     const currentDate = new Date(planContext.planStartDate);
     currentDate.setDate(currentDate.getDate() + (planContext.currentWeek * 7));

@@ -141,7 +141,7 @@ export default function TIZSettings({ tizTargets, onTIZChange }: TIZSettingsProp
                       {zone.label}
                     </span>
                     <span className="text-xs text-slate-500">
-                      {zoneDescriptions[zone.key]}
+                      {zoneDescriptions[zone.key as keyof typeof zoneDescriptions] || ''}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

@@ -14,9 +14,9 @@ export function getWeekOfYear(date: Date): number {
  * Uses the same week-of-year calculation as the Gantt Chart
  * @param planStartDate - The start date of the plan
  * @param totalWeeks - Total number of weeks in the plan
- * @returns The current week number (0-based) or null if outside plan range
+ * @returns The current week number (0-based) or undefined if outside plan range
  */
-export function calculateCurrentWeek(planStartDate: Date, totalWeeks: number): number | null {
+export function calculateCurrentWeek(planStartDate: Date, totalWeeks: number): number | undefined {
   const now = new Date();
   
   const currentWeekOfYear = getWeekOfYear(now);
@@ -30,9 +30,9 @@ export function calculateCurrentWeek(planStartDate: Date, totalWeeks: number): n
     currentPlanWeek += 52; // Add 52 weeks for next year
   }
   
-  // Return null if we're before the plan starts or after it ends
+  // Return undefined if we're before the plan starts or after it ends
   if (currentPlanWeek < 0 || currentPlanWeek >= totalWeeks) {
-    return null;
+    return undefined;
   }
   
   return currentPlanWeek;

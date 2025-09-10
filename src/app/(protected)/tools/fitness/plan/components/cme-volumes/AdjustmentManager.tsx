@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HiPlus, HiTrash, HiClock, HiCog, HiExclamationTriangle } from 'react-icons/hi';
+import { HiPlus, HiTrash, HiClock, HiCog, HiExclamationCircle } from 'react-icons/hi';
 import type { VolumeAdjustment, AdjustmentType } from './VolumeAdjustmentTypes';
 
 interface AdjustmentManagerProps {
@@ -23,13 +23,13 @@ const adjustmentTypeConfig = {
     description: 'Plan restructure changes'
   },
   recovery: {
-    icon: HiExclamationTriangle,
+    icon: HiExclamationCircle,
     color: 'bg-red-100 text-red-700 border-red-200',
     label: 'Recovery',
     description: 'Extended recovery periods'
   },
   emergency: {
-    icon: HiExclamationTriangle,
+    icon: HiExclamationCircle,
     color: 'bg-red-100 text-red-700 border-red-200',
     label: 'Emergency',
     description: 'Injury or illness adjustments'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HiX, HiExclamationTriangle, HiClock } from 'react-icons/hi';
+import { HiX, HiExclamationCircle, HiClock } from 'react-icons/hi';
 import type { QuickAdjustmentOptions, VolumeAdjustment } from './VolumeAdjustmentTypes';
 
 interface QuickAdjustmentModalProps {
@@ -78,7 +78,7 @@ export default function QuickAdjustmentModal({
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <HiExclamationTriangle className="h-5 w-5 text-amber-500" />
+            <HiExclamationCircle className="h-5 w-5 text-amber-500" />
             <h3 className="text-lg font-semibold text-slate-800">Quick Volume Adjustment</h3>
           </div>
           <button

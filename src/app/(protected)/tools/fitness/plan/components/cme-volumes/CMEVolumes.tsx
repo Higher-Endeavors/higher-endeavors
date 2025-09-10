@@ -23,7 +23,7 @@ interface CMEVolumesProps {
   onAdjustmentChange?: (adjustments: VolumeAdjustment[]) => void;
 }
 
-const defaultSettings: CMEVolumeSettings = {
+export const defaultSettings: CMEVolumeSettings = {
   baselineVolume: 180, // 3 hours per week
   peakVolume: 360, // 6 hours per week
   rampRate: 8, // 8% per week
