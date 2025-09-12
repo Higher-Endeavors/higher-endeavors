@@ -1,15 +1,21 @@
 import React from 'react';
 import { UseFormRegister, Control } from 'react-hook-form';
 import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import GarminConnectSettings from './GarminConnectSettings';
   /* import { UseFormRegister, Controller, Control } from 'react-hook-form';
   import type { UserSettings } from '../types/settings'; */
 
 interface GeneralUserSettingsProps {
   register: UseFormRegister<UserSettings>;
   control: Control<UserSettings>;
+  watch?: any;
+  onGarminUpdate?: () => void;
 }
 
-const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) => (
+const GeneralUserSettings = ({ register, control, watch, onGarminUpdate }: GeneralUserSettingsProps) => {
+  const garminConnect = watch?.('general.garminConnect');
+  
+  return (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold dark:text-slate-600">General Settings</h2>
     {/* Height Unit */}
@@ -84,7 +90,14 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
         </div>
       </div>
     </div>
+    
+    {/* Garmin Connect Integration */}
+    <GarminConnectSettings 
+      garminConnect={garminConnect} 
+      onUpdate={onGarminUpdate || (() => {})} 
+    />
   </div>
-);
+  );
+};
 
 export default GeneralUserSettings;

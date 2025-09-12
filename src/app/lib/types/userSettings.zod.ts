@@ -39,6 +39,18 @@ export const CircumferenceMeasurementSchema = z.enum([
 export const DietaryBaseSchema = z.enum(["omnivore", "vegetarian", "vegan", "pescatarian"]);
 export const DietaryStyleSchema = z.enum(["paleo", "keto", "mediterranean", "other"]);
 
+// Garmin Connect Settings
+export const GarminConnectSettingsSchema = z.object({
+  isConnected: z.boolean().default(false),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  tokenExpiresAt: z.number().optional(),
+  refreshTokenExpiresAt: z.number().optional(),
+  userId: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  lastSyncAt: z.number().optional(),
+});
+
 // General Settings
 export const GeneralSettingsSchema = z.object({
   heightUnit: HeightUnitSchema,
@@ -51,6 +63,7 @@ export const GeneralSettingsSchema = z.object({
   notificationsText: z.boolean(),
   notificationsApp: z.boolean(),
   sidebarExpandMode: z.enum(["hover", "click"]).default("hover"),
+  garminConnect: GarminConnectSettingsSchema.optional(),
 });
 
 // Fitness Settings (strongly typed)
@@ -154,6 +167,7 @@ export type FoodAllergy = z.infer<typeof FoodAllergySchema>;
 export type CircumferenceMeasurement = z.infer<typeof CircumferenceMeasurementSchema>;
 export type DietaryBase = z.infer<typeof DietaryBaseSchema>;
 export type DietaryStyle = z.infer<typeof DietaryStyleSchema>;
+export type GarminConnectSettings = z.infer<typeof GarminConnectSettingsSchema>;
 export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
 export type ResistanceTraining = z.infer<typeof ResistanceTrainingSchema>;
 export type CardioMetabolic = z.infer<typeof CardioMetabolicSchema>;
