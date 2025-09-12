@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { PlanningItem } from '../components/planning-modal/planning-types.zod';
 
 export const TIZBreakdownSchema = z.object({
   z1: z.number().int().min(0), // Zone 1 minutes
@@ -45,12 +46,14 @@ export const PhaseSchema = z.object({
 export const GoalSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1),
-  type: z.enum(['milestone', 'metric']),
+  type: z.enum(['milestone', 'metric', 'competition', 'test', 'travel']),
   targetDate: z.date(),
   targetValue: z.number().optional(),
   currentValue: z.number().optional(),
   unit: z.string().optional(),
   status: z.enum(['pending', 'achieved', 'missed']),
+  itemType: z.enum(['goal', 'milestone', 'event']).default('goal'),
+  color: z.string().optional(),
 });
 
 export const EventSchema = z.object({
@@ -78,8 +81,8 @@ export const PeriodizationPlanSchema = z.object({
   totalWeeks: z.number().int().min(1).max(52),
   phases: z.array(PhaseSchema),
   goals: z.array(GoalSchema),
-  events: z.array(EventSchema),
   settings: PlanSettingsSchema,
+  planningItems: z.array(z.any()).optional(), // PlanningItem type will be added when needed
 });
 
 // Infer TypeScript types from Zod schemas

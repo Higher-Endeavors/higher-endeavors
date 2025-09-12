@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import type { PeriodizationPlan } from '../types/periodization.zod';
-import { mockPlanData } from '../components/MockPlanData';
+// import { mockPlanData } from '../components/MockPlanData';
 import DemoBanner from "../../../(components)/DemoBanner";
 
 // Import settings components
@@ -10,8 +10,6 @@ import PeriodizationStyle from '../components/PeriodizationStyle';
 import AvailabilityConstraints from '../components/AvailabilityConstraints';
 import HealthGuardrails from '../components/HealthGuardrails';
 import WeeklySchedule from '../components/WeeklySchedule';
-import CMEVolumes from '../components/cme-volumes/CMEVolumes';
-import { calculateCurrentWeek } from '../components/cme-volumes/utils';
 
 interface TrainingSession {
   id: string;
@@ -24,7 +22,24 @@ interface TrainingSession {
 }
 
 export default function PlanSettingsPage() {
-  const [plan, setPlan] = useState<PeriodizationPlan>(mockPlanData);
+  const [plan, setPlan] = useState<PeriodizationPlan>({
+    id: 'plan-1',
+    name: 'My Training Plan',
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 24 * 7 * 24 * 60 * 60 * 1000), // 24 weeks from now
+    totalWeeks: 24,
+    settings: {
+      showResistance: true,
+      showCME: true,
+      showRecovery: true,
+      showGoals: true,
+      showEvents: true,
+      timeGranularity: 'weeks'
+    },
+    phases: [],
+    goals: [],
+    planningItems: []
+  });
   const [weeklySchedule, setWeeklySchedule] = useState<TrainingSession[]>([
     // Default schedule example
     { id: '1', name: 'Upper Body', type: 'resistance', day: 'monday', time: '07:00', duration: 60 },
@@ -82,52 +97,6 @@ export default function PlanSettingsPage() {
         {/* Settings Components */}
         <div className="grid grid-cols-1 gap-6">
           <PeriodizationStyle />
-          <CMEVolumes
-            settings={{
-              baselineVolume: 180,
-              peakVolume: 360,
-              rampRate: 8,
-              deloadEvery: 3,
-              deloadReduction: 20,
-              phaseDuration: 4,
-              periodizationStyle: 'Linear',
-              activities: [
-                {
-                  id: 'running',
-                  name: 'Running',
-                  modality: 'running',
-                  baseVolume: 120,
-                  volumePercentage: 60,
-                  color: 'bg-red-100 text-red-700',
-                  icon: '🏃',
-                },
-                {
-                  id: 'cycling',
-                  name: 'Cycling',
-                  modality: 'cycling',
-                  baseVolume: 60,
-                  volumePercentage: 40,
-                  color: 'bg-blue-100 text-blue-700',
-                  icon: '🚴',
-                },
-              ],
-              tizTargets: {
-                z1: 108,
-                z2: 45,
-                z3: 18,
-                z4: 7,
-                z5: 2,
-                total: 180,
-              },
-            }}
-            onSettingsChange={(settings) => console.log('CME Settings changed:', settings)}
-            planContext={{
-              planStartDate: plan.startDate,
-              totalWeeks: plan.totalWeeks,
-              currentWeek: calculateCurrentWeek(plan.startDate, plan.totalWeeks),
-            }}
-            showPreview={true}
-          />
         </div>
 
         <div className="grid grid-cols-2 gap-6">

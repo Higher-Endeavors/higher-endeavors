@@ -9,6 +9,7 @@ import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/sa
 import { saveCMESession } from '../program/lib/actions/saveCMESession';
 import { saveCMETemplate } from '../program/lib/actions/saveCMETemplate';
 import { getCMESessions, getCMESession } from '../program/lib/hooks/getCMESessions';
+import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
 import { transformDatabaseToFrontend } from '../program/lib/actions/transformDatabaseToFrontend';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 import { useToast } from '@/app/lib/toast';
@@ -48,6 +49,10 @@ export default function CardiometabolicTrainingClient({
   const [selectedUserFitnessSettings, setSelectedUserFitnessSettings] = useState<FitnessSettings | undefined>(() => fitnessSettings);
   const [selectedUserHeartRateZones, setSelectedUserHeartRateZones] = useState<any[]>(() => userHeartRateZones || []);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
+  
+  // Activities state - initialize from props
+  const [allActivities, setAllActivities] = useState<CMEActivityItem[]>(activities);
+  
 
   // Session state
   const [sessionName, setSessionName] = useState('');
@@ -88,6 +93,7 @@ export default function CardiometabolicTrainingClient({
       setSelectedUserHeartRateZones(userHeartRateZones || []); // Fallback
     }
   };
+
 
   const handleUserSelect = (userId: number | null) => {
     if (userId) {
@@ -425,7 +431,7 @@ export default function CardiometabolicTrainingClient({
         editingActivity={editingActivity}
         fitnessSettings={selectedUserFitnessSettings}
         userHeartRateZones={selectedUserHeartRateZones}
-        activities={activities}
+        activities={allActivities}
       />
     </>
   );

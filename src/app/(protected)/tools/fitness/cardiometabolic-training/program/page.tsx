@@ -4,7 +4,6 @@ import { SessionProvider } from "next-auth/react";
 // import Footer from "../../../../components/Footer";
 import { auth } from '@/app/auth';
 import { getUserSettings } from '@/app/lib/actions/userSettings';
-import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
 import { SingleQuery } from '@/app/lib/dbAdapter';
 import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
 import type { CMEActivityItem } from '../lib/types/cme.zod';
@@ -60,32 +59,21 @@ export default async function ProgramPage() {
   let error: Error | null = null;
 
   try {
-    // Fetch all data at the page level
-    const [userSettings, cmeData, hrZones] = await Promise.all([
+    // Fetch server-side data only
+    const [userSettings, hrZones] = await Promise.all([
       getUserSettings(),
-      getCMEActivityLibrary(),
       getUserHeartRateZones(loggedInUserId)
     ]);
 
     fitnessSettings = userSettings?.fitness;
-    
-    // Transform CME library activities
-    cmeActivities = cmeData.map((activity: any) => ({
-      cme_activity_library_id: activity.cme_activity_library_id,
-      name: activity.name,
-      source: 'cme_library' as const,
-      activity_family: activity.activity_family || undefined,
-      equipment: activity.equipment || undefined
-    }));
-
     userHeartRateZones = hrZones;
   } catch (err: any) {
     error = err;
     console.error('Error loading CME training data:', err);
   }
 
-  // All activities come from CME library only
-  const allActivities: CMEActivityItem[] = cmeActivities;
+  // CME activities will be fetched on the client side (empty array like resistance training)
+  const allActivities: CMEActivityItem[] = [];
 
   const cardiometabolicTrainingArticles = [
     {
