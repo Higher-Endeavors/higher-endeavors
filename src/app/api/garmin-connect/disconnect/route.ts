@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         });
       } catch (error) {
         // Log error but continue with local disconnect
-        await serverLogger.warn('Failed to delete Garmin registration', error);
+        await serverLogger.warn('Failed to delete Garmin registration', { error });
       }
     }
     

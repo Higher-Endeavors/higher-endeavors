@@ -184,7 +184,7 @@ export async function DELETE(request: NextRequest) {
           totalDeleted += deletedCount;
           deletedByType[type] = deletedCount;
         } catch (error) {
-          await serverLogger.warn(`Error deleting old ${type} data`, error, { userId, olderThanDays });
+          await serverLogger.warn(`Error deleting old ${type} data`, { error, userId, olderThanDays });
           deletedByType[type] = 0;
         }
       }
