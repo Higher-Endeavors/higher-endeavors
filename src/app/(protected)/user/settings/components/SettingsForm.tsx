@@ -185,7 +185,15 @@ const SettingsForm = () => {
         {/* Settings Content */}
         <div className="p-6">
           {activeTab === 'general' && (
-            <GeneralUserSettings register={register} control={control} />
+            <GeneralUserSettings 
+              register={register} 
+              control={control} 
+              watch={watch}
+              onGarminUpdate={() => {
+                // Refresh settings after Garmin connection changes
+                window.location.reload();
+              }}
+            />
           )}
           {activeTab === 'lifestyle' && (
             <LifestyleUserSettings register={register} setValue={setValue} watch={watch} />
