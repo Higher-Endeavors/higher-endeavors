@@ -80,7 +80,7 @@ export async function getHealthData(query: HealthDataQuery): Promise<HealthDataR
 
     const result = await SingleQuery(sql, params);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       dataType: query.dataType!,
@@ -270,7 +270,7 @@ export async function getLatestHealthDataByType(userId: number): Promise<Record<
           latestData[dataType] = fullData;
         }
       } catch (error) {
-        await serverLogger.warn(`Error retrieving latest ${dataType} data`, error, { userId });
+        await serverLogger.warn(`Error retrieving latest ${dataType} data`, { error, userId });
         // Continue with other data types
       }
     }
@@ -318,7 +318,7 @@ export async function getHealthDataSummary(userId: number, days: number = 30): P
           };
         }
       } catch (error) {
-        await serverLogger.warn(`Error retrieving ${dataType} summary`, error, { userId, days });
+        await serverLogger.warn(`Error retrieving ${dataType} summary`, { error, userId, days });
         summary[dataType] = {
           count: 0,
           earliest: null,
@@ -359,7 +359,7 @@ export async function deleteOldHealthData(userId: number, olderThanDays: number 
           deletedCount: result.rowCount || 0
         });
       } catch (error) {
-        await serverLogger.warn(`Error deleting old ${dataType} data`, error, { userId, olderThanDays });
+        await serverLogger.warn(`Error deleting old ${dataType} data`, { error, userId, olderThanDays });
         // Continue with other tables
       }
     }
@@ -402,7 +402,7 @@ export async function getHealthDataByDateRange(
 
     const result = await SingleQuery(sql, [userId, startDate, endDate]);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       dataType,

@@ -81,7 +81,7 @@ export async function getActivityData(query: ActivityDataQuery): Promise<Activit
 
     const result = await SingleQuery(sql, params);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       dataType: row.manual ? 'manuallyUpdatedActivities' : 'activityDetails',
@@ -195,7 +195,7 @@ export async function getLatestActivityDataByType(userId: number): Promise<Recor
         latestData.activityDetails = fullData;
       }
     } catch (error) {
-      await serverLogger.warn('Error retrieving latest activity details', error, { userId });
+      await serverLogger.warn('Error retrieving latest activity details', { error, userId });
     }
 
     // Get latest manually updated activities (manual = true)
@@ -216,7 +216,7 @@ export async function getLatestActivityDataByType(userId: number): Promise<Recor
         latestData.manuallyUpdatedActivities = fullData;
       }
     } catch (error) {
-      await serverLogger.warn('Error retrieving latest manually updated activities', error, { userId });
+      await serverLogger.warn('Error retrieving latest manually updated activities', { error, userId });
     }
 
     return latestData;
@@ -274,7 +274,7 @@ export async function getActivityDataSummary(userId: number, days: number = 30):
         };
       }
     } catch (error) {
-      await serverLogger.warn('Error retrieving activity details summary', error, { userId, days });
+      await serverLogger.warn('Error retrieving activity details summary', { error, userId, days });
       summary.activityDetails = {
         count: 0,
         earliest: null,
@@ -329,7 +329,7 @@ export async function getActivityDataSummary(userId: number, days: number = 30):
         };
       }
     } catch (error) {
-      await serverLogger.warn('Error retrieving manually updated activities summary', error, { userId, days });
+      await serverLogger.warn('Error retrieving manually updated activities summary', { error, userId, days });
       summary.manuallyUpdatedActivities = {
         count: 0,
         earliest: null,
@@ -405,7 +405,7 @@ export async function getActivityDataByDateRange(
 
     const result = await SingleQuery(sql, params);
     
-    return result.rows.map(row => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       dataType: row.manual ? 'manuallyUpdatedActivities' : 'activityDetails',
@@ -452,7 +452,7 @@ export async function getActivityStatsByType(userId: number, days: number = 30):
 
       const activityDetailsResult = await SingleQuery(activityDetailsSql, [userId]);
       
-      stats.activityDetails = activityDetailsResult.rows.map(row => ({
+      stats.activityDetails = activityDetailsResult.rows.map((row: any) => ({
         activityType: row.activity_type,
         count: parseInt(row.count),
         totalDurationSeconds: parseInt(row.total_duration) || 0,
@@ -462,7 +462,7 @@ export async function getActivityStatsByType(userId: number, days: number = 30):
         averageSpeed: parseFloat(row.avg_speed) || null
       }));
     } catch (error) {
-      await serverLogger.warn('Error retrieving activity details stats', error, { userId, days });
+      await serverLogger.warn('Error retrieving activity details stats', { error, userId, days });
       stats.activityDetails = [];
     }
 
@@ -487,7 +487,7 @@ export async function getActivityStatsByType(userId: number, days: number = 30):
 
       const manualActivitiesResult = await SingleQuery(manualActivitiesSql, [userId]);
       
-      stats.manuallyUpdatedActivities = manualActivitiesResult.rows.map(row => ({
+      stats.manuallyUpdatedActivities = manualActivitiesResult.rows.map((row: any) => ({
         activityType: row.activity_type,
         count: parseInt(row.count),
         totalDurationSeconds: parseInt(row.total_duration) || 0,
@@ -497,7 +497,7 @@ export async function getActivityStatsByType(userId: number, days: number = 30):
         averageSpeed: parseFloat(row.avg_speed) || null
       }));
     } catch (error) {
-      await serverLogger.warn('Error retrieving manually updated activities stats', error, { userId, days });
+      await serverLogger.warn('Error retrieving manually updated activities stats', { error, userId, days });
       stats.manuallyUpdatedActivities = [];
     }
 
