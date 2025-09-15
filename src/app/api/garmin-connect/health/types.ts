@@ -158,6 +158,88 @@ export interface StressDetailsSummary extends BaseHealthNotification {
   bodyBatteryActivityEvents?: BodyBatteryActivityEvent[];
 }
 
+// Daily Summary
+export interface DailySummary extends BaseHealthNotification {
+  calendarDate: string;
+  startTimeInSeconds: number;
+  startTimeOffsetInSeconds: number;
+  activityType: string;
+  durationInSeconds: number;
+  steps?: number;
+  pushes?: number;
+  distanceInMeters?: number;
+  pushDistanceInMeters?: number;
+  activeTimeInSeconds?: number;
+  activeKilocalories?: number;
+  bmrKilocalories?: number;
+  moderateIntensityDurationInSeconds?: number;
+  vigorousIntensityDurationInSeconds?: number;
+  floorsClimbed?: number;
+  minHeartRateInBeatsPerMinute?: number;
+  averageHeartRateInBeatsPerMinute?: number;
+  maxHeartRateInBeatsPerMinute?: number;
+  restingHeartRateInBeatsPerMinute?: number;
+  timeOffsetHeartRateSamples?: Record<string, number>;
+  averageStressLevel?: number;
+  maxStressLevel?: number;
+  stressDurationInSeconds?: number;
+  restStressDurationInSeconds?: number;
+  activityStressDurationInSeconds?: number;
+  lowStressDurationInSeconds?: number;
+  mediumStressDurationInSeconds?: number;
+  highStressDurationInSeconds?: number;
+  stressQualifier?: string;
+  stepsGoal?: number;
+  pushesGoal?: number;
+  intensityDurationGoalInSeconds?: number;
+  floorsClimbedGoal?: number;
+}
+
+// Epoch Summary
+export interface EpochSummary extends BaseHealthNotification {
+  startTimeInSeconds: number;
+  startTimeOffsetInSeconds: number;
+  activityType: string;
+  durationInSeconds: number;
+  activeTimeInSeconds?: number;
+  steps?: number;
+  pushes?: number;
+  distanceInMeters?: number;
+  pushDistanceInMeters?: number;
+  activeKilocalories?: number;
+  met?: number;
+  intensity?: string;
+  meanMotionIntensity?: number;
+  maxMotionIntensity?: number;
+}
+
+// Health Snapshot Summary
+export interface HealthSnapshotSummary extends BaseHealthNotification {
+  calendarDate: string;
+  startTimeInSeconds: number;
+  durationInSeconds: number;
+  startTimeOffsetInSeconds: number;
+  summaries: HealthSnapshotSubSummary[];
+}
+
+// Health Snapshot Sub Summary
+export interface HealthSnapshotSubSummary {
+  summaryType: 'heart_rate' | 'stress' | 'spo2' | 'respiration' | 'rmssd_hrv' | 'sdrr_hrv';
+  minValue?: number;
+  maxValue?: number;
+  avgValue?: number;
+  epochSummaries?: Record<string, number>;
+}
+
+// User Metrics Summary
+export interface UserMetricsSummary extends BaseHealthNotification {
+  calendarDate: string;
+  vo2Max?: number;
+  vo2MaxCycling?: number;
+  enhanced?: boolean;
+  fitnessAge?: number;
+}
+
 // Union type for all health data types
 export type HealthData = 
   | BloodPressureSummary
@@ -167,7 +249,11 @@ export type HealthData =
   | RespirationSummary
   | SkinTemperatureSummary
   | SleepSummary
-  | StressDetailsSummary;
+  | StressDetailsSummary
+  | DailySummary
+  | EpochSummary
+  | HealthSnapshotSummary
+  | UserMetricsSummary;
 
 // Type guards for runtime type checking
 export function isBloodPressureSummary(data: any): data is BloodPressureSummary {
@@ -204,6 +290,25 @@ export function isStressDetailsSummary(data: any): data is StressDetailsSummary 
   return data && typeof data.timeOffsetStressLevelValues === 'object';
 }
 
+export function isDailySummary(data: any): data is DailySummary {
+  return data && typeof data.calendarDate === 'string' && typeof data.activityType === 'string' && 
+         typeof data.durationInSeconds === 'number';
+}
+
+export function isEpochSummary(data: any): data is EpochSummary {
+  return data && typeof data.activityType === 'string' && typeof data.durationInSeconds === 'number' &&
+         typeof data.startTimeInSeconds === 'number';
+}
+
+export function isHealthSnapshotSummary(data: any): data is HealthSnapshotSummary {
+  return data && Array.isArray(data.summaries) && typeof data.calendarDate === 'string';
+}
+
+export function isUserMetricsSummary(data: any): data is UserMetricsSummary {
+  return data && typeof data.calendarDate === 'string' && 
+         (data.vo2Max !== undefined || data.fitnessAge !== undefined);
+}
+
 // Helper function to determine data type from the data structure
 export function getHealthDataType(data: any): string | null {
   if (isBloodPressureSummary(data)) return 'bloodPressures';
@@ -214,6 +319,10 @@ export function getHealthDataType(data: any): string | null {
   if (isSkinTemperatureSummary(data)) return 'skinTemp';
   if (isSleepSummary(data)) return 'sleeps';
   if (isStressDetailsSummary(data)) return 'stressDetails';
+  if (isDailySummary(data)) return 'dailies';
+  if (isEpochSummary(data)) return 'epochs';
+  if (isHealthSnapshotSummary(data)) return 'healthSnapshot';
+  if (isUserMetricsSummary(data)) return 'userMetrics';
   return null;
 }
 
@@ -343,6 +452,91 @@ export const StressDetailsSummarySchema = z.object({
   })).optional(),
 });
 
+export const DailySummarySchema = z.object({
+  userId: z.string(),
+  summaryId: z.string(),
+  calendarDate: z.string(),
+  startTimeInSeconds: z.number(),
+  startTimeOffsetInSeconds: z.number(),
+  activityType: z.string(),
+  durationInSeconds: z.number(),
+  steps: z.number().optional(),
+  pushes: z.number().optional(),
+  distanceInMeters: z.number().optional(),
+  pushDistanceInMeters: z.number().optional(),
+  activeTimeInSeconds: z.number().optional(),
+  activeKilocalories: z.number().optional(),
+  bmrKilocalories: z.number().optional(),
+  moderateIntensityDurationInSeconds: z.number().optional(),
+  vigorousIntensityDurationInSeconds: z.number().optional(),
+  floorsClimbed: z.number().optional(),
+  minHeartRateInBeatsPerMinute: z.number().optional(),
+  averageHeartRateInBeatsPerMinute: z.number().optional(),
+  maxHeartRateInBeatsPerMinute: z.number().optional(),
+  restingHeartRateInBeatsPerMinute: z.number().optional(),
+  timeOffsetHeartRateSamples: z.record(z.string(), z.number()).optional(),
+  averageStressLevel: z.number().optional(),
+  maxStressLevel: z.number().optional(),
+  stressDurationInSeconds: z.number().optional(),
+  restStressDurationInSeconds: z.number().optional(),
+  activityStressDurationInSeconds: z.number().optional(),
+  lowStressDurationInSeconds: z.number().optional(),
+  mediumStressDurationInSeconds: z.number().optional(),
+  highStressDurationInSeconds: z.number().optional(),
+  stressQualifier: z.string().optional(),
+  stepsGoal: z.number().optional(),
+  pushesGoal: z.number().optional(),
+  intensityDurationGoalInSeconds: z.number().optional(),
+  floorsClimbedGoal: z.number().optional(),
+});
+
+export const EpochSummarySchema = z.object({
+  userId: z.string(),
+  summaryId: z.string(),
+  startTimeInSeconds: z.number(),
+  startTimeOffsetInSeconds: z.number(),
+  activityType: z.string(),
+  durationInSeconds: z.number(),
+  activeTimeInSeconds: z.number().optional(),
+  steps: z.number().optional(),
+  pushes: z.number().optional(),
+  distanceInMeters: z.number().optional(),
+  pushDistanceInMeters: z.number().optional(),
+  activeKilocalories: z.number().optional(),
+  met: z.number().optional(),
+  intensity: z.string().optional(),
+  meanMotionIntensity: z.number().optional(),
+  maxMotionIntensity: z.number().optional(),
+});
+
+export const HealthSnapshotSubSummarySchema = z.object({
+  summaryType: z.enum(['heart_rate', 'stress', 'spo2', 'respiration', 'rmssd_hrv', 'sdrr_hrv']),
+  minValue: z.number().optional(),
+  maxValue: z.number().optional(),
+  avgValue: z.number().optional(),
+  epochSummaries: z.record(z.string(), z.number()).optional(),
+});
+
+export const HealthSnapshotSummarySchema = z.object({
+  userId: z.string(),
+  summaryId: z.string(),
+  calendarDate: z.string(),
+  startTimeInSeconds: z.number(),
+  durationInSeconds: z.number(),
+  startTimeOffsetInSeconds: z.number(),
+  summaries: z.array(HealthSnapshotSubSummarySchema),
+});
+
+export const UserMetricsSummarySchema = z.object({
+  userId: z.string(),
+  summaryId: z.string(),
+  calendarDate: z.string(),
+  vo2Max: z.number().optional(),
+  vo2MaxCycling: z.number().optional(),
+  enhanced: z.boolean().optional(),
+  fitnessAge: z.number().optional(),
+});
+
 export const HealthWebhookPayloadSchema = z.object({
   deregistrations: z.array(z.object({
     userId: z.string(),
@@ -359,4 +553,8 @@ export const HealthWebhookPayloadSchema = z.object({
   skinTemp: z.array(SkinTemperatureSummarySchema).optional(),
   sleeps: z.array(SleepSummarySchema).optional(),
   stressDetails: z.array(StressDetailsSummarySchema).optional(),
+  dailies: z.array(DailySummarySchema).optional(),
+  epochs: z.array(EpochSummarySchema).optional(),
+  healthSnapshot: z.array(HealthSnapshotSummarySchema).optional(),
+  userMetrics: z.array(UserMetricsSummarySchema).optional(),
 });

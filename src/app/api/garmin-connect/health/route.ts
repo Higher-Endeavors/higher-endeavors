@@ -12,6 +12,10 @@ import {
   isSkinTemperatureSummary,
   isSleepSummary,
   isStressDetailsSummary,
+  isDailySummary,
+  isEpochSummary,
+  isHealthSnapshotSummary,
+  isUserMetricsSummary,
   HealthWebhookPayloadSchema,
   BloodPressureSummarySchema,
   BodyCompositionSummarySchema,
@@ -20,7 +24,11 @@ import {
   RespirationSummarySchema,
   SkinTemperatureSummarySchema,
   SleepSummarySchema,
-  StressDetailsSummarySchema
+  StressDetailsSummarySchema,
+  DailySummarySchema,
+  EpochSummarySchema,
+  HealthSnapshotSummarySchema,
+  UserMetricsSummarySchema
 } from './types';
 
 // Types for Garmin Health API webhook notifications
@@ -49,6 +57,10 @@ interface HealthWebhookPayload {
   skinTemp?: HealthData[];
   sleeps?: HealthData[];
   stressDetails?: HealthData[];
+  dailies?: HealthData[];
+  epochs?: HealthData[];
+  healthSnapshot?: HealthData[];
+  userMetrics?: HealthData[];
 }
 
 // Helper function to get the appropriate Zod schema for health data type
@@ -70,6 +82,14 @@ function getHealthDataSchema(dataType: string) {
       return SleepSummarySchema;
     case 'stressDetails':
       return StressDetailsSummarySchema;
+    case 'dailies':
+      return DailySummarySchema;
+    case 'epochs':
+      return EpochSummarySchema;
+    case 'healthSnapshot':
+      return HealthSnapshotSummarySchema;
+    case 'userMetrics':
+      return UserMetricsSummarySchema;
     default:
       throw new Error(`Unknown health data type: ${dataType}`);
   }
@@ -118,6 +138,14 @@ function validateHealthData(data: any): HealthData | null {
       return isSleepSummary(data) ? data : null;
     case 'stressDetails':
       return isStressDetailsSummary(data) ? data : null;
+    case 'dailies':
+      return isDailySummary(data) ? data : null;
+    case 'epochs':
+      return isEpochSummary(data) ? data : null;
+    case 'healthSnapshot':
+      return isHealthSnapshotSummary(data) ? data : null;
+    case 'userMetrics':
+      return isUserMetricsSummary(data) ? data : null;
     default:
       return null;
   }
@@ -157,6 +185,18 @@ async function storeHealthData(
         break;
       case 'stressDetails':
         await storeStressDetailsData(userId, data);
+        break;
+      case 'dailies':
+        await storeDailyData(userId, data);
+        break;
+      case 'epochs':
+        await storeEpochData(userId, data);
+        break;
+      case 'healthSnapshot':
+        await storeHealthSnapshotData(userId, data);
+        break;
+      case 'userMetrics':
+        await storeUserMetricsData(userId, data);
         break;
       default:
         await serverLogger.warn('Unknown data type', { dataType });
@@ -438,6 +478,191 @@ async function storeStressDetailsData(userId: number, data: any): Promise<void> 
   );
 }
 
+async function storeDailyData(userId: number, data: any): Promise<void> {
+  await SingleQuery(
+    `INSERT INTO garmin_dailies (
+      user_id, summary_id, calendar_date, start_time_in_seconds, start_time_offset_in_seconds,
+      activity_type, duration_in_seconds, steps, pushes, distance_in_meters, push_distance_in_meters,
+      active_time_in_seconds, active_kilocalories, bmr_kilocalories, moderate_intensity_duration_in_seconds,
+      vigorous_intensity_duration_in_seconds, floors_climbed, min_heart_rate_in_beats_per_minute,
+      average_heart_rate_in_beats_per_minute, max_heart_rate_in_beats_per_minute, resting_heart_rate_in_beats_per_minute,
+      time_offset_heart_rate_samples, average_stress_level, max_stress_level, stress_duration_in_seconds,
+      rest_stress_duration_in_seconds, activity_stress_duration_in_seconds, low_stress_duration_in_seconds,
+      medium_stress_duration_in_seconds, high_stress_duration_in_seconds, stress_qualifier, steps_goal,
+      pushes_goal, intensity_duration_goal_in_seconds, floors_climbed_goal
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35)
+    ON CONFLICT (user_id, summary_id) 
+    DO UPDATE SET 
+      calendar_date = $3,
+      start_time_in_seconds = $4,
+      start_time_offset_in_seconds = $5,
+      activity_type = $6,
+      duration_in_seconds = $7,
+      steps = $8,
+      pushes = $9,
+      distance_in_meters = $10,
+      push_distance_in_meters = $11,
+      active_time_in_seconds = $12,
+      active_kilocalories = $13,
+      bmr_kilocalories = $14,
+      moderate_intensity_duration_in_seconds = $15,
+      vigorous_intensity_duration_in_seconds = $16,
+      floors_climbed = $17,
+      min_heart_rate_in_beats_per_minute = $18,
+      average_heart_rate_in_beats_per_minute = $19,
+      max_heart_rate_in_beats_per_minute = $20,
+      resting_heart_rate_in_beats_per_minute = $21,
+      time_offset_heart_rate_samples = $22,
+      average_stress_level = $23,
+      max_stress_level = $24,
+      stress_duration_in_seconds = $25,
+      rest_stress_duration_in_seconds = $26,
+      activity_stress_duration_in_seconds = $27,
+      low_stress_duration_in_seconds = $28,
+      medium_stress_duration_in_seconds = $29,
+      high_stress_duration_in_seconds = $30,
+      stress_qualifier = $31,
+      steps_goal = $32,
+      pushes_goal = $33,
+      intensity_duration_goal_in_seconds = $34,
+      floors_climbed_goal = $35,
+      updated_at = NOW()`,
+    [
+      userId,
+      data.summaryId,
+      data.calendarDate,
+      data.startTimeInSeconds,
+      data.startTimeOffsetInSeconds,
+      data.activityType,
+      data.durationInSeconds,
+      data.steps || null,
+      data.pushes || null,
+      data.distanceInMeters || null,
+      data.pushDistanceInMeters || null,
+      data.activeTimeInSeconds || null,
+      data.activeKilocalories || null,
+      data.bmrKilocalories || null,
+      data.moderateIntensityDurationInSeconds || null,
+      data.vigorousIntensityDurationInSeconds || null,
+      data.floorsClimbed || null,
+      data.minHeartRateInBeatsPerMinute || null,
+      data.averageHeartRateInBeatsPerMinute || null,
+      data.maxHeartRateInBeatsPerMinute || null,
+      data.restingHeartRateInBeatsPerMinute || null,
+      JSON.stringify(data.timeOffsetHeartRateSamples || {}),
+      data.averageStressLevel || null,
+      data.maxStressLevel || null,
+      data.stressDurationInSeconds || null,
+      data.restStressDurationInSeconds || null,
+      data.activityStressDurationInSeconds || null,
+      data.lowStressDurationInSeconds || null,
+      data.mediumStressDurationInSeconds || null,
+      data.highStressDurationInSeconds || null,
+      data.stressQualifier || null,
+      data.stepsGoal || null,
+      data.pushesGoal || null,
+      data.intensityDurationGoalInSeconds || null,
+      data.floorsClimbedGoal || null
+    ]
+  );
+}
+
+async function storeEpochData(userId: number, data: any): Promise<void> {
+  await SingleQuery(
+    `INSERT INTO garmin_epochs (
+      user_id, summary_id, start_time_in_seconds, start_time_offset_in_seconds, activity_type,
+      duration_in_seconds, active_time_in_seconds, steps, pushes, distance_in_meters, push_distance_in_meters,
+      active_kilocalories, met, intensity, mean_motion_intensity, max_motion_intensity
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    ON CONFLICT (user_id, summary_id) 
+    DO UPDATE SET 
+      start_time_in_seconds = $3,
+      start_time_offset_in_seconds = $4,
+      activity_type = $5,
+      duration_in_seconds = $6,
+      active_time_in_seconds = $7,
+      steps = $8,
+      pushes = $9,
+      distance_in_meters = $10,
+      push_distance_in_meters = $11,
+      active_kilocalories = $12,
+      met = $13,
+      intensity = $14,
+      mean_motion_intensity = $15,
+      max_motion_intensity = $16,
+      updated_at = NOW()`,
+    [
+      userId,
+      data.summaryId,
+      data.startTimeInSeconds,
+      data.startTimeOffsetInSeconds,
+      data.activityType,
+      data.durationInSeconds,
+      data.activeTimeInSeconds || null,
+      data.steps || null,
+      data.pushes || null,
+      data.distanceInMeters || null,
+      data.pushDistanceInMeters || null,
+      data.activeKilocalories || null,
+      data.met || null,
+      data.intensity || null,
+      data.meanMotionIntensity || null,
+      data.maxMotionIntensity || null
+    ]
+  );
+}
+
+async function storeHealthSnapshotData(userId: number, data: any): Promise<void> {
+  await SingleQuery(
+    `INSERT INTO garmin_health_snapshots (
+      user_id, summary_id, calendar_date, start_time_in_seconds, duration_in_seconds,
+      start_time_offset_in_seconds, summaries
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (user_id, summary_id) 
+    DO UPDATE SET 
+      calendar_date = $3,
+      start_time_in_seconds = $4,
+      duration_in_seconds = $5,
+      start_time_offset_in_seconds = $6,
+      summaries = $7,
+      updated_at = NOW()`,
+    [
+      userId,
+      data.summaryId,
+      data.calendarDate,
+      data.startTimeInSeconds,
+      data.durationInSeconds,
+      data.startTimeOffsetInSeconds,
+      JSON.stringify(data.summaries)
+    ]
+  );
+}
+
+async function storeUserMetricsData(userId: number, data: any): Promise<void> {
+  await SingleQuery(
+    `INSERT INTO garmin_user_metrics (
+      user_id, summary_id, calendar_date, vo2_max, vo2_max_cycling, enhanced, fitness_age
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    ON CONFLICT (user_id, summary_id) 
+    DO UPDATE SET 
+      calendar_date = $3,
+      vo2_max = $4,
+      vo2_max_cycling = $5,
+      enhanced = $6,
+      fitness_age = $7,
+      updated_at = NOW()`,
+    [
+      userId,
+      data.summaryId,
+      data.calendarDate,
+      data.vo2Max || null,
+      data.vo2MaxCycling || null,
+      data.enhanced || null,
+      data.fitnessAge || null
+    ]
+  );
+}
+
 // Helper function to handle deregistration
 async function handleDeregistration(garminUserId: string): Promise<void> {
   try {
@@ -555,7 +780,11 @@ export async function POST(request: NextRequest) {
       'respiration',
       'skinTemp',
       'sleeps',
-      'stressDetails'
+      'stressDetails',
+      'dailies',
+      'epochs',
+      'healthSnapshot',
+      'userMetrics'
     ] as const;
     
     for (const dataType of healthDataTypes) {
