@@ -1,10 +1,14 @@
 import { headers } from 'next/headers';
-import { Environment } from './environment';
 
-export async function getServerEnvironment(): Promise<Environment> {
+export async function getServerEnvironment(): Promise<string> {
   const headersList = await headers();
-  const environment = headersList.get('x-environment') as Environment;
-  
-  // Fallback to development if no environment header is found
-  return environment || 'development';
+  const host = (await headers()).get("host");
+
+  if (host?.includes("qa.higherendeavors.com")) {
+    return 'qa';
+  } else if (host?.includes("higherendeavors.com")) {
+    return 'production';
+  } else {
+    return 'development';
+  }
 }
