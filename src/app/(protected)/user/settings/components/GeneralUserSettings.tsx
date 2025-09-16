@@ -35,6 +35,15 @@ const GeneralUserSettings = ({ register, control, watch, onGarminUpdate }: Gener
         <option value="kgs">Kilograms (kg)</option>
       </select>
     </div>
+    {/* Distance Unit */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700">Distance Unit</label>
+      <select {...register('general.distanceUnit')} className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600">
+        <option value="miles">Miles</option>
+        <option value="km">Kilometers (km)</option>
+        <option value="m">Meters (m)</option>
+      </select>
+    </div>
     {/* Temperature Unit */}
     <div>
       <label className="block text-sm font-medium text-gray-700">Temperature Unit</label>

@@ -4,6 +4,7 @@ import SleepWidget from '../../widgets/SleepWidget';
 import HeartRateWidget from '../../widgets/HeartRateWidget';
 import MetricCard from '../../widgets/MetricCard';
 import type { WidgetData, Trend } from '../../widgets/types';
+import Link from 'next/link';
 
 // Additional metrics for the dashboard
 const additionalMetrics: WidgetData[] = [
@@ -71,7 +72,9 @@ export default function MetricsDashboard({ className = '' }: MetricsDashboardPro
           <p className="text-slate-600 dark:text-slate-400">Your daily Pillar metrics</p>
         </div>
         <button className="text-sky-600 hover:text-sky-800 font-medium text-sm">
+          <Link href="/user/widgets">
           See All →
+          </Link>
         </button>
       </div>
 

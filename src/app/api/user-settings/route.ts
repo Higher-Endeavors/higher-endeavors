@@ -45,6 +45,7 @@ function mapDbSettingsToCanonical(db: any) {
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -68,6 +69,7 @@ function mapCanonicalToDbSettings(settings: any) {
   return {
     height_unit: general.heightUnit,
     weight_unit: general.weightUnit,
+    distance_unit: general.distanceUnit,
     temperature_unit: general.temperatureUnit,
     time_format: general.timeFormat,
     date_format: general.dateFormat,

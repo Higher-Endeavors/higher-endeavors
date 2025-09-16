@@ -29,12 +29,15 @@ export default function CaloriesConsumedWidget({ className = '' }: CaloriesConsu
       {/* Header */}
       <div className={`p-4 ${data.bgColor}`}>
         <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-2">
-            <FaUtensils className={`w-5 h-5 ${data.color}`} />
-            <h3 className={`text-sm font-semibold ${data.textColor}`}>
-              {data.title}
-            </h3>
-          </div>
+        <div className="flex items-center gap-2">
+          <FaUtensils className={`w-5 h-5 ${data.color}`} />
+          <h3 className={`text-sm font-semibold ${data.textColor}`}>
+            {data.title}
+          </h3>
+          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+            Demo Data
+          </span>
+        </div>
           <TrendIndicator trend={data.trend || 'neutral'} value={data.trendValue || '0%'} />
         </div>
         

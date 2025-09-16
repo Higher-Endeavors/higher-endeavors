@@ -5,7 +5,6 @@ import { useForm, Controller, FormProvider } from 'react-hook-form';
 import { useToast } from '@/app/lib/toast';
 import { HiCheck, HiX } from 'react-icons/hi';
 import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '@/app/lib/types/userSettings.zod';
-import { useRouter } from 'next/navigation';
 import GeneralUserSettings from './GeneralUserSettings';
 import LifestyleUserSettings from './LifestyleUserSettings';
 import HealthUserSettings from './HealthUserSettings';
@@ -16,7 +15,6 @@ import { saveUserSettings } from '../lib/actions/saveUserSettings';
 import { clientLogger } from '@/app/lib/logging/logger.client';
 
 const SettingsForm = () => {
-  const router = useRouter();
   const { success, error } = useToast();
   const [dbSettings, setDbSettings] = useState<UserSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -113,7 +111,7 @@ const SettingsForm = () => {
       await saveUserSettings({ settings: data });
       await refreshUserSettings();
       success('Settings updated successfully');
-      router.push('/user/dashboard?success=settings');
+      // Stay on settings page instead of redirecting
     } catch (error: any) {
       clientLogger.error('Error saving user settings', error);
       error('Failed to update settings');

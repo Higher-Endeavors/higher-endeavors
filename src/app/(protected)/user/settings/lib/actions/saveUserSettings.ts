@@ -20,13 +20,14 @@ export async function saveUserSettings({ settings }: SaveUserSettingsInput) {
     await client.query('BEGIN');
     await client.query(
       `INSERT INTO user_settings (
-        user_id, height_unit, weight_unit, temperature_unit, time_format, date_format, language, sidebar_expand_mode,
+        user_id, height_unit, weight_unit, distance_unit, temperature_unit, time_format, date_format, language, sidebar_expand_mode,
         notifications_email, notifications_text, notifications_app,
         fitness_settings, health_settings, lifestyle_settings, nutrition_settings
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
       ON CONFLICT (user_id) DO UPDATE SET
         height_unit = EXCLUDED.height_unit,
         weight_unit = EXCLUDED.weight_unit,
+        distance_unit = EXCLUDED.distance_unit,
         temperature_unit = EXCLUDED.temperature_unit,
         time_format = EXCLUDED.time_format,
         date_format = EXCLUDED.date_format,
@@ -45,6 +46,7 @@ export async function saveUserSettings({ settings }: SaveUserSettingsInput) {
         userId,
         settings.general.heightUnit,
         settings.general.weightUnit,
+        settings.general.distanceUnit,
         settings.general.temperatureUnit,
         settings.general.timeFormat,
         settings.general.dateFormat,
