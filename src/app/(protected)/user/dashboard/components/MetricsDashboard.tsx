@@ -1,9 +1,9 @@
-import CaloriesBurnedWidget from '../../../widgets/CaloriesBurnedWidget';
-import StepsWidget from '../../../widgets/StepsWidget';
-import SleepWidget from '../../../widgets/SleepWidget';
-import HeartRateWidget from '../../../widgets/HeartRateWidget';
-import MetricCard from '../../../widgets/MetricCard';
-import type { WidgetData, Trend } from '../../../widgets/types';
+import CaloriesBurnedWidget from '../../widgets/CaloriesBurnedWidget';
+import StepsWidget from '../../widgets/StepsWidget';
+import SleepWidget from '../../widgets/SleepWidget';
+import HeartRateWidget from '../../widgets/HeartRateWidget';
+import MetricCard from '../../widgets/MetricCard';
+import type { WidgetData, Trend } from '../../widgets/types';
 
 // Additional metrics for the dashboard
 const additionalMetrics: WidgetData[] = [
