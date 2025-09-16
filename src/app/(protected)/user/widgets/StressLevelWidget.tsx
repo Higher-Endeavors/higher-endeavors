@@ -42,7 +42,7 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
               {data.title}
             </h3>
           </div>
-          <TrendIndicator trend={data.trend} value={data.trendValue} />
+          <TrendIndicator trend={data.trend || 'neutral'} value={data.trendValue || '0%'} />
         </div>
         
         {/* Value */}
