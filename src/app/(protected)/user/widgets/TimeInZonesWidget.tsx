@@ -101,6 +101,9 @@ export default function TimeInZonesWidget({
           <h4 className={`text-sm font-medium ${getStatusColor()}`}>
             Time in Zones
           </h4>
+          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+            Demo Data
+          </span>
         </div>
         <div className="text-xs text-slate-600">
           {totalActual}/{totalPlanned} min

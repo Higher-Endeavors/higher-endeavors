@@ -17,6 +17,7 @@ export async function getUserSettings(): Promise<UserSettings | null> {
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -49,6 +50,7 @@ export async function getUserSettingsById(userId: number): Promise<UserSettings 
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -80,6 +82,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     general: {
       heightUnit: current.height_unit,
       weightUnit: current.weight_unit,
+      distanceUnit: current.distance_unit,
       temperatureUnit: current.temperature_unit,
       timeFormat: current.time_format,
       dateFormat: current.date_format,
@@ -100,6 +103,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     session.user.id,
     g.heightUnit,
     g.weightUnit,
+    g.distanceUnit,
     g.temperatureUnit,
     g.timeFormat,
     g.dateFormat,
@@ -114,13 +118,14 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
   ];
   const updateQuery = `
     INSERT INTO user_settings (
-      user_id, height_unit, weight_unit, temperature_unit, time_format, date_format, language,
+      user_id, height_unit, weight_unit, distance_unit, temperature_unit, time_format, date_format, language,
       notifications_email, notifications_text, notifications_app,
       fitness_settings, health_settings, lifestyle_settings, nutrition_settings, updated_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       height_unit = EXCLUDED.height_unit,
       weight_unit = EXCLUDED.weight_unit,
+      distance_unit = EXCLUDED.distance_unit,
       temperature_unit = EXCLUDED.temperature_unit,
       time_format = EXCLUDED.time_format,
       date_format = EXCLUDED.date_format,
@@ -145,6 +150,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
       general: {
         heightUnit: db.height_unit,
         weightUnit: db.weight_unit,
+        distanceUnit: db.distance_unit,
         temperatureUnit: db.temperature_unit,
         timeFormat: db.time_format,
         dateFormat: db.date_format,

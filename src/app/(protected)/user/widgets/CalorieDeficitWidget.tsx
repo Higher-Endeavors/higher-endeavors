@@ -34,6 +34,9 @@ export default function CalorieDeficitWidget({ className = '' }: CalorieDeficitW
             <h3 className={`text-sm font-semibold ${data.textColor}`}>
               {data.title}
             </h3>
+            <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+              Demo Data
+            </span>
           </div>
           <TrendIndicator trend={data.trend || 'neutral'} value={data.trendValue || '0%'} />
         </div>

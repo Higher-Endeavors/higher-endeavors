@@ -3,6 +3,7 @@ import { z } from "zod";
 // Enums and unions
 export const HeightUnitSchema = z.enum(["ft_in", "in", "cm"]);
 export const WeightUnitSchema = z.enum(["lbs", "kgs"]);
+export const DistanceUnitSchema = z.enum(["miles", "km", "m"]);
 export const TemperatureUnitSchema = z.enum(["F", "C"]);
 export const FoodMeasurementUnitSchema = z.enum(["grams", "lbs_oz", "oz"]);
 export const HydrationUnitSchema = z.enum(["grams", "oz", "liters"]);
@@ -55,6 +56,7 @@ export const GarminConnectSettingsSchema = z.object({
 export const GeneralSettingsSchema = z.object({
   heightUnit: HeightUnitSchema,
   weightUnit: WeightUnitSchema,
+  distanceUnit: DistanceUnitSchema,
   temperatureUnit: TemperatureUnitSchema,
   timeFormat: z.enum(["12h", "24h"]),
   dateFormat: z.string(),
@@ -155,6 +157,7 @@ export const UserSettingsSchema = z.object({
 // Export inferred types
 export type HeightUnit = z.infer<typeof HeightUnitSchema>;
 export type WeightUnit = z.infer<typeof WeightUnitSchema>;
+export type DistanceUnit = z.infer<typeof DistanceUnitSchema>;
 export type TemperatureUnit = z.infer<typeof TemperatureUnitSchema>;
 export type FoodMeasurementUnit = z.infer<typeof FoodMeasurementUnitSchema>;
 export type HydrationUnit = z.infer<typeof HydrationUnitSchema>;
