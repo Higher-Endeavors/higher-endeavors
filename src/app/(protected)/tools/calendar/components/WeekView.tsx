@@ -179,7 +179,7 @@ export default function WeekView({
 
   // Calculate current time position and check if it's in current week
   const getCurrentTimePosition = () => {
-    const now = currentTime;
+    const now = new Date(); // Use actual current time instead of state
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     
