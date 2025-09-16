@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       data: {
-        availableTypes: ['bloodPressures', 'bodyComps', 'hrv', 'pulseox', 'respiration', 'skinTemp', 'sleeps', 'stressDetails'],
+        availableTypes: ['bloodPressures', 'bodyComps', 'hrv', 'pulseox', 'respiration', 'skinTemp', 'sleeps', 'stressDetails', 'dailies', 'epochs', 'healthSnapshot', 'userMetrics'],
         message: 'Specify a data type using the ?type= parameter'
       },
       timestamp: new Date().toISOString()
@@ -141,7 +141,11 @@ export async function DELETE(request: NextRequest) {
         respiration: 'garmin_respiration',
         skinTemp: 'garmin_skin_temperature',
         sleeps: 'garmin_sleeps',
-        stressDetails: 'garmin_stress_details'
+        stressDetails: 'garmin_stress_details',
+        dailies: 'garmin_dailies',
+        epochs: 'garmin_epochs',
+        healthSnapshot: 'garmin_health_snapshots',
+        userMetrics: 'garmin_user_metrics'
       };
 
       const tableName = tableMapping[dataType];
@@ -168,7 +172,11 @@ export async function DELETE(request: NextRequest) {
         respiration: 'garmin_respiration',
         skinTemp: 'garmin_skin_temperature',
         sleeps: 'garmin_sleeps',
-        stressDetails: 'garmin_stress_details'
+        stressDetails: 'garmin_stress_details',
+        dailies: 'garmin_dailies',
+        epochs: 'garmin_epochs',
+        healthSnapshot: 'garmin_health_snapshots',
+        userMetrics: 'garmin_user_metrics'
       };
 
       for (const [type, tableName] of Object.entries(tableMapping)) {

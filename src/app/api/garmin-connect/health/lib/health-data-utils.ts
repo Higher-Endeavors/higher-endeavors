@@ -32,7 +32,11 @@ const TABLE_MAPPING = {
   respiration: 'garmin_respiration',
   skinTemp: 'garmin_skin_temperature',
   sleeps: 'garmin_sleeps',
-  stressDetails: 'garmin_stress_details'
+  stressDetails: 'garmin_stress_details',
+  dailies: 'garmin_dailies',
+  epochs: 'garmin_epochs',
+  healthSnapshot: 'garmin_health_snapshots',
+  userMetrics: 'garmin_user_metrics'
 } as const;
 
 // Get health data for a user from specific table
@@ -234,6 +238,83 @@ function convertRowToHealthData(dataType: string, row: any): HealthData {
         timeOffsetBodyBatteryValues: row.time_offset_body_battery_values,
         bodyBatteryDynamicFeedbackEvent: row.body_battery_dynamic_feedback_event,
         bodyBatteryActivityEvents: row.body_battery_activity_events
+      };
+    case 'dailies':
+      return {
+        userId: row.user_id.toString(),
+        summaryId: row.summary_id,
+        calendarDate: row.calendar_date,
+        startTimeInSeconds: row.start_time_in_seconds,
+        startTimeOffsetInSeconds: row.start_time_offset_in_seconds,
+        activityType: row.activity_type,
+        durationInSeconds: row.duration_in_seconds,
+        steps: row.steps,
+        pushes: row.pushes,
+        distanceInMeters: row.distance_in_meters,
+        pushDistanceInMeters: row.push_distance_in_meters,
+        activeTimeInSeconds: row.active_time_in_seconds,
+        activeKilocalories: row.active_kilocalories,
+        bmrKilocalories: row.bmr_kilocalories,
+        moderateIntensityDurationInSeconds: row.moderate_intensity_duration_in_seconds,
+        vigorousIntensityDurationInSeconds: row.vigorous_intensity_duration_in_seconds,
+        floorsClimbed: row.floors_climbed,
+        minHeartRateInBeatsPerMinute: row.min_heart_rate_in_beats_per_minute,
+        averageHeartRateInBeatsPerMinute: row.average_heart_rate_in_beats_per_minute,
+        maxHeartRateInBeatsPerMinute: row.max_heart_rate_in_beats_per_minute,
+        restingHeartRateInBeatsPerMinute: row.resting_heart_rate_in_beats_per_minute,
+        timeOffsetHeartRateSamples: row.time_offset_heart_rate_samples,
+        averageStressLevel: row.average_stress_level,
+        maxStressLevel: row.max_stress_level,
+        stressDurationInSeconds: row.stress_duration_in_seconds,
+        restStressDurationInSeconds: row.rest_stress_duration_in_seconds,
+        activityStressDurationInSeconds: row.activity_stress_duration_in_seconds,
+        lowStressDurationInSeconds: row.low_stress_duration_in_seconds,
+        mediumStressDurationInSeconds: row.medium_stress_duration_in_seconds,
+        highStressDurationInSeconds: row.high_stress_duration_in_seconds,
+        stressQualifier: row.stress_qualifier,
+        stepsGoal: row.steps_goal,
+        pushesGoal: row.pushes_goal,
+        intensityDurationGoalInSeconds: row.intensity_duration_goal_in_seconds,
+        floorsClimbedGoal: row.floors_climbed_goal
+      };
+    case 'epochs':
+      return {
+        userId: row.user_id.toString(),
+        summaryId: row.summary_id,
+        startTimeInSeconds: row.start_time_in_seconds,
+        startTimeOffsetInSeconds: row.start_time_offset_in_seconds,
+        activityType: row.activity_type,
+        durationInSeconds: row.duration_in_seconds,
+        activeTimeInSeconds: row.active_time_in_seconds,
+        steps: row.steps,
+        pushes: row.pushes,
+        distanceInMeters: row.distance_in_meters,
+        pushDistanceInMeters: row.push_distance_in_meters,
+        activeKilocalories: row.active_kilocalories,
+        met: row.met,
+        intensity: row.intensity,
+        meanMotionIntensity: row.mean_motion_intensity,
+        maxMotionIntensity: row.max_motion_intensity
+      };
+    case 'healthSnapshot':
+      return {
+        userId: row.user_id.toString(),
+        summaryId: row.summary_id,
+        calendarDate: row.calendar_date,
+        startTimeInSeconds: row.start_time_in_seconds,
+        durationInSeconds: row.duration_in_seconds,
+        startTimeOffsetInSeconds: row.start_time_offset_in_seconds,
+        summaries: row.summaries
+      };
+    case 'userMetrics':
+      return {
+        userId: row.user_id.toString(),
+        summaryId: row.summary_id,
+        calendarDate: row.calendar_date,
+        vo2Max: row.vo2_max,
+        vo2MaxCycling: row.vo2_max_cycling,
+        enhanced: row.enhanced,
+        fitnessAge: row.fitness_age
       };
     default:
       throw new Error(`Unknown data type: ${dataType}`);
