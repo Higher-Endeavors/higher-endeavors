@@ -1,4 +1,4 @@
-import WeeklyVolumeWidget from '../../../user/widgets/WeeklyVolumeWidget';
+import WeeklyVolumeWidget from '../../../user/widgets/WeeklyCMEVolumeWidget';
 import TimeInZonesWidget from '../../../user/widgets/TimeInZonesWidget';
 import TrainingLoadWidget from '../../../user/widgets/TrainingLoadWidget';
 import RecoveryStatusWidget from '../../../user/widgets/RecoveryStatusWidget';

@@ -14,7 +14,7 @@ import StressLevelWidget from '../../user/widgets/StressLevelWidget';
 import ActiveMinutesWidget from '../../user/widgets/ActiveMinutesWidget';
 import BodyCompositionWidget from '../../user/widgets/BodyCompositionWidget';
 import MetricCard from '../../user/widgets/MetricCard';
-import WeeklyVolumeWidget from '../../user/widgets/WeeklyVolumeWidget';
+import WeeklyVolumeWidget from './WeeklyCMEVolumeWidget';
 import TimeInZonesWidget from '../../user/widgets/TimeInZonesWidget';
 import TrainingLoadWidget from '../../user/widgets/TrainingLoadWidget';
 import RecoveryStatusWidget from '../../user/widgets/RecoveryStatusWidget';

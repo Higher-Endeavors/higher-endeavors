@@ -66,17 +66,9 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
   let isDemoData = !isGarminConnected;
   
   if (latestStress && !loading && !error && isGarminConnected) {
-    console.log('Processing stress data:', {
-      latestStress,
-      averageStressLevel: latestStress.averageStressLevel,
-      maxStressLevel: latestStress.maxStressLevel,
-      restStressDurationInSeconds: latestStress.restStressDurationInSeconds
-    });
-    
     // Use time-weighted calculation for more accuracy
     const stressAnalysis = calculateTimeWeightedStressLevel(latestStress);
     stressLevel = stressAnalysis.average;
-    console.log('Calculated stress level:', stressLevel);
     
     const previousStressLevel = previousStress ? calculateAverageStressLevel(previousStress) : undefined;
     const trend = calculateStressTrend(stressLevel, previousStressLevel);
