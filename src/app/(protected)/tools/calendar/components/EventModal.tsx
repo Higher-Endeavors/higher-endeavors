@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CalendarEvent, EventFormData, EventType } from '../types/calendar.zod';
+import type { CalendarEvent, EventFormData, EventType } from '(protected)/tools/calendar/types/calendar.zod';
 
 interface EventModalProps {
   event: CalendarEvent | null;

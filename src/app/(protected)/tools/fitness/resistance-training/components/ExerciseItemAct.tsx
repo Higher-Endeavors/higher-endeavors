@@ -1,6 +1,6 @@
 import React from 'react';
-import { ProgramExercisesPlanned, ExerciseSet, ExerciseLibraryItem } from '../types/resistance-training.zod';
-import { calculateTimeUnderTension } from '../../lib/calculations/resistanceTrainingCalculations';
+import { ProgramExercisesPlanned, ExerciseSet, ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { calculateTimeUnderTension } from '(protected)/tools/fitness/lib/calculations/resistanceTrainingCalculations';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
 
 interface ExerciseItemActProps {

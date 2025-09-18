@@ -1,9 +1,9 @@
 'use client';
 
 import { format } from 'date-fns';
-import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
+import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types';
 import { useState } from 'react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 interface Props {
   entries: BodyCompositionEntry[];

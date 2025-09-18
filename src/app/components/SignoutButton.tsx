@@ -1,6 +1,6 @@
 "use client"
 import { signOut } from 'next-auth/react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 export function SignOut() {
   const cognitoClient = process.env.NEXT_PUBLIC_COGNITO_CLIENT

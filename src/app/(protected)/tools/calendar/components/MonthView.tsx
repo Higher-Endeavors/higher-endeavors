@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import type { CalendarEvent, MonthViewProps } from '../types/calendar.zod';
-import CalendarEventComponent from './CalendarEvent';
+import type { CalendarEvent, MonthViewProps } from '(protected)/tools/calendar/types/calendar.zod';
+import CalendarEventComponent from '(protected)/tools/calendar/components/CalendarEvent';
 
 export default function MonthView({
   events,

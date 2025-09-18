@@ -6,9 +6,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import { HiOutlineTrash } from 'react-icons/hi';
-import { getCMEActivityFamilyConfig, getDefaultMetricsForActivityFamily } from '../actions/cmeMetricsConfig';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { CMEActivityItem, ExerciseOption, Interval, MetricField } from '../../../lib/types/cme.zod';
+import { getCMEActivityFamilyConfig, getDefaultMetricsForActivityFamily } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/cmeMetricsConfig';
+import type { FitnessSettings } from 'lib/types/userSettings.zod';
+import type { CMEActivityItem, ExerciseOption, Interval, MetricField } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
 
 // Components
 

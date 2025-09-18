@@ -1,8 +1,8 @@
 import { renderHook } from '@testing-library/react';
-import { useErrorBoundary } from '../use-error-boundary';
+import { useErrorBoundary } from 'lib/hooks/use-error-boundary';
 
 // Mock client logger
-jest.mock('@/app/lib/logging/logger.client', () => ({
+jest.mock('lib/logging/logger.client', () => ({
   clientLogger: {
     error: jest.fn(),
   },
@@ -32,7 +32,7 @@ describe('useErrorBoundary Hook', () => {
   });
 
   it('logs uncaught errors with proper metadata', () => {
-    const { clientLogger } = require('@/app/lib/logging/logger.client');
+    const { clientLogger } = require('lib/logging/logger.client');
     
     renderHook(() => useErrorBoundary());
 

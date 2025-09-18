@@ -1,8 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
-import Header from '../components/Header';
-import DropdownMenu from '../components/DropdownMenu';
+import Header from 'components/Header';
+import DropdownMenu from 'components/DropdownMenu';
 
 // Mock next-auth
 const mockSignIn = jest.fn();

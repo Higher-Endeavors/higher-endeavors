@@ -4,22 +4,22 @@ import { useState } from 'react';
 import { FaCog, FaEye, FaEyeSlash, FaFilter, FaSearch } from 'react-icons/fa';
 
 // Import all widget components
-import CaloriesBurnedWidget from '../../user/widgets/CaloriesBurnedWidget';
-import CaloriesConsumedWidget from '../../user/widgets/CaloriesConsumedWidget';
-import CalorieDeficitWidget from '../../user/widgets/CalorieDeficitWidget';
-import StepsWidget from '../../user/widgets/StepsWidget';
-import SleepWidget from '../../user/widgets/SleepWidget';
-import HeartRateWidget from '../../user/widgets/HeartRateWidget';
-import StressLevelWidget from '../../user/widgets/StressLevelWidget';
-import ActiveMinutesWidget from '../../user/widgets/ActiveMinutesWidget';
-import BodyCompositionWidget from '../../user/widgets/BodyCompositionWidget';
-import MetricCard from '../../user/widgets/MetricCard';
-import WeeklyVolumeWidget from '../../user/widgets/WeeklyVolumeWidget';
-import TimeInZonesWidget from '../../user/widgets/TimeInZonesWidget';
-import TrainingLoadWidget from '../../user/widgets/TrainingLoadWidget';
-import RecoveryStatusWidget from '../../user/widgets/RecoveryStatusWidget';
-import WorkoutIntensityWidget from '../../user/widgets/WorkoutIntensityWidget';
-import WeeklyGoalsWidget from '../../user/widgets/WeeklyGoalsWidget';
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import CaloriesConsumedWidget from '(protected)/user/widgets/CaloriesConsumedWidget';
+import CalorieDeficitWidget from '(protected)/user/widgets/CalorieDeficitWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import StressLevelWidget from '(protected)/user/widgets/StressLevelWidget';
+import ActiveMinutesWidget from '(protected)/user/widgets/ActiveMinutesWidget';
+import BodyCompositionWidget from '(protected)/user/widgets/BodyCompositionWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import WeeklyVolumeWidget from '(protected)/user/widgets/WeeklyVolumeWidget';
+import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
+import TrainingLoadWidget from '(protected)/user/widgets/TrainingLoadWidget';
+import RecoveryStatusWidget from '(protected)/user/widgets/RecoveryStatusWidget';
+import WorkoutIntensityWidget from '(protected)/user/widgets/WorkoutIntensityWidget';
+import WeeklyGoalsWidget from '(protected)/user/widgets/WeeklyGoalsWidget';
 
 // Widget categories and metadata
 interface WidgetMetadata {

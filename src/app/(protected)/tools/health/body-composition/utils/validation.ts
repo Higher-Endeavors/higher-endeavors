@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
+import type { CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types';
 
 const positiveNumber = z.number().positive('Must be greater than 0');
 const nonNegativeNumber = z.number().min(0, 'Must be 0 or greater');

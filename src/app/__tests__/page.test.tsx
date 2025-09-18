@@ -1,9 +1,9 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import Home from '../page';
+import Home from 'page';
 
 // Mock auth
-jest.mock('@/app/auth', () => ({
+jest.mock('auth', () => ({
   auth: jest.fn(() => Promise.resolve({
     user: {
       id: '1',
@@ -19,49 +19,49 @@ jest.mock('next-auth/react', () => ({
 }));
 
 // Mock all the components
-jest.mock('../components/Header', () => {
+jest.mock('components/Header', () => {
   return function MockHeader() {
     return <header data-testid="header">Header</header>;
   };
 });
 
-jest.mock('../components/HeroBanner', () => {
+jest.mock('components/HeroBanner', () => {
   return function MockHeroBanner() {
     return <section data-testid="hero-banner">Hero Banner</section>;
   };
 });
 
-jest.mock('../components/MissionStatement', () => {
+jest.mock('components/MissionStatement', () => {
   return function MockMissionStatement() {
     return <section data-testid="mission-statement">Mission Statement</section>;
   };
 });
 
-jest.mock('../components/Promotion', () => {
+jest.mock('components/Promotion', () => {
   return function MockPromotion() {
     return <section data-testid="promotion">Promotion</section>;
   };
 });
 
-jest.mock('../components/Services', () => {
+jest.mock('components/Services', () => {
   return function MockServices() {
     return <section data-testid="services">Services</section>;
   };
 });
 
-jest.mock('../components/Pillars', () => {
+jest.mock('components/Pillars', () => {
   return function MockPillars() {
     return <section data-testid="pillars">Pillars</section>;
   };
 });
 
-jest.mock('../components/Continuum', () => {
+jest.mock('components/Continuum', () => {
   return function MockContinuum() {
     return <section data-testid="continuum">Continuum</section>;
   };
 });
 
-jest.mock('../components/Footer', () => {
+jest.mock('components/Footer', () => {
   return function MockFooter() {
     return <footer data-testid="footer">Footer</footer>;
   };

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { auth } from '@/app/auth';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { SingleQuery } from 'lib/dbAdapter';
+import { auth } from 'auth';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function GET(request: Request) {
   try {

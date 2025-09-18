@@ -1,6 +1,6 @@
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { HealthData, getHealthDataType } from '../types';
+import { SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { HealthData, getHealthDataType } from 'api/garmin-connect/health/types';
 
 // Interface for querying health data
 export interface HealthDataQuery {

@@ -2,8 +2,8 @@
 
 // public
 import Image from "next/image";
-import Logo from "../../public/Logo.js";
-import DropdownMenu from "./DropdownMenu";
+import Logo from "@/public/Logo.js";
+import DropdownMenu from "components/DropdownMenu";
 
 const Header = () => {
   return (

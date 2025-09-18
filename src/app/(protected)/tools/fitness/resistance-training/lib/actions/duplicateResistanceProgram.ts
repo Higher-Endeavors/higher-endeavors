@@ -1,8 +1,8 @@
 "use server";
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { DuplicateResistanceProgramSchema, DuplicateResistanceProgramInput } from '../../types/resistance-training.zod';
+import { getClient } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { DuplicateResistanceProgramSchema, DuplicateResistanceProgramInput } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 export async function duplicateResistanceProgram(input: DuplicateResistanceProgramInput, userId: number) {
   // Extract programId early so it's available in catch block

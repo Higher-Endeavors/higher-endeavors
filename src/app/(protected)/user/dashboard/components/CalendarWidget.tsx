@@ -2,10 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
-import { CalendarProvider } from '../../../tools/calendar/context/CalendarContext';
-import type { CalendarEvent } from '../../../tools/calendar/types/calendar.zod';
-import CalendarEventComponent from '../../../tools/calendar/components/CalendarEvent';
-import EventModal from '../../../tools/calendar/components/EventModal';
+import { CalendarProvider } from '(protected)/tools/calendar/context/CalendarContext';
+import type { CalendarEvent } from '(protected)/tools/calendar/types/calendar.zod';
+import CalendarEventComponent from '(protected)/tools/calendar/components/CalendarEvent';
+import EventModal from '(protected)/tools/calendar/components/EventModal';
 
 interface CalendarWidgetProps {
   className?: string;

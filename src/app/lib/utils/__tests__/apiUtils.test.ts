@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '../apiUtils';
+import { getApiBaseUrl } from 'lib/utils/apiUtils';
 
 // Mock Next.js headers
 const mockHeaders = jest.fn();

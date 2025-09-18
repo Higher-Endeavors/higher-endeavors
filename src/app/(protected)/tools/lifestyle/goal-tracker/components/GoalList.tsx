@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import GoalItem, { GoalItemType } from './GoalItem';
-import AddGoalModal from '../modals/AddGoalModal';
-import ProgressTrackingModal from '../modals/ProgressTrackingModal';
+import GoalItem, { GoalItemType } from '(protected)/tools/lifestyle/goal-tracker/components/GoalItem';
+import AddGoalModal from '(protected)/tools/lifestyle/goal-tracker/modals/AddGoalModal';
+import ProgressTrackingModal from '(protected)/tools/lifestyle/goal-tracker/modals/ProgressTrackingModal';
 
 function buildGoalTree(goals: GoalItemType[]) {
   const goalMap: Record<string, GoalItemType & { subGoals: GoalItemType[] }> = {};

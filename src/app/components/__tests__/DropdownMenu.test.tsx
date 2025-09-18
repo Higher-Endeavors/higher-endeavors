@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import DropdownMenu from '../DropdownMenu';
+import DropdownMenu from 'components/DropdownMenu';
 
 // Mock next-auth
 jest.mock('next-auth/react', () => ({

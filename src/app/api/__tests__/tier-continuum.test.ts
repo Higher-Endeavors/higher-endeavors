@@ -1,10 +1,10 @@
-import { GET } from '../tier-continuum/route';
+import { GET } from 'api/tier-continuum/route';
 import { NextRequest } from 'next/server';
 
 // Mock database adapter
 const mockSingleQuery = jest.fn();
 
-jest.mock('@/app/lib/dbAdapter', () => ({
+jest.mock('lib/dbAdapter', () => ({
   SingleQuery: (...args: any[]) => mockSingleQuery(...args),
 }));
 

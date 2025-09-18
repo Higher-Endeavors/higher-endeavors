@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import type { GoalItemType } from '../components/GoalItem';
+import type { GoalItemType } from '(protected)/tools/lifestyle/goal-tracker/components/GoalItem';
 
 interface AddGoalModalProps {
   isOpen: boolean;

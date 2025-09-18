@@ -1,6 +1,6 @@
-import Avatar from '../components/avatar'
-import DateFormatter from '../components/date-formatter'
-import CoverImage from '../components/cover-image'
+import Avatar from '(protected)/guide/components/avatar'
+import DateFormatter from '(protected)/guide/components/date-formatter'
+import CoverImage from '(protected)/guide/components/cover-image'
 import Link from 'next/link'
 
 export default function HeroArticle({

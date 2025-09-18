@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/auth';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { auth } from 'auth';
+import { serverLogger } from 'lib/logging/logger.server';
 import crypto from 'crypto';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getApiBaseUrl } from 'lib/utils/apiUtils';
 
 // Garmin OAuth2 PKCE Configuration
 const GARMIN_CONNECT_CLIENT_ID = process.env.GARMIN_CONNECT_CLIENT_ID;

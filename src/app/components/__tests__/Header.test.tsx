@@ -1,16 +1,16 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import Header from '../Header';
+import Header from 'components/Header';
 
 // Mock the Logo component
-jest.mock('../../../public/Logo.js', () => {
+jest.mock('@/public/Logo.js', () => {
   return function MockLogo({ className }: { className?: string }) {
     return <div data-testid="logo" className={className}>Logo</div>;
   };
 }, { virtual: true });
 
 // Mock the DropdownMenu component
-jest.mock('../DropdownMenu', () => {
+jest.mock('components/DropdownMenu', () => {
   return function MockDropdownMenu() {
     return <div data-testid="dropdown-menu">Dropdown Menu</div>;
   };

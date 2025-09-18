@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import Section from './Section';
-import Toggle from './Toggle';
-import Chip from './Chip';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import Toggle from '(protected)/tools/fitness/plan/components/Toggle';
+import Chip from '(protected)/tools/fitness/plan/components/Chip';
 
 interface TopBarProps {
   onSave: () => void;

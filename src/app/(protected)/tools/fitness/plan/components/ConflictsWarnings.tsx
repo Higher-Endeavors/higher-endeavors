@@ -1,5 +1,5 @@
-import Section from './Section';
-import Chip from './Chip';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import Chip from '(protected)/tools/fitness/plan/components/Chip';
 
 export default function ConflictsWarnings() {
   const warnings = [

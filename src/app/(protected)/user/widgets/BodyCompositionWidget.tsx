@@ -2,9 +2,9 @@
 
 import { FaWeight, FaChartLine, FaExclamationTriangle } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import { getBodyComposition } from './hooks/useBodyComposition';
-import TrendIndicator from './TrendIndicator';
-import type { Trend } from './types';
+import { getBodyComposition } from '(protected)/user/widgets/hooks/useBodyComposition';
+import TrendIndicator from '(protected)/user/widgets/TrendIndicator';
+import type { Trend } from '(protected)/user/widgets/types';
 
 interface BodyCompositionWidgetProps {
   className?: string;

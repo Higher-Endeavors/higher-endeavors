@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/auth';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { auth } from 'auth';
+import { SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { getApiBaseUrl } from 'lib/utils/apiUtils';
 
 const GARMIN_CONNECT_CLIENT_ID = process.env.GARMIN_CONNECT_CLIENT_ID;
 const GARMIN_CONNECT_CLIENT_SECRET = process.env.GARMIN_CONNECT_CLIENT_SECRET;

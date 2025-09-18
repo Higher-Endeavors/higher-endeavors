@@ -1,8 +1,8 @@
 "use server";
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { DeleteResistanceProgramSchema, DeleteResistanceProgramInput } from '../../types/resistance-training.zod';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { getClient } from 'lib/dbAdapter';
+import { DeleteResistanceProgramSchema, DeleteResistanceProgramInput } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function deleteResistanceProgram(input: DeleteResistanceProgramInput, userId: number) {
   const client = await getClient();

@@ -1,15 +1,15 @@
-import { GET } from '../exercises/route';
+import { GET } from 'api/exercises/route';
 import { NextRequest } from 'next/server';
 
 // Mock database adapter
 const mockSingleQuery = jest.fn();
 
-jest.mock('@/app/lib/dbAdapter', () => ({
+jest.mock('lib/dbAdapter', () => ({
   SingleQuery: (...args: any[]) => mockSingleQuery(...args),
 }));
 
 // Mock server logger
-jest.mock('@/app/lib/logging/logger.server', () => ({
+jest.mock('lib/logging/logger.server', () => ({
   serverLogger: {
     error: jest.fn(),
   },

@@ -1,4 +1,4 @@
-import ArticlePreview from './article-preview'
+import ArticlePreview from '(protected)/guide/components/article-preview'
 
 export default function MoreStories({ posts }) {
   return (

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/app/lib/dbAdapter';
+import { SingleQuery } from 'lib/dbAdapter';
 
 export async function GET() {
   try {

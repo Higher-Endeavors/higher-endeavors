@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
-import UserSidebar from '../../components/UserSidebar';
+import UserSidebar from '(protected)/components/UserSidebar';
 
 // Mock next-auth
 const mockUseSession = jest.fn();
@@ -19,7 +19,7 @@ jest.mock('next/link', () => {
 });
 
 // Mock UserSettingsContext
-jest.mock('@/app/context/UserSettingsContext', () => ({
+jest.mock('context/UserSettingsContext', () => ({
   useUserSettings: jest.fn(() => ({
     userSettings: {
       general: {
@@ -30,12 +30,12 @@ jest.mock('@/app/context/UserSettingsContext', () => ({
 }));
 
 // Mock client utilities
-jest.mock('@/app/lib/utils/clientUtils', () => ({
+jest.mock('lib/utils/clientUtils', () => ({
   getFetchBaseUrl: jest.fn(() => Promise.resolve('http://localhost:3000')),
 }));
 
 // Mock client logger
-jest.mock('@/app/lib/logging/logger.client', () => ({
+jest.mock('lib/logging/logger.client', () => ({
   clientLogger: {
     error: jest.fn(),
   },
@@ -100,7 +100,7 @@ describe('Sidebar Navigation Integration', () => {
 
     it('expands sidebar on click in click mode', () => {
       // Mock click mode
-      const mockUseUserSettings = require('@/app/context/UserSettingsContext').useUserSettings;
+      const mockUseUserSettings = require('context/UserSettingsContext').useUserSettings;
       mockUseUserSettings.mockReturnValue({
         userSettings: {
           general: {

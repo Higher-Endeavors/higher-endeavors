@@ -1,6 +1,6 @@
 'use server';
 import { revalidatePath } from 'next/cache';
-import { SingleQuery } from '@/app/lib/dbAdapter';
+import { SingleQuery } from 'lib/dbAdapter';
 
 export async function addCustomExercise(formData: FormData) {
   const exerciseName = formData.get('exercise_name');

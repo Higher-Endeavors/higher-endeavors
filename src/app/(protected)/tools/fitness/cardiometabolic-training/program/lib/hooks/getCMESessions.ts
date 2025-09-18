@@ -1,5 +1,5 @@
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
+import { clientLogger } from 'lib/logging/logger.client';
 import { useState, useEffect, useCallback } from 'react';
 
 export interface CMESessionListItem {

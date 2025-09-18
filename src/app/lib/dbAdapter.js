@@ -1,5 +1,5 @@
 import pg from "pg";
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { serverLogger } from 'lib/logging/logger.server';
 const { Pool } = pg;
 
 // This is only to pass the pool to the Postgres adapter for AuthJS
@@ -23,7 +23,7 @@ export const SingleQuery = (text, params, callback) => {
 /*
 
 import { type NextRequest, NextResponse } from "next/server";
-import { getClient } from "@/app/lib/dbAdapter";
+import { getClient } from "lib/dbAdapter";
 
 const client = getClient();
 

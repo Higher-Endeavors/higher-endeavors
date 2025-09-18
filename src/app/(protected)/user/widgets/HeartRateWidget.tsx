@@ -2,9 +2,9 @@
 
 import { FaHeart, FaArrowDown, FaArrowUp } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { WidgetData, Trend } from './types';
-import { getHeartRateData, calculateHeartRateZone, calculateHeartRateTrend } from './hooks/useHeartRateData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getHeartRateData, calculateHeartRateZone, calculateHeartRateTrend } from '(protected)/user/widgets/hooks/useHeartRateData';
+import { useUserSettings } from 'context/UserSettingsContext';
 
 interface HeartRateWidgetProps {
   data?: WidgetData;

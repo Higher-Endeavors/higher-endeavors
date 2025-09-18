@@ -1,14 +1,14 @@
 // Core
 import { SessionProvider } from "next-auth/react";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
-import RelatedContent from "@/app/(protected)/tools/(components)/RelatedContent";
-import OnboardingChecklist from "@/app/(protected)/tools/(components)/OnboardingChecklist";
-import BreathingToolClient from "./components/BreathingToolClient";
-import { auth } from '@/app/auth';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import RelatedContent from '(protected)/tools/(components)/RelatedContent';
+import OnboardingChecklist from '(protected)/tools/(components)/OnboardingChecklist';
+import BreathingToolClient from '(protected)/tools/health/breathing/components/BreathingToolClient';
+import { auth } from 'auth';
 
 // Components
-import DemoBanner from "../../(components)/DemoBanner";
+import DemoBanner from "(protected)/tools/(components)/DemoBanner";
 
 export default async function BreathingToolPage() {
   const session = await auth();

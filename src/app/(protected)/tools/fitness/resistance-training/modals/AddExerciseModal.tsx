@@ -8,12 +8,12 @@ import Select from 'react-select';
 import React from 'react';
 import { BsPlus, BsDash } from 'react-icons/bs';
 import { useForm, Controller } from 'react-hook-form';
-import { addCustomExercise } from '../lib/actions/exerciseActions';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
+import { addCustomExercise } from '(protected)/tools/fitness/resistance-training/lib/actions/exerciseActions';
+import type { FitnessSettings } from 'lib/types/userSettings.zod';
 
 // Components
-import AdvancedExerciseSearch from './AdvancedExerciseSearch';
-import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
+import AdvancedExerciseSearch from '(protected)/tools/fitness/resistance-training/modals/AdvancedExerciseSearch';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 
 // Alias for ExerciseLibraryItem since it now includes the source property

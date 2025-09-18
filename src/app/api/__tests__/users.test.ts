@@ -1,17 +1,17 @@
-import { GET } from '../users/route';
+import { GET } from 'api/users/route';
 import { NextRequest } from 'next/server';
 
 // Mock database adapter
 const mockSingleQuery = jest.fn();
 
-jest.mock('@/app/lib/dbAdapter', () => ({
+jest.mock('lib/dbAdapter', () => ({
   SingleQuery: (...args: any[]) => mockSingleQuery(...args),
 }));
 
 // Mock auth
 const mockAuth = jest.fn();
 
-jest.mock('@/app/auth', () => ({
+jest.mock('auth', () => ({
   auth: () => mockAuth(),
 }));
 
@@ -20,7 +20,7 @@ const mockServerLogger = {
   error: jest.fn(),
 };
 
-jest.mock('@/app/lib/logging/logger.server', () => ({
+jest.mock('lib/logging/logger.server', () => ({
   serverLogger: mockServerLogger,
 }));
 

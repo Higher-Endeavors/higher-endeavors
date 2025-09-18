@@ -1,6 +1,6 @@
-import IntakeForm from './IntakeForm';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
+import IntakeForm from '(protected)/user/intake-form/IntakeForm';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
 import { SessionProvider } from 'next-auth/react';
 
 const IntakeFormPage = () => {

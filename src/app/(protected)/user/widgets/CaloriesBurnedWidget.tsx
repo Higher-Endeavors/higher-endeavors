@@ -2,9 +2,9 @@
 
 import { FaFire, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { WidgetData, Trend } from './types';
-import { getCalorieData, calculateTotalCalories, calculateCalorieTrend, formatCalories, getCalorieGoal } from './hooks/useCalorieData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getCalorieData, calculateTotalCalories, calculateCalorieTrend, formatCalories, getCalorieGoal } from '(protected)/user/widgets/hooks/useCalorieData';
+import { useUserSettings } from 'context/UserSettingsContext';
 
 interface CaloriesBurnedWidgetProps {
   data?: WidgetData;

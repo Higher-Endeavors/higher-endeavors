@@ -169,7 +169,7 @@ Each health data type has specific fields based on the Garmin Health API v1.2.0 
 ### Querying Health Data
 
 ```typescript
-import { getHealthData, getLatestHealthDataByType, getHealthDataById } from './lib/health-data-utils';
+import { getHealthData, getLatestHealthDataByType, getHealthDataById } from 'api/garmin-connect/health/lib/health-data-utils';
 
 // Get sleep data for a user
 const sleepData = await getHealthData({

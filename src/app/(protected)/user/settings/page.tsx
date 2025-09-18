@@ -1,6 +1,6 @@
 import React from 'react';
-import { auth } from '@/app/auth';
-import SettingsForm from './components/SettingsForm';
+import { auth } from 'auth';
+import SettingsForm from '(protected)/user/settings/components/SettingsForm';
 
 export default async function SettingsPage() {
   const session = await auth();

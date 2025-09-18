@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
-import { ToastProvider, useToast } from '../toast';
+import { ToastProvider, useToast } from 'lib/toast';
 
 // Test component to trigger toasts
 function TestComponent() {

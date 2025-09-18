@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import UserSidebar from '../UserSidebar';
+import UserSidebar from '(protected)/components/UserSidebar';
 
 // Mock next-auth
 jest.mock('next-auth/react', () => ({
@@ -27,7 +27,7 @@ jest.mock('next/link', () => {
 });
 
 // Mock UserSettingsContext
-jest.mock('@/app/context/UserSettingsContext', () => ({
+jest.mock('context/UserSettingsContext', () => ({
   useUserSettings: jest.fn(() => ({
     userSettings: {
       general: {
@@ -38,12 +38,12 @@ jest.mock('@/app/context/UserSettingsContext', () => ({
 }));
 
 // Mock client utilities
-jest.mock('@/app/lib/utils/clientUtils', () => ({
+jest.mock('lib/utils/clientUtils', () => ({
   getFetchBaseUrl: jest.fn(() => Promise.resolve('http://localhost:3000')),
 }));
 
 // Mock client logger
-jest.mock('@/app/lib/logging/logger.client', () => ({
+jest.mock('lib/logging/logger.client', () => ({
   clientLogger: {
     error: jest.fn(),
   },
@@ -204,7 +204,7 @@ describe('UserSidebar Component', () => {
 
   it('handles desktop click mode', () => {
     // Mock click mode
-    const mockUseUserSettings = require('@/app/context/UserSettingsContext').useUserSettings;
+    const mockUseUserSettings = require('context/UserSettingsContext').useUserSettings;
     mockUseUserSettings.mockReturnValue({
       userSettings: {
         general: {

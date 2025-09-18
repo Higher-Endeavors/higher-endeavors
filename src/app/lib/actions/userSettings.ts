@@ -1,9 +1,9 @@
 'use server';
 
-import { auth } from '@/app/auth';
-import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { UserSettings, UserSettingsSchema } from '@/app/lib/types/userSettings.zod';
+import { auth } from 'auth';
+import { getClient, SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { UserSettings, UserSettingsSchema } from 'lib/types/userSettings.zod';
 
 // --- Server Actions ---
 export async function getUserSettings(): Promise<UserSettings | null> {

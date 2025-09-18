@@ -1,20 +1,20 @@
 // Core
 
 import { SessionProvider } from "next-auth/react";
-import Header from "../../../../components/Header";
-import Footer from "../../../../components/Footer";
-import { getExerciseLibrary } from '../lib/hooks/getExerciseLibrary';
-import { getUserExerciseLibrary } from '../lib/hooks/getUserExerciseLibrary';
-import { getCMEActivityLibrary } from '../lib/hooks/getCMEActivityLibrary';
-import { transformCMEActivitiesToExerciseLibrary } from './lib/actions/cmeTransformations';
-import { ExerciseLibraryItem } from './types/resistance-training.zod';
-import { CMEActivityLibraryItem } from '../cardiometabolic-training/lib/types/cme.zod';
-import RelatedContent from "../../(components)/RelatedContent";
-import OnboardingChecklist from "../../(components)/OnboardingChecklist";
-import ResistanceTrainingClient from "./components/ResistanceTraining.client";
-import { auth } from '@/app/auth';
-import { getUserSettings } from '@/app/lib/actions/userSettings';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import { getExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getExerciseLibrary';
+import { getUserExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getUserExerciseLibrary';
+import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from '(protected)/tools/fitness/resistance-training/lib/actions/cmeTransformations';
+import { ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { CMEActivityLibraryItem } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import RelatedContent from '(protected)/tools/(components)/RelatedContent';
+import OnboardingChecklist from '(protected)/tools/(components)/OnboardingChecklist';
+import ResistanceTrainingClient from '(protected)/tools/fitness/resistance-training/components/ResistanceTraining.client';
+import { auth } from 'auth';
+import { getUserSettings } from 'lib/actions/userSettings';
+import type { FitnessSettings } from 'lib/types/userSettings.zod';
 
 export default async function ResistanceTrainingPage() {
   const session = await auth();

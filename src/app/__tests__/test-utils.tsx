@@ -10,7 +10,7 @@ const mockUserSettings = {
   },
 };
 
-jest.mock('@/app/context/UserSettingsContext', () => ({
+jest.mock('context/UserSettingsContext', () => ({
   useUserSettings: () => mockUserSettings,
 }));
 
@@ -26,7 +26,7 @@ export function renderWithProviders(
 ) {
   // Update mock if custom userSettings provided
   if (userSettings !== mockUserSettings) {
-    const mockUseUserSettings = require('@/app/context/UserSettingsContext').useUserSettings;
+    const mockUseUserSettings = require('context/UserSettingsContext').useUserSettings;
     mockUseUserSettings.mockReturnValue(userSettings);
   }
 

@@ -1,16 +1,16 @@
 import { Suspense } from 'react';
 import { SessionProvider } from "next-auth/react"
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
-import CalendarWidget from './components/CalendarWidget';
-import MetricsDashboard from './components/MetricsDashboard';
-import { getRecentArticles, getRecentRecipes } from '@/app/lib/cmsAdapter';
-import { getRecentUpdates } from '@/app/lib/cmsAdapter.js';
-import RecentContent from '../../guide/components/RecentContent';
-import RecentRecipes from '../../guide/components/RecentRecipes';
-import RecentNews from './components/RecentNews';
-import type { Recipe } from '../../guide/components/RecentRecipes';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import CalendarWidget from '(protected)/user/dashboard/components/CalendarWidget';
+import MetricsDashboard from '(protected)/user/dashboard/components/MetricsDashboard';
+import { getRecentArticles, getRecentRecipes } from 'lib/cmsAdapter';
+import { getRecentUpdates } from 'lib/cmsAdapter.js';
+import RecentContent from '(protected)/guide/components/RecentContent';
+import RecentRecipes from '(protected)/guide/components/RecentRecipes';
+import RecentNews from '(protected)/user/dashboard/components/RecentNews';
+import type { Recipe } from '(protected)/guide/components/RecentRecipes';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export default async function Dashboard() {
   const recentArticles = await getRecentArticles();
