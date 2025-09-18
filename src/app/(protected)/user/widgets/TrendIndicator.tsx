@@ -1,5 +1,5 @@
 import { FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
-import type { TrendIndicatorProps } from './types';
+import type { TrendIndicatorProps } from '(protected)/user/widgets/types';
 
 export default function TrendIndicator({ 
   trend, 

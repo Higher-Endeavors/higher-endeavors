@@ -1,5 +1,5 @@
-import Section from './Section';
-import LegendItem from './LegendItem';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import LegendItem from '(protected)/tools/fitness/plan/components/LegendItem';
 
 export default function LegendNotes() {
   return (

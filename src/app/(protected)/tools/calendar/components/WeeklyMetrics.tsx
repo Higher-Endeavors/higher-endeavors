@@ -1,9 +1,9 @@
-import WeeklyVolumeWidget from '../../../user/widgets/WeeklyVolumeWidget';
-import TimeInZonesWidget from '../../../user/widgets/TimeInZonesWidget';
-import TrainingLoadWidget from '../../../user/widgets/TrainingLoadWidget';
-import RecoveryStatusWidget from '../../../user/widgets/RecoveryStatusWidget';
-import WorkoutIntensityWidget from '../../../user/widgets/WorkoutIntensityWidget';
-import WeeklyGoalsWidget from '../../../user/widgets/WeeklyGoalsWidget';
+import WeeklyVolumeWidget from '(protected)/user/widgets/WeeklyVolumeWidget';
+import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
+import TrainingLoadWidget from '(protected)/user/widgets/TrainingLoadWidget';
+import RecoveryStatusWidget from '(protected)/user/widgets/RecoveryStatusWidget';
+import WorkoutIntensityWidget from '(protected)/user/widgets/WorkoutIntensityWidget';
+import WeeklyGoalsWidget from '(protected)/user/widgets/WeeklyGoalsWidget';
 
 interface FitnessDashboardProps {
   className?: string;

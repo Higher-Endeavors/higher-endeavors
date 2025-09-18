@@ -1,4 +1,4 @@
-import type { PeriodizationPlan, Phase, Goal, Event, PlanSettings } from '../types/periodization.zod';
+import type { PeriodizationPlan, Phase, Goal, Event, PlanSettings } from '(protected)/tools/fitness/plan/types/periodization.zod';
 
 export const mockPlanData: PeriodizationPlan = {
   id: 'plan-1',

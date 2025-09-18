@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
-import { auth } from "@/app/auth";
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { getClient, SingleQuery } from "lib/dbAdapter";
+import { auth } from "auth";
+import { serverLogger } from 'lib/logging/logger.server';
 
 // GET endpoint to retrieve user settings
 export async function GET() {

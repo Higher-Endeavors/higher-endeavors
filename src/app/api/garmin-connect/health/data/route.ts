@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/app/auth';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { getHealthData, getLatestHealthDataByType, getHealthDataSummary, getHealthDataById } from '../lib/health-data-utils';
+import { auth } from 'auth';
+import { SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { getHealthData, getLatestHealthDataByType, getHealthDataSummary, getHealthDataById } from 'api/garmin-connect/health/lib/health-data-utils';
 
 // GET endpoint to retrieve health data for the authenticated user
 export async function GET(request: NextRequest) {

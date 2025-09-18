@@ -1,10 +1,10 @@
 import React from 'react';
-import { Feature, FeaturePillar } from './types';
-import FeatureRoadmapOverview from './components/FeatureRoadmapOverview';
+import { Feature, FeaturePillar } from '(protected)/tools/feature-roadmap/types';
+import FeatureRoadmapOverview from '(protected)/tools/feature-roadmap/components/FeatureRoadmapOverview';
 
 import { SessionProvider } from 'next-auth/react';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
 
 const PLANNED_FEATURES: Feature[] = [
   {

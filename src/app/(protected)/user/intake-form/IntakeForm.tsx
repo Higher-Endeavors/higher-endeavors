@@ -5,12 +5,12 @@ import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import GeneralInfo from './GeneralInfo';
-import LifestyleInfo from './LifestyleInfo';
-import HealthInfo from './HealthInfo';
-import NutritionInfo from './NutritionInfo';
-import FitnessInfo from './FitnessInfo';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import GeneralInfo from '(protected)/user/intake-form/GeneralInfo';
+import LifestyleInfo from '(protected)/user/intake-form/LifestyleInfo';
+import HealthInfo from '(protected)/user/intake-form/HealthInfo';
+import NutritionInfo from '(protected)/user/intake-form/NutritionInfo';
+import FitnessInfo from '(protected)/user/intake-form/FitnessInfo';
+import { clientLogger } from 'lib/logging/logger.client';
 
 // Define a schema that allows all fields to be optional but ensures correct types
 const formSchema = z.object({

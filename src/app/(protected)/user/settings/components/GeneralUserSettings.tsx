@@ -1,7 +1,7 @@
 import React from 'react';
 import { UseFormRegister, Control } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
-import GarminConnectSettings from './GarminConnectSettings';
+import type { UserSettings } from 'lib/types/userSettings.zod';
+import GarminConnectSettings from '(protected)/user/settings/components/GarminConnectSettings';
   /* import { UseFormRegister, Controller, Control } from 'react-hook-form';
   import type { UserSettings } from '../types/settings'; */
 

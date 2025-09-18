@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 interface User {
   id: number;

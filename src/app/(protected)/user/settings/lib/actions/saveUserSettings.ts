@@ -1,9 +1,9 @@
 'use server';
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { auth } from '@/app/auth';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import { getClient } from 'lib/dbAdapter';
+import { auth } from 'auth';
+import { serverLogger } from 'lib/logging/logger.server';
+import type { UserSettings } from 'lib/types/userSettings.zod';
 
 interface SaveUserSettingsInput {
   settings: UserSettings;

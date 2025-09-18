@@ -1,15 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import AddExerciseModal from '../modals/AddExerciseModal';
-import ExerciseItemPlan from './ExerciseItemPlan';
-import ExerciseItemAct from './ExerciseItemAct';
-import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
+import AddExerciseModal from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
+import ExerciseItemPlan from '(protected)/tools/fitness/resistance-training/components/ExerciseItemPlan';
+import ExerciseItemAct from '(protected)/tools/fitness/resistance-training/components/ExerciseItemAct';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 import { FiCalendar } from 'react-icons/fi';
 
 // NEW: Import for modal/dialog
 import { Modal } from 'flowbite-react';
-import { saveResistanceSession } from '../lib/actions/saveResistanceSession';
+import { saveResistanceSession } from '(protected)/tools/fitness/resistance-training/lib/actions/saveResistanceSession';
 
 interface ExerciseListProps {
   exercises: ExerciseLibraryItem[] | null;

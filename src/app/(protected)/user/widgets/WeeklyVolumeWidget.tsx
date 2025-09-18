@@ -1,5 +1,5 @@
 import { FaFire, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
-import type { WidgetData, Trend } from './types';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 
 interface WeeklyVolumeWidgetProps {
   plannedVolume?: number;

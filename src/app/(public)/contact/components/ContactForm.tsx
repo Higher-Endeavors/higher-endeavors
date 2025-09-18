@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 type FormData = {
   firstname: string;

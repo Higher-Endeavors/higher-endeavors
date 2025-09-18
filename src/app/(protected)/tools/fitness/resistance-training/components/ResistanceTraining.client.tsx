@@ -1,28 +1,28 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import UserSelector from '../../../../components/UserSelector';
-import ProgramBrowser from './ProgramBrowser';
-import ProgramSettings from './ProgramSettings';
-import ExerciseList from './ExerciseList';
-import SessionSummary from './SessionSummary';
-import AddExerciseModal from '../modals/AddExerciseModal';
-import DayTabs from './DayTabs';
-import { ExerciseLibraryItem, ProgramExercisesPlanned } from '../types/resistance-training.zod';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { ExerciseWithSource } from '../modals/AddExerciseModal';
-import { generateProgressedWeeks } from '../../lib/calculations/resistanceTrainingCalculations';
-import { saveResistanceProgram } from '../lib/actions/saveResistanceProgram';
-import { updateResistanceProgram } from '../lib/actions/updateResistanceProgram';
-import { saveResistanceTemplate } from '../lib/actions/saveResistanceTemplate';
-import { updateResistanceSession } from '../lib/actions/updateResistanceSession';
-import { getResistanceProgram } from '../lib/hooks/getResistanceProgram';
-import { getUserExerciseLibrary } from '../../lib/hooks/getUserExerciseLibrary';
-import { getExerciseLibrary } from '../../lib/hooks/getExerciseLibrary';
-import { getCMEActivityLibrary } from '../../lib/hooks/getCMEActivityLibrary';
-import { transformCMEActivitiesToExerciseLibrary } from '../lib/actions/cmeTransformations';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { useToast } from '@/app/lib/toast';
+import UserSelector from '(protected)/components/UserSelector';
+import ProgramBrowser from '(protected)/tools/fitness/resistance-training/components/ProgramBrowser';
+import ProgramSettings from '(protected)/tools/fitness/resistance-training/components/ProgramSettings';
+import ExerciseList from '(protected)/tools/fitness/resistance-training/components/ExerciseList';
+import SessionSummary from '(protected)/tools/fitness/resistance-training/components/SessionSummary';
+import AddExerciseModal from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
+import DayTabs from '(protected)/tools/fitness/resistance-training/components/DayTabs';
+import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import type { FitnessSettings } from 'lib/types/userSettings.zod';
+import type { ExerciseWithSource } from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
+import { generateProgressedWeeks } from '(protected)/tools/fitness/lib/calculations/resistanceTrainingCalculations';
+import { saveResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/saveResistanceProgram';
+import { updateResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/updateResistanceProgram';
+import { saveResistanceTemplate } from '(protected)/tools/fitness/resistance-training/lib/actions/saveResistanceTemplate';
+import { updateResistanceSession } from '(protected)/tools/fitness/resistance-training/lib/actions/updateResistanceSession';
+import { getResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/hooks/getResistanceProgram';
+import { getUserExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getUserExerciseLibrary';
+import { getExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getExerciseLibrary';
+import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCMEActivityLibrary';
+import { transformCMEActivitiesToExerciseLibrary } from '(protected)/tools/fitness/resistance-training/lib/actions/cmeTransformations';
+import { clientLogger } from 'lib/logging/logger.client';
+import { useToast } from 'lib/toast';
 
 // Custom hook for exercise management
 const useExerciseManager = (userId: number, initialExercises: ExerciseLibraryItem[]) => {

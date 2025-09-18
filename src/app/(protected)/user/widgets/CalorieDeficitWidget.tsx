@@ -1,7 +1,7 @@
 import { FaWeight } from 'react-icons/fa';
-import ProgressBar from './ProgressBar';
-import TrendIndicator from './TrendIndicator';
-import type { WidgetData, Trend } from './types';
+import ProgressBar from '(protected)/user/widgets/ProgressBar';
+import TrendIndicator from '(protected)/user/widgets/TrendIndicator';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 
 interface CalorieDeficitWidgetProps {
   className?: string;

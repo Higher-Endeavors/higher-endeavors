@@ -1,9 +1,9 @@
 'use server';
 
-import { auth } from '@/app/auth';
-import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
-import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { auth } from 'auth';
+import { SingleQuery, getClient } from 'lib/dbAdapter';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { serverLogger } from 'lib/logging/logger.server';
 
 interface SaveTemplateParams {
   userId: number;

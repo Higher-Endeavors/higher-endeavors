@@ -1,8 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
-import { getUpdates } from '@/app/lib/cmsAdapter.js';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import { getUpdates } from 'lib/cmsAdapter.js';
 
 export const revalidate = 3600; // Revalidate every hour
 

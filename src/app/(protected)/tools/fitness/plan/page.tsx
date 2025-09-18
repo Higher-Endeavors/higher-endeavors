@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from "react";
-import type { PeriodizationPlan } from './types/periodization.zod';
-import { mockPlanData } from './components/MockPlanData';
-import DemoBanner from "../../(components)/DemoBanner";
+import type { PeriodizationPlan } from '(protected)/tools/fitness/plan/types/periodization.zod';
+import { mockPlanData } from '(protected)/tools/fitness/plan/components/MockPlanData';
+import DemoBanner from '(protected)/tools/(components)/DemoBanner';
 
 // Import all the new components
 import {
@@ -15,7 +15,7 @@ import {
   Calendar
 } from './components';
 
-import CalendarWidget from '@/app/(protected)/user/dashboard/components/CalendarWidget';
+import CalendarWidget from '(protected)/user/dashboard/components/CalendarWidget';
 
 export default function PlanCanvasWireframe() {
   const [plan, setPlan] = useState<PeriodizationPlan>(mockPlanData);

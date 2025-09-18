@@ -7,10 +7,10 @@ import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import countries from 'world-countries';
-import { useToast } from '@/app/lib/toast';
+import { useToast } from 'lib/toast';
 import { HiCheck, HiX } from 'react-icons/hi';
-import { bioFormSchema, type BioFormData, type CountryOption } from '../types/bio';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { bioFormSchema, type BioFormData, type CountryOption } from '(protected)/user/bio/types/bio';
+import { clientLogger } from 'lib/logging/logger.client';
 
 // Format country data for react-select
 let countryOptions = countries.map((country) => ({

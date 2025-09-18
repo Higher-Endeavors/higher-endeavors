@@ -1,6 +1,6 @@
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { ActivityData, ActivityDetails, ManuallyUpdatedActivity } from '../types';
+import { SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { ActivityData, ActivityDetails, ManuallyUpdatedActivity } from 'api/garmin-connect/activity/types';
 
 // Interface for querying activity data
 export interface ActivityDataQuery {

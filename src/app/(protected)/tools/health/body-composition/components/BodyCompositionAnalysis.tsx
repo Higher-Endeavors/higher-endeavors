@@ -13,11 +13,11 @@ import {
   Legend,
   ChartOptions
 } from 'chart.js';
-import type { BodyCompositionEntry, CircumferenceMeasurements } from '../types';
-import AssessmentReview from './AssessmentReview';
-import UserSelector from '../../../../components/UserSelector';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import type { BodyCompositionEntry, CircumferenceMeasurements } from '(protected)/tools/health/body-composition/types';
+import AssessmentReview from '(protected)/tools/health/body-composition/components/AssessmentReview';
+import UserSelector from '(protected)/components/UserSelector';
+import { clientLogger } from 'lib/logging/logger.client';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 ChartJS.register(
   CategoryScale,

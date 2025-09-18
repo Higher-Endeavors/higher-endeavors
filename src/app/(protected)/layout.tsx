@@ -2,8 +2,8 @@
 
 import { useState, ReactNode } from 'react';
 import { SessionProvider } from 'next-auth/react';
-import UserSidebar from './components/UserSidebar';
-import UserSettingsProviderWrapper from './components/UserSettingsProviderWrapper';
+import UserSidebar from '(protected)/components/UserSidebar';
+import UserSettingsProviderWrapper from '(protected)/components/UserSettingsProviderWrapper';
 
 export default function ProtectedLayout({ children }: { children: ReactNode }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);

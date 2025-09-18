@@ -1,10 +1,10 @@
 // Example usage of individual widgets throughout the site
-import CaloriesBurnedWidget from './CaloriesBurnedWidget';
-import StepsWidget from './StepsWidget';
-import SleepWidget from './SleepWidget';
-import HeartRateWidget from './HeartRateWidget';
-import MetricCard from './MetricCard';
-import SummaryCard from './SummaryCard';
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import SummaryCard from '(protected)/user/widgets/SummaryCard';
 
 // Example: User Dashboard with selected widgets
 export function DashboardWidgets() {

@@ -2,10 +2,10 @@
 
 import { FaClock, FaMinus, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { WidgetData, Trend } from './types';
-import { getSleepData, formatSleepDuration, formatSleepStageDuration, calculateSleepQuality, calculateSleepStagePercentages } from './hooks/useSleepData';
-import { getHRVData, formatHRVValue, getHRVStatus, calculateHRVTrend } from './hooks/useHRVData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getSleepData, formatSleepDuration, formatSleepStageDuration, calculateSleepQuality, calculateSleepStagePercentages } from '(protected)/user/widgets/hooks/useSleepData';
+import { getHRVData, formatHRVValue, getHRVStatus, calculateHRVTrend } from '(protected)/user/widgets/hooks/useHRVData';
+import { useUserSettings } from 'context/UserSettingsContext';
 
 interface SleepWidgetProps {
   data?: WidgetData;

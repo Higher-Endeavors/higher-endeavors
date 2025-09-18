@@ -1,4 +1,4 @@
-import { getApiBaseUrl } from '@/app/lib/utils/apiUtils';
+import { getApiBaseUrl } from 'lib/utils/apiUtils';
 
 export interface TemplateCategory {
   resist_program_template_categories_id: number;

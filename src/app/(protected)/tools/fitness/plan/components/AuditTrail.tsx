@@ -1,4 +1,4 @@
-import Section from './Section';
+import Section from '(protected)/tools/fitness/plan/components/Section';
 
 export default function AuditTrail() {
   return (

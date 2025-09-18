@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { ThemeModeScript } from "flowbite-react";
-import "./globals.css";
-import { UserSettingsProvider } from './context/UserSettingsContext';
-import { getUserSettings } from './lib/actions/userSettings';
-import { getServerEnvironment } from './lib/utils/serverEnvironment';
-import GoogleAnalytics from './components/GoogleAnalytics';
-import { ErrorBoundary } from '@/app/components/error-boundary.client'
-import { ToastProvider } from './lib/toast';
+import 'globals.css';
+import { UserSettingsProvider } from 'context/UserSettingsContext';
+import { getUserSettings } from 'lib/actions/userSettings';
+import { getServerEnvironment } from 'lib/utils/serverEnvironment';
+import GoogleAnalytics from 'components/GoogleAnalytics';
+import { ErrorBoundary } from 'components/error-boundary.client'
+import { ToastProvider } from 'lib/toast';
 
 
 export const metadata: Metadata = {

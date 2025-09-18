@@ -1,4 +1,4 @@
-import { HRVSummary } from '@/app/api/garmin-connect/health/types';
+import { HRVSummary } from 'api/garmin-connect/health/types';
 
 export interface HRVData {
   latestHRV: HRVSummary | null;

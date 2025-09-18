@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { BreathTiming } from '../types/breathing';
+import { BreathTiming } from '(protected)/tools/health/breathing/types/breathing';
 
 interface BreathingOrbProps {
   pattern: BreathTiming;

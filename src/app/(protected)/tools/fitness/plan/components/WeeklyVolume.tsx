@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import Section from './Section';
-import WeekBar from './WeekBar';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import WeekBar from '(protected)/tools/fitness/plan/components/WeekBar';
 
 interface WeeklyVolumeProps {
   deloadEvery: number;

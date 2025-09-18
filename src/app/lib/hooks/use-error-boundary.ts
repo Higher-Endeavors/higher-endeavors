@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 export function useErrorBoundary() {
   useEffect(() => {

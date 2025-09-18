@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useReducer, ReactNode } from 'react';
-import type { CalendarEvent, CalendarContextType, EventType } from '../types/calendar.zod';
+import type { CalendarEvent, CalendarContextType, EventType } from '(protected)/tools/calendar/types/calendar.zod';
 
 interface CalendarState {
   events: CalendarEvent[];

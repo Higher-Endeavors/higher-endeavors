@@ -2,9 +2,9 @@
 
 import { FaRunning, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { WidgetData, Trend } from './types';
-import { getActiveMinutesData, getActiveMinutes, calculateActiveMinutesTrend, formatActiveMinutes, getActiveMinutesGoal, calculateActiveMinutesProgress } from './hooks/useActiveMinutesData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getActiveMinutesData, getActiveMinutes, calculateActiveMinutesTrend, formatActiveMinutes, getActiveMinutesGoal, calculateActiveMinutesProgress } from '(protected)/user/widgets/hooks/useActiveMinutesData';
+import { useUserSettings } from 'context/UserSettingsContext';
 
 interface ActiveMinutesWidgetProps {
   className?: string;

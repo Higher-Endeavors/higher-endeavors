@@ -1,6 +1,6 @@
-import { ProgramListItem } from '../../types/resistance-training.zod';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { clientLogger } from 'lib/logging/logger.client';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 export async function  getResistanceTemplates(): Promise<ProgramListItem[]> {
   try {
