@@ -8,7 +8,10 @@
     "trace": "NODE_OPTIONS='--trace-warnings' dotenvx run -f .env.local -- next dev",
     "build": "next build",
     "start": "next start",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false"
   },
   "dependencies": {
     "@auth/pg-adapter": "^1.7.4",

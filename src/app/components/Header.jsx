@@ -2,7 +2,7 @@
 
 // public
 import Image from "next/image";
-import Logo from "../../../public/Logo.js";
+import Logo from "../../public/Logo.js";
 import DropdownMenu from "./DropdownMenu";
 
 const Header = () => {
