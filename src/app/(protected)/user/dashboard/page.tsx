@@ -17,7 +17,7 @@ export default async function Dashboard() {
   const recentRecipes: Recipe[] = await getRecentRecipes();
   const recentUpdates = await getRecentUpdates();
   
-  serverLogger.info('Dashboard rendered', { 
+  serverLogger.debug('Dashboard rendered', { 
     component: 'Dashboard',
     timestamp: new Date().toISOString()
   });
