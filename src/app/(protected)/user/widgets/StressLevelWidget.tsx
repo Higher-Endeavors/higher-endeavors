@@ -7,6 +7,7 @@ import TrendIndicator from './TrendIndicator';
 import type { WidgetData, Trend } from './types';
 import { getStressData, calculateAverageStressLevel, calculateTimeWeightedStressLevel, getStressLevelCategory, calculateStressTrend, calculateBodyBatteryMetrics } from './hooks/useStressData';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface StressLevelWidgetProps {
   className?: string;
@@ -64,6 +65,7 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
   let stressLevel = 0;
   let stressInfo = getStressLevelCategory(0);
   let isDemoData = !isGarminConnected;
+  let stressDate = '';
   
   if (latestStress && !loading && !error && isGarminConnected) {
     // Use time-weighted calculation for more accuracy
@@ -75,9 +77,28 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
     
     stressInfo = getStressLevelCategory(stressLevel);
 
+    // Determine date indicator
+    if (latestStress.calendarDate) {
+      const stressDateObj = new Date(latestStress.calendarDate);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isToday = stressDateObj.toDateString() === today.toDateString();
+      const isYesterday = stressDateObj.toDateString() === yesterday.toDateString();
+      
+      if (isToday) {
+        stressDate = '';
+      } else if (isYesterday) {
+        stressDate = ' (Yesterday)';
+      } else {
+        stressDate = ` (${stressDateObj.toLocaleDateString()})`;
+      }
+    }
+
     data = {
       id: 'stress-level',
-      title: 'Stress Level',
+      title: `Stress Level${stressDate}`,
       value: stressLevel,
       unit: '/100',
       trend: trend.trend,
@@ -133,6 +154,9 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
             </div>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mb-2" />
+        )}
         
         {/* Value */}
         <div className="flex items-baseline gap-1">

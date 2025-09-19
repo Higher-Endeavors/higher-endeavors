@@ -8,6 +8,7 @@ export interface GarminActivity {
   duration_in_seconds: number;
   activity_name?: string;
   start_time_in_seconds: string;
+  device_name?: string;
 }
 
 export interface WeeklyCMEVolumeData {
@@ -541,5 +542,56 @@ function getZoneColor(zoneId: number): string {
     case 4: return 'orange';
     case 5: return 'red';
     default: return 'gray';
+  }
+}
+
+// Function to get Garmin device information
+export async function getGarminDeviceInfo(): Promise<{
+  deviceName: string | null;
+  attribution: string;
+}> {
+  try {
+    // Fetch the most recent activity to get device name
+    const response = await fetch('/api/garmin-connect/activity/data?type=activityDetails&days=30&limit=1');
+    
+    if (!response.ok) {
+      return {
+        deviceName: null,
+        attribution: 'Garmin device-sourced data'
+      };
+    }
+
+    const result = await response.json();
+    
+    if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+      const activity = result.data[0];
+      const deviceName = activity.data?.deviceName;
+      
+      if (deviceName) {
+        // Remove "Garmin" prefix if it exists to avoid redundancy
+        const cleanDeviceName = deviceName.startsWith('Garmin ') 
+          ? deviceName.substring(7) 
+          : deviceName;
+        
+        return {
+          deviceName,
+          attribution: `Garmin ${cleanDeviceName}`
+        };
+      }
+    }
+    
+    return {
+      deviceName: null,
+      attribution: 'Garmin device-sourced data'
+    };
+  } catch (err) {
+    clientLogger.error('Error fetching Garmin device info', {
+      error: err instanceof Error ? err.message : String(err)
+    });
+    
+    return {
+      deviceName: null,
+      attribution: 'Garmin device-sourced data'
+    };
   }
 }

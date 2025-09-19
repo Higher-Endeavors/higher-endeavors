@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import type { WidgetData, Trend } from './types';
 import { getActiveMinutesData, getActiveMinutes, calculateActiveMinutesTrend, formatActiveMinutes, getActiveMinutesGoal, calculateActiveMinutesProgress } from './hooks/useActiveMinutesData';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface ActiveMinutesWidgetProps {
   className?: string;
@@ -63,6 +64,7 @@ export default function ActiveMinutesWidget({ className = '' }: ActiveMinutesWid
   let goal = getActiveMinutesGoal();
   let progress = 0;
   let isDemoData = !isGarminConnected;
+  let activeMinutesDate = '';
   
   if (latestActiveMinutes && !loading && !error && isGarminConnected) {
     activeMinutes = getActiveMinutes(latestActiveMinutes);
@@ -70,9 +72,28 @@ export default function ActiveMinutesWidget({ className = '' }: ActiveMinutesWid
     const trend = calculateActiveMinutesTrend(activeMinutes, previousMinutes);
     const progressData = calculateActiveMinutesProgress(activeMinutes, goal);
 
+    // Determine date indicator
+    if (latestActiveMinutes.calendarDate) {
+      const activeMinutesDateObj = new Date(latestActiveMinutes.calendarDate);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isToday = activeMinutesDateObj.toDateString() === today.toDateString();
+      const isYesterday = activeMinutesDateObj.toDateString() === yesterday.toDateString();
+      
+      if (isToday) {
+        activeMinutesDate = '';
+      } else if (isYesterday) {
+        activeMinutesDate = ' (Yesterday)';
+      } else {
+        activeMinutesDate = ` (${activeMinutesDateObj.toLocaleDateString()})`;
+      }
+    }
+
     metricData = {
       id: 'active-minutes',
-      title: 'Active Minutes',
+      title: `Active Minutes${activeMinutesDate}`,
       value: activeMinutes,
       unit: 'min',
       trend: trend.trend,
@@ -130,6 +151,9 @@ export default function ActiveMinutesWidget({ className = '' }: ActiveMinutesWid
             </div>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mb-2" />
+        )}
         
         {/* Value */}
         <div className="flex items-baseline gap-1">

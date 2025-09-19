@@ -6,6 +6,7 @@ import type { Trend } from './types';
 import { getTimeInZonesData } from './hooks/useGarminActivity';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import GarminAttribution from './components/GarminAttribution';
 
 interface ZoneData {
   zone: number;
@@ -175,6 +176,9 @@ export default function TimeInZonesWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         <div className="text-xs text-slate-600">
           {loading ? 'Loading...' : displayError ? '0/0 min' : `${displayTotalActual}/${displayTotalPlanned} min`}
         </div>

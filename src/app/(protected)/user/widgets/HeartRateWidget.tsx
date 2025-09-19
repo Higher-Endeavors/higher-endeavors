@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import type { WidgetData, Trend } from './types';
 import { getHeartRateData, calculateHeartRateZone, calculateHeartRateTrend } from './hooks/useHeartRateData';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface HeartRateWidgetProps {
   data?: WidgetData;
@@ -66,6 +67,7 @@ export default function HeartRateWidget({
   // Process real heart rate data if available and Garmin is connected
   let metricData: WidgetData = defaultData;
   let isDemoData = !isGarminConnected;
+  let heartRateDate = '';
   
   if (latestHeartRate && !loading && !error && latestHeartRate.restingHeartRateInBeatsPerMinute && isGarminConnected) {
     const restingHR = latestHeartRate.restingHeartRateInBeatsPerMinute;
@@ -75,9 +77,28 @@ export default function HeartRateWidget({
     // Calculate trend using historical data
     const trend = calculateHeartRateTrend(restingHR, previousHR);
 
+    // Determine date indicator
+    if (latestHeartRate.calendarDate) {
+      const heartRateDateObj = new Date(latestHeartRate.calendarDate);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isToday = heartRateDateObj.toDateString() === today.toDateString();
+      const isYesterday = heartRateDateObj.toDateString() === yesterday.toDateString();
+      
+      if (isToday) {
+        heartRateDate = '';
+      } else if (isYesterday) {
+        heartRateDate = ' (Yesterday)';
+      } else {
+        heartRateDate = ` (${heartRateDateObj.toLocaleDateString()})`;
+      }
+    }
+
     metricData = {
       id: 'heart-rate-resting',
-      title: 'Resting HR',
+      title: `Resting HR${heartRateDate}`,
       value: restingHR,
       unit: 'bpm',
       trend: trend.trend,
@@ -126,6 +147,9 @@ export default function HeartRateWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">
             {finalData.trend === 'up' ? (

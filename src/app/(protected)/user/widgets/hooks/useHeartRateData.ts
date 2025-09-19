@@ -9,39 +9,27 @@ export interface HeartRateData {
 
 export async function getHeartRateData(): Promise<HeartRateData> {
   try {
-    // Fetch the latest daily data and previous day's data for trend calculation
-    const [latestResponse, previousResponse] = await Promise.all([
-      fetch('/api/garmin-connect/health/data?type=dailies&days=1&limit=1'),
-      fetch('/api/garmin-connect/health/data?type=dailies&days=2&limit=2')
-    ]);
+    // Fetch the latest available daily data (last 30 days to ensure we get the most recent entry)
+    const response = await fetch('/api/garmin-connect/health/data?type=dailies&days=30&limit=10');
     
-    if (!latestResponse.ok) {
-      throw new Error('Failed to fetch latest heart rate data');
+    if (!response.ok) {
+      throw new Error('Failed to fetch heart rate data');
     }
 
-    const latestResult = await latestResponse.json();
-    let previousData = null;
+    const result = await response.json();
 
-    // Try to get previous day's data if available
-    if (previousResponse.ok) {
-      const previousResult = await previousResponse.json();
-      if (previousResult.success && previousResult.data && Array.isArray(previousResult.data)) {
-        // Get the second most recent entry (previous day)
-        const previousEntry = previousResult.data[1];
-        if (previousEntry && previousEntry.data) {
-          previousData = previousEntry.data;
-        }
-      }
-    }
-
-    if (latestResult.success && latestResult.data && Array.isArray(latestResult.data) && latestResult.data.length > 0) {
-      // The API returns an array of data, get the first (most recent) entry
-      const latestEntry = latestResult.data[0];
-      const dailyData = latestEntry?.data;
+    if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
+      // Get the most recent entry (first in the array)
+      const latestEntry = result.data[0];
+      const latestData = latestEntry?.data;
       
-      if (dailyData) {
+      // Get the second most recent entry for trend calculation
+      const previousEntry = result.data[1];
+      const previousData = previousEntry?.data || null;
+      
+      if (latestData) {
         return {
-          latestHeartRate: dailyData,
+          latestHeartRate: latestData,
           previousHeartRate: previousData,
           loading: false,
           error: null

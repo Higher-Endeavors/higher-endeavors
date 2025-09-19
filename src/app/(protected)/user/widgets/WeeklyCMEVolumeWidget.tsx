@@ -6,6 +6,7 @@ import type { WidgetData, Trend } from './types';
 import { getWeeklyCMEVolumeData, formatVolumeMinutes, calculateVolumeTrend } from './hooks/useGarminActivity';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
 import { clientLogger } from '@/app/lib/logging/logger.client';
+import GarminAttribution from './components/GarminAttribution';
 
 interface WeeklyVolumeWidgetProps {
   plannedVolume?: number;
@@ -143,6 +144,9 @@ export default function WeeklyVolumeWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         <div className={`flex items-center gap-1 text-xs ${getTrendColor(trend)}`}>
           {getTrendIcon(trend)}
           <span>{trendValue}</span>

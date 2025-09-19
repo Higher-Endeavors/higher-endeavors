@@ -6,6 +6,7 @@ import type { WidgetData, Trend } from './types';
 import { getSleepData, formatSleepDuration, formatSleepStageDuration, calculateSleepQuality, calculateSleepStagePercentages } from './hooks/useSleepData';
 import { getHRVData, formatHRVValue, getHRVStatus, calculateHRVTrend } from './hooks/useHRVData';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface SleepWidgetProps {
   data?: WidgetData;
@@ -178,6 +179,9 @@ export default function SleepWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">
             {finalData.trend === 'up' ? (
