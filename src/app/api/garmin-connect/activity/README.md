@@ -107,7 +107,7 @@ Activities that have been manually edited by users on Garmin Connect:
 ### Querying Activity Data
 
 ```typescript
-import { getActivityData, getLatestActivityDataByType, getActivityDataById } from './lib/activity-data-utils';
+import { getActivityData, getLatestActivityDataByType, getActivityDataById } from 'api/garmin-connect/activity/lib/activity-data-utils';
 
 // Get activity details for a user
 const activityDetails = await getActivityData({

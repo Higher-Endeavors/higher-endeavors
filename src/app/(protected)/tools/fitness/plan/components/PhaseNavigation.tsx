@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import PhasePill from './PhasePill';
+import PhasePill from '(protected)/tools/fitness/plan/components/PhasePill';
 
 interface PhaseNavigationProps {
   currentPhase: 'plan' | 'program' | 'act' | 'analyze';

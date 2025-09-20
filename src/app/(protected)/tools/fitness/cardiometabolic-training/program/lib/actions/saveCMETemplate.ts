@@ -1,8 +1,8 @@
 'use server';
 
-import { auth } from '@/app/auth';
-import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { auth } from 'auth';
+import { SingleQuery, getClient } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
 
 interface SaveCMETemplateParams {
   userId: number;

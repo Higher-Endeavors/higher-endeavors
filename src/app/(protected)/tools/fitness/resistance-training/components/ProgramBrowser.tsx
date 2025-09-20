@@ -4,13 +4,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
-import { ProgramListItem } from '../types/resistance-training.zod';
-import { getResistancePrograms } from '../lib/hooks/getResistancePrograms';
-import { useResistanceTemplates } from '../lib/hooks/useResistanceTemplates';
-import { useTemplateCategories } from '../lib/hooks/useTemplateData';
-import { deleteResistanceProgram } from '../lib/actions/deleteResistanceProgram';
-import { duplicateResistanceProgram } from '../lib/actions/duplicateResistanceProgram';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { getResistancePrograms } from '(protected)/tools/fitness/resistance-training/lib/hooks/getResistancePrograms';
+import { useResistanceTemplates } from '(protected)/tools/fitness/resistance-training/lib/hooks/useResistanceTemplates';
+import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/lib/hooks/useTemplateData';
+import { deleteResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/deleteResistanceProgram';
+import { duplicateResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/duplicateResistanceProgram';
+import { clientLogger } from 'lib/logging/logger.client';
 
 // How many programs to show per page
 const ITEMS_PER_PAGE = 5;

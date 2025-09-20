@@ -1,5 +1,5 @@
 import Markdown from 'react-markdown';
-import styles from './markdown-styles.module.css';
+import styles from '(protected)/guide/components/markdown-styles.module.css';
 
 export default function ArticleBody({ content }) {
   return (

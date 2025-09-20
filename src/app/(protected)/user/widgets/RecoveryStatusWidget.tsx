@@ -1,5 +1,5 @@
 import { FaHeart, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
-import type { Trend } from './types';
+import type { Trend } from '(protected)/user/widgets/types';
 
 interface RecoveryStatusWidgetProps {
   recoveryScore?: number;

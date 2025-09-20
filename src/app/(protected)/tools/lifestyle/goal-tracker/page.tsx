@@ -1,12 +1,12 @@
 // Core
 'use client';
 
-import Header from '../../../../components/Header';
-import Footer from '../../../../components/Footer';
-import GoalList from './components/GoalList';
-import OnboardingChecklist from "../../(components)/OnboardingChecklist";
-import RelatedContent from "../../(components)/RelatedContent";
-import DemoBanner from "../../(components)/DemoBanner";
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import GoalList from '(protected)/tools/lifestyle/goal-tracker/components/GoalList';
+import OnboardingChecklist from '(protected)/tools/(components)/OnboardingChecklist';
+import RelatedContent from '(protected)/tools/(components)/RelatedContent';
+import DemoBanner from '(protected)/tools/(components)/DemoBanner';
 
 export default function GoalTrackerPage() {
 

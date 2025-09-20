@@ -1,9 +1,9 @@
 'use client';
 
 import { FaRunning, FaArrowUp, FaArrowDown, FaRoute } from 'react-icons/fa';
-import type { WidgetData, Trend } from './types';
-import { getStepsData, getStepCount, calculateStepsTrend, formatSteps, getStepsGoal, calculateStepsProgress, getDistanceInMeters, formatDistance, calculateDistanceTrend, getFloorsClimbed, formatFloors, calculateFloorsTrend, StepsData } from './hooks/useStepsData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getStepsData, getStepCount, calculateStepsTrend, formatSteps, getStepsGoal, calculateStepsProgress, getDistanceInMeters, formatDistance, calculateDistanceTrend, getFloorsClimbed, formatFloors, calculateFloorsTrend, StepsData } from '(protected)/user/widgets/hooks/useStepsData';
+import { useUserSettings } from 'context/UserSettingsContext';
 import { useState, useEffect } from 'react';
 import GarminAttribution from './components/GarminAttribution';
 

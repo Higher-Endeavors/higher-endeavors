@@ -1,6 +1,6 @@
-import Section from './Section';
-import Chip from './Chip';
-import DayCell from './DayCell';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import Chip from '(protected)/tools/fitness/plan/components/Chip';
+import DayCell from '(protected)/tools/fitness/plan/components/DayCell';
 
 export default function Calendar() {
   const keySessionsPalette = [

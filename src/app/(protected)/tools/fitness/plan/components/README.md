@@ -26,8 +26,8 @@ A custom-built Gantt chart component specifically designed for fitness periodiza
 ## Usage
 
 ```tsx
-import GanttChart from './components/GanttChart';
-import { mockPlanData } from './components/MockPlanData';
+import GanttChart from 'tools/fitness/plan/components/GanttChart';
+import { mockPlanData } from 'tools/fitness/plan/components/MockPlanData';
 
 function PlanPage() {
   const [plan, setPlan] = useState(mockPlanData);

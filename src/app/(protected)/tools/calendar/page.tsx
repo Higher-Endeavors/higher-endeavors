@@ -1,9 +1,9 @@
 'use client';
 
 import { SessionProvider } from 'next-auth/react';
-import { CalendarProvider } from './context/CalendarContext';
-import Calendar from './components/Calendar';
-import DemoBanner from '@/app/(protected)/tools/(components)/DemoBanner';
+import { CalendarProvider } from '(protected)/tools/calendar/context/CalendarContext';
+import Calendar from '(protected)/tools/calendar/components/Calendar';
+import DemoBanner from '(protected)/tools/(components)/DemoBanner';
 
 export default function CalendarPage() {
   return (

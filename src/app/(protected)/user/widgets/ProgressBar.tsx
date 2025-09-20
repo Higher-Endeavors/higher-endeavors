@@ -1,4 +1,4 @@
-import type { ProgressBarProps } from './types';
+import type { ProgressBarProps } from '(protected)/user/widgets/types';
 
 export default function ProgressBar({
   current,

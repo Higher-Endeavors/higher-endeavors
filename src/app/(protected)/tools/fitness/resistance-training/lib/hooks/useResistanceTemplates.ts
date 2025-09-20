@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { getResistanceTemplates } from './getResistanceTemplates';
-import { ProgramListItem } from '../../types/resistance-training.zod';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { getResistanceTemplates } from '(protected)/tools/fitness/resistance-training/lib/hooks/getResistanceTemplates';
+import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { clientLogger } from 'lib/logging/logger.client';
 
 export function useResistanceTemplates() {
   const [templates, setTemplates] = useState<ProgramListItem[]>([]);

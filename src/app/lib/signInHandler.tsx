@@ -1,6 +1,6 @@
 "use server";
 
-import { signIn } from "@/app/auth"
+import { signIn } from "auth"
 
 
 export async function signInHandler(redirect: string) {

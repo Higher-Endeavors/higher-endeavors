@@ -1,11 +1,9 @@
-import BodyCompositionWidget from '../../widgets/BodyCompositionWidget';
-import CaloriesBurnedWidget from '../../widgets/CaloriesBurnedWidget';
-import StepsWidget from '../../widgets/StepsWidget';
-import SleepWidget from '../../widgets/SleepWidget';
-import HeartRateWidget from '../../widgets/HeartRateWidget';
-import StressWidget from '../../widgets/StressLevelWidget';
-import MetricCard from '../../widgets/MetricCard';
-import type { WidgetData, Trend } from '../../widgets/types';
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 import Link from 'next/link';
 
 interface MetricsDashboardProps {

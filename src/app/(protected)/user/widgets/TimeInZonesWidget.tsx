@@ -2,7 +2,7 @@
 
 import { FaHeart, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { Trend } from './types';
+import type { Trend } from '(protected)/user/widgets/types';
 import { getTimeInZonesData } from './hooks/useGarminActivity';
 import { useUserSettings } from '@/app/context/UserSettingsContext';
 import { clientLogger } from '@/app/lib/logging/logger.client';

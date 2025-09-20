@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ProgramExercisesPlanned } from '../types/resistance-training.zod';
-import { calculateSessionStats } from '../../lib/calculations/resistanceTrainingCalculations';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { calculateSessionStats } from '(protected)/tools/fitness/lib/calculations/resistanceTrainingCalculations';
 
 interface SessionSummaryProps {
   exercises: ProgramExercisesPlanned[];

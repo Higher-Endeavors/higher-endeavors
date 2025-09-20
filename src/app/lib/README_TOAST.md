@@ -21,7 +21,7 @@ The Toast system provides consistent, accessible notifications across the applic
 ### 1. Import the hook
 
 ```tsx
-import { useToast } from '@/app/lib/toast';
+import { useToast } from 'lib/toast';
 ```
 
 ### 2. Use in your component

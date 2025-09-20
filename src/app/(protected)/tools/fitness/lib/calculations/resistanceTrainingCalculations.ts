@@ -1,4 +1,4 @@
-import { ProgramExercisesPlanned } from '../../resistance-training/types/resistance-training.zod';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 /**
  * Calculates Time Under Tension (TUT) based on reps and tempo

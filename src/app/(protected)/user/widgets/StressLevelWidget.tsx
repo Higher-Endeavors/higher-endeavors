@@ -2,11 +2,11 @@
 
 import { FaBrain, FaArrowUp, FaArrowDown } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import ProgressBar from './ProgressBar';
-import TrendIndicator from './TrendIndicator';
-import type { WidgetData, Trend } from './types';
-import { getStressData, calculateAverageStressLevel, calculateTimeWeightedStressLevel, getStressLevelCategory, calculateStressTrend, calculateBodyBatteryMetrics } from './hooks/useStressData';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
+import ProgressBar from '(protected)/user/widgets/ProgressBar';
+import TrendIndicator from '(protected)/user/widgets/TrendIndicator';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getStressData, calculateAverageStressLevel, calculateTimeWeightedStressLevel, getStressLevelCategory, calculateStressTrend, calculateBodyBatteryMetrics } from '(protected)/user/widgets/hooks/useStressData';
+import { useUserSettings } from 'context/UserSettingsContext';
 import GarminAttribution from './components/GarminAttribution';
 
 interface StressLevelWidgetProps {

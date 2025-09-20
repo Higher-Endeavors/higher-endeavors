@@ -1,5 +1,5 @@
-import { ExerciseLibraryItem } from '../../resistance-training/types/resistance-training.zod';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 export async function getExerciseLibrary(): Promise<ExerciseLibraryItem[]> {
   const baseURL = await getFetchBaseUrl();

@@ -33,6 +33,7 @@ export function useToast() {
     error: (message: string, duration?: number) => context.addToast('error', message, duration),
     warning: (message: string, duration?: number) => context.addToast('warning', message, duration),
     info: (message: string, duration?: number) => context.addToast('info', message, duration),
+    clearToasts: () => context.clearToasts(),
   };
 }
 

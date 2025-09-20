@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { auth } from "@/app/auth";
-import { SingleQuery } from "@/app/lib/dbAdapter";
-import { bioFormSchema } from "@/app/(protected)/user/bio/types/bio";
-import { serverLogger } from "@/app/lib/logging/logger.server";
+import { auth } from "auth";
+import { SingleQuery } from "lib/dbAdapter";
+import { bioFormSchema } from "(protected)/user/bio/types/bio";
+import { serverLogger } from "lib/logging/logger.server";
 
 export async function GET() {
   try {

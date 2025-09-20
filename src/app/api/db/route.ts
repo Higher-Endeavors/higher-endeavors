@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 const Client = require("pg").Client;
 const client = new Client();
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { serverLogger } from 'lib/logging/logger.server';
 
 //
 // This need sto be refactored into a general db function

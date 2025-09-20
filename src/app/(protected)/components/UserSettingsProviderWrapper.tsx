@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useContext, createContext } from "react";
-import { UserSettingsProvider } from "@/app/context/UserSettingsContext";
-import type { UserSettings } from "@/app/lib/types/userSettings.zod";
+import { UserSettingsProvider } from "context/UserSettingsContext";
+import type { UserSettings } from "lib/types/userSettings.zod";
 
 interface UserSettingsRefreshContextType {
   refreshUserSettings: () => Promise<void>;

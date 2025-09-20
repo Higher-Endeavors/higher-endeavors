@@ -3,7 +3,7 @@
 import { Modal } from 'flowbite-react';
 import Select from 'react-select';
 import { useState, useMemo } from 'react';
-import { ExerciseLibraryItem } from '../types/resistance-training.zod';
+import { ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 interface AdvancedExerciseSearchProps {
   isOpen: boolean;

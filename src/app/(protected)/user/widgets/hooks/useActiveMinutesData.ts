@@ -1,4 +1,4 @@
-import { DailySummary } from '@/app/api/garmin-connect/health/types';
+import { DailySummary } from 'api/garmin-connect/health/types';
 
 export interface ActiveMinutesData {
   latestActiveMinutes: DailySummary | null;

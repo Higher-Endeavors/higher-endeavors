@@ -1,5 +1,5 @@
-import { ResistanceProgram, ProgramExercisesPlanned } from '../../types/resistance-training.zod';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { ResistanceProgram, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 export async function getResistanceProgram(programId: number, userId: number): Promise<{
   program: ResistanceProgram;

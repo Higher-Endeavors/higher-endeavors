@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { Feature, FeaturePillar } from '../types';
+import { Feature, FeaturePillar } from '(protected)/tools/feature-roadmap/types';
 
 interface FeatureRoadmapOverviewProps {
   features: Feature[];

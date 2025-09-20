@@ -1,4 +1,4 @@
-import { SleepSummary } from '@/app/api/garmin-connect/health/types';
+import { SleepSummary } from 'api/garmin-connect/health/types';
 
 export interface SleepData {
   latestSleep: SleepSummary | null;

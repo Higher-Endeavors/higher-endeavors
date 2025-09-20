@@ -12,7 +12,7 @@ import type {
   CustomMealSchedule,
   NutrientDistribution,
   ScheduleAssignments
-} from '@/app/lib/types/userSettings.zod';
+} from 'lib/types/userSettings.zod';
 import { HiChevronDown } from 'react-icons/hi';
 
 interface NutritionUserSettingsProps {

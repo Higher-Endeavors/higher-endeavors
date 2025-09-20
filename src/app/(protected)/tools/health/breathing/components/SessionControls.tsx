@@ -1,4 +1,4 @@
-import { BreathPattern, BreathTiming } from '../types/breathing';
+import { BreathPattern, BreathTiming } from '(protected)/tools/health/breathing/types/breathing';
 import { useState } from 'react';
 
 interface SessionControlsProps {

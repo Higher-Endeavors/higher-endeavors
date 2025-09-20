@@ -1,4 +1,4 @@
-import Chip from './Chip';
+import Chip from '(protected)/tools/fitness/plan/components/Chip';
 
 interface DayCellProps {
   day: string;

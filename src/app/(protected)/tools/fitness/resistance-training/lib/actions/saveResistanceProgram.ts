@@ -1,8 +1,8 @@
 "use server";
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
+import { getClient } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 interface SaveResistanceProgramInput {
   userId: number;

@@ -1,5 +1,5 @@
-import { CMEActivityLibraryItem } from '../../cardiometabolic-training/lib/types/cme.zod';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { CMEActivityLibraryItem } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 export async function getCMEActivityLibrary(): Promise<CMEActivityLibraryItem[]> {
   const baseURL = await getFetchBaseUrl();

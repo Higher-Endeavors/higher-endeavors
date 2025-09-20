@@ -1,9 +1,9 @@
 'use client'
 
 import React, { useState } from 'react';
-import { useToast } from '@/app/lib/toast';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import type { GarminConnectSettings } from '@/app/lib/types/userSettings.zod';
+import { useToast } from 'lib/toast';
+import { clientLogger } from 'lib/logging/logger.client';
+import type { GarminConnectSettings } from 'lib/types/userSettings.zod';
 
 interface GarminConnectSettingsProps {
   garminConnect?: GarminConnectSettings;

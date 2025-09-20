@@ -2,17 +2,17 @@
 
 import React, { useEffect, useState } from 'react';
 import { useForm, Controller, FormProvider } from 'react-hook-form';
-import { useToast } from '@/app/lib/toast';
+import { useToast } from 'lib/toast';
 import { HiCheck, HiX } from 'react-icons/hi';
-import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from '@/app/lib/types/userSettings.zod';
-import GeneralUserSettings from './GeneralUserSettings';
-import LifestyleUserSettings from './LifestyleUserSettings';
-import HealthUserSettings from './HealthUserSettings';
-import NutritionUserSettings from './NutritionUserSettings';
-import FitnessUserSettings from './FitnessUserSettings';
-import { useUserSettingsRefresh } from '../../../components/UserSettingsProviderWrapper';
-import { saveUserSettings } from '../lib/actions/saveUserSettings';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement } from 'lib/types/userSettings.zod';
+import GeneralUserSettings from '(protected)/user/settings/components/GeneralUserSettings';
+import LifestyleUserSettings from '(protected)/user/settings/components/LifestyleUserSettings';
+import HealthUserSettings from '(protected)/user/settings/components/HealthUserSettings';
+import NutritionUserSettings from '(protected)/user/settings/components/NutritionUserSettings';
+import FitnessUserSettings from '(protected)/user/settings/components/FitnessUserSettings';
+import { useUserSettingsRefresh } from '(protected)/components/UserSettingsProviderWrapper';
+import { saveUserSettings } from '(protected)/user/settings/lib/actions/saveUserSettings';
+import { clientLogger } from 'lib/logging/logger.client';
 
 const SettingsForm = () => {
   const { success, error } = useToast();

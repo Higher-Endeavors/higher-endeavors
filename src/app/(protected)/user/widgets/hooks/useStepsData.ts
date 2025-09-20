@@ -1,5 +1,5 @@
-import { DailySummary } from '@/app/api/garmin-connect/health/types';
-import type { DistanceUnit } from '@/app/lib/types/userSettings.zod';
+import { DailySummary } from 'api/garmin-connect/health/types';
+import type { DistanceUnit } from 'lib/types/userSettings.zod';
 
 export interface StepsData {
   latestSteps: DailySummary | null;
