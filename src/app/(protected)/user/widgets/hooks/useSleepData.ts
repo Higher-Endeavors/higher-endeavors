@@ -8,8 +8,8 @@ export interface SleepData {
 
 export async function getSleepData(): Promise<SleepData> {
   try {
-    // Fetch the latest sleep data using the Garmin health API
-    const response = await fetch('/api/garmin-connect/health/data?type=sleeps&days=1&limit=1');
+    // Fetch the latest sleep data using the Garmin health API - get up to 3 days to find the most recent sleep data
+    const response = await fetch('/api/garmin-connect/health/data?type=sleeps&days=3&limit=3');
     
     if (!response.ok) {
       throw new Error('Failed to fetch sleep data');
@@ -18,23 +18,24 @@ export async function getSleepData(): Promise<SleepData> {
     const result = await response.json();
     
     if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-      // The API returns an array of data, get the first (most recent) entry
-      const latestEntry = result.data[0];
-      const sleepData = latestEntry?.data;
-      
-      if (sleepData) {
-        return {
-          latestSleep: sleepData,
-          loading: false,
-          error: null
-        };
-      } else {
-        return {
-          latestSleep: null,
-          loading: false,
-          error: 'No sleep data available in result'
-        };
+      // Find the most recent sleep data entry that has actual sleep data
+      for (const entry of result.data) {
+        const sleepData = entry?.data;
+        if (sleepData && sleepData.durationInSeconds && sleepData.durationInSeconds > 0) {
+          return {
+            latestSleep: sleepData,
+            loading: false,
+            error: null
+          };
+        }
       }
+      
+      // If no valid sleep data found in any of the entries
+      return {
+        latestSleep: null,
+        loading: false,
+        error: 'No recent sleep data available'
+      };
     } else {
       return {
         latestSleep: null,

@@ -6,6 +6,7 @@ import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 import { getSleepData, formatSleepDuration, formatSleepStageDuration, calculateSleepQuality, calculateSleepStagePercentages } from '(protected)/user/widgets/hooks/useSleepData';
 import { getHRVData, formatHRVValue, getHRVStatus, calculateHRVTrend } from '(protected)/user/widgets/hooks/useHRVData';
 import { useUserSettings } from 'context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface SleepWidgetProps {
   data?: WidgetData;
@@ -82,6 +83,7 @@ export default function SleepWidget({
   // Process real sleep data if available and Garmin is connected
   let metricData: WidgetData = defaultData;
   let isDemoData = !isGarminConnected;
+  let sleepDate = '';
   
   if (latestSleep && !loading && !error && isGarminConnected) {
     const sleepDuration = formatSleepDuration(latestSleep.durationInSeconds);
@@ -89,6 +91,23 @@ export default function SleepWidget({
     const targetHours = 8;
     const currentHours = latestSleep.durationInSeconds / 3600;
     const progressPercentage = Math.min((currentHours / targetHours) * 100, 100);
+    
+    // Determine if this is today's or yesterday's sleep data
+    const sleepDateObj = new Date(latestSleep.calendarDate);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const isToday = sleepDateObj.toDateString() === today.toDateString();
+    const isYesterday = sleepDateObj.toDateString() === yesterday.toDateString();
+    
+    if (isToday) {
+      sleepDate = '';
+    } else if (isYesterday) {
+      sleepDate = ' (Yesterday)';
+    } else {
+      sleepDate = ` (${sleepDateObj.toLocaleDateString()})`;
+    }
     
     // Determine trend based on sleep duration vs target
     let trend: Trend = 'neutral';
@@ -104,7 +123,7 @@ export default function SleepWidget({
 
     metricData = {
       id: 'sleep-duration',
-      title: 'Sleep Duration',
+      title: `Sleep Duration${sleepDate}`,
       value: sleepDuration,
       unit: '',
       trend,
@@ -129,13 +148,15 @@ export default function SleepWidget({
     };
     isDemoData = false;
   } else if (error && isGarminConnected) {
+    // Instead of showing "Error", show demo data with a note
     metricData = {
       ...defaultData,
-      value: 'Error',
-      color: 'text-red-500',
-      textColor: 'text-red-600'
+      title: 'Sleep Duration (No Data)',
+      value: '7h 45m',
+      color: 'text-slate-500',
+      textColor: 'text-slate-600'
     };
-    isDemoData = false;
+    isDemoData = true; // Show as demo data when there's an error
   }
 
   // Use provided data if available, otherwise use processed data
@@ -158,6 +179,9 @@ export default function SleepWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">
             {finalData.trend === 'up' ? (

@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 import { getCalorieData, calculateTotalCalories, calculateCalorieTrend, formatCalories, getCalorieGoal } from '(protected)/user/widgets/hooks/useCalorieData';
 import { useUserSettings } from 'context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface CaloriesBurnedWidgetProps {
   data?: WidgetData;
@@ -68,6 +69,7 @@ export default function CaloriesBurnedWidget({
   // Process real calorie data if available and Garmin is connected
   let metricData: WidgetData = defaultData;
   let isDemoData = !isGarminConnected;
+  let caloriesDate = '';
   
   if (latestCalories && !loading && !error && isGarminConnected) {
     const totalCalories = calculateTotalCalories(latestCalories);
@@ -76,9 +78,28 @@ export default function CaloriesBurnedWidget({
     const goal = getCalorieGoal();
     const progressPercentage = Math.min((totalCalories / goal) * 100, 100);
 
+    // Determine date indicator
+    if (latestCalories.calendarDate) {
+      const caloriesDateObj = new Date(latestCalories.calendarDate);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isToday = caloriesDateObj.toDateString() === today.toDateString();
+      const isYesterday = caloriesDateObj.toDateString() === yesterday.toDateString();
+      
+      if (isToday) {
+        caloriesDate = '';
+      } else if (isYesterday) {
+        caloriesDate = ' (Yesterday)';
+      } else {
+        caloriesDate = ` (${caloriesDateObj.toLocaleDateString()})`;
+      }
+    }
+
     metricData = {
       id: 'calories-burned',
-      title: 'Calories Burned',
+      title: `Calories Burned${caloriesDate}`,
       value: totalCalories,
       unit: 'kcal',
       trend: trend.trend,
@@ -129,6 +150,9 @@ export default function CaloriesBurnedWidget({
             </span>
           )}
         </div>
+        {!isDemoData && isGarminConnected && (
+          <GarminAttribution className="mt-1" />
+        )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">
             {finalData.trend === 'up' ? (
