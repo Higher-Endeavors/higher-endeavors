@@ -2,6 +2,8 @@ import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget'
 import StepsWidget from '(protected)/user/widgets/StepsWidget';
 import SleepWidget from '(protected)/user/widgets/SleepWidget';
 import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import BodyCompositionWidget from '(protected)/user/widgets/BodyCompositionWidget';
+import StressLevelWidget from '(protected)/user/widgets/StressLevelWidget';
 import MetricCard from '(protected)/user/widgets/MetricCard';
 import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 import Link from 'next/link';
@@ -34,9 +36,7 @@ export default function MetricsDashboard({ className = '' }: MetricsDashboardPro
         <SleepWidget />
         <CaloriesBurnedWidget />
         <StepsWidget />
-        <StressWidget />
-        
-        ))
+        <StressLevelWidget />
       </div>
     </div>
   );

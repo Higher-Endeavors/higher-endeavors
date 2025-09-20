@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getHeartRateZones } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
+import { clientLogger } from 'lib/logging/logger.client';
+import { getHeartRateZones } from '(protected)/user/bio/lib/actions/saveHeartRateZones';
 
 export interface GarminActivity {
   id: number;

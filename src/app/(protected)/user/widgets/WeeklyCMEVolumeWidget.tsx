@@ -2,11 +2,11 @@
 
 import { FaFire, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
-import type { WidgetData, Trend } from './types';
-import { getWeeklyCMEVolumeData, formatVolumeMinutes, calculateVolumeTrend } from './hooks/useGarminActivity';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import GarminAttribution from './components/GarminAttribution';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getWeeklyCMEVolumeData, formatVolumeMinutes, calculateVolumeTrend } from '(protected)/user/widgets/hooks/useGarminActivity';
+import { useUserSettings } from 'context/UserSettingsContext';
+import { clientLogger } from 'lib/logging/logger.client';
+import GarminAttribution from '(protected)/user/widgets/components/GarminAttribution';
 
 interface WeeklyVolumeWidgetProps {
   plannedVolume?: number;

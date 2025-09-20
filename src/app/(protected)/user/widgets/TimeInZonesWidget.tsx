@@ -3,10 +3,10 @@
 import { FaHeart, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
 import { useState, useEffect } from 'react';
 import type { Trend } from '(protected)/user/widgets/types';
-import { getTimeInZonesData } from './hooks/useGarminActivity';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import GarminAttribution from './components/GarminAttribution';
+import { getTimeInZonesData } from '(protected)/user/widgets/hooks/useGarminActivity';
+import { useUserSettings } from 'context/UserSettingsContext';
+import { clientLogger } from 'lib/logging/logger.client';
+import GarminAttribution from '(protected)/user/widgets/components/GarminAttribution';
 
 interface ZoneData {
   zone: number;
