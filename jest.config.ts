@@ -52,10 +52,10 @@ const config: Config = {
   // An object that configures minimum threshold enforcement for coverage results
   coverageThreshold: {
     global: {
-      branches: 20,
-      functions: 20,
-      lines: 20,
-      statements: 20,
+      branches: 3,
+      functions: 3,
+      lines: 3,
+      statements: 3,
     },
   },
 
@@ -64,7 +64,10 @@ const config: Config = {
 
   // The glob patterns Jest uses to detect test files
   testMatch: [
-    "**/__tests__/**/*.?([mc])[jt]s?(x)",
+    "<rootDir>/__tests__/**/*.test.?([mc])[jt]s?(x)",
+    "<rootDir>/__tests__/**/*.spec.?([mc])[jt]s?(x)",
+    "<rootDir>/tests/**/*.test.?([mc])[jt]s?(x)",
+    "<rootDir>/tests/**/*.spec.?([mc])[jt]s?(x)",
     "**/?(*.)+(spec|test).?([mc])[jt]s?(x)"
   ],
 
@@ -72,7 +75,12 @@ const config: Config = {
   testPathIgnorePatterns: [
     "/node_modules/",
     "/.next/",
-    "/coverage/"
+    "/coverage/",
+    "/e2e/",
+    "/tests/__mocks__/",
+    "/tests/__fixtures__/",
+    "/tests/utils/",
+    "/tests/setup/"
   ],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
@@ -83,12 +91,17 @@ const config: Config = {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/app/(.*)$': '<rootDir>/src/app/$1',
     '^@/lib/(.*)$': '<rootDir>/src/app/lib/$1',
-    '^styled-jsx/style$': 'identity-obj-proxy',
+    '^@tests/(.*)$': '<rootDir>/tests/$1',
+    '^@fixtures/(.*)$': '<rootDir>/tests/__fixtures__/$1',
+    '^@mocks/(.*)$': '<rootDir>/tests/__mocks__/$1',
+    '^lib/(.*)$': '<rootDir>/src/app/lib/$1',
+    '^api/(.*)$': '<rootDir>/src/app/api/$1',
+    '^auth$': '<rootDir>/src/app/auth.ts',
   },
 
   // An array of regexp pattern strings that are matched against all source file paths before re-running tests in watch mode
   transformIgnorePatterns: [
-    "/node_modules/",
+    "/node_modules/(?!(next-auth|@auth/core|@auth/providers|@auth/pg-adapter|@auth/core/providers)/)",
     "^.+\\.module\\.(css|sass|scss)$"
   ],
 

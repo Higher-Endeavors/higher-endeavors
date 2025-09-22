@@ -1,12 +1,13 @@
+// Mock database adapter
+jest.mock('lib/dbAdapter', () => ({
+  SingleQuery: jest.fn(),
+}));
+
 import { GET } from 'api/tier-continuum/route';
 import { NextRequest } from 'next/server';
 
-// Mock database adapter
-const mockSingleQuery = jest.fn();
-
-jest.mock('lib/dbAdapter', () => ({
-  SingleQuery: (...args: any[]) => mockSingleQuery(...args),
-}));
+// Get the mock function
+const mockSingleQuery = require('lib/dbAdapter').SingleQuery;
 
 describe('/api/tier-continuum', () => {
   beforeEach(() => {

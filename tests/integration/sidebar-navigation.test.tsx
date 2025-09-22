@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionProvider } from 'next-auth/react';
 import UserSidebar from '(protected)/components/UserSidebar';
+import { UserSettingsProvider } from 'context/UserSettingsContext';
 
 // Mock next-auth
 const mockUseSession = jest.fn();
@@ -14,32 +15,36 @@ jest.mock('next-auth/react', () => ({
 // Mock Next.js Link
 jest.mock('next/link', () => {
   return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
-    return <a href={href}>{children}</a>;
+    return React.createElement('a', { href }, children);
   };
-});
+}, { virtual: true });
 
-// Mock UserSettingsContext
-jest.mock('context/UserSettingsContext', () => ({
-  useUserSettings: jest.fn(() => ({
-    userSettings: {
-      general: {
-        sidebarExpandMode: 'hover',
-      },
+// Create a test wrapper with UserSettingsProvider
+const TestWrapper = ({ children }: { children: React.ReactNode }) => {
+  const mockUserSettings = {
+    general: {
+      sidebarExpandMode: 'hover' as const,
     },
-  })),
-}));
+  };
+
+  return (
+    <UserSettingsProvider userSettings={mockUserSettings}>
+      {children}
+    </UserSettingsProvider>
+  );
+};
 
 // Mock client utilities
 jest.mock('lib/utils/clientUtils', () => ({
   getFetchBaseUrl: jest.fn(() => Promise.resolve('http://localhost:3000')),
-}));
+}), { virtual: true });
 
 // Mock client logger
 jest.mock('lib/logging/logger.client', () => ({
   clientLogger: {
     error: jest.fn(),
   },
-}));
+}), { virtual: true });
 
 // Mock environment variables
 process.env.NEXT_PUBLIC_COGNITO_CLIENT = 'test-client-id';
@@ -69,14 +74,29 @@ describe('Sidebar Navigation Integration', () => {
       configurable: true,
       value: 1024,
     });
+
+    // Mock matchMedia for desktop detection
+    Object.defineProperty(window, 'matchMedia', {
+      writable: true,
+      value: jest.fn().mockImplementation(query => ({
+        matches: query === '(min-width: 768px)',
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      })),
+    });
   });
 
   describe('Desktop Navigation Flow', () => {
     it('expands sidebar on hover in hover mode', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={false} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const sidebar = screen.getByRole('navigation').closest('div');
@@ -87,9 +107,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('collapses sidebar on mouse leave in hover mode', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const sidebar = screen.getByRole('navigation').closest('div');
@@ -99,20 +119,25 @@ describe('Sidebar Navigation Integration', () => {
     });
 
     it('expands sidebar on click in click mode', () => {
-      // Mock click mode
-      const mockUseUserSettings = require('context/UserSettingsContext').useUserSettings;
-      mockUseUserSettings.mockReturnValue({
-        userSettings: {
+      // Update the TestWrapper to use click mode
+      const ClickModeWrapper = ({ children }: { children: React.ReactNode }) => {
+        const mockUserSettings = {
           general: {
-            sidebarExpandMode: 'click',
+            sidebarExpandMode: 'click' as const,
           },
-        },
-      });
+        };
+
+        return (
+          <UserSettingsProvider userSettings={mockUserSettings}>
+            {children}
+          </UserSettingsProvider>
+        );
+      };
 
       render(
-        <SessionProvider>
+        <ClickModeWrapper>
           <UserSidebar expanded={false} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </ClickModeWrapper>
       );
 
       const avatar = screen.getByText('TU');
@@ -130,26 +155,41 @@ describe('Sidebar Navigation Integration', () => {
         configurable: true,
         value: 500,
       });
+
+      // Mock matchMedia for mobile detection
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: jest.fn().mockImplementation(query => ({
+          matches: query === '(min-width: 768px)' ? false : true,
+          media: query,
+          onchange: null,
+          addListener: jest.fn(),
+          removeListener: jest.fn(),
+          addEventListener: jest.fn(),
+          removeEventListener: jest.fn(),
+          dispatchEvent: jest.fn(),
+        })),
+      });
     });
 
     it('shows hamburger menu when sidebar is collapsed', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={false} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
-      expect(screen.getByRole('button', { name: /open sidebar/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
     });
 
     it('opens sidebar when hamburger menu is clicked', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={false} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
-      const hamburgerButton = screen.getByRole('button', { name: /open sidebar/i });
+      const hamburgerButton = screen.getByRole('button', { name: /expand sidebar/i });
       fireEvent.click(hamburgerButton);
 
       expect(mockSetExpanded).toHaveBeenCalledWith(true);
@@ -157,9 +197,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('shows backdrop when sidebar is open', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const backdrop = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-40');
@@ -168,9 +208,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('closes sidebar when backdrop is clicked', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const backdrop = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-40');
@@ -183,9 +223,9 @@ describe('Sidebar Navigation Integration', () => {
   describe('Section Navigation Flow', () => {
     it('expands lifestyle section and shows sub-links', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const lifestyleButton = screen.getByText(/lifestyle/i);
@@ -197,9 +237,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('expands health section and shows sub-links', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const healthButton = screen.getByText(/health/i);
@@ -211,9 +251,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('expands nutrition section and shows sub-links', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const nutritionButton = screen.getByText(/nutrition/i);
@@ -224,9 +264,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('expands fitness section and shows sub-links', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const fitnessButton = screen.getByText(/fitness/i);
@@ -240,9 +280,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('collapses section when clicked again', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const lifestyleButton = screen.getByText(/lifestyle/i);
@@ -260,9 +300,9 @@ describe('Sidebar Navigation Integration', () => {
   describe('User Profile Integration', () => {
     it('displays user initials correctly', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       expect(screen.getByText('TU')).toBeInTheDocument(); // Test User initials
@@ -270,9 +310,9 @@ describe('Sidebar Navigation Integration', () => {
 
     it('displays user full name when expanded', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       expect(screen.getByText('Test User')).toBeInTheDocument();
@@ -280,13 +320,14 @@ describe('Sidebar Navigation Integration', () => {
 
     it('provides access to user bio and settings', () => {
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
-      const bioLink = screen.getByRole('link', { name: /user bio/i });
-      const settingsLink = screen.getByRole('link', { name: /user settings/i });
+      const links = screen.getAllByRole('link', { name: '' });
+      const bioLink = links.find(link => link.getAttribute('href') === '/user/bio');
+      const settingsLink = links.find(link => link.getAttribute('href') === '/user/settings');
 
       expect(bioLink).toHaveAttribute('href', '/user/bio');
       expect(settingsLink).toHaveAttribute('href', '/user/settings');
@@ -297,9 +338,9 @@ describe('Sidebar Navigation Integration', () => {
       global.fetch = mockFetch;
 
       render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={true} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       const logoutButton = screen.getByText(/logout/i);
@@ -317,13 +358,13 @@ describe('Sidebar Navigation Integration', () => {
   describe('Responsive Behavior', () => {
     it('adapts to window resize events', () => {
       const { rerender } = render(
-        <SessionProvider>
+        <TestWrapper>
           <UserSidebar expanded={false} setExpanded={mockSetExpanded} />
-        </SessionProvider>
+        </TestWrapper>
       );
 
       // Initially mobile viewport
-      expect(screen.getByRole('button', { name: /open sidebar/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
 
       // Simulate resize to desktop
       Object.defineProperty(window, 'innerWidth', {
@@ -335,7 +376,7 @@ describe('Sidebar Navigation Integration', () => {
       fireEvent(window, new Event('resize'));
 
       // Should still work after resize
-      expect(screen.getByRole('button', { name: /open sidebar/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /expand sidebar/i })).toBeInTheDocument();
     });
   });
 });

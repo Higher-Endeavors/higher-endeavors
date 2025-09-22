@@ -1,0 +1,90 @@
+For large NextJS codebases, there are several effective approaches to centralizing tests. Here are the current best practices:
+
+## Recommended Folder Structure
+
+The most common and maintainable approach is a hybrid structure:
+
+```
+project-root/
+├── __tests__/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+├── tests/
+│   ├── __fixtures__/
+│   ├── __mocks__/
+│   ├── utils/
+│   └── setup/
+├── src/
+│   ├── components/
+│   ├── pages/
+│   └── utils/
+└── e2e/
+    ├── specs/
+    ├── fixtures/
+    └── config/
+```
+
+## Specific Recommendations by Test Type
+
+**Jest (Unit/Integration Tests):**
+- Use `__tests__/` or `tests/` at the root level
+- Mirror your `src/` structure within the test folder
+- Example: `tests/unit/components/Button.test.tsx` for `src/components/Button.tsx`
+
+**React Testing Library:**
+- Keep component tests in `tests/unit/components/`
+- Page-level integration tests in `tests/integration/pages/`
+- Custom hook tests in `tests/unit/hooks/`
+
+**Playwright (E2E Tests):**
+- Separate `e2e/` folder at root level (Playwright's default)
+- Or use `tests/e2e/` if you prefer everything under tests
+
+## Configuration Setup
+
+**Jest Configuration (jest.config.js):**
+```javascript
+module.exports = {
+  testMatch: [
+    '<rootDir>/__tests__/**/*.(test|spec).{js,jsx,ts,tsx}',
+    '<rootDir>/tests/**/*.(test|spec).{js,jsx,ts,tsx}'
+  ],
+  moduleNameMapping: {
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@tests/(.*)$': '<rootDir>/tests/$1'
+  }
+}
+```
+
+**Playwright Configuration (playwright.config.ts):**
+```typescript
+export default defineConfig({
+  testDir: './e2e', // or './tests/e2e'
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } }
+  ]
+})
+```
+
+## Best Practices for Large Codebases
+
+1. **Test Organization:**
+   - Group by feature/domain rather than test type when the codebase grows very large
+   - Use consistent naming: `ComponentName.test.tsx`, `feature.e2e.ts`
+
+2. **Shared Utilities:**
+   - Create `tests/utils/` for test helpers and utilities
+   - `tests/__fixtures__/` for mock data
+   - `tests/__mocks__/` for module mocks
+
+3. **Path Aliases:**
+   - Configure path aliases in both test configs and tsconfig
+   - Use `@tests/` alias for importing test utilities
+
+4. **CI/CD Considerations:**
+   - Separate test commands: `npm run test:unit`, `npm run test:e2e`
+   - Different CI jobs for different test types
+   - Parallel execution strategies
+
+This approach keeps tests organized, maintainable, and allows for easy CI/CD pipeline configuration while avoiding the sprawl that can occur with co-located tests in large codebases.
