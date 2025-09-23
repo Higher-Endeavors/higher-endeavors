@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getProgramsForAnalysis } from '../actions/getProgramsForAnalysis';
 import type { ProgramForAnalysis } from '../../types/analysis.zod';
 
 interface UseProgramsForAnalysisResult {
@@ -21,12 +20,13 @@ export function useProgramsForAnalysis(userId: number): UseProgramsForAnalysisRe
     setError(null);
 
     try {
-      const result = await getProgramsForAnalysis({ userId });
+      const response = await fetch(`/api/resistance-training/programs-for-analysis?user_id=${userId}`);
+      const data = await response.json();
       
-      if (result.success && result.programs) {
-        setPrograms(result.programs);
+      if (data.success && data.programs) {
+        setPrograms(data.programs);
       } else {
-        setError(result.error || 'Failed to fetch programs');
+        setError(data.error || 'Failed to fetch programs');
       }
     } catch (err) {
       console.error('Error fetching programs for analysis:', err);

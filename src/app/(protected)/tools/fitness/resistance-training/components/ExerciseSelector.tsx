@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import Select from 'react-select';
-import { getUserExercises, type UserExercise } from '../analyze/lib/actions/getUserExercises';
+import { useExercises, type Exercise } from '../analyze/lib/hooks/useExercises';
 
 interface ExerciseSelectorProps {
-  onExerciseSelect: (exercise: UserExercise | null) => void;
-  selectedExercise: UserExercise | null;
+  onExerciseSelect: (exercise: Exercise | null) => void;
+  selectedExercise: Exercise | null;
   userId: number;
   isLoading?: boolean;
   disabled?: boolean;
@@ -19,35 +19,7 @@ export default function ExerciseSelector({
   isLoading = false,
   disabled = false
 }: ExerciseSelectorProps) {
-  const [exercises, setExercises] = useState<UserExercise[]>([]);
-  const [isLoadingExercises, setIsLoadingExercises] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch all exercises when userId changes (for dropdown population)
-  useEffect(() => {
-    const fetchExercises = async () => {
-      if (!userId) return;
-      
-      setIsLoadingExercises(true);
-      setError(null);
-
-      try {
-        const result = await getUserExercises({ userId });
-        if (result.success && result.exercises) {
-          setExercises(result.exercises);
-        } else {
-          setError(result.error || 'Failed to fetch exercises');
-        }
-      } catch (err) {
-        console.error('Error fetching exercises:', err);
-        setError(err instanceof Error ? err.message : 'Failed to fetch exercises');
-      } finally {
-        setIsLoadingExercises(false);
-      }
-    };
-
-    fetchExercises();
-  }, [userId]);
+  const { exercises, isLoading: isLoadingExercises, error } = useExercises(userId);
 
   // Convert exercises to options for react-select
   const exerciseOptions = exercises.map(exercise => ({
@@ -81,7 +53,7 @@ export default function ExerciseSelector({
 
   return (
     <div className="space-y-2">
-      <label htmlFor="exercise-selector" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+      <label htmlFor="exercise-selector" className="block text-sm font-medium text-gray-700 dark:text-gray-700">
         Select Exercise for Analysis
       </label>
       
@@ -155,7 +127,7 @@ export default function ExerciseSelector({
       {selectedExercise && (
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           Found in {selectedExercise.programCount} program{selectedExercise.programCount !== 1 ? 's' : ''} 
-          ({selectedExercise.totalInstances} total instance{selectedExercise.totalInstances !== 1 ? 's' : ''})
+          ({selectedExercise.instanceCount} total instance{selectedExercise.instanceCount !== 1 ? 's' : ''})
         </div>
       )}
     </div>

@@ -11,7 +11,6 @@ import { useExerciseSelection } from '../lib/hooks/useExerciseSelection';
 import { useExerciseAnalysis } from '../lib/hooks/useExerciseAnalysis';
 import type { ProgramForAnalysis } from '../types/analysis.zod';
 import type { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
-import type { UserExercise } from '../lib/actions/getUserExercises';
 import { useProgramAnalysis } from '../lib/hooks/useProgramAnalysis';
 import { calculateVolumeProgression } from '../lib/volumeCalculations';
 import { clientLogger } from 'lib/logging/logger.client';
@@ -27,7 +26,7 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
   const [selectedExercises, setSelectedExercises] = useState<number[]>([]);
   const [loadUnit, setLoadUnit] = useState<'lbs' | 'kg'>('lbs');
   const [programData, setProgramData] = useState<{ periodizationType?: string; progressionRules?: any } | null>(null);
-  const [timeframe, setTimeframe] = useState<string>('week');
+  const [timeframe, setTimeframe] = useState<string>('year');
   const [analysisMode, setAnalysisMode] = useState<'program' | 'exercise'>('program');
 
   // Exercise selection state

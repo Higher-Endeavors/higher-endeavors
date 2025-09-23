@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getProgramAnalysis } from '../actions/getProgramAnalysis';
 import type { ProgramVolumeAnalysis } from '../../types/analysis.zod';
 
 interface UseProgramAnalysisResult {
@@ -30,16 +29,15 @@ export function useProgramAnalysis(
     setError(null);
 
     try {
-      const result = await getProgramAnalysis({ 
-        programId, 
-        userId, 
-        loadUnit 
-      });
+      const response = await fetch(
+        `/api/resistance-training/program-analysis?program_id=${programId}&user_id=${userId}&load_unit=${loadUnit}`
+      );
+      const data = await response.json();
       
-      if (result.success && result.analysis) {
-        setAnalysis(result.analysis);
+      if (data.success && data.analysis) {
+        setAnalysis(data.analysis);
       } else {
-        setError(result.error || 'Failed to fetch program analysis');
+        setError(data.error || 'Failed to fetch program analysis');
       }
     } catch (err) {
       console.error('Error fetching program analysis:', err);

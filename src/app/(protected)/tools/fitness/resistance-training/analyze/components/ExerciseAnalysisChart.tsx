@@ -13,7 +13,18 @@ import {
   Legend,
   ChartOptions
 } from 'chart.js';
-import type { ExerciseAnalysisData } from '../lib/actions/getExerciseAnalysis';
+// Define the interface locally since we removed the action file
+interface ExerciseAnalysisData {
+  exerciseName: string;
+  instances: any[];
+  timeframeData: {
+    period: string;
+    instances: any[];
+    averageLoadVolume: number;
+    totalLoadVolume: number;
+    instanceCount: number;
+  }[];
+}
 
 ChartJS.register(
   CategoryScale,
@@ -40,6 +51,25 @@ export default function ExerciseAnalysisChart({
   timeframe,
   onTimeframeChange
 }: ExerciseAnalysisChartProps) {
+  // Check if exercise uses bodyweight or non-integer loads
+  const isBodyweightOrNonIntegerLoad = () => {
+    if (!analysis.instances || analysis.instances.length === 0) return false;
+    
+    // Check if any instance has bodyweight indicators or non-integer loads
+    return analysis.instances.some((inst: any) => {
+      // Check for bodyweight indicators
+      if (inst.loadUnit === 'BW' || inst.loadUnit === 'bw' || inst.loadUnit === 'bodyweight') {
+        return true;
+      }
+      
+      // Check for non-integer loads (like 0, empty, or non-numeric)
+      const load = parseFloat(inst.totalLoad);
+      return isNaN(load) || load === 0 || !Number.isInteger(load);
+    });
+  };
+
+  const useRepVolume = isBodyweightOrNonIntegerLoad();
+
   const chartOptions: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
@@ -54,7 +84,7 @@ export default function ExerciseAnalysisChart({
       },
       title: {
         display: true,
-        text: `${analysis.exerciseName} - Load Volume Progression`,
+        text: `${analysis.exerciseName} - ${useRepVolume ? 'Rep Volume' : 'Load Volume'} Progression`,
         font: {
           size: 16,
           weight: 'bold'
@@ -72,44 +102,37 @@ export default function ExerciseAnalysisChart({
         callbacks: {
           title: function(context: any) {
             const dataIndex = context[0]?.dataIndex;
-            const periodData = analysis.timeframeData[dataIndex];
-            return periodData ? periodData.period : `Period ${(dataIndex || 0) + 1}`;
+            const instances = [...analysis.instances].sort(
+              (a: any, b: any) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+            );
+            const inst = instances[dataIndex];
+            return inst ? `${inst.programName} (Week ${inst.programInstance})` : `Instance ${(dataIndex || 0) + 1}`;
           },
           label: function(context: any) {
-            const dataIndex = context[0]?.dataIndex;
-            const periodData = analysis.timeframeData[dataIndex];
-            
-            if (!periodData || periodData.instances.length === 0) {
-              return 'No data';
-            }
-            
-            const instances = periodData.instances;
-            const totalLoadVolume = periodData.totalLoadVolume;
-            const instanceCount = periodData.instanceCount;
-            
-            return [
-              `Load Volume: ${totalLoadVolume.toFixed(1)} ${loadUnit}`,
-              `Instances: ${instanceCount}`,
-              `Programs: ${instances.map(inst => inst.programName).join(', ')}`,
-              `Execution Dates: ${instances.map(inst => new Date(inst.executionDate).toLocaleDateString()).join(', ')}`
-            ];
+            return ''; // Empty label since we're using afterBody
           },
           afterBody: function(context: any) {
             const dataIndex = context[0]?.dataIndex;
-            const periodData = analysis.timeframeData[dataIndex];
+            const instances = [...analysis.instances].sort(
+              (a: any, b: any) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+            );
+            const inst = instances[dataIndex];
             
-            if (!periodData || periodData.instances.length === 0) {
+            if (!inst) {
               return [];
             }
             
-            // Show individual instance details
-            return periodData.instances.map(instance => [
-              `  ${instance.programName} (Week ${instance.programInstance}):`,
-              `    Reps: ${instance.reps}, Sets: ${instance.sets}`,
-              `    Load: ${instance.load} ${instance.loadUnit}`,
-              `    Rep Volume: ${instance.repVolume}`,
-              `    Load Volume: ${instance.loadVolume.toFixed(1)} ${loadUnit}`
-            ]).flat();
+            // Show only the data we want: Sets, Rep Volume, and Load Volume (if applicable)
+            const tooltipData = [
+              `Sets: ${inst.totalSets}`,
+              `Rep Volume: ${inst.repVolume}`
+            ];
+            
+            if (!useRepVolume) {
+              tooltipData.push(`Load Volume: ${inst.loadVolume.toFixed(1)} ${loadUnit}`);
+            }
+            
+            return tooltipData;
           }
         }
       }
@@ -133,7 +156,7 @@ export default function ExerciseAnalysisChart({
         display: true,
         title: {
           display: true,
-          text: `Load Volume (${loadUnit})`,
+          text: useRepVolume ? 'Rep Volume' : `Load Volume (${loadUnit})`,
           color: 'rgb(156, 163, 175)', // gray-400 for dark mode
         },
         ticks: {
@@ -152,14 +175,23 @@ export default function ExerciseAnalysisChart({
     }
   };
 
-  // Prepare chart data
+  // Prepare chart data - plot each exercise instance as its own point
   const getChartData = () => {
-    const labels = analysis.timeframeData.map(period => period.period);
-    
+    // Ensure stable chronological order
+    const instances = [...analysis.instances].sort(
+      (a: any, b: any) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+    );
+
+    const labels = instances.map((inst: any, idx: number) => {
+      const date = new Date(inst.executionDate);
+      const dateStr = isNaN(date.getTime()) ? `Instance ${idx + 1}` : date.toLocaleDateString();
+      return `${dateStr} (W${inst.programInstance ?? ''})`;
+    });
+
     const datasets = [{
-      label: 'Load Volume',
-      data: analysis.timeframeData.map(period => period.totalLoadVolume),
-      borderColor: '#DC2626', // Bold red for load volume
+      label: useRepVolume ? 'Rep Volume' : 'Load Volume',
+      data: instances.map((inst: any) => useRepVolume ? inst.repVolume : inst.loadVolume),
+      borderColor: '#DC2626', // Bold red for volume
       backgroundColor: '#DC2626',
       borderWidth: 3,
       pointRadius: 6,
@@ -179,7 +211,7 @@ export default function ExerciseAnalysisChart({
       <div className="mb-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-800">
-            Exercise Load Volume Progression
+            Exercise Volume Progression
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -214,7 +246,7 @@ export default function ExerciseAnalysisChart({
           </div>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-700">
-          Track {analysis.exerciseName} load volume progression across time periods. 
+          Track {analysis.exerciseName} {useRepVolume ? 'rep volume' : 'load volume'} progression across time periods. 
           Hover over data points to see detailed rep, set, and program information.
         </p>
       </div>
@@ -225,26 +257,11 @@ export default function ExerciseAnalysisChart({
       </div>
 
       {/* Summary Statistics */}
-      <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="mt-6 grid grid-cols-1 gap-4">
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-700">Total Instances</p>
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-700">
             {analysis.instances.length}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-700">Time Periods</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-700">
-            {analysis.timeframeData.length}
-          </p>
-        </div>
-        <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-700">Avg Load Volume</p>
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-700">
-            {analysis.timeframeData.length > 0 
-              ? (analysis.timeframeData.reduce((sum, period) => sum + period.averageLoadVolume, 0) / analysis.timeframeData.length).toFixed(1)
-              : '0'
-            } {loadUnit}
           </p>
         </div>
       </div>
