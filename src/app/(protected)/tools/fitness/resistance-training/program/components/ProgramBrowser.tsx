@@ -5,11 +5,11 @@ import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
 import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
-import { getResistancePrograms } from '(protected)/tools/fitness/resistance-training/lib/hooks/getResistancePrograms';
-import { useResistanceTemplates } from '(protected)/tools/fitness/resistance-training/lib/hooks/useResistanceTemplates';
-import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/lib/hooks/useTemplateData';
-import { deleteResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/deleteResistanceProgram';
-import { duplicateResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/duplicateResistanceProgram';
+import { getResistancePrograms } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getResistancePrograms';
+import { useResistanceTemplates } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useResistanceTemplates';
+import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
+import { deleteResistanceProgram } from '(protected)/tools/fitness/resistance-training/program/lib/actions/deleteResistanceProgram';
+import { duplicateResistanceProgram } from '(protected)/tools/fitness/resistance-training/program/lib/actions/duplicateResistanceProgram';
 import { clientLogger } from 'lib/logging/logger.client';
 
 // How many programs to show per page
@@ -22,7 +22,11 @@ interface ProgramBrowserProps {
   onProgramDelete?: (programId: number) => void;
   newProgramHandler?: () => void;
   isProgramLoaded?: boolean;
+  // Analysis mode props
+  analysisMode?: boolean;
+  selectedProgramId?: number | null;
   hideMenu?: boolean;
+  programDataStatus?: Map<number, { hasActualData: boolean; exerciseCount: number }>;
 }
 
 interface MenuState {
@@ -48,6 +52,9 @@ export default function ProgramBrowser({
   onProgramDelete,
   newProgramHandler,
   isProgramLoaded,
+  analysisMode = false,
+  selectedProgramId = null,
+  programDataStatus = new Map(),
   hideMenu = false
 }: ProgramBrowserProps) {
   // State management
@@ -356,9 +363,11 @@ export default function ProgramBrowser({
   return (
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">Saved Programs</h2>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">
+          {analysisMode ? 'Select Program to Analyze' : 'Saved Programs'}
+        </h2>
         <div className="flex items-center space-x-2">
-          {isProgramLoaded && newProgramHandler && (
+          {!analysisMode && isProgramLoaded && newProgramHandler && (
             <button
               className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
               onClick={(e) => {
@@ -383,35 +392,37 @@ export default function ProgramBrowser({
 
       {isOpen && (
         <div className="mt-4">
-          {/* Template/Program Toggle */}
-          <div className="mb-4 p-3 bg-white dark:bg-white rounded-md border border-gray-200 dark:border-gray-300">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center space-x-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.showTemplates}
-                    onChange={(e) => setFilters({ ...filters, showTemplates: e.target.checked })}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
-                    Show Higher Endeavors Templates
-                  </span>
-                </label>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={filters.hideOwnPrograms}
-                    onChange={(e) => setFilters({ ...filters, hideOwnPrograms: e.target.checked })}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
-                    Hide My Programs
-                  </span>
-                </label>
+          {/* Template/Program Toggle - Hidden in analysis mode */}
+          {!analysisMode && (
+            <div className="mb-4 p-3 bg-white dark:bg-white rounded-md border border-gray-200 dark:border-gray-300">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div className="flex items-center space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.showTemplates}
+                      onChange={(e) => setFilters({ ...filters, showTemplates: e.target.checked })}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
+                      Show Higher Endeavors Templates
+                    </span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.hideOwnPrograms}
+                      onChange={(e) => setFilters({ ...filters, hideOwnPrograms: e.target.checked })}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-slate-900">
+                      Hide My Programs
+                    </span>
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Search and Filters */}
           <div className="space-y-4 mb-6">
@@ -471,8 +482,8 @@ export default function ProgramBrowser({
               </select>
             </div>
 
-            {/* Template-specific filters */}
-            {filters.showTemplates && (
+            {/* Template-specific filters - Hidden in analysis mode */}
+            {!analysisMode && filters.showTemplates && (
               <div className="grid grid-cols-2 gap-4">
                 <select
                   className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
@@ -517,7 +528,9 @@ export default function ProgramBrowser({
               </svg>
               <p className="text-lg font-medium mb-2">No Items Found</p>
               <p className="text-sm text-center">
-                {filters.showTemplates && filters.hideOwnPrograms 
+                {analysisMode
+                  ? "No programs found for analysis. Create a resistance training program first."
+                  : filters.showTemplates && filters.hideOwnPrograms 
                   ? "No templates match your search criteria"
                   : "Create your first Resistance Training Program to get started"
                 }
@@ -534,6 +547,8 @@ export default function ProgramBrowser({
                       className={`border rounded-md p-4 hover:bg-gray-50 dark:hover:bg-gray-100 cursor-pointer relative ${
                         isTemplateItem 
                           ? 'border-purple-200 bg-purple-50 dark:bg-purple-50 dark:border-purple-300' 
+                          : analysisMode && selectedProgramId === item.resistanceProgramId
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                           : 'border-gray-200 dark:border-gray-300 bg-white dark:bg-white'
                       }`}
                       onClick={() => handleItemClick(item)}
@@ -547,6 +562,15 @@ export default function ProgramBrowser({
                             {isTemplateItem && (
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-200 dark:text-purple-900">
                                 Template
+                              </span>
+                            )}
+                            {analysisMode && !isTemplateItem && programDataStatus.has(item.resistanceProgramId) && (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                programDataStatus.get(item.resistanceProgramId)?.hasActualData
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-200 dark:text-green-900'
+                                  : 'bg-orange-100 text-orange-800 dark:bg-orange-200 dark:text-orange-900'
+                              }`}>
+                                {programDataStatus.get(item.resistanceProgramId)?.hasActualData ? 'Has actual data' : 'Planned only'}
                               </span>
                             )}
                           </div>
@@ -613,6 +637,9 @@ export default function ProgramBrowser({
                           <div className="flex space-x-4">
                             <span>Periodization Type: {item.periodizationType || 'None'}</span>
                             <span>Phase Focus: {item.phaseFocus || 'Not specified'}</span>
+                            {analysisMode && programDataStatus.has(item.resistanceProgramId) && (
+                              <span>Exercises: {programDataStatus.get(item.resistanceProgramId)?.exerciseCount || 0}</span>
+                            )}
                           </div>
                           {/* Template-specific information */}
                           {isTemplateItem && item.templateInfo && (

@@ -2,15 +2,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import UserSelector from '(protected)/components/UserSelector';
-import ProgramBrowser from '(protected)/tools/fitness/resistance-training/components/ProgramBrowser';
-import ProgramSettings from '(protected)/tools/fitness/resistance-training/components/ProgramSettings';
-import ExerciseList from '(protected)/tools/fitness/resistance-training/components/ExerciseList';
-import SessionSummary from '(protected)/tools/fitness/resistance-training/components/SessionSummary';
-import AddExerciseModal from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
-import DayTabs from '(protected)/tools/fitness/resistance-training/components/DayTabs';
+import ProgramBrowser from '(protected)/tools/fitness/resistance-training/program/components/ProgramBrowser';
+import ProgramSettings from '(protected)/tools/fitness/resistance-training/program/components/ProgramSettings';
+import ExerciseList from '(protected)/tools/fitness/resistance-training/program/components/ExerciseList';
+import SessionSummary from '(protected)/tools/fitness/resistance-training/program/components/SessionSummary';
+import AddExerciseModal from '(protected)/tools/fitness/resistance-training/program/modals/AddExerciseModal';
+import DayTabs from '(protected)/tools/fitness/resistance-training/program/components/DayTabs';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 import type { FitnessSettings } from 'lib/types/userSettings.zod';
-import type { ExerciseWithSource } from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
 import { generateProgressedWeeks } from '(protected)/tools/fitness/lib/calculations/resistanceTrainingCalculations';
 import { saveResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/saveResistanceProgram';
 import { updateResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/updateResistanceProgram';

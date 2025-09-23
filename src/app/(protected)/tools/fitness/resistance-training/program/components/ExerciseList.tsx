@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import AddExerciseModal from '(protected)/tools/fitness/resistance-training/modals/AddExerciseModal';
-import ExerciseItemPlan from '(protected)/tools/fitness/resistance-training/components/ExerciseItemPlan';
-import ExerciseItemAct from '(protected)/tools/fitness/resistance-training/components/ExerciseItemAct';
+import AddExerciseModal from '(protected)/tools/fitness/resistance-training/program/modals/AddExerciseModal';
+import ExerciseItemPlan from '(protected)/tools/fitness/resistance-training/program/components/ExerciseItemPlan';
+import ExerciseItemAct from '(protected)/tools/fitness/resistance-training/program/components/ExerciseItemAct';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 import { FiCalendar } from 'react-icons/fi';
 
