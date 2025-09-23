@@ -183,7 +183,7 @@ export async function getGarminDeviceAttribution(): Promise<string> {
   }
 
   try {
-    const deviceInfo = await getGarminDeviceInfo(session.user.id);
+    const deviceInfo = await getGarminDeviceInfo(parseInt(session.user.id));
     return deviceInfo.attribution;
   } catch (error) {
     await serverLogger.error('Error fetching Garmin device attribution', error, { userId: session.user.id });
