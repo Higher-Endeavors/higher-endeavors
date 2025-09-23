@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Select from 'react-select';
 import React from 'react';
-import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/lib/hooks/useTemplateData';
-import { useTierContinuum } from '(protected)/tools/fitness/resistance-training/lib/hooks/useTemplateData';
+import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
+import { useTierContinuum } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
 
 interface ProgramSettingsProps {
   programLength: number;
