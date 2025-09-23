@@ -1,6 +1,8 @@
 "use client";
 
 import { useSession } from 'next-auth/react';
+import Image from 'next/image';
+import garminLogo from '@/public/Garmin_Connect_app_1024x1024-02.png';
 
 const Footer = () => {
   const { data: session } = useSession();
@@ -30,10 +32,12 @@ const Footer = () => {
         <div className="flex flex-col items-end space-y-2">
           <p className="text-sm text-[#C7DBFF] opacity-75">Biometric data sourced from</p>
           <div className="flex items-center space-x-3">
-            <img 
-              src="/Garmin_Connect_app_1024x1024-02.png" 
+            <Image 
+              src={garminLogo} 
               alt="Garmin Connect" 
-              className="w-6 h-6 rounded"
+              width={24}
+              height={24}
+              className="rounded"
             />
             <span className="text-sm text-[#C7DBFF]">Garmin Connect</span>
           </div>
