@@ -122,6 +122,18 @@ export default function ExerciseAnalysisChart({
               return [];
             }
             
+            // Calculate percent change from previous week
+            let percentChange = null;
+            if (dataIndex > 0) {
+              const previousInst = instances[dataIndex - 1];
+              const currentValue = useRepVolume ? inst.repVolume : inst.loadVolume;
+              const previousValue = useRepVolume ? previousInst.repVolume : previousInst.loadVolume;
+              
+              if (previousValue > 0) {
+                percentChange = ((currentValue - previousValue) / previousValue) * 100;
+              }
+            }
+            
             // Show only the data we want: Sets, Rep Volume, and Load Volume (if applicable)
             const tooltipData = [
               `Sets: ${inst.totalSets}`,
@@ -130,6 +142,13 @@ export default function ExerciseAnalysisChart({
             
             if (!useRepVolume) {
               tooltipData.push(`Load Volume: ${inst.loadVolume.toFixed(1)} ${loadUnit}`);
+            }
+            
+            // Add percent change if available
+            if (percentChange !== null) {
+              const changeText = percentChange > 0 ? `+${percentChange.toFixed(1)}%` : `${percentChange.toFixed(1)}%`;
+              const changeColor = percentChange > 0 ? 'text-green-500' : percentChange < 0 ? 'text-red-500' : 'text-gray-500';
+              tooltipData.push(`Change: ${changeText}`);
             }
             
             return tooltipData;
@@ -257,11 +276,41 @@ export default function ExerciseAnalysisChart({
       </div>
 
       {/* Summary Statistics */}
-      <div className="mt-6 grid grid-cols-1 gap-4">
+      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="text-center">
           <p className="text-sm text-gray-600 dark:text-gray-700">Total Instances</p>
           <p className="text-lg font-semibold text-gray-900 dark:text-gray-700">
             {analysis.instances.length}
+          </p>
+        </div>
+        <div className="text-center">
+          <p className="text-sm text-gray-600 dark:text-gray-700">Overall Change</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-700">
+            {(() => {
+              if (analysis.instances.length < 2) {
+                return 'N/A';
+              }
+              
+              // Sort instances chronologically
+              const sortedInstances = [...analysis.instances].sort(
+                (a: any, b: any) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+              );
+              
+              const firstInstance = sortedInstances[0];
+              const lastInstance = sortedInstances[sortedInstances.length - 1];
+              
+              const firstValue = useRepVolume ? firstInstance.repVolume : firstInstance.loadVolume;
+              const lastValue = useRepVolume ? lastInstance.repVolume : lastInstance.loadVolume;
+              
+              if (firstValue === 0) {
+                return 'N/A';
+              }
+              
+              const percentChange = ((lastValue - firstValue) / firstValue) * 100;
+              const changeText = percentChange > 0 ? `+${percentChange.toFixed(1)}%` : `${percentChange.toFixed(1)}%`;
+              
+              return changeText;
+            })()}
           </p>
         </div>
       </div>

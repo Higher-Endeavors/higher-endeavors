@@ -313,6 +313,7 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
               analysisMode={true}
               selectedProgramId={selectedProgramId}
               programDataStatus={programDataStatus}
+              hideMenu={true}
             />
           </div>
         )}
