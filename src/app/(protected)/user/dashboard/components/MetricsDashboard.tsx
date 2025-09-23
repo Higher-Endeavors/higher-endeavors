@@ -7,12 +7,14 @@ import StressLevelWidget from '(protected)/user/widgets/StressLevelWidget';
 import MetricCard from '(protected)/user/widgets/MetricCard';
 import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 import Link from 'next/link';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 
 interface MetricsDashboardProps {
   className?: string;
 }
 
-export default function MetricsDashboard({ className = '' }: MetricsDashboardProps) {
+export default async function MetricsDashboard({ className = '' }: MetricsDashboardProps) {
+  const garminAttribution = await getGarminDeviceAttribution();
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
@@ -32,11 +34,11 @@ export default function MetricsDashboard({ className = '' }: MetricsDashboardPro
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Core Health Metrics */}
         <BodyCompositionWidget />
-        <HeartRateWidget />
-        <SleepWidget />
-        <CaloriesBurnedWidget />
-        <StepsWidget />
-        <StressLevelWidget />
+        <HeartRateWidget garminAttribution={garminAttribution} />
+        <SleepWidget garminAttribution={garminAttribution} />
+        <CaloriesBurnedWidget garminAttribution={garminAttribution} />
+        <StepsWidget garminAttribution={garminAttribution} />
+        <StressLevelWidget garminAttribution={garminAttribution} />
       </div>
     </div>
   );

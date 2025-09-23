@@ -4,12 +4,14 @@ import TrainingLoadWidget from '(protected)/user/widgets/TrainingLoadWidget';
 import RecoveryStatusWidget from '(protected)/user/widgets/RecoveryStatusWidget';
 import WorkoutIntensityWidget from '(protected)/user/widgets/WorkoutIntensityWidget';
 import WeeklyGoalsWidget from '(protected)/user/widgets/WeeklyGoalsWidget';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 
 interface FitnessDashboardProps {
   className?: string;
 }
 
-export default function FitnessDashboard({ className = '' }: FitnessDashboardProps) {
+export default async function FitnessDashboard({ className = '' }: FitnessDashboardProps) {
+  const garminAttribution = await getGarminDeviceAttribution();
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
@@ -26,8 +28,8 @@ export default function FitnessDashboard({ className = '' }: FitnessDashboardPro
       {/* Fitness Metrics Grid - 4 columns on desktop, 2 on mobile */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Core Training Metrics */}
-        <WeeklyVolumeWidget />
-        <TimeInZonesWidget />
+        <WeeklyVolumeWidget garminAttribution={garminAttribution} />
+        <TimeInZonesWidget garminAttribution={garminAttribution} />
         <TrainingLoadWidget />
         <RecoveryStatusWidget />
         

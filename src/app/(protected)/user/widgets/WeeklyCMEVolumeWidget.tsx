@@ -14,6 +14,7 @@ interface WeeklyVolumeWidgetProps {
   unit?: string;
   className?: string;
   onClick?: () => void;
+  garminAttribution?: string;
 }
 
 export default function WeeklyVolumeWidget({ 
@@ -21,7 +22,8 @@ export default function WeeklyVolumeWidget({
   actualVolume,
   unit = 'min',
   className = '',
-  onClick 
+  onClick,
+  garminAttribution
 }: WeeklyVolumeWidgetProps) {
   const [volumeData, setVolumeData] = useState({
     totalVolume: 0,
@@ -144,8 +146,8 @@ export default function WeeklyVolumeWidget({
             </span>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mt-1" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mt-1" />
         )}
         <div className={`flex items-center gap-1 text-xs ${getTrendColor(trend)}`}>
           {getTrendIcon(trend)}

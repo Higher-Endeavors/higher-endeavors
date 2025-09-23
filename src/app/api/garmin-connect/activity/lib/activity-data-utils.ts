@@ -508,3 +508,54 @@ export async function getActivityStatsByType(userId: number, days: number = 30):
     throw error;
   }
 }
+
+// Get Garmin device information for a user
+export async function getGarminDeviceInfo(userId: number): Promise<{
+  deviceName: string | null;
+  attribution: string;
+}> {
+  try {
+    // Get the most recent activity to extract device name
+    const sql = `
+      SELECT device_name
+      FROM ${ACTIVITIES_TABLE}
+      WHERE user_id = $1 
+        AND manual = false
+        AND device_name IS NOT NULL
+        AND device_name != ''
+      ORDER BY created_at DESC
+      LIMIT 1
+    `;
+
+    const result = await SingleQuery(sql, [userId]);
+    
+    if (result.rows.length > 0) {
+      const deviceName = result.rows[0].device_name;
+      
+      if (deviceName) {
+        // Remove "Garmin" prefix if it exists to avoid redundancy
+        const cleanDeviceName = deviceName.startsWith('Garmin ') 
+          ? deviceName.substring(7) 
+          : deviceName;
+        
+        return {
+          deviceName,
+          attribution: `Garmin ${cleanDeviceName}`
+        };
+      }
+    }
+    
+    return {
+      deviceName: null,
+      attribution: 'Garmin device-sourced data'
+    };
+
+  } catch (error) {
+    await serverLogger.error('Error retrieving Garmin device info', error, { userId });
+    
+    return {
+      deviceName: null,
+      attribution: 'Garmin device-sourced data'
+    };
+  }
+}

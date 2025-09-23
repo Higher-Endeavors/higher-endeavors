@@ -12,13 +12,15 @@ interface CaloriesBurnedWidgetProps {
   className?: string;
   showProgress?: boolean;
   onClick?: () => void;
+  garminAttribution?: string;
 }
 
 export default function CaloriesBurnedWidget({ 
   data,
   className = '',
   showProgress = true,
-  onClick 
+  onClick,
+  garminAttribution
 }: CaloriesBurnedWidgetProps) {
   const [calorieData, setCalorieData] = useState({
     latestCalories: null as any,
@@ -150,8 +152,8 @@ export default function CaloriesBurnedWidget({
             </span>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mt-1" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mt-1" />
         )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">

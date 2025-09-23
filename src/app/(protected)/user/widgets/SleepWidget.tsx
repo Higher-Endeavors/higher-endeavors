@@ -12,12 +12,14 @@ interface SleepWidgetProps {
   data?: WidgetData;
   className?: string;
   onClick?: () => void;
+  garminAttribution?: string;
 }
 
 export default function SleepWidget({ 
   data,
   className = '',
-  onClick 
+  onClick,
+  garminAttribution
 }: SleepWidgetProps) {
   const [sleepData, setSleepData] = useState({
     latestSleep: null as any,
@@ -179,8 +181,8 @@ export default function SleepWidget({
             </span>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mt-1" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mt-1" />
         )}
         {finalData.trend && finalData.trend !== 'neutral' && (
           <div className="flex items-center gap-1 text-xs text-slate-500">

@@ -11,9 +11,10 @@ import GarminAttribution from './components/GarminAttribution';
 
 interface StressLevelWidgetProps {
   className?: string;
+  garminAttribution?: string;
 }
 
-export default function StressLevelWidget({ className = '' }: StressLevelWidgetProps) {
+export default function StressLevelWidget({ className = '', garminAttribution }: StressLevelWidgetProps) {
   const [stressData, setStressData] = useState({
     latestStress: null as any,
     previousStress: null as any,
@@ -154,8 +155,8 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
             </div>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mb-2" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mb-2" />
         )}
         
         {/* Value */}

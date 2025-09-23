@@ -4,6 +4,7 @@ import { auth } from 'auth';
 import { getClient, SingleQuery } from 'lib/dbAdapter';
 import { serverLogger } from 'lib/logging/logger.server';
 import { UserSettings, UserSettingsSchema } from 'lib/types/userSettings.zod';
+import { getGarminDeviceInfo } from 'api/garmin-connect/activity/lib/activity-data-utils';
 
 // --- Server Actions ---
 export async function getUserSettings(): Promise<UserSettings | null> {
@@ -171,5 +172,21 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     throw error;
   } finally {
     client.release();
+  }
+}
+
+// Get Garmin device attribution for the current user
+export async function getGarminDeviceAttribution(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return 'Garmin device-sourced data';
+  }
+
+  try {
+    const deviceInfo = await getGarminDeviceInfo(session.user.id);
+    return deviceInfo.attribution;
+  } catch (error) {
+    await serverLogger.error('Error fetching Garmin device attribution', error, { userId: session.user.id });
+    return 'Garmin device-sourced data';
   }
 } 
