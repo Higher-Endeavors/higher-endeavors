@@ -22,6 +22,7 @@ interface ProgramBrowserProps {
   onProgramDelete?: (programId: number) => void;
   newProgramHandler?: () => void;
   isProgramLoaded?: boolean;
+  hideMenu?: boolean;
 }
 
 interface MenuState {
@@ -46,7 +47,8 @@ export default function ProgramBrowser({
   isAdmin = false,
   onProgramDelete,
   newProgramHandler,
-  isProgramLoaded
+  isProgramLoaded,
+  hideMenu = false
 }: ProgramBrowserProps) {
   // State management
   const [programs, setPrograms] = useState<ProgramListItem[]>([]);
@@ -552,18 +554,19 @@ export default function ProgramBrowser({
                             {format(new Date(item.createdAt), 'MMM d, yyyy')}
                           </span>
                         </div>
-                        <div className="relative">
-                          <button
-                            onClick={(e) => handleMenuClick(e, item.resistanceProgramId)}
-                            className={`p-2 rounded-full ${
-                              isTemplateItem 
-                                ? 'hover:bg-purple-100 dark:hover:bg-purple-200' 
-                                : 'hover:bg-gray-100 dark:hover:bg-gray-200'
-                            }`}
-                          >
-                            <HiOutlineDotsVertical className={`w-5 h-5 ${isTemplateItem ? 'text-purple-500 dark:text-purple-600' : 'text-gray-500 dark:text-slate-600'}`} />
-                          </button>
-                          {menuState[item.resistanceProgramId] && (
+                        {!hideMenu && (
+                          <div className="relative">
+                            <button
+                              onClick={(e) => handleMenuClick(e, item.resistanceProgramId)}
+                              className={`p-2 rounded-full ${
+                                isTemplateItem 
+                                  ? 'hover:bg-purple-100 dark:hover:bg-purple-200' 
+                                  : 'hover:bg-gray-100 dark:hover:bg-gray-200'
+                              }`}
+                            >
+                              <HiOutlineDotsVertical className={`w-5 h-5 ${isTemplateItem ? 'text-purple-500 dark:text-purple-600' : 'text-gray-500 dark:text-slate-600'}`} />
+                            </button>
+                            {menuState[item.resistanceProgramId] && (
                             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-white rounded-md shadow-lg z-10 border border-gray-200 dark:border-gray-300">
                               <div className="py-1">
                                 {isTemplateItem ? (
@@ -602,7 +605,8 @@ export default function ProgramBrowser({
                               </div>
                             </div>
                           )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                       <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
                         <div className="flex flex-col space-y-1">
