@@ -9,9 +9,10 @@ import GarminAttribution from './components/GarminAttribution';
 
 interface ActiveMinutesWidgetProps {
   className?: string;
+  garminAttribution?: string;
 }
 
-export default function ActiveMinutesWidget({ className = '' }: ActiveMinutesWidgetProps) {
+export default function ActiveMinutesWidget({ className = '', garminAttribution }: ActiveMinutesWidgetProps) {
   const [activeMinutesData, setActiveMinutesData] = useState({
     latestActiveMinutes: null as any,
     previousActiveMinutes: null as any,
@@ -151,8 +152,8 @@ export default function ActiveMinutesWidget({ className = '' }: ActiveMinutesWid
             </div>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mb-2" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mb-2" />
         )}
         
         {/* Value */}

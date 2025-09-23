@@ -21,11 +21,13 @@ interface ZoneData {
 interface TimeInZonesWidgetProps {
   className?: string;
   onClick?: () => void;
+  garminAttribution?: string;
 }
 
 export default function TimeInZonesWidget({ 
   className = '',
-  onClick 
+  onClick,
+  garminAttribution
 }: TimeInZonesWidgetProps) {
   const [zonesData, setZonesData] = useState({
     zones: [] as ZoneData[],
@@ -176,8 +178,8 @@ export default function TimeInZonesWidget({
             </span>
           )}
         </div>
-        {!isDemoData && isGarminConnected && (
-          <GarminAttribution className="mt-1" />
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mt-1" />
         )}
         <div className="text-xs text-slate-600">
           {loading ? 'Loading...' : displayError ? '0/0 min' : `${displayTotalActual}/${displayTotalPlanned} min`}
