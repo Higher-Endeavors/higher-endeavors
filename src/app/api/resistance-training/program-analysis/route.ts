@@ -4,6 +4,7 @@ import { auth } from 'auth';
 import { serverLogger } from 'lib/logging/logger.server';
 import type { ProgramVolumeAnalysis } from '(protected)/tools/fitness/resistance-training/analyze/types/analysis.zod';
 import type { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { calculateProgramVolumeAnalysis } from '(protected)/tools/fitness/resistance-training/analyze/lib/volumeCalculations';
 
 export async function GET(request: Request) {
   try {
@@ -73,7 +74,6 @@ export async function GET(request: Request) {
     }
     
     // Calculate volume analysis
-    const { calculateProgramVolumeAnalysis } = await import('(protected)/tools/fitness/resistance-training/analyze/lib/volumeCalculations');
     const volumeAnalysis = calculateProgramVolumeAnalysis(program, weeklyExercises, loadUnit);
     
     return NextResponse.json({
