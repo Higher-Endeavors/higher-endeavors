@@ -3,13 +3,16 @@
 import { useState } from 'react';
 import { HiChevronDown, HiChevronUp } from 'react-icons/hi';
 import type { PerformanceRecord } from '../lib/performance-records.zod';
+import type { StructuralBalanceImbalance } from '../lib/hooks/useStructuralBalanceAnalysis';
+import StructuralBalanceAlert from './StructuralBalanceAlert';
 
 interface ExercisePRCardProps {
   exerciseName: string;
   records: PerformanceRecord[];
+  imbalances?: StructuralBalanceImbalance[];
 }
 
-export default function ExercisePRCard({ exerciseName, records }: ExercisePRCardProps) {
+export default function ExercisePRCard({ exerciseName, records, imbalances = [] }: ExercisePRCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -32,9 +35,21 @@ export default function ExercisePRCard({ exerciseName, records }: ExercisePRCard
             <h3 className="text-lg font-semibold text-gray-900 truncate">
               {exerciseName}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {records.length} personal record{records.length !== 1 ? 's' : ''}
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {records.length} personal record{records.length !== 1 ? 's' : ''}
+              </p>
+              {imbalances.length > 0 && (
+                <div className="flex items-center space-x-1">
+                  <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                    {imbalances.length} imbalance{imbalances.length !== 1 ? 's' : ''}
+                  </span>
+                  <span className="text-lg">
+                    {imbalances.some(i => i.severity === 'red') ? '🚨' : '⚠️'}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
           <div className="ml-4 flex-shrink-0">
             {isExpanded ? (
@@ -76,6 +91,12 @@ export default function ExercisePRCard({ exerciseName, records }: ExercisePRCard
                 </div>
               ))}
           </div>
+          
+          {/* Structural Balance Alerts */}
+          <StructuralBalanceAlert 
+            imbalances={imbalances} 
+            exerciseName={exerciseName} 
+          />
         </div>
       )}
     </div>

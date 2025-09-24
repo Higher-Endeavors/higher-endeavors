@@ -1,13 +1,15 @@
 import ExercisePRCard from "./ExercisePRCard";
 import type { ExercisePerformanceRecords } from '../lib/performance-records.zod';
+import type { StructuralBalanceImbalance } from '../lib/hooks/useStructuralBalanceAnalysis';
 
 interface PRListProps {
   records: ExercisePerformanceRecords;
+  imbalances?: { [exerciseName: string]: StructuralBalanceImbalance[] };
   isLoading?: boolean;
   error?: string | null;
 }
 
-export default function PRList({ records, isLoading, error }: PRListProps) {
+export default function PRList({ records, imbalances = {}, isLoading, error }: PRListProps) {
   if (isLoading) {
     return (
       <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
@@ -45,6 +47,7 @@ export default function PRList({ records, isLoading, error }: PRListProps) {
           key={exerciseName}
           exerciseName={exerciseName}
           records={exerciseRecords}
+          imbalances={imbalances[exerciseName] || []}
         />
       ))}
     </div>

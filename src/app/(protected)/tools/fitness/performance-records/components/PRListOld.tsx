@@ -4,14 +4,16 @@ import { useState } from 'react';
 import { HiChevronDown, HiChevronUp } from 'react-icons/hi';
 import PRItemOld from "./PRItemOld";
 import type { ExercisePerformanceRecords } from '../lib/performance-records.zod';
+import type { StructuralBalanceImbalance } from '../lib/hooks/useStructuralBalanceAnalysis';
 
 interface PRListOldProps {
   records: ExercisePerformanceRecords;
+  imbalances?: { [exerciseName: string]: StructuralBalanceImbalance[] };
   isLoading?: boolean;
   error?: string | null;
 }
 
-export default function PRListOld({ records, isLoading, error }: PRListOldProps) {
+export default function PRListOld({ records, imbalances = {}, isLoading, error }: PRListOldProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (exerciseName: string) => {
@@ -59,6 +61,7 @@ export default function PRListOld({ records, isLoading, error }: PRListOldProps)
     <div className="bg-gray-100 dark:bg-[#e0e0e0] rounded-lg shadow p-6 mb-4">
       {Object.entries(records).map(([exerciseName, exerciseRecords]) => {
         const isExpanded = expandedSections.has(exerciseName);
+        const exerciseImbalances = imbalances[exerciseName] || [];
         
         return (
           <section key={exerciseName} className="mb-8">
@@ -67,9 +70,21 @@ export default function PRListOld({ records, isLoading, error }: PRListOldProps)
               onClick={() => toggleSection(exerciseName)}
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">
-                  {exerciseName}
-                </h2>
+                <div className="flex items-center space-x-3">
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-900">
+                    {exerciseName}
+                  </h2>
+                  {exerciseImbalances.length > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <span className="text-xs font-medium text-orange-600 dark:text-orange-400">
+                        {exerciseImbalances.length} imbalance{exerciseImbalances.length !== 1 ? 's' : ''}
+                      </span>
+                      <span className="text-lg">
+                        {exerciseImbalances.some(i => i.severity === 'red') ? '🚨' : '⚠️'}
+                      </span>
+                    </div>
+                  )}
+                </div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     {exerciseRecords.length} record{exerciseRecords.length !== 1 ? 's' : ''}
@@ -91,6 +106,7 @@ export default function PRListOld({ records, isLoading, error }: PRListOldProps)
                     key={`${exerciseName}-${record.repCount}-${index}`} 
                     record={record} 
                     exerciseName={exerciseName}
+                    imbalances={exerciseImbalances}
                   />
                 ))}
               </div>

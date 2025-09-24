@@ -5,6 +5,7 @@ import PRList from "./components/PRList";
 import PRListOld from "./components/PRListOld";
 import TimeframeSelectorOld from "./components/TimeframeSelectorOld";
 import { usePerformanceRecords } from "./lib/hooks/usePerformanceRecords";
+import { useStructuralBalanceAnalysis } from "./lib/hooks/useStructuralBalanceAnalysis";
 
 export default function PerformanceRecordsPage() {
   const { data: session } = useSession();
@@ -14,6 +15,14 @@ export default function PerformanceRecordsPage() {
   const { data, isLoading, error, refetch } = usePerformanceRecords(
     session?.user?.id ? parseInt(session.user.id) : 0,
     timeframe
+  );
+
+  const { 
+    data: structuralBalanceData, 
+    isLoading: isStructuralBalanceLoading, 
+    error: structuralBalanceError 
+  } = useStructuralBalanceAnalysis(
+    session?.user?.id ? parseInt(session.user.id) : 0
   );
 
   if (!session?.user?.id) {
@@ -72,18 +81,25 @@ export default function PerformanceRecordsPage() {
       {data && (
         <div className="mb-6 text-sm text-gray-600 dark:text-gray-400">
           Showing {data.totalRecords} records across {data.totalExercises} exercises
+          {structuralBalanceData && structuralBalanceData.totalImbalances > 0 && (
+            <span className="ml-4 text-orange-600 dark:text-orange-400 font-medium">
+              • {structuralBalanceData.totalImbalances} structural balance issue{structuralBalanceData.totalImbalances !== 1 ? 's' : ''} detected
+            </span>
+          )}
         </div>
       )}
       
       {useCardLayout ? (
         <PRList 
           records={data?.records || {}} 
+          imbalances={structuralBalanceData?.imbalances || {}}
           isLoading={isLoading} 
           error={error} 
         />
       ) : (
         <PRListOld 
           records={data?.records || {}} 
+          imbalances={structuralBalanceData?.imbalances || {}}
           isLoading={isLoading} 
           error={error} 
         />
