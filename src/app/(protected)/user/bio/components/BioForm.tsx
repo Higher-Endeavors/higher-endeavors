@@ -2,15 +2,15 @@
 
 'use client';
 
-import React, { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import React, { useState, useEffect } from 'react';
+import { useForm, FormProvider, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Select from 'react-select';
 import countries from 'world-countries';
-import { Toast } from 'flowbite-react';
+import { useToast } from 'lib/toast';
 import { HiCheck, HiX } from 'react-icons/hi';
-import { bioFormSchema, type BioFormData, type CountryOption } from '../types/bio';
-import { useUserSettings } from '@/app/lib/hooks/useUserSettings';
+import { bioFormSchema, type BioFormData, type CountryOption } from '(protected)/user/bio/types/bio';
+import { clientLogger } from 'lib/logging/logger.client';
 
 // Format country data for react-select
 let countryOptions = countries.map((country) => ({
@@ -26,11 +26,12 @@ if (usIndex > -1) {
 }
 
 export default function BioForm() {
-  const { settings } = useUserSettings();
-  const [showSuccessToast, setShowSuccessToast] = React.useState(false);
-  const [showErrorToast, setShowErrorToast] = React.useState(false);
+  const { success, error } = useToast();
   const [selectedGender, setSelectedGender] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(true);
+  const [settings, setSettings] = React.useState<any>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -83,7 +84,8 @@ export default function BioForm() {
           setSelectedGender(data.gender);
         }
       } catch (error) {
-        console.error('Error loading bio data:', error);
+        clientLogger.error('Error loading bio data', error);
+        setFetchError(error instanceof Error ? error.message : 'Error loading bio data');
       } finally {
         setIsLoading(false);
       }
@@ -91,6 +93,22 @@ export default function BioForm() {
 
     loadBioData();
   }, [setValue]);
+
+  React.useEffect(() => {
+    let isMounted = true;
+    async function fetchSettings() {
+      try {
+        const res = await fetch('/api/user-settings');
+        if (!res.ok) throw new Error('Failed to fetch user settings');
+        const data = await res.json();
+        if (isMounted) setSettings(data);
+      } catch (error) {
+        if (isMounted) setSettings(null);
+      }
+    }
+    fetchSettings();
+    return () => { isMounted = false; };
+  }, []);
 
   const onSubmit = async (data: BioFormData) => {
     try {
@@ -106,12 +124,13 @@ export default function BioForm() {
         throw new Error('Failed to save bio data');
       }
 
-      setShowSuccessToast(true);
-      setTimeout(() => setShowSuccessToast(false), 3000);
-    } catch (error) {
-      console.error('Error saving bio:', error);
-      setShowErrorToast(true);
-      setTimeout(() => setShowErrorToast(false), 3000);
+      // Show success toast
+      success('Bio updated successfully');
+      
+    } catch (err) {
+      // Show error toast
+      error('Failed to update bio');
+      setSubmitError('Failed to update bio');
     }
   };
 
@@ -125,30 +144,6 @@ export default function BioForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Success Toast */}
-      {showSuccessToast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-100 text-green-500">
-              <HiCheck className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">Bio updated successfully</div>
-          </Toast>
-        </div>
-      )}
-
-      {/* Error Toast */}
-      {showErrorToast && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Toast>
-            <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-100 text-red-500">
-              <HiX className="h-5 w-5" />
-            </div>
-            <div className="ml-3 text-sm font-normal">Failed to update bio</div>
-          </Toast>
-        </div>
-      )}
-
       {/* Personal Information Section */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold dark:text-slate-600">Personal Information</h2>

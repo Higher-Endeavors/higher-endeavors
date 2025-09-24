@@ -1,8 +1,8 @@
 import { SessionProvider } from "next-auth/react";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
-import RecipeList from "./components/RecipeList";
-import { getRecipes } from "@/app/lib/cmsAdapter";
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import RecipeList from "(protected)/guide/recipes/components/RecipeList";
+import { getRecipes } from "lib/cmsAdapter";
 
 export default async function RecipesPage() {
     const recipes = await getRecipes();

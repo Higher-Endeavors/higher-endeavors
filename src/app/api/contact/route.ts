@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { VerifaliaRestClient } from "verifalia";
-import { adminNoticeEmail } from "@/app/lib/adminNoticeEmail";
+import { adminNoticeEmail } from "lib/adminNoticeEmail";
+import { serverLogger } from 'lib/logging/logger.server';
 const Client = require("pg").Client;
 
 const username = process.env.VERIFALIA_USERNAME;
@@ -36,15 +37,16 @@ export async function POST(request: Request) {
       throw new Error("Invalid Turnstile token");
     }
   } catch (error) {
-        // Send email notification
-        await adminNoticeEmail(
-          "noreply@higherendeavors.com",
-          `Suspicious contact form submission`,
-          `
-          <p>Turnstile verification failed for email: ${email}</p>
-        `
-        );
-    
+    await serverLogger.error('Turnstile verification failed', error, { email });
+    // Send email notification
+    await adminNoticeEmail(
+      "noreply@higherendeavors.com",
+      `Suspicious contact form submission`,
+      `
+      <p>Turnstile verification failed for email: ${email}</p>
+    `
+    );
+
     return NextResponse.json(
       { error: `Turnstile verification failed. Error code: ${error}`, status: 400 },
       { status: 400 }
@@ -72,6 +74,7 @@ export async function POST(request: Request) {
     
     }
   } catch (error) {
+    await serverLogger.error('Verifalia email verification error', error, { email });
     // Send email notification
     await adminNoticeEmail(
       "noreply@higherendeavors.com",
@@ -118,10 +121,8 @@ export async function POST(request: Request) {
     await client.query(query);
     await client.end();
   } catch (error) {
-
-    //
+    await serverLogger.error('Database error storing contact', error, { email, inquiryType });
     // Send email notification
-    //
     await adminNoticeEmail(
       "noreply@higherendeavors.com",
       `Postgresql error: ${error}`,

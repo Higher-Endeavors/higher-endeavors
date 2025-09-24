@@ -1,7 +1,7 @@
 import { SessionProvider } from 'next-auth/react';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
-import AccessRedirectContent from './components/AccessRedirectContent';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import AccessRedirectContent from '(public)/(misc)/access-redirect/components/AccessRedirectContent';
 import { Suspense } from 'react';
 
 export const metadata = {

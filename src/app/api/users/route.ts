@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
-import { auth } from "@/app/auth";
+import { getClient, SingleQuery } from "lib/dbAdapter";
+import { auth } from "auth";
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -30,10 +31,7 @@ export async function GET(request: NextRequest) {
       users: result.rows
     });
   } catch (error) {
-    console.error('Error in users API route:', error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    await serverLogger.error('Error in users API route', error);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 } 

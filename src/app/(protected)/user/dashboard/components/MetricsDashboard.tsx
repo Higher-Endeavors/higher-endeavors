@@ -1,0 +1,45 @@
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import BodyCompositionWidget from '(protected)/user/widgets/BodyCompositionWidget';
+import StressLevelWidget from '(protected)/user/widgets/StressLevelWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import Link from 'next/link';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
+
+interface MetricsDashboardProps {
+  className?: string;
+}
+
+export default async function MetricsDashboard({ className = '' }: MetricsDashboardProps) {
+  const garminAttribution = await getGarminDeviceAttribution();
+  return (
+    <div className={`space-y-6 ${className}`}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-200">At a Glance</h2>
+          <p className="text-slate-600 dark:text-slate-400">Your daily Pillar metrics</p>
+        </div>
+        <button className="text-sky-600 hover:text-sky-800 font-medium text-sm">
+          <Link href="/user/widgets">
+          See All →
+          </Link>
+        </button>
+      </div>
+
+      {/* Metrics Grid - 4 columns on desktop, 2 on mobile */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Core Health Metrics */}
+        <BodyCompositionWidget />
+        <HeartRateWidget garminAttribution={garminAttribution} />
+        <SleepWidget garminAttribution={garminAttribution} />
+        <CaloriesBurnedWidget garminAttribution={garminAttribution} />
+        <StepsWidget garminAttribution={garminAttribution} />
+        <StressLevelWidget garminAttribution={garminAttribution} />
+      </div>
+    </div>
+  );
+}

@@ -18,10 +18,10 @@ const FitnessIcon = () => (
 
 const PillarCard = ({ icon, title, description, link }) => (
   <Link href={link} className="block">
-    <div className="bg-sacral-chakra p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
+    <div className="bg-solar-plexus-chakra p-6 rounded-3xl text-black shadow-md flex flex-col items-center h-full transition-transform hover:scale-105">
       <div className="mb-4 flex justify-center">{icon}</div>
       <h3 className="text-2xl font-bold mb-2 text-center">{title}</h3>
-      <p className="text-xl text-center flex-grow flex items-center">{description}</p>
+      <p className="text-xl text-center flex-grow">{description}</p>
     </div>
   </Link>
 );
@@ -31,25 +31,57 @@ const Pillars = () => {
     {
       icon: <LifestyleIcon />,
       title: 'Lifestyle',
-      description: 'Lifestyle encompasses how you structure your daily life and, more importantly, why you make the choices you do. This includes your daily routines, habits, social interactions, work-life balance, hobbies, and activities. Understanding and optimizing these aspects can lead to a fulfilling and balanced life, enabling you to become the best version of yourself.',
+      description: (
+        <>
+          <br />
+          <strong>Stop surviving, start designing your life.</strong>
+          <br />
+          <br />
+          Structure your time, habits, and energy around what matters most, so every day moves you closer to the life you want.
+        </>
+      ),
       link: '/guide/lifestyle-overview',
     },
     {
       icon: <HealthIcon />,
       title: 'Health',
-      description: 'Health is often perceived simply as the absence of disease. However, at Higher Endeavors, we view health as a dynamic continuum ranging from death to vibrant vitality. Our approach incorporates the principles of Functional Medicine, focusing on achieving balance within the individual through personalized, holistic care. This overview explores the importance of various health aspects and guides you on a journey toward realizing your ideal self.',
+      description: (
+        <>
+          <br />
+          <strong>You're not broken, you're out of balance.</strong>
+          <br />
+          <br />
+          Discover what's holding you back and restore your body's natural rhythm to feel fully alive again.
+        </>
+      ),
       link: '/guide/health-overview',
     },
     {
       icon: <NutritionIcon />,
       title: 'Nutrition',
-      description: 'Nutrition focuses on providing the body with the essential nutrients it needs to optimize physiological function, ensuring you can perform at your best both mentally and physically. Nutrition plays a critical role in fueling your daily activities, enhancing recovery, and supporting long-term health. At the core of this pillar is the idea that food is not merely fuel but a tool that, when used effectively, can empower you to manage stress, improve resilience, and progress toward your ideal self.',
+      description: (
+        <>
+          <br />
+          <strong>Feed the life you're meant to live.</strong>
+          <br />
+          <br />
+          Cut through the noise and fuel your body with what it truly needs, one intentional choice at a time. 
+        </>
+      ),
       link: '/guide/nutrition-overview',
     },
     {
       icon: <FitnessIcon />,
       title: 'Fitness',
-      description: 'The Fitness pillar is focused on training for life. It’s not just about achieving temporary goals or hitting certain numbers in the gym — it’s about developing the physical characteristics that represent your ideal self. Resistance training, CardioMetabolic training, and Active Recovery are the methods used to train for life. The ultimate goal is to create a body that is capable, resilient, and aligned with your personal vision of health and performance.',
+      description: (
+        <>
+          <br />
+          <strong>Train for life, not just for a moment.</strong>
+          <br />
+          <br />
+          Build a body that's strong, resilient, and aligned with your personal vision of health and performance.
+        </>
+      ),
       link: '/guide/fitness-overview',
     },
   ];
@@ -58,6 +90,12 @@ const Pillars = () => {
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">HighEnd Pillars</h2>
+        <p className="text-center text-gray-700 font-bold max-w-2xl mx-auto mb-8 text-lg dark:text-gray-100">
+          True transformation takes more than just working out or eating better.
+        </p>
+        <p className="text-center text-gray-700 max-w-2xl mx-auto mb-12 text-lg dark:text-gray-100">
+          To become your Ideal Self, you must address every facet of your life, how you live, how you feel, how you fuel, and how you move. The Four Pillars of Higher Endeavors: Lifestyle, Health, Nutrition, and Fitness, work together to create a clear, integrated path to real, lasting change. When you align all four, progress isn&apos;t just possible, it&apos;s sustainable.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {pillars.map((pillar, index) => (
             <PillarCard key={index} {...pillar} />

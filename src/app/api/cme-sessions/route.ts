@@ -1,0 +1,183 @@
+import { NextResponse } from 'next/server';
+import { SingleQuery } from 'lib/dbAdapter';
+import { auth } from 'auth';
+import { serverLogger } from 'lib/logging/logger.server';
+
+export async function GET(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('id');
+    const userId = searchParams.get('userId') || session.user.id;
+
+    if (sessionId) {
+      // Fetch specific session with activities
+      const sessionQuery = `
+        SELECT 
+          s.cme_session_id,
+          s.user_id,
+          s.session_name,
+          s.macrocycle_phase,
+          s.focus_block,
+          s.notes,
+          s.start_date,
+          s.end_date,
+          s.created_at,
+          s.updated_at
+        FROM cme_sessions s
+        WHERE s.cme_session_id = $1 AND (s.user_id = $2 OR s.user_id = 1)
+      `;
+      const sessionValues = [sessionId, userId];
+      const sessionResult = await SingleQuery(sessionQuery, sessionValues);
+
+      if (!sessionResult.rows.length) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+
+      // Fetch activities separately
+      const activitiesQuery = `
+        SELECT 
+          sa.cme_session_activity_id,
+          sa.cme_session_id,
+          sa.cme_activity_family_id,
+          sa.cme_activity_library_id,
+          sa.planned_steps,
+          sa.actual_steps,
+          sa.notes,
+          sa.created_at,
+          sa.updated_at,
+          cal.activity as activity_name,
+          caf.activity_family_name as activity_family
+        FROM cme_sessions_activities sa
+        LEFT JOIN cme_activity_library cal ON sa.cme_activity_library_id = cal.cme_activity_library_id
+        LEFT JOIN cme_activity_family caf ON sa.cme_activity_family_id = caf.cme_activity_family_id
+        WHERE sa.cme_session_id = $1
+        ORDER BY sa.created_at
+      `;
+      const activitiesValues = [sessionId];
+      const activitiesResult = await SingleQuery(activitiesQuery, activitiesValues);
+
+      // Combine session and activities
+      const sessionData = sessionResult.rows[0];
+      const activities = activitiesResult.rows.map((ex: any) => ({
+        cme_session_activity_id: ex.cme_session_activity_id,
+        cme_session_id: ex.cme_session_id,
+        cme_activity_family_id: ex.cme_activity_family_id,
+        cme_activity_library_id: ex.cme_activity_library_id,
+        planned_steps: ex.planned_steps,
+        actual_steps: ex.actual_steps,
+        notes: ex.notes,
+        created_at: ex.created_at,
+        updated_at: ex.updated_at,
+        activity_name: ex.activity_name,
+        activity_family: ex.activity_family,
+      }));
+
+      // Get template information if this is a template session
+      let templateInfo = null;
+      if (sessionData.user_id === 1) {
+        const templateQuery = `
+          SELECT 
+            cst.tier_continuum_id,
+            htc.tier_continuum_name
+          FROM cme_session_templates cst
+          LEFT JOIN highend_tier_continuum htc ON cst.tier_continuum_id = htc.tier_continuum_id
+          WHERE cst.cme_session_id = $1
+        `;
+        const templateResult = await SingleQuery(templateQuery, [sessionId]);
+        if (templateResult.rows.length > 0) {
+          templateInfo = {
+            tierContinuumId: templateResult.rows[0].tier_continuum_id,
+            tierContinuumName: templateResult.rows[0].tier_continuum_name
+          };
+        }
+      }
+
+      return NextResponse.json({
+        session_id: sessionData.cme_session_id,
+        user_id: sessionData.user_id,
+        session_name: sessionData.session_name,
+        macrocycle_phase: sessionData.macrocycle_phase,
+        focus_block: sessionData.focus_block,
+        notes: sessionData.notes,
+        start_date: sessionData.start_date,
+        end_date: sessionData.end_date,
+        created_at: sessionData.created_at,
+        updated_at: sessionData.updated_at,
+        activities,
+        templateInfo,
+      });
+    } else {
+      // Fetch list of sessions for the user
+      const sessionsQuery = `
+        SELECT 
+          s.cme_session_id,
+          s.user_id,
+          s.session_name,
+          s.macrocycle_phase,
+          s.focus_block,
+          s.notes,
+          s.start_date,
+          s.end_date,
+          s.created_at,
+          s.updated_at,
+          COUNT(sa.cme_session_activity_id) as activity_count,
+          STRING_AGG(
+            COALESCE(cal.activity, 'Unknown Activity'), 
+            ', ' 
+            ORDER BY sa.created_at
+          ) as activity_summary,
+          -- Template information (only for templates)
+          CASE 
+            WHEN s.user_id = 1 THEN COALESCE((
+              SELECT json_build_object(
+                'tierContinuumId', COALESCE(cst.tier_continuum_id, 1),
+                'tierContinuumName', COALESCE(htc.tier_continuum_name, 'Healthy')
+              )
+              FROM cme_session_templates cst
+              LEFT JOIN highend_tier_continuum htc ON cst.tier_continuum_id = htc.tier_continuum_id
+              WHERE cst.cme_session_id = s.cme_session_id
+            ), '{"tierContinuumId": 1, "tierContinuumName": "Healthy"}'::json)
+            ELSE NULL
+          END as template_info
+        FROM cme_sessions s
+        LEFT JOIN cme_sessions_activities sa ON s.cme_session_id = sa.cme_session_id
+        LEFT JOIN cme_activity_library cal ON sa.cme_activity_library_id = cal.cme_activity_library_id
+        WHERE s.user_id = $1
+        GROUP BY s.cme_session_id, s.user_id, s.session_name, s.macrocycle_phase, s.focus_block, s.notes, s.start_date, s.end_date, s.created_at, s.updated_at
+        ORDER BY s.created_at DESC
+      `;
+      const sessionsValues = [userId];
+      const sessionsResult = await SingleQuery(sessionsQuery, sessionsValues);
+
+      const sessions = sessionsResult.rows.map((session: any) => ({
+        cme_session_id: session.cme_session_id,
+        user_id: session.user_id,
+        session_name: session.session_name,
+        macrocycle_phase: session.macrocycle_phase,
+        focus_block: session.focus_block,
+        notes: session.notes,
+        start_date: session.start_date,
+        end_date: session.end_date,
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        activity_count: parseInt(session.activity_count) || 0,
+        activity_summary: session.activity_summary || 'No activities',
+        // Template information (only for templates)
+        templateInfo: session.template_info || null,
+      }));
+
+      return NextResponse.json({ sessions });
+    }
+  } catch (error) {
+    serverLogger.error('Error fetching CME sessions:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}

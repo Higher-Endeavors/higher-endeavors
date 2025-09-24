@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
-import { auth } from "@/app/auth";
+import { getClient, SingleQuery } from "lib/dbAdapter";
+import { auth } from "auth";
+import { serverLogger } from 'lib/logging/logger.server';
 
 interface BodyCompositionData {
   weight: number;
@@ -62,21 +63,18 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('Error in body composition API route:', error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    await serverLogger.error('Error in body composition API route', error);
+    return NextResponse.json({ error: 'Failed to save body composition' }, { status: 500 });
   }
 }
 
 export async function GET(request: NextRequest) {
   try {
-    console.log('API route: Starting authentication check');
+    serverLogger.info('API route: Starting authentication check');
     const session = await auth();
     
     if (!session?.user?.id) {
-      console.log('API route: Unauthorized - no user ID in session');
+      serverLogger.info('API route: Unauthorized - no user ID in session');
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -89,13 +87,13 @@ export async function GET(request: NextRequest) {
     const isAdmin = await checkAdminAccess(parseInt(session.user.id));
     const effectiveUserId = parsedTargetUserId && isAdmin ? parsedTargetUserId : parseInt(session.user.id);
 
-    console.log('API route: Fetching entries from database');
+    serverLogger.info('API route: Fetching entries from database');
     const result = await SingleQuery(
       `SELECT * FROM body_composition_entries WHERE user_id = $1 ORDER BY created_at DESC`,
       [effectiveUserId]
     );
 
-    console.log('Debug - Raw DB Result:', JSON.stringify(result.rows[0], null, 2));
+    serverLogger.info('Debug - Raw DB Result:', { result: JSON.stringify(result.rows[0], null, 2) });
 
     // Transform the data to match the frontend types
     const entries = result.rows.map((entry: any) => {
@@ -130,13 +128,10 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log('API route: Successfully fetched entries');
+    serverLogger.info('API route: Successfully fetched entries');
     return NextResponse.json({ entries });
   } catch (error) {
-    console.error("Error fetching body composition entries:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch body composition entries" },
-      { status: 500 }
-    );
+    await serverLogger.error('Error fetching body composition entries', error);
+    return NextResponse.json({ error: 'Failed to fetch body composition entries' }, { status: 500 });
   }
 } 

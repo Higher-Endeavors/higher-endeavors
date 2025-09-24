@@ -1,10 +1,6 @@
 {
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -21,10 +17,9 @@
         "name": "next"
       }
     ],
+    "baseUrl": "src/app",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/public/*": ["../public/*"]
     },
     "target": "ES2017"
   },
@@ -36,7 +31,5 @@
     "src/app/(public)/privacy-policy/page.jsx",
     "src/app/auth.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
