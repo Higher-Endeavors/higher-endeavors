@@ -58,11 +58,14 @@ export default async function BalancedLiftsPage() {
   // }
 
   const getRefLifts = async (): Promise<RefLifts> => {
+    const apiBaseUrl = await getApiBaseUrl();
+    const fetchUrl = `${apiBaseUrl}/api/reference-lifts`;
+
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/reference-lifts`, {
+      const response = await fetch(`${fetchUrl}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-//        cache: 'force-cache',
+       cache: 'force-cache',
       });
       const refLifts = await response.json();
       console.log("refLifts", refLifts);
