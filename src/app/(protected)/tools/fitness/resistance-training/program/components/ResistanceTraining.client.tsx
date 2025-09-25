@@ -222,9 +222,19 @@ export default function ResistanceTrainingClient({
     }
   };
 
-  // Add new exercise to all weeks
-  const handleAddExercise = (exercise: ProgramExercisesPlanned) => {
-    setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
+  // Add new exercise to specific week (or all weeks if no target week specified)
+  const handleAddExercise = (exercise: ProgramExercisesPlanned, targetWeek?: number) => {
+    if (targetWeek !== undefined) {
+      // Add to specific week only
+      setWeeklyExercises(prev =>
+        prev.map((arr, idx) =>
+          idx === targetWeek ? [...arr, exercise] : arr
+        )
+      );
+    } else {
+      // Add to all weeks (for initial program setup)
+      setWeeklyExercises(prev => prev.map(arr => [...arr, exercise]));
+    }
     setIsModalOpen(false);
     setEditingExercise(null);
   };
@@ -394,14 +404,20 @@ export default function ResistanceTrainingClient({
 
 
 
-  // Delete exercise from all weeks
+  // Delete exercise from current week only
   const handleDeleteExercise = (programExercisesId: number) => {
-    setWeeklyExercises(prev => prev.map(weekExercises => 
-      weekExercises.filter(ex => ex.programExercisesPlannedId !== programExercisesId)
-    ));
+    const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
     
-    // Also update baseWeekExercises if it exists
-    if (baseWeekExercises.length > 0) {
+    setWeeklyExercises(prev =>
+      prev.map((weekExercises, idx) =>
+        idx === currentWeek - 1  // Only affect current week
+          ? weekExercises.filter(ex => ex.programExercisesPlannedId !== programExercisesId)
+          : weekExercises  // Other weeks remain unchanged
+      )
+    );
+    
+    // Only update baseWeekExercises if we're deleting from Week 1
+    if (currentWeek === 1 && baseWeekExercises.length > 0) {
       setBaseWeekExercises(prev => prev.filter(ex => 
         ex.programExercisesPlannedId !== programExercisesId
       ));
@@ -445,7 +461,8 @@ export default function ResistanceTrainingClient({
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
     } else {
-      handleAddExercise(exercise);
+      // Pass the target week (0-based index) for week-specific additions
+      handleAddExercise(exercise, currentWeek - 1);
       if (currentWeek !== 1) {
         setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
       }
