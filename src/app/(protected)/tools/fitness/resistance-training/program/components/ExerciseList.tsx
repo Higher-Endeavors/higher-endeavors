@@ -6,6 +6,7 @@ import ExerciseItemPlan from '(protected)/tools/fitness/resistance-training/prog
 import ExerciseItemAct from '(protected)/tools/fitness/resistance-training/program/components/ExerciseItemAct';
 import { ExerciseLibraryItem, ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 import { FiCalendar } from 'react-icons/fi';
+import { useToast } from 'lib/toast';
 
 // NEW: Import for modal/dialog
 import { Modal } from 'flowbite-react';
@@ -66,6 +67,7 @@ export default function ExerciseList({
   onSessionFieldChange,
   onSaveSessionChanges
 }: ExerciseListProps) {
+  const toast = useToast();
   const [showCalendar, setShowCalendar] = useState(false);
   // Remove local actuals state - use parent state directly
   // NEW: Confirmation dialog state
@@ -258,8 +260,10 @@ export default function ExerciseList({
     }
     setSaving(false);
     setShowConfirm(false);
-    if (!result.success) {
-      alert('Error saving session: ' + (result.error || 'Unknown error'));
+    if (result.success) {
+      toast.success('Session completed successfully!');
+    } else {
+      toast.error('Error saving session: ' + (result.error || 'Unknown error'));
     }
   };
 
