@@ -68,7 +68,6 @@ export default async function BalancedLiftsPage() {
        cache: 'force-cache',
       });
       const refLifts = await response.json();
-      console.log("refLifts", refLifts);
       return refLifts.rows;
     } catch (error) {
       await serverLogger.error('Error in structural balance page', error);
@@ -77,7 +76,6 @@ export default async function BalancedLiftsPage() {
   };
 
   const refLifts = await getRefLifts();
-  console.log("refLifts", refLifts);
 
   return (
     <SessionProvider>
