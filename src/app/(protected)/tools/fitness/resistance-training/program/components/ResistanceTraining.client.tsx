@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import UserSelector from '(protected)/components/UserSelector';
 import ProgramBrowser from '(protected)/tools/fitness/resistance-training/program/components/ProgramBrowser';
 import ProgramSettings from '(protected)/tools/fitness/resistance-training/program/components/ProgramSettings';
@@ -104,6 +104,17 @@ export default function ResistanceTrainingClient({
   const [activeDay, setActiveDay] = useState(1);
   // Track which weeks have been manually edited (locked)
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
+  // Track if we're in initial setup mode (ends when user makes changes to Day 2+)
+  const [isInitialSetup, setIsInitialSetup] = useState(true);
+  // Track manually edited exercises for granular control
+  const [manuallyEditedExercises, setManuallyEditedExercises] = useState<{
+    [weekIndex: number]: {
+      [exerciseId: string]: {
+        fields: Set<'load' | 'reps' | 'sets'>;
+        lastEdited: Date;
+      }
+    }
+  }>({});
   // Add state for programName (to be set from ProgramSettings)
   const [programName, setProgramName] = useState('');
   // Add state for phaseFocus, periodizationType, progressionRules, programDuration, notes
@@ -136,6 +147,12 @@ export default function ResistanceTrainingClient({
   // Use the custom hook for exercise management
   const { exercises, isLoadingExercises, fetchExercisesForUser } = useExerciseManager(userId, initialExercises);
 
+  // Track progression changes to unlock all weeks when progression settings change
+  const [lastProgressionSettings, setLastProgressionSettings] = useState(progressionSettings);
+  const progressionChanged = useMemo(() => {
+    return JSON.stringify(progressionSettings) !== JSON.stringify(lastProgressionSettings);
+  }, [progressionSettings, lastProgressionSettings]);
+
   // Update programDuration when programLength changes
   useEffect(() => {
     setProgramDuration(programLength);
@@ -148,12 +165,33 @@ export default function ResistanceTrainingClient({
         if (i < prev.length) {
           return prev[i]; // Keep existing week data
         } else {
-          return []; // Add empty arrays for new weeks
+          // New weeks - apply progression if available
+          if (progressionSettings.type !== 'None' && baseWeekExercises.length > 0) {
+            const progressedWeeks = generateProgressedWeeks(baseWeekExercises, programLength, progressionSettings);
+            return progressedWeeks[i + 1] || [];
+          } else {
+            return []; // Add empty arrays for new weeks
+          }
         }
       });
       return newArray;
     });
-  }, [programLength]);
+  }, [programLength, progressionSettings, baseWeekExercises]);
+
+  // Handle progression settings changes - only unlock weeks, don't recalculate existing data
+  useEffect(() => {
+    if (progressionChanged && progressionSettings.type !== 'None' && baseWeekExercises.length > 0) {
+      // Unlock all weeks when progression changes
+      setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+      
+      // Update last progression settings
+      setLastProgressionSettings(progressionSettings);
+      
+      // Show user feedback
+      toast.info('Progression settings updated - existing data preserved');
+    }
+  }, [progressionChanged, progressionSettings, baseWeekExercises, toast]);
 
   // Load program handler
   const handleLoadProgram = async (program: any) => {
@@ -169,7 +207,16 @@ export default function ResistanceTrainingClient({
       setProgramName(loadedProgram.programName);
       setPhaseFocus(loadedProgram.phaseFocus || '');
       setPeriodizationType(loadedProgram.periodizationType || 'None');
-      setProgressionRulesState(loadedProgram.progressionRules || {});
+      const loadedProgressionRules = loadedProgram.progressionRules || {
+        type: 'None',
+        settings: {
+          volume_increment_percentage: 0,
+          load_increment_percentage: 0,
+          weekly_volume_percentages: [100, 100, 100, 100],
+        },
+      };
+      setProgressionSettings(loadedProgressionRules);
+      setLastProgressionSettings(loadedProgressionRules);
       setProgramDuration(loadedProgram.programDuration || 4);
       setNotes(loadedProgram.notes || '');
       
@@ -209,6 +256,8 @@ export default function ResistanceTrainingClient({
       
       // Clear any locked weeks since we're loading a new program
       setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+      setIsInitialSetup(false); // Loaded program is not initial setup
       
       // Set the program ID we're editing
       setEditingProgramId(loadedProgram.resistanceProgramId);
@@ -237,6 +286,54 @@ export default function ResistanceTrainingClient({
     }
     setIsModalOpen(false);
     setEditingExercise(null);
+  };
+
+  // Add new exercise with progression applied to all weeks
+  const handleAddExerciseWithProgression = (exercise: ProgramExercisesPlanned) => {
+    if (progressionSettings.type === 'None') {
+      // No progression - add to all weeks as-is
+      handleAddExercise(exercise);
+    } else {
+      // Apply progression to the new exercise
+      const progressedWeeks = generateProgressedWeeks([exercise], programLength, progressionSettings);
+      
+      setWeeklyExercises(prev =>
+        prev.map((weekExercises, weekIndex) => [
+          ...weekExercises,
+          progressedWeeks[weekIndex + 1]?.[0] || exercise
+        ])
+      );
+    }
+    setIsModalOpen(false);
+    setEditingExercise(null);
+  };
+
+  // Helper function to detect what fields were edited
+  const detectEditedFields = (original: ProgramExercisesPlanned, edited: ProgramExercisesPlanned): Set<'load' | 'reps' | 'sets'> => {
+    const editedFields = new Set<'load' | 'reps' | 'sets'>();
+    
+    const originalSets = original.plannedSets || [];
+    const editedSets = edited.plannedSets || [];
+    
+    // Compare sets length
+    if (originalSets.length !== editedSets.length) {
+      editedFields.add('sets');
+    }
+    
+    // Compare reps and load for each set
+    originalSets.forEach((originalSet, index) => {
+      const editedSet = editedSets[index];
+      if (editedSet) {
+        if (originalSet.reps !== editedSet.reps) {
+          editedFields.add('reps');
+        }
+        if (originalSet.load !== editedSet.load) {
+          editedFields.add('load');
+        }
+      }
+    });
+    
+    return editedFields;
   };
 
   // Session editing functions
@@ -447,26 +544,58 @@ export default function ResistanceTrainingClient({
   // Save exercise (add new or update existing)
   const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
+    const weekIndex = currentWeek - 1;
+    
     if (editingExercise) {
+      // Track what fields were manually edited
+      const editedFields = detectEditedFields(editingExercise, exercise);
+      
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
-          idx === currentWeek - 1
+          idx === weekIndex
             ? arr.map(ex => 
                 ex.programExercisesPlannedId === editingExercise.programExercisesPlannedId ? exercise : ex
               )
             : arr
         )
       );
+      
+      // Mark week as locked and track specific edits
       if (currentWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
+        setLockedWeeks(prev => new Set(prev).add(weekIndex));
+        setManuallyEditedExercises(prev => ({
+          ...prev,
+          [weekIndex]: {
+            ...prev[weekIndex],
+            [exercise.programExercisesPlannedId]: {
+              fields: editedFields,
+              lastEdited: new Date()
+            }
+          }
+        }));
+        // End initial setup mode when user edits Day 2+
+        if (isInitialSetup) {
+          setIsInitialSetup(false);
+        }
       }
     } else {
-      // Pass the target week (0-based index) for week-specific additions
-      handleAddExercise(exercise, currentWeek - 1);
-      if (currentWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
+      // Add logic
+      if (isInitialSetup && currentWeek === 1) {
+        // Initial setup: add to all weeks with progression applied
+        handleAddExerciseWithProgression(exercise);
+      } else {
+        // Week-specific: add only to current week
+        handleAddExercise(exercise, weekIndex);
+        if (currentWeek !== 1) {
+          setLockedWeeks(prev => new Set(prev).add(weekIndex));
+          // End initial setup mode when user adds to Day 2+
+          if (isInitialSetup) {
+            setIsInitialSetup(false);
+          }
+        }
       }
     }
+    
     setEditingExercise(null);
     setIsModalOpen(false);
   };
@@ -670,6 +799,8 @@ export default function ResistanceTrainingClient({
               setBaseWeekExercises([]);
               setActiveDay(1);
               setLockedWeeks(new Set());
+              setManuallyEditedExercises({});
+              setIsInitialSetup(true); // Reset to initial setup mode
               setIsTemplateProgram(false);
             }
           }}
@@ -700,12 +831,14 @@ export default function ResistanceTrainingClient({
           setBaseWeekExercises([]);
           setActiveDay(1);
           setLockedWeeks(new Set());
+          setManuallyEditedExercises({});
+          setIsInitialSetup(true); // Reset to initial setup mode
           setIsTemplateProgram(false); // Reset template state
         }}
         isProgramLoaded={!!editingProgramId}
       />
       <ProgramSettings
-        key={`${editingProgramId}-${programLength}-${sessionsPerWeek}`}
+        key={`${editingProgramId}-${programLength}-${sessionsPerWeek}-${JSON.stringify(progressionSettings)}`}
         programLength={programLength}
         setProgramLength={setProgramLength}
         sessionsPerWeek={sessionsPerWeek}
