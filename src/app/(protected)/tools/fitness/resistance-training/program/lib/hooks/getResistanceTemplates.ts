@@ -15,7 +15,13 @@ export async function  getResistanceTemplates(): Promise<ProgramListItem[]> {
     }
 
     const data = await response.json();
-    return data.programs || [];
+    return (data.programs || []).map((program: any) => ({
+      ...program,
+      resistPhaseId: typeof program.resistPhaseId === 'number' ? program.resistPhaseId : null,
+      resistPhaseName: program.resistPhaseName ?? undefined,
+      resistPeriodizationId: typeof program.resistPeriodizationId === 'number' ? program.resistPeriodizationId : null,
+      resistPeriodizationName: program.resistPeriodizationName ?? undefined,
+    }));
   } catch (error) {
     clientLogger.error('Error fetching resistance templates:', error);
     throw error;

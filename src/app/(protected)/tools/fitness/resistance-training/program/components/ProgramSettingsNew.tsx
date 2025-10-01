@@ -1,6 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
+
+type ProgressionSettingsData = {
+  type: 'None' | 'Linear' | 'Undulating';
+  settings?: {
+    volume_increment_percentage?: number;
+    load_increment_percentage?: number;
+    weekly_volume_percentages?: number[];
+  };
+};
 
 interface ProgramSettingsNewProps {
   programName: string;
@@ -8,10 +17,33 @@ interface ProgramSettingsNewProps {
   isLoading?: boolean;
   resistPhaseId?: number;
   setResistPhaseId?: (phaseId: number | undefined) => void;
-  availablePhases?: Array<{ resistPhaseId: number; resistPhaseName: string; description?: string | null }>;
   resistPeriodizationId?: number;
-  setResistPeriodizationId?: (periodizationId: number) => void;
-  availablePeriodizations?: Array<{ resistPeriodizationId: number; resistPeriodizationName: string; description?: string | null }>;
+  availablePhases?: Array<{ resistPhaseId: number; resistPhaseName: string }>;
+  availablePeriodizationTypes?: Array<{ resistPeriodizationId: number; resistPeriodizationName: string }>;
+  programLength?: number;
+  setProgramLength?: (length: number) => void;
+  sessionsPerWeek?: number;
+  setSessionsPerWeek?: (sessions: number) => void;
+  autoIncrement?: 'yes' | 'no';
+  onPeriodizationChange?: (periodizationId: number) => void;
+  onAutoIncrementChange?: (value: 'yes' | 'no') => void;
+  onVolumeIncrementChange?: (value: string) => void;
+  onLoadIncrementChange?: (value: string) => void;
+  onWeeklyVolumePercentagesChange?: (volumes: string[]) => void;
+  notes?: string;
+  setNotes?: (notes: string) => void;
+  tierContinuumId?: number;
+  setTierContinuumId?: (id: number) => void;
+  selectedCategories?: number[];
+  setSelectedCategories?: (categories: number[]) => void;
+  isAdmin?: boolean;
+  isTemplateProgram?: boolean;
+  availableTierContinuum?: Array<{ tierContinuumId: number; tierContinuumName: string }>;
+  availableTemplateCategories?: Array<{ resistProgramTemplateCategoriesId: number; categoryName: string; description?: string | null }>;
+  volumeIncrement?: string;
+  loadIncrement?: string;
+  weeklyVolumePercentages?: string[];
+  totalInstances?: number;
 }
 
 export default function ProgramSettingsNew({
@@ -20,13 +52,87 @@ export default function ProgramSettingsNew({
   isLoading = false,
   resistPhaseId,
   setResistPhaseId,
-  availablePhases = [],
   resistPeriodizationId = 1,
-  setResistPeriodizationId,
-  availablePeriodizations = [],
+  availablePhases = [],
+  availablePeriodizationTypes = [],
+  programLength = 4,
+  setProgramLength,
+  sessionsPerWeek = 1,
+  setSessionsPerWeek,
+  volumeIncrement = '0',
+  loadIncrement = '0',
+  weeklyVolumePercentages = ['100', '70', '110', '50'],
+  totalInstances,
+  autoIncrement = 'no',
+  onPeriodizationChange,
+  onAutoIncrementChange,
+  onVolumeIncrementChange,
+  onLoadIncrementChange,
+  onWeeklyVolumePercentagesChange,
+  notes = '',
+  setNotes,
+  availableTierContinuum = [],
+  availableTemplateCategories = [],
+  isAdmin = false,
+  tierContinuumId,
+  setTierContinuumId,
+  selectedCategories = [],
+  setSelectedCategories,
 }: ProgramSettingsNewProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [programLengthInput, setProgramLengthInput] = useState(String(programLength));
+  const [sessionsPerWeekInput, setSessionsPerWeekInput] = useState(String(sessionsPerWeek));
+  const programLengthDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  const derivedInstanceCount = Math.max(Math.round(programLength * sessionsPerWeek), 1);
+  const resolvedInstanceCount = totalInstances ?? derivedInstanceCount;
+  const instanceVolumes = useMemo(() => {
+    const defaults = ['100', '70', '110', '50'];
+    const source = weeklyVolumePercentages.length > 0 ? weeklyVolumePercentages : defaults;
+    if (source.length >= resolvedInstanceCount) {
+      return source.slice(0, resolvedInstanceCount);
+    }
+    const extended = [...source];
+    while (extended.length < resolvedInstanceCount) {
+      extended.push(defaults[extended.length] ?? '100');
+    }
+    return extended;
+  }, [weeklyVolumePercentages, resolvedInstanceCount]);
+
+  const resetProgramLengthInput = (value: number) => {
+    setProgramLengthInput(String(value));
+  };
+
+  const resetSessionsPerWeekInput = (value: number) => {
+    setSessionsPerWeekInput(String(value));
+  };
+
+  const phaseOptions = useMemo(
+    () =>
+      availablePhases.map(phase => ({
+        value: String(phase.resistPhaseId),
+        label: phase.resistPhaseName,
+      })),
+    [availablePhases]
+  );
+
+  const periodizationOptions = useMemo(
+    () =>
+      availablePeriodizationTypes.map(periodization => ({
+        value: String(periodization.resistPeriodizationId),
+        label: periodization.resistPeriodizationName,
+      })),
+    [availablePeriodizationTypes]
+  );
+
+  const tierOptions = useMemo(
+    () =>
+      availableTierContinuum.map(tier => ({
+        value: String(tier.tierContinuumId),
+        label: tier.tierContinuumName,
+      })),
+    [availableTierContinuum]
+  );
 
   const handleProgramNameChange = (value: string) => {
     if (nameError) {
@@ -70,7 +176,7 @@ export default function ProgramSettingsNew({
   };
 
   const handlePeriodizationChange = (value: string) => {
-    if (!setResistPeriodizationId) {
+    if (!onPeriodizationChange) {
       return;
     }
 
@@ -80,7 +186,134 @@ export default function ProgramSettingsNew({
       return;
     }
 
-    setResistPeriodizationId(numericValue);
+    onPeriodizationChange(numericValue);
+  };
+
+  const handleProgramLengthChange = (value: string) => {
+    setProgramLengthInput(value);
+
+    if (!setProgramLength) {
+      return;
+    }
+
+    if (programLengthDebounceRef.current) {
+      clearTimeout(programLengthDebounceRef.current);
+    }
+
+    programLengthDebounceRef.current = setTimeout(() => {
+      const parsed = Number.parseInt(value, 10);
+
+      if (Number.isNaN(parsed)) {
+        return;
+      }
+
+      const clamped = Math.min(Math.max(parsed, 1), 52);
+      setProgramLength(clamped);
+      resetProgramLengthInput(clamped);
+      const nextInstanceCount = totalInstances ?? Math.max(Math.round(clamped * sessionsPerWeek), 1);
+      const defaults = ['100', '70', '110', '50'];
+      const base = instanceVolumes.length > 0 ? [...instanceVolumes] : [...defaults];
+      if (base.length >= nextInstanceCount) {
+        onWeeklyVolumePercentagesChange?.(base.slice(0, nextInstanceCount));
+      } else {
+        while (base.length < nextInstanceCount) {
+          base.push(defaults[base.length] ?? '100');
+        }
+        onWeeklyVolumePercentagesChange?.(base);
+      }
+    }, 200);
+  };
+
+  const handleProgramLengthBlur = () => {
+    if (!setProgramLength) {
+      return;
+    }
+
+    const parsed = Number.parseInt(programLengthInput, 10);
+
+    if (Number.isNaN(parsed) || parsed < 1) {
+      const minValue = 1;
+      setProgramLength(minValue);
+      resetProgramLengthInput(minValue);
+      return;
+    }
+
+    if (parsed > 52) {
+      const maxValue = 52;
+      setProgramLength(maxValue);
+      resetProgramLengthInput(maxValue);
+      return;
+    }
+
+    setProgramLength(parsed);
+    resetProgramLengthInput(parsed);
+  };
+
+  const handleSessionsPerWeekChange = (value: string) => {
+    setSessionsPerWeekInput(value);
+
+    if (!setSessionsPerWeek) {
+      return;
+    }
+
+    const parsed = Number.parseFloat(value);
+
+    if (Number.isNaN(parsed)) {
+      return;
+    }
+
+    const clamped = Math.min(Math.max(parsed, 1), 7);
+    const normalized = Number.isInteger(clamped) ? clamped : Number(clamped.toFixed(1));
+    setSessionsPerWeek(normalized);
+    resetSessionsPerWeekInput(normalized);
+    const nextInstanceCount = totalInstances ?? Math.max(Math.round(programLength * normalized), 1);
+    const defaults = ['100', '70', '110', '50'];
+    const base = instanceVolumes.length > 0 ? [...instanceVolumes] : [...defaults];
+    if (base.length >= nextInstanceCount) {
+      onWeeklyVolumePercentagesChange?.(base.slice(0, nextInstanceCount));
+    } else {
+      while (base.length < nextInstanceCount) {
+        base.push(defaults[base.length] ?? '100');
+      }
+      onWeeklyVolumePercentagesChange?.(base);
+    }
+  };
+
+  const handleSessionsPerWeekBlur = () => {
+    if (!setSessionsPerWeek) {
+      return;
+    }
+
+    const parsed = Number.parseFloat(sessionsPerWeekInput);
+
+    if (Number.isNaN(parsed) || parsed < 1) {
+      const minValue = 1;
+      setSessionsPerWeek(minValue);
+      resetSessionsPerWeekInput(minValue);
+      return;
+    }
+
+    if (parsed > 7) {
+      const maxValue = 7;
+      setSessionsPerWeek(maxValue);
+      resetSessionsPerWeekInput(maxValue);
+      return;
+    }
+
+    const normalized = Number.isInteger(parsed) ? parsed : Number(parsed.toFixed(1));
+    setSessionsPerWeek(normalized);
+    resetSessionsPerWeekInput(normalized);
+    const nextInstanceCount = totalInstances ?? Math.max(Math.round(programLength * normalized), 1);
+    const defaults = ['100', '70', '110', '50'];
+    const base = instanceVolumes.length > 0 ? [...instanceVolumes] : [...defaults];
+    if (base.length >= nextInstanceCount) {
+      onWeeklyVolumePercentagesChange?.(base.slice(0, nextInstanceCount));
+    } else {
+      while (base.length < nextInstanceCount) {
+        base.push(defaults[base.length] ?? '100');
+      }
+      onWeeklyVolumePercentagesChange?.(base);
+    }
   };
 
   return (
@@ -148,21 +381,26 @@ export default function ProgramSettingsNew({
             <select
               id="program-phase-select"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
-              value={resistPhaseId ?? ''}
+              value={resistPhaseId !== undefined ? String(resistPhaseId) : ''}
               onChange={event => handlePhaseChange(event.target.value)}
+              disabled={phaseOptions.length === 0 || !setResistPhaseId}
             >
               <option value="" disabled>
                 Select Phase...
               </option>
-              {availablePhases.map(phase => (
-                <option key={phase.resistPhaseId} value={phase.resistPhaseId}>
-                  {phase.resistPhaseName}
+              {phaseOptions.map(option => (
+                <option key={option.value} value={option.value}
+                >
+                  {option.label}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-sm text-gray-500" id="program-phase-helper">
               Choose the primary focus associated with this program
             </p>
+            {phaseOptions.length === 0 && (
+              <p className="mt-1 text-sm text-red-600">No phases available. Please ensure the lookup data is seeded.</p>
+            )}
           </div>
 
           <div>
@@ -172,19 +410,205 @@ export default function ProgramSettingsNew({
             <select
               id="program-periodization-select"
               className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
-              value={resistPeriodizationId}
+              value={resistPeriodizationId !== undefined ? String(resistPeriodizationId) : ''}
               onChange={event => handlePeriodizationChange(event.target.value)}
+              disabled={periodizationOptions.length === 0 || !onPeriodizationChange}
             >
-              {availablePeriodizations.map(periodization => (
-                <option key={periodization.resistPeriodizationId} value={periodization.resistPeriodizationId}>
-                  {periodization.resistPeriodizationName}
+              <option value="" disabled>
+                Select Periodization...
+              </option>
+              {periodizationOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-sm text-gray-500" id="program-periodization-helper">
               Choose how the program will progress over time
             </p>
+            {periodizationOptions.length === 0 && (
+              <p className="mt-1 text-sm text-red-600">No periodization types available. Please ensure the lookup data is seeded.</p>
+            )}
           </div>
+
+          {(resistPeriodizationId === 2 || resistPeriodizationId === 3) && onAutoIncrementChange && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="auto-increment-select">
+                Auto-increment Progressions?
+              </label>
+              <select
+                id="auto-increment-select"
+                className="mt-1 block w-48 rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+                value={autoIncrement}
+                onChange={event => onAutoIncrementChange(event.target.value === 'yes' ? 'yes' : 'no')}
+              >
+                <option value="no">No</option>
+                <option value="yes">Yes</option>
+              </select>
+            </div>
+          )}
+
+          {resistPeriodizationId === 2 && autoIncrement === 'yes' && onVolumeIncrementChange && onLoadIncrementChange && (
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700">Progression Settings</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="volume-increment-input">
+                    Volume Increment (%)
+                  </label>
+                  <input
+                    id="volume-increment-input"
+                    type="number"
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+                    placeholder="0"
+                    value={volumeIncrement}
+                    onChange={event => onVolumeIncrementChange(event.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="load-increment-input">
+                    Load Increment (%)
+                  </label>
+                  <input
+                    id="load-increment-input"
+                    type="number"
+                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+                    placeholder="0"
+                    value={loadIncrement}
+                    onChange={event => onLoadIncrementChange(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {resistPeriodizationId === 3 && autoIncrement === 'yes' && onWeeklyVolumePercentagesChange && (
+            <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700">Progression Settings</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {instanceVolumes.map((value, index) => (
+                  <div key={index}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor={`instance-volume-${index}`}>
+                      Instance {index + 1} Volume (%)
+                    </label>
+                    <input
+                      id={`instance-volume-${index}`}
+                      type="number"
+                      className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+                      placeholder="100"
+                      value={value}
+                      onChange={event => {
+                        const updated = [...instanceVolumes];
+                        updated[index] = event.target.value;
+                        onWeeklyVolumePercentagesChange(updated);
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="program-notes">
+              Program Notes
+            </label>
+            <textarea
+              id="program-notes"
+              className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+              rows={4}
+              placeholder="Enter program notes (optional)"
+              value={notes}
+              onChange={event => setNotes?.(event.target.value)}
+              disabled={!setNotes}
+            />
+            <p className="mt-1 text-sm text-gray-500">
+              Add any additional notes or comments about the program
+            </p>
+          </div>
+
+          {isAdmin && setTierContinuumId && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="tier-continuum-select">
+                Tier Continuum
+              </label>
+              <select
+                id="tier-continuum-select"
+                className="mt-1 block w-full rounded-md border border-gray-300 bg-white dark:bg-gray-50 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-gray-900 dark:text-gray-900 p-2"
+                value={tierContinuumId !== undefined ? String(tierContinuumId) : ''}
+                onChange={event => {
+                  const { value } = event.target;
+
+                  if (!value) {
+                    return;
+                  }
+
+                  const parsed = Number.parseInt(value, 10);
+
+                  if (Number.isNaN(parsed)) {
+                    return;
+                  }
+
+                  setTierContinuumId(parsed);
+                }}
+                disabled={tierOptions.length === 0}
+              >
+                <option value="" disabled>
+                  Select Tier Continuum...
+                </option>
+                {tierOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-sm text-gray-500">
+                Set the Tier Continuum level for templates created from this program
+              </p>
+              {tierOptions.length === 0 && (
+                <p className="mt-1 text-sm text-red-600">No tier continuum entries available.</p>
+              )}
+            </div>
+          )}
+
+          {isAdmin && setSelectedCategories && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Template Categories
+              </label>
+              {availableTemplateCategories.length === 0 ? (
+                <p className="text-sm text-gray-500">No categories available.</p>
+              ) : (
+                <div className="space-y-2">
+                  {availableTemplateCategories.map(category => (
+                    <label key={category.resistProgramTemplateCategoriesId} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        checked={selectedCategories.includes(category.resistProgramTemplateCategoriesId)}
+                        onChange={event => {
+                          if (event.target.checked) {
+                            setSelectedCategories([...selectedCategories, category.resistProgramTemplateCategoriesId]);
+                          } else {
+                            setSelectedCategories(selectedCategories.filter(id => id !== category.resistProgramTemplateCategoriesId));
+                          }
+                        }}
+                      />
+                      <span className="text-sm text-gray-700 dark:text-gray-700">
+                        {category.categoryName}
+                        {category.description && (
+                          <span className="text-xs text-gray-500 ml-1">- {category.description}</span>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              <p className="mt-1 text-sm text-gray-500">
+                Select the categories this template belongs to
+              </p>
+            </div>
+          )}
         </form>
       )}
     </div>

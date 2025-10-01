@@ -8,7 +8,7 @@ export async function updateResistanceProgram(input: UpdateResistanceProgramInpu
   // Validate the input using the schema
   const validatedInput = UpdateResistanceProgramSchema.parse(input);
   
-  const { programId, userId, programName, phaseFocus, periodizationType, progressionRules, programDuration, notes, weeklyExercises } = validatedInput;
+  const { programId, userId, programName, resistPhaseId, resistPeriodizationId, progressionRules, programDuration, notes, weeklyExercises } = validatedInput;
   
   const client = await getClient();
   try {
@@ -17,10 +17,24 @@ export async function updateResistanceProgram(input: UpdateResistanceProgramInpu
     // Update program metadata
     await client.query(
       `UPDATE resist_programs 
-       SET program_name = $1, phase_focus = $2, periodization_type = $3, progression_rules = $4, 
-           program_duration = $5, notes = $6, updated_at = NOW()
+       SET program_name = $1,
+           resist_phase_id = $2,
+           resist_periodization_id = $3,
+           progression_rules = $4,
+           program_duration = $5,
+           notes = $6,
+           updated_at = NOW()
        WHERE program_id = $7 AND user_id = $8`,
-      [programName, phaseFocus, periodizationType, JSON.stringify(progressionRules), programDuration, notes, programId, userId]
+      [
+        programName,
+        typeof resistPhaseId === 'number' ? resistPhaseId : null,
+        typeof resistPeriodizationId === 'number' ? resistPeriodizationId : null,
+        JSON.stringify(progressionRules),
+        programDuration,
+        notes,
+        programId,
+        userId,
+      ]
     );
     
     // Process each week independently

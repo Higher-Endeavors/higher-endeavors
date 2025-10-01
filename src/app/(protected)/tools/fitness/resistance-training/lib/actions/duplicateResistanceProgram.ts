@@ -24,8 +24,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
         SELECT 
           user_id,
           program_name,
-          phase_focus,
-          periodization_type,
+          resist_phase_id,
+          resist_periodization_id,
           progression_rules,
           program_duration,
           notes,
@@ -48,8 +48,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
         INSERT INTO resist_programs (
           user_id,
           program_name,
-          phase_focus,
-          periodization_type,
+          resist_phase_id,
+          resist_periodization_id,
           progression_rules,
           program_duration,
           notes,
@@ -63,8 +63,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
       const createProgramValues = [
         userId,
         newProgramName,
-        originalProgram.phase_focus,
-        originalProgram.periodization_type,
+        originalProgram.resist_phase_id,
+        originalProgram.resist_periodization_id,
         originalProgram.progression_rules,
         originalProgram.program_duration,
         originalProgram.notes,

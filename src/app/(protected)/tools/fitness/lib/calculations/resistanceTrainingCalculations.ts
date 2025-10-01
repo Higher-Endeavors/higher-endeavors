@@ -183,9 +183,22 @@ export function generateProgressedWeeks(
     return JSON.parse(JSON.stringify(obj));
   }
 
-  // Helper to check if a string is a numeric value
-  function isNumeric(val: string | undefined): boolean {
-    return val !== undefined && !isNaN(Number(val));
+  // Helper to check if a value is numeric
+  function isNumeric(val: unknown): boolean {
+    if (val === undefined || val === null) {
+      return false;
+    }
+    if (typeof val === 'number') {
+      return !Number.isNaN(val);
+    }
+    if (typeof val === 'string' && val.trim() !== '') {
+      return !Number.isNaN(Number(val));
+    }
+    return false;
+  }
+
+  function toNumeric(val: unknown): number | null {
+    return isNumeric(val) ? Number(val) : null;
   }
 
   // Progress a single set (and its subSets if present)
@@ -202,26 +215,28 @@ export function generateProgressedWeeks(
         newSet.load = (Math.round(baseLoad * (1 + (load_increment_percentage * (week - 1) / 100)) * 100) / 100).toString();
       }
       // Volume progression: distribute total reps across sets
-      if (typeof set.reps === 'number' && Array.isArray(baseSets)) {
-        // Calculate base total reps and number of sets
-        const numSets = baseSets.length;
-        const baseTotalReps = baseSets.reduce((sum, s) => sum + (typeof s.reps === 'number' ? s.reps : 0), 0);
-        // Cumulative progression
-        const progressedTotalReps = Math.round(baseTotalReps * Math.pow(1 + volume_increment_percentage / 100, week - 1));
-        // Distribute reps as evenly as possible
-        const baseRepsPerSet = Math.floor(progressedTotalReps / numSets);
-        const remainder = progressedTotalReps % numSets;
-        // Find this set's index in baseSets
-        const setIdx = baseSets.findIndex(s => s === set);
-        // First 'remainder' sets get +1 rep
-        newSet.reps = baseRepsPerSet + (setIdx < remainder ? 1 : 0);
+      const currentReps = toNumeric(set.reps);
+      if (currentReps !== null && Array.isArray(baseSets) && baseSets.length > 0) {
+        const numericBaseSets = baseSets.map(baseSet => toNumeric(baseSet.reps) ?? 0);
+        const numSets = numericBaseSets.length;
+        if (numSets > 0) {
+          const baseTotalReps = numericBaseSets.reduce((sum, reps) => sum + reps, 0);
+          const progressedTotalReps = Math.round(baseTotalReps * Math.pow(1 + volume_increment_percentage / 100, week - 1));
+          const baseRepsPerSet = Math.floor(progressedTotalReps / numSets);
+          const remainder = progressedTotalReps % numSets;
+          const setIdx = baseSets.findIndex(s => s === set);
+          if (setIdx >= 0) {
+            newSet.reps = baseRepsPerSet + (setIdx < remainder ? 1 : 0);
+          }
+        }
       }
     } else if (periodizationType === 'Undulating') {
       // Progress reps only, based on weekly percentage
       const weekPct = weekly_volume_percentages[week - 1] ?? 100;
       const volumePct = weekPct / 100;
-      if (typeof set.reps === 'number') {
-        newSet.reps = Math.max(1, Math.round(set.reps * volumePct));
+      const currentReps = toNumeric(set.reps);
+      if (currentReps !== null) {
+        newSet.reps = Math.max(1, Math.round(currentReps * volumePct));
       }
     }
     // Progress subSets recursively
