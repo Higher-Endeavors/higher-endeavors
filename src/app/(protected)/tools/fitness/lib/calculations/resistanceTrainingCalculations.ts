@@ -178,6 +178,13 @@ export function generateProgressedWeeks(
     weekly_volume_percentages = []
   } = settings;
 
+  function roundToNearest(value: number, step: number): number {
+    if (step <= 0) {
+      return value;
+    }
+    return Math.round(value / step) * step;
+  }
+
   // Helper to deep clone an object
   function deepClone<T>(obj: T): T {
     return JSON.parse(JSON.stringify(obj));
@@ -212,7 +219,9 @@ export function generateProgressedWeeks(
       // Progress load if numeric
       if (isNumeric(set.load)) {
         const baseLoad = Number(set.load);
-        newSet.load = (Math.round(baseLoad * (1 + (load_increment_percentage * (week - 1) / 100)) * 100) / 100).toString();
+        const compoundedLoad = baseLoad * Math.pow(1 + load_increment_percentage / 100, week - 1);
+        const roundedLoad = roundToNearest(compoundedLoad, 5);
+        newSet.load = roundedLoad.toString();
       }
       // Volume progression: distribute total reps across sets
       const currentReps = toNumeric(set.reps);
@@ -233,10 +242,26 @@ export function generateProgressedWeeks(
     } else if (periodizationType === 'Undulating') {
       // Progress reps only, based on weekly percentage
       const weekPct = weekly_volume_percentages[week - 1] ?? 100;
-      const volumePct = weekPct / 100;
-      const currentReps = toNumeric(set.reps);
-      if (currentReps !== null) {
-        newSet.reps = Math.max(1, Math.round(currentReps * volumePct));
+      const volumePct = Math.max(0, weekPct) / 100;
+
+      if (Array.isArray(baseSets) && baseSets.length > 0) {
+        const numericBaseSets = baseSets.map(baseSet => toNumeric(baseSet.reps) ?? 0);
+        const numSets = numericBaseSets.length;
+
+        if (numSets > 0) {
+          const baseTotalReps = numericBaseSets.reduce((sum, reps) => sum + reps, 0);
+
+          if (baseTotalReps > 0) {
+            const targetTotalReps = Math.max(1, Math.ceil(baseTotalReps * volumePct));
+            const baseRepsPerSet = Math.floor(targetTotalReps / numSets);
+            const remainder = targetTotalReps % numSets;
+            const setIdx = baseSets.findIndex(s => s === set);
+
+            if (setIdx >= 0) {
+              newSet.reps = baseRepsPerSet + (setIdx < remainder ? 1 : 0);
+            }
+          }
+        }
       }
     }
     // Progress subSets recursively
