@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import type { PeriodizationPlan } from '(protected)/tools/fitness/plan/types/periodization.zod';
-import { mockPlanData } from '(protected)/tools/fitness/plan/components/MockPlanData';
 import DemoBanner from '(protected)/tools/(components)/DemoBanner';
 
 // Import all the new components
