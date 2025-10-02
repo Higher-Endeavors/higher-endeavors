@@ -23,6 +23,15 @@ interface PlanningModalProps {
   clickedModality?: string;
   editingItem?: PlanningItem | null;
 }
+function getPlanningTypeFromModality(modality: string): PlanningType | '' {
+  const modalityMap: { [key: string]: PlanningType } = {
+    'resistance': 'resistance',
+    'cme': 'cardiometabolic',
+    'recovery': 'recovery',
+    'goals': 'event',
+  };
+  return modalityMap[modality] || '';
+}
 
 export default function PlanningModal({
   isOpen,
@@ -112,18 +121,6 @@ export default function PlanningModal({
   const [recoveryData, setRecoveryData] = useState<RecoveryPlanningFields>(getInitialRecoveryData);
   const [milestoneData, setMilestoneData] = useState<MilestoneEventPlanningFields>(getInitialMilestoneData);
   const [eventData, setEventData] = useState<MilestoneEventPlanningFields>(getInitialEventData);
-
-  // Map modality to planning type
-  const getPlanningTypeFromModality = (modality: string): PlanningType | '' => {
-    const modalityMap: { [key: string]: PlanningType } = {
-      'resistance': 'resistance',
-      'cme': 'cardiometabolic',
-      'recovery': 'recovery',
-      'goals': 'event', // Default to event for goals modality
-    };
-    return modalityMap[modality] || '';
-  };
-
 
   // Helper function to calculate end date
   const calculateEndDate = (startDate: string, duration: number): string => {
