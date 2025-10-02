@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 const nodemailer = require('nodemailer');
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function POST(request: NextRequest) {
   const host = process.env.NEXT_PUBLIC_EMAIL_HOST

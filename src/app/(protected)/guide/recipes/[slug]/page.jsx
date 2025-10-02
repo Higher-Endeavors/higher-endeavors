@@ -1,10 +1,10 @@
 import React from 'react';
 import { SessionProvider } from "next-auth/react";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
-import ArticleBody from "@/app/(protected)/guide/components/article-body.js";
-import RecentContent from "@/app/(protected)/guide/components/RecentContent";
-import { getRecipeBySlug, getRecentArticles } from "@/app/lib/cmsAdapter.js";
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import ArticleBody from "(protected)/guide/components/article-body.js";
+import RecentContent from "(protected)/guide/components/RecentContent";
+import { getRecipeBySlug, getRecentArticles } from "lib/cmsAdapter.js";
 
 export default async function Page(props) {
   const params = await props.params;

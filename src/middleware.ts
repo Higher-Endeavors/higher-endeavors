@@ -1,8 +1,7 @@
-// import { auth } from "@/app/auth"
+// import { auth } from "auth"
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { nanoid } from "nanoid";
-import { detectEnvironment } from "@/app/lib/utils/environment";
 
 export function middleware(request: NextRequest) {
   const publicGuideContent = [
@@ -22,13 +21,11 @@ export function middleware(request: NextRequest) {
   const requestId = request.headers.get("x-request-id") || nanoid();
   const ip = request.headers.get('x-forwarded-for') || 'unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
-  const environment = detectEnvironment(request.nextUrl.hostname);
 
   const response = NextResponse.next();
   response.headers.set("x-request-id", requestId);
   response.headers.set("x-forwarded-for", ip);
   response.headers.set("user-agent", userAgent);
-  response.headers.set("x-environment", environment);
 
   if (publicGuideContent.includes(request.nextUrl.pathname)) {
     return response;

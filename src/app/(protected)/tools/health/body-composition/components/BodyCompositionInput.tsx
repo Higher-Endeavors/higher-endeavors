@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { calculateAllMetrics } from '../utils/calculations';
-import { validateMeasurements, type ValidationError } from '../utils/validation';
-import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '../types';
-import { useToast } from '@/app/lib/toast';
+import { calculateAllMetrics } from '(protected)/tools/health/body-composition/utils/calculations';
+import { validateMeasurements, type ValidationError } from '(protected)/tools/health/body-composition/utils/validation';
+import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types';
+import { useToast } from 'lib/toast';
 import { HiCheck } from 'react-icons/hi';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import type { UserSettings } from 'lib/types/userSettings.zod';
+import { clientLogger } from 'lib/logging/logger.client';
 // import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
 
 interface UserBioData {

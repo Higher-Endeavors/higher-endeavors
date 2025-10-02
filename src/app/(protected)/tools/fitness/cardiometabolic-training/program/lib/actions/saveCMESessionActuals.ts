@@ -1,6 +1,6 @@
 'use server';
 
-import { getClient } from '@/app/lib/dbAdapter';
+import { getClient } from 'lib/dbAdapter';
 import { z } from 'zod';
 
 // Input validation schema for saving CME session actuals

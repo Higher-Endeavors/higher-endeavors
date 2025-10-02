@@ -1,8 +1,8 @@
 "use server";
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { DuplicateResistanceProgramSchema, DuplicateResistanceProgramInput } from '../../types/resistance-training.zod';
+import { getClient } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { DuplicateResistanceProgramSchema, DuplicateResistanceProgramInput } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 export async function duplicateResistanceProgram(input: DuplicateResistanceProgramInput, userId: number) {
   // Extract programId early so it's available in catch block
@@ -24,8 +24,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
         SELECT 
           user_id,
           program_name,
-          phase_focus,
-          periodization_type,
+          resist_phase_id,
+          resist_periodization_id,
           progression_rules,
           program_duration,
           notes,
@@ -48,8 +48,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
         INSERT INTO resist_programs (
           user_id,
           program_name,
-          phase_focus,
-          periodization_type,
+          resist_phase_id,
+          resist_periodization_id,
           progression_rules,
           program_duration,
           notes,
@@ -63,8 +63,8 @@ export async function duplicateResistanceProgram(input: DuplicateResistanceProgr
       const createProgramValues = [
         userId,
         newProgramName,
-        originalProgram.phase_focus,
-        originalProgram.periodization_type,
+        originalProgram.resist_phase_id,
+        originalProgram.resist_periodization_id,
         originalProgram.progression_rules,
         originalProgram.program_duration,
         originalProgram.notes,

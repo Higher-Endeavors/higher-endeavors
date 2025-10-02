@@ -1,12 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useCalendar } from '../context/CalendarContext';
-import WeekView from './WeekView';
-import MonthView from './MonthView';
-import DayView from './DayView';
-import EventModal from './EventModal';
-import type { CalendarEvent } from '../types/calendar.zod';
+import { useCalendar } from '(protected)/tools/calendar/context/CalendarContext';
+import WeekView from '(protected)/tools/calendar/components/WeekView';
+import MonthView from '(protected)/tools/calendar/components/MonthView';
+import DayView from '(protected)/tools/calendar/components/DayView';
+import EventModal from '(protected)/tools/calendar/components/EventModal';
+import type { CalendarEvent } from '(protected)/tools/calendar/types/calendar.zod';
 
 interface CalendarProps {
   className?: string;

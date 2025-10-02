@@ -1,8 +1,8 @@
-import { getArticles } from '@/app/lib/cmsAdapter';
-import TableOfContents from './components/TableOfContents';
+import { getArticles } from 'lib/cmsAdapter';
+import TableOfContents from '(protected)/guide/table-of-contents/components/TableOfContents';
 import { SessionProvider } from 'next-auth/react';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
 
 export const revalidate = 3600; // Revalidate every hour
 

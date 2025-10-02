@@ -1,5 +1,5 @@
-import { ProgramListItem } from '../../types/resistance-training.zod';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 export async function getResistancePrograms(userId: number): Promise<ProgramListItem[]> {
   const baseURL = await getFetchBaseUrl();
@@ -22,8 +22,10 @@ export async function getResistancePrograms(userId: number): Promise<ProgramList
     resistanceProgramId: program.resistanceProgramId,
     userId: program.userId,
     programName: program.programName,
-    phaseFocus: program.phaseFocus,
-    periodizationType: program.periodizationType,
+    resistPhaseId: program.resistPhaseId ?? null,
+    resistPhaseName: program.resistPhaseName ?? undefined,
+    resistPeriodizationId: program.resistPeriodizationId ?? null,
+    resistPeriodizationName: program.resistPeriodizationName ?? undefined,
     progressionRules: program.progressionRules,
     programDuration: program.programDuration,
     notes: program.notes,
@@ -31,7 +33,8 @@ export async function getResistancePrograms(userId: number): Promise<ProgramList
     endDate: program.endDate,
     createdAt: program.createdAt,
     updatedAt: program.updatedAt,
-    exerciseCount: program.exercise_count,
-    exerciseSummary: program.exercise_summary,
+    exerciseCount: program.exerciseCount ?? program.exercise_count,
+    exerciseSummary: program.exerciseSummary ?? program.exercise_summary,
+    templateInfo: program.templateInfo ?? undefined,
   }));
 } 

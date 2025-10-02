@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState } from "react";
-import type { PeriodizationPlan } from './types/periodization.zod';
-// import { mockPlanData } from './components/MockPlanData';
-import DemoBanner from "../../(components)/DemoBanner";
+import type { PeriodizationPlan } from '(protected)/tools/fitness/plan/types/periodization.zod';
+import { mockPlanData } from '(protected)/tools/fitness/plan/components/MockPlanData';
+import DemoBanner from '(protected)/tools/(components)/DemoBanner';
 
 // Import all the new components
 import TopBar from './components/TopBar';
@@ -13,7 +13,7 @@ import PlanHealth from './components/PlanHealth';
 import ConflictsWarnings from './components/ConflictsWarnings';
 import Calendar from './components/Calendar';
 
-import CalendarWidget from '@/app/(protected)/user/dashboard/components/CalendarWidget';
+import CalendarWidget from '(protected)/user/dashboard/components/CalendarWidget';
 import PlanningModal from './components/planning-modal/PlanningModal';
 import { usePlanningModal } from './components/planning-modal/usePlanningModal';
 

@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { signInHandler } from "@/app/lib/signInHandler";
+import { signInHandler } from "lib/signInHandler";
 import { useSearchParams } from 'next/navigation'
 
 export default function AccessRedirectContent() {

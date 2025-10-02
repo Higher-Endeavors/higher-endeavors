@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import type { UserSettings, BodyFatMethod, CircumferenceMeasurement, CircumferenceUnit } from '@/app/lib/types/userSettings.zod';
+import type { UserSettings, BodyFatMethod, CircumferenceMeasurement, CircumferenceUnit } from 'lib/types/userSettings.zod';
 // import type { UserSettings, CircumferenceUnit } from '../types/settings';
 
 interface HealthUserSettingsProps {

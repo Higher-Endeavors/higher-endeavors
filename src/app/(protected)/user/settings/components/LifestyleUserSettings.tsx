@@ -1,6 +1,6 @@
 import React from 'react';
 import { UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import type { UserSettings } from 'lib/types/userSettings.zod';
 // import type { UserSettings } from '../types/settings';
 
 interface LifestyleUserSettingsProps {

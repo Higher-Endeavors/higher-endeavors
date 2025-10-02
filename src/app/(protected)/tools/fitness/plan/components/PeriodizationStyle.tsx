@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Section from './Section';
+import Section from '(protected)/tools/fitness/plan/components/Section';
 
 export default function PeriodizationStyle() {
   const [periodizationModel, setPeriodizationModel] = useState('Block');

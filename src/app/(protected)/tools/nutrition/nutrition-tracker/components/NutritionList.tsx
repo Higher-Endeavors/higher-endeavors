@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import NutritionItem, { NutritionItemType } from './NutritionItem';
-import AddFoodModal from '../modals/AddFoodModal';
-import PostMeal from '../modals/PostMeal';
+import NutritionItem, { NutritionItemType } from '(protected)/tools/nutrition/nutrition-tracker/components/NutritionItem';
+import AddFoodModal from '(protected)/tools/nutrition/nutrition-tracker/modals/AddFoodModal';
+import PostMeal from '(protected)/tools/nutrition/nutrition-tracker/modals/PostMeal';
 import { HiOutlineClipboardList } from 'react-icons/hi';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 export type MealType = {
   mealType: 'breakfast' | 'lunch' | 'snack' | 'dinner';

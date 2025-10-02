@@ -1,9 +1,10 @@
 'use server';
 
-import { auth } from '@/app/auth';
-import { getClient, SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { UserSettings, UserSettingsSchema } from '@/app/lib/types/userSettings.zod';
+import { auth } from 'auth';
+import { getClient, SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { UserSettings, UserSettingsSchema } from 'lib/types/userSettings.zod';
+import { getGarminDeviceInfo } from 'api/garmin-connect/activity/lib/activity-data-utils';
 
 // --- Server Actions ---
 export async function getUserSettings(): Promise<UserSettings | null> {
@@ -17,6 +18,7 @@ export async function getUserSettings(): Promise<UserSettings | null> {
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -49,6 +51,7 @@ export async function getUserSettingsById(userId: number): Promise<UserSettings 
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -80,6 +83,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     general: {
       heightUnit: current.height_unit,
       weightUnit: current.weight_unit,
+      distanceUnit: current.distance_unit,
       temperatureUnit: current.temperature_unit,
       timeFormat: current.time_format,
       dateFormat: current.date_format,
@@ -100,6 +104,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     session.user.id,
     g.heightUnit,
     g.weightUnit,
+    g.distanceUnit,
     g.temperatureUnit,
     g.timeFormat,
     g.dateFormat,
@@ -114,13 +119,14 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
   ];
   const updateQuery = `
     INSERT INTO user_settings (
-      user_id, height_unit, weight_unit, temperature_unit, time_format, date_format, language,
+      user_id, height_unit, weight_unit, distance_unit, temperature_unit, time_format, date_format, language,
       notifications_email, notifications_text, notifications_app,
       fitness_settings, health_settings, lifestyle_settings, nutrition_settings, updated_at
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NOW())
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,NOW())
     ON CONFLICT (user_id) DO UPDATE SET
       height_unit = EXCLUDED.height_unit,
       weight_unit = EXCLUDED.weight_unit,
+      distance_unit = EXCLUDED.distance_unit,
       temperature_unit = EXCLUDED.temperature_unit,
       time_format = EXCLUDED.time_format,
       date_format = EXCLUDED.date_format,
@@ -145,6 +151,7 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
       general: {
         heightUnit: db.height_unit,
         weightUnit: db.weight_unit,
+        distanceUnit: db.distance_unit,
         temperatureUnit: db.temperature_unit,
         timeFormat: db.time_format,
         dateFormat: db.date_format,
@@ -165,5 +172,21 @@ export async function updateUserSettings(data: Partial<UserSettings>): Promise<U
     throw error;
   } finally {
     client.release();
+  }
+}
+
+// Get Garmin device attribution for the current user
+export async function getGarminDeviceAttribution(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return 'Garmin device-sourced data';
+  }
+
+  try {
+    const deviceInfo = await getGarminDeviceInfo(parseInt(session.user.id));
+    return deviceInfo.attribution;
+  } catch (error) {
+    await serverLogger.error('Error fetching Garmin device attribution', error, { userId: session.user.id });
+    return 'Garmin device-sourced data';
   }
 } 

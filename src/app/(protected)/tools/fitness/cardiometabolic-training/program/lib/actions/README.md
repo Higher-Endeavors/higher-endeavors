@@ -125,7 +125,7 @@ For interval exercises with repeat blocks, the system:
 ## Usage
 
 ```typescript
-import { saveCMESession, saveCMESessionActuals } from '../lib/actions';
+import { saveCMESession, saveCMESessionActuals } from 'tools/fitness/cardiometabolic-training/program/lib/actions';
 
 // Save a new session
 const result = await saveCMESession({

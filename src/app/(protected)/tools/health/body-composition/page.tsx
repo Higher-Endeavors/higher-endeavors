@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSession, SessionProvider } from 'next-auth/react';
-import BodyCompositionInput from './components/BodyCompositionInput';
-import BodyCompositionAnalysis from './components/BodyCompositionAnalysis';
-import UserSelector from '../../../components/UserSelector';
-import RequiredSettingsSidebar from './components/RequiredSettingsSidebar';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import BodyCompositionInput from '(protected)/tools/health/body-composition/components/BodyCompositionInput';
+import BodyCompositionAnalysis from '(protected)/tools/health/body-composition/components/BodyCompositionAnalysis';
+import UserSelector from '(protected)/components/UserSelector';
+import RequiredSettingsSidebar from '(protected)/tools/health/body-composition/components/RequiredSettingsSidebar';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import type { UserSettings } from 'lib/types/userSettings.zod';
+import { clientLogger } from 'lib/logging/logger.client';
 
 function BodyCompositionContent() {
   const { data: session } = useSession();

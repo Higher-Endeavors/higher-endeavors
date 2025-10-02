@@ -1,0 +1,6 @@
+---
+description: Always use absolute paths  
+globs:
+alwaysApply: true
+---
+All imports must use absolute paths from the baseUrl defined in the tsconfig.json file.

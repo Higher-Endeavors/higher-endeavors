@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, ReactNode } from "react";
-import type { UserSettings } from "@/app/lib/types/userSettings.zod";
+import type { UserSettings } from "lib/types/userSettings.zod";
 
 interface UserSettingsContextType {
   userSettings: UserSettings | null;

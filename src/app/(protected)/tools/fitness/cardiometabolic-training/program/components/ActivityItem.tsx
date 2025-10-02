@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-import type { CMEExercise } from '../../lib/types/cme.zod';
+import type { CMEExercise } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
 
 interface ActivityItemProps {
   activity: CMEExercise;

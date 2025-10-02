@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CalendarEvent } from '../types/calendar.zod';
+import type { CalendarEvent } from '(protected)/tools/calendar/types/calendar.zod';
 
 interface CalendarEventProps {
   event: CalendarEvent;

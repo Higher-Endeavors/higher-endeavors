@@ -1,13 +1,13 @@
-import { auth } from "@/app/auth";
+import { auth } from "auth";
 import { SessionProvider } from "next-auth/react";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
-import Container from "../components/container.js";
-import ArticleBody from "../components/article-body.js";
-import ArticleHeader from "../components/article-header.js";
-import Layout from "../components/layout.js";
-import RecentContent from "../components/RecentContent";
-import { getArticleBySlug, getRecentArticles } from "../../../lib/cmsAdapter.js";
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import Container from '(protected)/guide/components/container.js';
+import ArticleBody from '(protected)/guide/components/article-body.js';
+import ArticleHeader from '(protected)/guide/components/article-header.js';
+import Layout from '(protected)/guide/components/layout.js';
+import RecentContent from '(protected)/guide/components/RecentContent';
+import { getArticleBySlug, getRecentArticles } from 'lib/cmsAdapter.js';
 import Head from "next/head";
 
 export default async function Page(props) {

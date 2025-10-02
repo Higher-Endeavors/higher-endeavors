@@ -1,4 +1,4 @@
-import { ClientLogEntry, ClientLogEntrySchema } from '@/app/lib/types/logging';
+import { ClientLogEntry, ClientLogEntrySchema } from 'lib/types/logging';
 
 class ClientLogger {
   private sendLog(logEntry: Omit<ClientLogEntry, 'timestamp' | 'source'>): void {

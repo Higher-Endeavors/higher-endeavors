@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { CalendarEvent, WeekViewProps, TimeSlot } from '../types/calendar.zod';
-import CalendarEventComponent from './CalendarEvent';
-import FitnessDashboard from './WeeklyMetrics';
+import type { CalendarEvent, WeekViewProps, TimeSlot } from '(protected)/tools/calendar/types/calendar.zod';
+import CalendarEventComponent from '(protected)/tools/calendar/components/CalendarEvent';
+import FitnessDashboard from '(protected)/tools/calendar/components/WeeklyMetrics';
 
 export default function WeekView({
   events,
@@ -179,7 +179,7 @@ export default function WeekView({
 
   // Calculate current time position and check if it's in current week
   const getCurrentTimePosition = () => {
-    const now = currentTime;
+    const now = new Date(); // Use actual current time instead of state
     const currentHour = now.getHours();
     const currentMinute = now.getMinutes();
     

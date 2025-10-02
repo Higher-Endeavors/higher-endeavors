@@ -1,14 +1,14 @@
 "use server";
 
-import { getClient } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
-import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
+import { getClient } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 interface SaveResistanceProgramInput {
   userId: number;
   programName: string;
-  phaseFocus?: string;
-  periodizationType?: string;
+  resistPhaseId?: number | null;
+  resistPeriodizationId?: number | null;
   progressionRules: any;
   programDuration: number;
   notes?: string;
@@ -18,8 +18,8 @@ interface SaveResistanceProgramInput {
 export async function saveResistanceProgram({
   userId,
   programName,
-  phaseFocus,
-  periodizationType,
+  resistPhaseId,
+  resistPeriodizationId,
   progressionRules,
   programDuration,
   notes,
@@ -30,10 +30,18 @@ export async function saveResistanceProgram({
     await client.query('BEGIN');
     // Insert program
     const programRes = await client.query(
-      `INSERT INTO resist_programs (user_id, program_name, phase_focus, periodization_type, progression_rules, program_duration, notes, start_date, end_date)
+      `INSERT INTO resist_programs (user_id, program_name, resist_phase_id, resist_periodization_id, progression_rules, program_duration, notes, start_date, end_date)
        VALUES ($1, $2, $3, $4, $5, $6, $7, NULL, NULL)
        RETURNING program_id`,
-      [userId, programName, phaseFocus, periodizationType, JSON.stringify(progressionRules), programDuration, notes]
+      [
+        userId,
+        programName,
+        typeof resistPhaseId === 'number' ? resistPhaseId : null,
+        typeof resistPeriodizationId === 'number' ? resistPeriodizationId : null,
+        JSON.stringify(progressionRules),
+        programDuration,
+        notes,
+      ]
     );
     const programId = programRes.rows[0].program_id;
     // Prepare exercises for bulk insert

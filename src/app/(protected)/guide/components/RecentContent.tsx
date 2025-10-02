@@ -1,6 +1,6 @@
 import React, { type JSX } from 'react';
 import Link from 'next/link';
-import { Article } from '../types';
+import { Article } from '(protected)/guide/types';
 
 interface RecentContentProps {
   articles: Article[];
