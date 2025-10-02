@@ -8,8 +8,8 @@ import { serverLogger } from 'lib/logging/logger.server';
 interface SaveTemplateParams {
   userId: number;
   templateName: string;
-  phaseFocus?: string;
-  periodizationType?: string;
+  resistPhaseId?: number | null;
+  resistPeriodizationId?: number | null;
   progressionRules?: any;
   tierContinuumId?: number;
   notes?: string;
@@ -41,8 +41,8 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
     const {
       userId,
       templateName,
-      phaseFocus,
-      periodizationType,
+      resistPhaseId,
+      resistPeriodizationId,
       progressionRules,
       tierContinuumId,
       notes,

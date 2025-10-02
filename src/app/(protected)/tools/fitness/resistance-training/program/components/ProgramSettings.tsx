@@ -1,10 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Select from 'react-select';
 import React from 'react';
 import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
 import { useTierContinuum } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
+
+type ProgressionSettings = {
+  type: string;
+  settings: {
+    volume_increment_percentage: number;
+    load_increment_percentage: number;
+    weekly_volume_percentages: number[];
+  };
+};
 
 interface ProgramSettingsProps {
   programLength: number;
@@ -89,15 +98,33 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
     label: tier.tier_continuum_name
   }));
 
-  // Local state for periodization type and program length
-  const [autoIncrement, setAutoIncrement] = useState(progressionSettings.type !== 'None' && progressionSettings.settings.volume_increment_percentage > 0 ? 'yes' : 'no');
-  const [volumeIncrement, setVolumeIncrement] = useState(progressionSettings.settings.volume_increment_percentage?.toString() || '');
-  const [loadIncrement, setLoadIncrement] = useState(progressionSettings.settings.load_increment_percentage?.toString() || '');
+  // Auto-increment state - derive from progression settings
+  const [autoIncrement, setAutoIncrement] = useState(() => {
+    const hasIncrement = progressionSettings.settings.volume_increment_percentage !== 0 || 
+                        progressionSettings.settings.load_increment_percentage !== 0;
+    return hasIncrement ? 'yes' : 'no';
+  });
+
+  // Local state for increment values - these need to be editable by the user
+  const [volumeIncrement, setVolumeIncrement] = useState(
+    progressionSettings.settings.volume_increment_percentage?.toString() || '0'
+  );
+  const [loadIncrement, setLoadIncrement] = useState(
+    progressionSettings.settings.load_increment_percentage?.toString() || '0'
+  );
+
+  // Local state for weekly volumes (this needs to be state because it can be edited by the user)
   const [weeklyVolumes, setWeeklyVolumes] = useState((progressionSettings.settings.weekly_volume_percentages || ['100', '80', '90', '60']).map(String));
+
+  // Update local increment values when progression settings change (e.g., when loading a program)
+  useEffect(() => {
+    setVolumeIncrement(progressionSettings.settings.volume_increment_percentage?.toString() || '0');
+    setLoadIncrement(progressionSettings.settings.load_increment_percentage?.toString() || '0');
+  }, [progressionSettings.settings.volume_increment_percentage, progressionSettings.settings.load_increment_percentage]);
 
   // Update parent when progression settings change
   useEffect(() => {
-    if (periodizationType === 'None' || autoIncrement === 'no') {
+    if (periodizationType === 'None') {
       setProgressionSettings({
         type: periodizationType,
         settings: {
@@ -107,26 +134,64 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
         },
       });
     } else if (periodizationType === 'Linear') {
-      setProgressionSettings({
-        type: periodizationType,
-        settings: {
-          volume_increment_percentage: Number(volumeIncrement) || 0,
-          load_increment_percentage: Number(loadIncrement) || 0,
-          weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
-        },
-      });
+      if (autoIncrement === 'yes') {
+        const loadIncrementValue = Number(loadIncrement) || 0;
+        const volumeIncrementValue = Number(volumeIncrement) || 0;
+        const linearPattern = getLinearPattern(programLength, loadIncrementValue);
+        setProgressionSettings({
+          type: periodizationType,
+          settings: {
+            volume_increment_percentage: volumeIncrementValue,
+            load_increment_percentage: loadIncrementValue,
+            weekly_volume_percentages: linearPattern.map(v => Number(v)),
+          },
+        });
+      } else {
+        // Linear without auto-increment - just use the periodization type
+        setProgressionSettings({
+          type: periodizationType,
+          settings: {
+            volume_increment_percentage: 0,
+            load_increment_percentage: 0,
+            weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+          },
+        });
+      }
     } else if (periodizationType === 'Undulating') {
-      setProgressionSettings({
-        type: periodizationType,
-        settings: {
-          volume_increment_percentage: 0,
-          load_increment_percentage: 0,
-          weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
-        },
-      });
+      if (autoIncrement === 'yes') {
+        const volumeIncrementValue = Number(volumeIncrement) || 0;
+        setProgressionSettings({
+          type: periodizationType,
+          settings: {
+            volume_increment_percentage: volumeIncrementValue,
+            load_increment_percentage: 0,
+            weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+          },
+        });
+      } else {
+        // Undulating without auto-increment - just use the periodization type
+        setProgressionSettings({
+          type: periodizationType,
+          settings: {
+            volume_increment_percentage: 0,
+            load_increment_percentage: 0,
+            weekly_volume_percentages: weeklyVolumes.map(v => Number(v)),
+          },
+        });
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [periodizationType, autoIncrement, volumeIncrement, loadIncrement, weeklyVolumes]);
+  }, [periodizationType, autoIncrement, volumeIncrement, loadIncrement, weeklyVolumes, programLength]);
+
+  // Helper to generate linear progression pattern
+  function getLinearPattern(length: number, loadIncrement: number): string[] {
+    const pattern: number[] = [];
+    for (let i = 0; i < length; i++) {
+      const percentage = 100 + (loadIncrement * i);
+      pattern.push(Math.round(percentage));
+    }
+    return pattern.map(String);
+  }
 
   // Helper to generate undulating pattern
   function getUndulatingPattern(length: number): string[] {
@@ -144,11 +209,14 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
     return pattern.map(String);
   }
 
-  // Update weeklyVolumes array if programLength changes (for Undulating)
+  // Update weeklyVolumes array if programLength changes (for Undulating) or loadIncrement changes (for Linear)
   useEffect(() => {
     setWeeklyVolumes(prev => {
       if (periodizationType === 'Undulating') {
         return getUndulatingPattern(programLength);
+      } else if (periodizationType === 'Linear') {
+        const loadIncrementValue = Number(loadIncrement) || 0;
+        return getLinearPattern(programLength, loadIncrementValue);
       }
       const arr = [...prev];
       if (programLength > arr.length) {
@@ -158,7 +226,7 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
       }
       return arr;
     });
-  }, [programLength, periodizationType]);
+  }, [programLength, periodizationType, loadIncrement]);
 
   // When periodizationType changes to Undulating, set default pattern
   useEffect(() => {
@@ -256,7 +324,59 @@ export default function ProgramSettings({ programLength, setProgramLength, sessi
               <select
                 className="mt-1 block w-48 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-900 p-2"
                 value={autoIncrement}
-                onChange={e => setAutoIncrement(e.target.value)}
+                onChange={e => {
+                  const newValue = e.target.value;
+                  setAutoIncrement(newValue);
+                  
+                  if (newValue === 'yes') {
+                    // Enable auto-increment - set increment values to 0 initially
+                    if (periodizationType === 'Linear') {
+                      setProgressionSettings({
+                        ...progressionSettings,
+                        settings: {
+                          ...progressionSettings.settings,
+                          volume_increment_percentage: 0,
+                          load_increment_percentage: 0,
+                        },
+                      });
+                    } else if (periodizationType === 'Undulating') {
+                      // For Undulating: set up default undulating pattern
+                      const defaultPattern = getUndulatingPattern(programLength);
+                      setProgressionSettings({
+                        ...progressionSettings,
+                        settings: {
+                          ...progressionSettings.settings,
+                          volume_increment_percentage: 0,
+                          load_increment_percentage: 0,
+                          weekly_volume_percentages: defaultPattern.map(v => Number(v)),
+                        },
+                      });
+                    }
+                  } else {
+                    // Disable auto-increment - reset to no progression
+                    if (periodizationType === 'Linear') {
+                      setProgressionSettings({
+                        ...progressionSettings,
+                        settings: {
+                          ...progressionSettings.settings,
+                          volume_increment_percentage: 0,
+                          load_increment_percentage: 0,
+                        },
+                      });
+                    } else if (periodizationType === 'Undulating') {
+                      // For Undulating: set all weeks to 100% (no progression)
+                      setProgressionSettings({
+                        ...progressionSettings,
+                        settings: {
+                          ...progressionSettings.settings,
+                          volume_increment_percentage: 0,
+                          load_increment_percentage: 0,
+                          weekly_volume_percentages: Array(programLength).fill(100),
+                        },
+                      });
+                    }
+                  }
+                }}
               >
                 <option value="no">No</option>
                 <option value="yes">Yes</option>

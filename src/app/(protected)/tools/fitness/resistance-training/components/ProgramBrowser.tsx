@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
-import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { ProgramListItem as BaseProgramListItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 import { getResistancePrograms } from '(protected)/tools/fitness/resistance-training/lib/hooks/getResistancePrograms';
 import { useResistanceTemplates } from '(protected)/tools/fitness/resistance-training/lib/hooks/useResistanceTemplates';
 import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/lib/hooks/useTemplateData';
@@ -22,6 +22,10 @@ interface ProgramBrowserProps {
   onProgramDelete?: (programId: number) => void;
   newProgramHandler?: () => void;
   isProgramLoaded?: boolean;
+  // Analysis mode props
+  analysisMode?: boolean;
+  selectedProgramId?: number | null;
+  programDataStatus?: Map<number, { hasActualData: boolean; exerciseCount: number }>;
   hideMenu?: boolean;
 }
 
@@ -32,14 +36,16 @@ interface MenuState {
 interface FilterState {
   search: string;
   dateRange: 'all' | 'week' | 'month' | 'year';
-  phaseFocus: string;
-  periodizationType: string;
+  resistPhaseId: number | '';
+  resistPeriodizationId: number | '';
   sortBy: 'newest' | 'oldest' | 'name';
   showTemplates: boolean;
   hideOwnPrograms: boolean;
   tierContinuumId: number | '';
   templateCategory: string;
 }
+
+type ProgramListItem = BaseProgramListItem;
 
 export default function ProgramBrowser({ 
   onProgramSelect, 
@@ -78,8 +84,8 @@ export default function ProgramBrowser({
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     dateRange: 'all',
-    phaseFocus: '',
-    periodizationType: '',
+    resistPhaseId: '',
+    resistPeriodizationId: '',
     sortBy: 'newest',
     showTemplates: false,
     hideOwnPrograms: false,
@@ -167,11 +173,11 @@ export default function ProgramBrowser({
         }
       }
 
-      if (filters.phaseFocus && item.phaseFocus !== filters.phaseFocus) {
+      if (filters.resistPhaseId && item.resistPhaseId !== filters.resistPhaseId) {
         return false;
       }
 
-      if (filters.periodizationType && item.periodizationType !== filters.periodizationType) {
+      if (filters.resistPeriodizationId && item.resistPeriodizationId !== filters.resistPeriodizationId) {
         return false;
       }
 
@@ -447,27 +453,40 @@ export default function ProgramBrowser({
 
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                value={filters.phaseFocus}
-                onChange={(e) => setFilters({ ...filters, phaseFocus: e.target.value })}
+                value={filters.resistPhaseId}
+                onChange={(e) => setFilters({ ...filters, resistPhaseId: e.target.value ? Number(e.target.value) : '' })}
               >
-                <option value="">All Phases/Focus</option>
-                <option value="GPP">GPP</option>
-                <option value="Strength">Strength</option>
-                <option value="Hypertrophy">Hypertrophy</option>
-                <option value="Power">Power</option>
-                <option value="Endurance">Endurance</option>
+                <option value="">All Phases</option>
+                {Array.from(
+                  new Map(
+                    programs
+                      .filter(program => program.resistPhaseId !== null && program.resistPhaseId !== undefined)
+                      .map(program => [program.resistPhaseId, program.resistPhaseName ?? 'Unknown Phase'] as const)
+                  ).entries()
+                ).map(([phaseId, phaseName]) => (
+                  <option key={phaseId} value={phaseId ?? ''}>
+                    {phaseName}
+                  </option>
+                ))}
               </select>
 
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                value={filters.periodizationType}
-                onChange={(e) => setFilters({ ...filters, periodizationType: e.target.value })}
+                value={filters.resistPeriodizationId}
+                onChange={(e) => setFilters({ ...filters, resistPeriodizationId: e.target.value ? Number(e.target.value) : '' })}
               >
                 <option value="">All Periodization Types</option>
-                <option value="Linear">Linear</option>
-                <option value="Undulating">Undulating</option>
-                <option value="Block">Block</option>
-                <option value="None">None</option>
+                {Array.from(
+                  new Map(
+                    programs
+                      .filter(program => program.resistPeriodizationId !== null && program.resistPeriodizationId !== undefined)
+                      .map(program => [program.resistPeriodizationId, program.resistPeriodizationName ?? 'Unknown Type'] as const)
+                  ).entries()
+                ).map(([periodizationId, periodizationName]) => (
+                  <option key={periodizationId} value={periodizationId ?? ''}>
+                    {periodizationName}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -611,8 +630,8 @@ export default function ProgramBrowser({
                       <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
                         <div className="flex flex-col space-y-1">
                           <div className="flex space-x-4">
-                            <span>Periodization Type: {item.periodizationType || 'None'}</span>
-                            <span>Phase Focus: {item.phaseFocus || 'Not specified'}</span>
+                            <span>Periodization Type: {item.resistPeriodizationName || 'None'}</span>
+                            <span>Phase Focus: {item.resistPhaseName || 'Not specified'}</span>
                           </div>
                           {/* Template-specific information */}
                           {isTemplateItem && item.templateInfo && (

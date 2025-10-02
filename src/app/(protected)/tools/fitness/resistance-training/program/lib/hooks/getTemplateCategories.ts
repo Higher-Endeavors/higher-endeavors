@@ -1,30 +1,28 @@
-import { getApiBaseUrl } from 'lib/utils/apiUtils';
+import { SingleQuery } from 'lib/dbAdapter';
 
-export interface TemplateCategory {
-  resist_program_template_categories_id: number;
-  category_name: string;
-  description: string | null;
-  created_at: string;
-  updated_at: string | null;
+export interface TemplateCategoryOption {
+  resistProgramTemplateCategoriesId: number;
+  categoryName: string;
+  description?: string | null;
 }
 
-export async function getTemplateCategories(): Promise<TemplateCategory[]> {
-  const apiBaseUrl = await getApiBaseUrl();
-  const fetchUrl = `${apiBaseUrl}/api/resistance-training/template-categories`;
-  
-  const res = await fetch(`${fetchUrl}`, {
-    cache: 'force-cache',
-  });
-  
-  if (!res.ok) {
-    throw new Error(`Failed to fetch template categories: ${res.status} ${res.statusText}`);
-  }
-  
-  const data = await res.json();
-  
-  if (!data.categories || !Array.isArray(data.categories)) {
-    throw new Error('Invalid response format: expected categories array');
-  }
-  
-  return data.categories;
-} 
+export async function getTemplateCategories(): Promise<TemplateCategoryOption[]> {
+  const query = `
+    SELECT resist_program_template_categories_id, category_name, description
+    FROM resist_program_template_categories
+    ORDER BY category_name
+  `;
+
+  const result = await SingleQuery(query);
+  const rows = result.rows as Array<{
+    resist_program_template_categories_id: number;
+    category_name: string;
+    description: string | null;
+  }>;
+
+  return rows.map(row => ({
+    resistProgramTemplateCategoriesId: row.resist_program_template_categories_id,
+    categoryName: row.category_name,
+    description: row.description,
+  }));
+}

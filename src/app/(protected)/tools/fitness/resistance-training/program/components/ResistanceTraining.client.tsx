@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import UserSelector from '(protected)/components/UserSelector';
 import ProgramBrowser from '(protected)/tools/fitness/resistance-training/program/components/ProgramBrowser';
-import ProgramSettings from '(protected)/tools/fitness/resistance-training/program/components/ProgramSettings';
+import ProgramSettings from '(protected)/tools/fitness/resistance-training/program/components/ProgramSettingsNew';
 import ExerciseList from '(protected)/tools/fitness/resistance-training/program/components/ExerciseList';
 import SessionSummary from '(protected)/tools/fitness/resistance-training/program/components/SessionSummary';
 import AddExerciseModal from '(protected)/tools/fitness/resistance-training/program/modals/AddExerciseModal';
@@ -22,6 +22,145 @@ import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCM
 import { transformCMEActivitiesToExerciseLibrary } from '(protected)/tools/fitness/resistance-training/lib/actions/cmeTransformations';
 import { clientLogger } from 'lib/logging/logger.client';
 import { useToast } from 'lib/toast';
+
+const DEFAULT_LINEAR_WEEKLY_PERCENTAGES = [100, 100, 100, 100];
+const DEFAULT_UNDULATING_WEEKLY_PERCENTAGES = [100, 70, 110, 50];
+
+const resolveWeeklyPercentages = (
+  type: 'None' | 'Linear' | 'Undulating',
+  provided?: number[],
+) => {
+  if (provided && provided.length > 0) {
+    return [...provided];
+  }
+
+  if (type === 'Undulating') {
+    return [...DEFAULT_UNDULATING_WEEKLY_PERCENTAGES];
+  }
+
+  return [...DEFAULT_LINEAR_WEEKLY_PERCENTAGES];
+};
+
+const ensureInstanceVolumeArray = (
+  values: number[],
+  targetLength: number,
+): number[] => {
+  if (targetLength <= 0) {
+    return [];
+  }
+
+  const result: number[] = [];
+  for (let index = 0; index < targetLength; index += 1) {
+    const candidate = Number.isFinite(values[index]) ? Math.round(values[index]) : NaN;
+
+    if (!Number.isNaN(candidate)) {
+      result.push(candidate);
+      continue;
+    }
+
+    const fallback = DEFAULT_UNDULATING_WEEKLY_PERCENTAGES[index % DEFAULT_UNDULATING_WEEKLY_PERCENTAGES.length];
+    result.push(fallback);
+  }
+
+  return result;
+};
+
+const deriveWeeklyPercentagesFromInstances = (
+  instanceVolumes: number[],
+  programLength: number,
+  sessionsPerWeek: number,
+): number[] => {
+  if (programLength <= 0) {
+    return [];
+  }
+
+  const normalizedSessions = Math.max(1, Math.round(sessionsPerWeek));
+  const weeklyPercentages: number[] = [];
+
+  for (let weekIndex = 0; weekIndex < programLength; weekIndex += 1) {
+    const start = weekIndex * normalizedSessions;
+    const slice = instanceVolumes.slice(start, start + normalizedSessions);
+
+    if (slice.length === 0) {
+      const fallback = instanceVolumes[instanceVolumes.length - 1]
+        ?? DEFAULT_UNDULATING_WEEKLY_PERCENTAGES[weekIndex % DEFAULT_UNDULATING_WEEKLY_PERCENTAGES.length];
+      weeklyPercentages.push(fallback);
+      continue;
+    }
+
+    const average = Math.round(slice.reduce((sum, value) => sum + value, 0) / slice.length);
+    weeklyPercentages.push(average);
+  }
+
+  return weeklyPercentages;
+};
+
+const applyLinearProgression = (
+  baseExercises: ProgramExercisesPlanned[],
+  length: number,
+  volumePct: number,
+  loadPct: number,
+  targetStages: ProgramExercisesPlanned[][],
+  lockedWeeksSet: Set<number>,
+) => {
+  const progressedWeeks = generateProgressedWeeks(baseExercises, length, {
+    type: 'Linear',
+    settings: {
+      volume_increment_percentage: volumePct,
+      load_increment_percentage: loadPct,
+    },
+  });
+
+  return targetStages.map((currentWeek, index) => {
+    if (lockedWeeksSet.has(index)) {
+      return currentWeek;
+    }
+
+    const progressedWeek = progressedWeeks[index + 1] || [];
+    return currentWeek.map(originalExercise => {
+      const pairingLabel = originalExercise.pairing?.toUpperCase();
+      if (pairingLabel === 'WU' || pairingLabel === 'CD') {
+        return originalExercise;
+      }
+
+      const progressionTarget = progressedWeek.find(candidate =>
+        candidate.exerciseLibraryId === originalExercise.exerciseLibraryId &&
+        candidate.userExerciseLibraryId === originalExercise.userExerciseLibraryId &&
+        candidate.exerciseSource === originalExercise.exerciseSource
+      );
+
+      if (!progressionTarget || !Array.isArray(progressionTarget.plannedSets)) {
+        return originalExercise;
+      }
+
+      return {
+        ...originalExercise,
+        plannedSets: progressionTarget.plannedSets,
+      };
+    });
+  });
+};
+
+const expandWeeklyPercentagesToInstances = (
+  weeklyValues: number[],
+  programLength: number,
+  sessionsPerWeek: number,
+): number[] => {
+  const normalizedSessions = Math.max(1, Math.round(sessionsPerWeek));
+  const expanded: number[] = [];
+
+  for (let weekIndex = 0; weekIndex < Math.max(programLength, 1); weekIndex += 1) {
+    const baseValue = Number.isFinite(weeklyValues[weekIndex])
+      ? Math.round(weeklyValues[weekIndex])
+      : DEFAULT_UNDULATING_WEEKLY_PERCENTAGES[weekIndex % DEFAULT_UNDULATING_WEEKLY_PERCENTAGES.length];
+
+    for (let sessionIndex = 0; sessionIndex < normalizedSessions; sessionIndex += 1) {
+      expanded.push(baseValue);
+    }
+  }
+
+  return expanded;
+};
 
 // Custom hook for exercise management
 const useExerciseManager = (userId: number, initialExercises: ExerciseLibraryItem[]) => {
@@ -74,11 +213,19 @@ export default function ResistanceTrainingClient({
   initialUserId,
   userId,
   fitnessSettings,
+  initialPhases = [],
+  initialPeriodizationTypes = [],
+  initialTierContinuum = [],
+  initialTemplateCategories = [],
 }: {
   exercises: ExerciseLibraryItem[];
   initialUserId: number;
   userId: number;
   fitnessSettings?: FitnessSettings;
+  initialPhases?: { resistPhaseId: number; resistPhaseName: string }[];
+  initialPeriodizationTypes?: { resistPeriodizationId: number; resistPeriodizationName: string }[];
+  initialTierContinuum?: { tierContinuumId: number; tierContinuumName: string }[];
+  initialTemplateCategories?: { resistProgramTemplateCategoriesId: number; categoryName: string; description?: string | null }[];
 }) {
   const toast = useToast();
   const [selectedUserId, setSelectedUserId] = useState(userId);
@@ -86,12 +233,22 @@ export default function ResistanceTrainingClient({
   const [sessionsPerWeek, setSessionsPerWeek] = useState(1);
   // Progression settings state
   const [progressionSettings, setProgressionSettings] = useState({
-    type: 'None',
+    type: 'None' as 'None' | 'Linear' | 'Undulating',
     settings: {
       volume_increment_percentage: 0,
       load_increment_percentage: 0,
-      weekly_volume_percentages: [100, 100, 100, 100],
+      weekly_volume_percentages: DEFAULT_LINEAR_WEEKLY_PERCENTAGES,
     },
+  });
+  const [autoIncrement, setAutoIncrement] = useState<'yes' | 'no'>('no');
+  const [volumeIncrementInput, setVolumeIncrementInput] = useState('0');
+  const [loadIncrementInput, setLoadIncrementInput] = useState('0');
+  const [instanceVolumeInputs, setInstanceVolumeInputs] = useState<string[]>(() => {
+    const initialInstances = Math.max(1, Math.round(4 * 1));
+    return ensureInstanceVolumeArray(
+      DEFAULT_UNDULATING_WEEKLY_PERCENTAGES,
+      initialInstances,
+    ).map(String);
   });
   // Week 1 (base) exercises
   const [baseWeekExercises, setBaseWeekExercises] = useState<ProgramExercisesPlanned[]>([]);
@@ -104,14 +261,28 @@ export default function ResistanceTrainingClient({
   const [activeDay, setActiveDay] = useState(1);
   // Track which weeks have been manually edited (locked)
   const [lockedWeeks, setLockedWeeks] = useState<Set<number>>(new Set());
+  // Track if we're in initial setup mode (ends when user makes changes to Day 2+)
+  const [isInitialSetup, setIsInitialSetup] = useState(true);
+  // Track manually edited exercises for granular control
+  const [manuallyEditedExercises, setManuallyEditedExercises] = useState<{
+    [weekIndex: number]: {
+      [exerciseId: string]: {
+        fields: Set<'load' | 'reps' | 'sets'>;
+        lastEdited: Date;
+      }
+    }
+  }>({});
   // Add state for programName (to be set from ProgramSettings)
   const [programName, setProgramName] = useState('');
-  // Add state for phaseFocus, periodizationType, progressionRules, programDuration, notes
-  const [phaseFocus, setPhaseFocus] = useState('');
-  const [periodizationType, setPeriodizationType] = useState('None');
-  const [progressionRulesState, setProgressionRulesState] = useState({});
+  // Add state for phase/periodization, progressionRules, programDuration, notes
+  const [resistPhaseId, setResistPhaseId] = useState<number | undefined>(undefined);
+  const [resistPeriodizationId, setResistPeriodizationId] = useState<number | undefined>(1);
   const [programDuration, setProgramDuration] = useState(programLength);
   const [notes, setNotes] = useState('');
+  const [availablePhases, setAvailablePhases] = useState(initialPhases ?? []);
+  const [availablePeriodizationTypes, setAvailablePeriodizationTypes] = useState(initialPeriodizationTypes ?? []);
+  const [availableTierContinuum, setAvailableTierContinuum] = useState(initialTierContinuum ?? []);
+  const [availableTemplateCategories, setAvailableTemplateCategories] = useState(initialTemplateCategories ?? []);
   const [isLoadingProgram, setIsLoadingProgram] = useState(false);
   const [editingProgramId, setEditingProgramId] = useState<number | null>(null);
   // Add mode state
@@ -136,6 +307,395 @@ export default function ResistanceTrainingClient({
   // Use the custom hook for exercise management
   const { exercises, isLoadingExercises, fetchExercisesForUser } = useExerciseManager(userId, initialExercises);
 
+  const totalInstances = useMemo(() => {
+    const raw = programLength * sessionsPerWeek;
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return 0;
+    }
+    return Math.max(1, Math.round(raw));
+  }, [programLength, sessionsPerWeek]);
+
+  const applyUndulatingProgression = (
+    baseExercises: ProgramExercisesPlanned[],
+    instanceVolumes: number[],
+    programLengthValue: number,
+    sessionsPerWeekValue: number,
+    targetStages: ProgramExercisesPlanned[][],
+    lockedWeeksSet: Set<number>,
+  ) => {
+    const targetInstanceCount = Math.max(1, Math.round(programLengthValue * sessionsPerWeekValue));
+    const percentages = ensureInstanceVolumeArray(instanceVolumes, targetInstanceCount);
+    const weeklyPercentages = deriveWeeklyPercentagesFromInstances(
+      percentages,
+      programLengthValue,
+      sessionsPerWeekValue,
+    );
+
+    const progressedByWeek = generateProgressedWeeks(baseExercises, programLengthValue, {
+      type: 'Undulating',
+      settings: {
+        weekly_volume_percentages: weeklyPercentages,
+      },
+    });
+
+    return targetStages.map((currentWeek, index) => {
+      if (lockedWeeksSet.has(index)) {
+        return currentWeek;
+      }
+
+      const progressedWeek = progressedByWeek[index + 1] || [];
+      return currentWeek.map(originalExercise => {
+        const pairingLabel = originalExercise.pairing?.toUpperCase();
+        if (pairingLabel === 'WU' || pairingLabel === 'CD') {
+          return originalExercise;
+        }
+
+        const progressionTarget = progressedWeek.find(candidate =>
+          candidate.exerciseLibraryId === originalExercise.exerciseLibraryId &&
+          candidate.userExerciseLibraryId === originalExercise.userExerciseLibraryId &&
+          candidate.exerciseSource === originalExercise.exerciseSource
+        );
+
+        if (!progressionTarget || !Array.isArray(progressionTarget.plannedSets)) {
+          return originalExercise;
+        }
+
+        const weekIndex = index;
+        const normalizedSessions = Math.max(1, Math.round(sessionsPerWeekValue));
+        const start = weekIndex * normalizedSessions;
+        const instanceSlice = percentages.slice(start, start + normalizedSessions);
+        const primaryInstanceVolume = instanceSlice[0] ?? percentages[start] ?? percentages[percentages.length - 1];
+        const targetPercent = Math.max(1, primaryInstanceVolume);
+
+        return {
+          ...originalExercise,
+          plannedSets: progressionTarget.plannedSets.map((set, setIndex) => {
+            if (!set || typeof set !== 'object') {
+              return set;
+            }
+
+            const updatedSet = { ...set };
+            if (typeof updatedSet.reps === 'number') {
+              updatedSet.reps = Math.max(1, Math.round(updatedSet.reps * (targetPercent / 100)));
+            }
+
+            return updatedSet;
+          }),
+        };
+      });
+    });
+  };
+
+  const hydrateProgressionState = (
+    nextSettings: {
+      type: 'None' | 'Linear' | 'Undulating';
+      settings?: {
+        volume_increment_percentage?: number;
+        load_increment_percentage?: number;
+        weekly_volume_percentages?: number[];
+      };
+    },
+    {
+      resetLocks = true,
+      autoIncrementOverride,
+      shouldToast,
+    }: {
+      resetLocks?: boolean;
+      autoIncrementOverride?: 'yes' | 'no';
+      shouldToast?: boolean;
+    } = {}
+  ) => {
+    const { type, settings } = nextSettings;
+    const volumeIncrementValue = settings?.volume_increment_percentage ?? 0;
+    const loadIncrementValue = settings?.load_increment_percentage ?? 0;
+    const weeklyVolumePercentages = resolveWeeklyPercentages(type, settings?.weekly_volume_percentages);
+    const instanceValues =
+      type === 'Undulating'
+        ? expandWeeklyPercentagesToInstances(weeklyVolumePercentages, programLength, sessionsPerWeek)
+        : weeklyVolumePercentages;
+
+    setProgressionSettings({
+      type,
+      settings: {
+        volume_increment_percentage: volumeIncrementValue,
+        load_increment_percentage: loadIncrementValue,
+        weekly_volume_percentages: weeklyVolumePercentages,
+      },
+    });
+
+    if (autoIncrementOverride) {
+      setAutoIncrement(autoIncrementOverride);
+    }
+
+    setVolumeIncrementInput(String(volumeIncrementValue));
+    setLoadIncrementInput(String(loadIncrementValue));
+    setInstanceVolumeInputs(
+      ensureInstanceVolumeArray(instanceValues, Math.max(1, Math.round(programLength * sessionsPerWeek))).map(value => String(value))
+    );
+
+    if (resetLocks) {
+      setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+    }
+  };
+
+  const synchronizeLinearProgression = (
+    nextVolume: number,
+    nextLoad: number,
+    shouldApplyProgression: boolean,
+    { shouldToast = false } = {}
+  ) => {
+    hydrateProgressionState(
+      {
+        type: 'Linear',
+        settings: {
+          volume_increment_percentage: nextVolume,
+          load_increment_percentage: nextLoad,
+          weekly_volume_percentages: progressionSettings.settings?.weekly_volume_percentages,
+        },
+      },
+      { shouldToast }
+    );
+
+    if (shouldApplyProgression && baseWeekExercises.length > 0) {
+      setWeeklyExercises(prev =>
+        applyLinearProgression(
+          baseWeekExercises,
+          programLength,
+          nextVolume,
+          nextLoad,
+          prev,
+          lockedWeeks,
+        ),
+      );
+      setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+    }
+  };
+
+  const synchronizeUndulatingProgression = (
+    volumes: string[],
+    shouldApplyProgression: boolean,
+    { shouldToast = false } = {}
+  ) => {
+    const numericVolumes = ensureInstanceVolumeArray(
+      volumes.map(value => Number(value) || 0),
+      totalInstances,
+    );
+
+    const weeklyPercentages = deriveWeeklyPercentagesFromInstances(
+      numericVolumes,
+      programLength,
+      sessionsPerWeek,
+    );
+
+    hydrateProgressionState(
+      {
+        type: 'Undulating',
+        settings: {
+          weekly_volume_percentages: weeklyPercentages,
+          volume_increment_percentage: progressionSettings.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: progressionSettings.settings?.load_increment_percentage ?? 0,
+        },
+      },
+      { shouldToast }
+    );
+
+    if (shouldApplyProgression && baseWeekExercises.length > 0) {
+      setWeeklyExercises(prev => applyUndulatingProgression(
+        baseWeekExercises,
+        numericVolumes,
+        programLength,
+        sessionsPerWeek,
+        prev,
+        lockedWeeks,
+      ));
+      setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+    }
+  };
+
+  const handlePeriodizationChange = (periodizationId: number | undefined) => {
+    const newId = periodizationId ?? 1;
+    setResistPeriodizationId(newId);
+
+    const nextType = newId === 2 ? 'Linear' : newId === 3 ? 'Undulating' : 'None';
+
+    const nextSettings = {
+      type: nextType,
+      settings:
+        nextType === 'Linear'
+          ? {
+              volume_increment_percentage: Number(volumeIncrementInput) || 0,
+              load_increment_percentage: Number(loadIncrementInput) || 0,
+              weekly_volume_percentages: progressionSettings.settings?.weekly_volume_percentages,
+            }
+          : nextType === 'Undulating'
+            ? {
+                weekly_volume_percentages: deriveWeeklyPercentagesFromInstances(
+                  ensureInstanceVolumeArray(instanceVolumeInputs.map(value => Number(value) || 0), totalInstances),
+                  programLength,
+                  sessionsPerWeek,
+                ),
+                volume_increment_percentage: progressionSettings.settings?.volume_increment_percentage ?? 0,
+                load_increment_percentage: progressionSettings.settings?.load_increment_percentage ?? 0,
+              }
+            : undefined,
+    } as {
+      type: 'None' | 'Linear' | 'Undulating';
+      settings?: {
+        volume_increment_percentage?: number;
+        load_increment_percentage?: number;
+        weekly_volume_percentages?: number[];
+      };
+    };
+
+    hydrateProgressionState(nextSettings, { autoIncrementOverride: autoIncrement });
+
+    if (nextType === 'Linear' && autoIncrement === 'yes') {
+      const volumePercentage = Number(volumeIncrementInput) || 0;
+      const loadPercentage = Number(loadIncrementInput) || 0;
+      synchronizeLinearProgression(volumePercentage, loadPercentage, true);
+    } else if (nextType === 'Undulating' && autoIncrement === 'yes') {
+      synchronizeUndulatingProgression(instanceVolumeInputs, true);
+    }
+
+    setLockedWeeks(new Set());
+    setManuallyEditedExercises({});
+  };
+
+  const handleAutoIncrementChange = (value: 'yes' | 'no') => {
+    setAutoIncrement(value);
+
+    if (value === 'yes') {
+      if (progressionSettings.type === 'Linear') {
+        const volumePercentage = Number(volumeIncrementInput) || 0;
+        const loadPercentage = Number(loadIncrementInput) || 0;
+        synchronizeLinearProgression(volumePercentage, loadPercentage, true, { shouldToast: true });
+      } else if (progressionSettings.type === 'Undulating') {
+        synchronizeUndulatingProgression(instanceVolumeInputs, true, { shouldToast: true });
+      }
+    } else {
+      if (progressionSettings.type === 'Linear') {
+        hydrateProgressionState(
+          {
+            type: 'Linear',
+            settings: {
+              volume_increment_percentage: 0,
+              load_increment_percentage: 0,
+              weekly_volume_percentages: DEFAULT_LINEAR_WEEKLY_PERCENTAGES,
+            },
+          },
+          { autoIncrementOverride: 'no', shouldToast: true }
+        );
+      } else if (progressionSettings.type === 'Undulating') {
+        hydrateProgressionState(
+          {
+            type: 'Undulating',
+            settings: {
+              weekly_volume_percentages: DEFAULT_UNDULATING_WEEKLY_PERCENTAGES,
+              volume_increment_percentage: 0,
+              load_increment_percentage: 0,
+            },
+          },
+          { autoIncrementOverride: 'no', shouldToast: true }
+        );
+      }
+    }
+  };
+
+  const handleVolumeIncrementChange = useCallback((value: string) => {
+    setVolumeIncrementInput(value);
+
+    if (progressionSettings.type !== 'Linear') {
+      return;
+    }
+
+    const volumePercentage = Number(value) || 0;
+    const loadPercentage = Number(loadIncrementInput) || 0;
+
+    if (autoIncrement === 'yes') {
+      synchronizeLinearProgression(volumePercentage, loadPercentage, true);
+      return;
+    }
+
+    hydrateProgressionState(
+      {
+        type: 'Linear',
+        settings: {
+          volume_increment_percentage: volumePercentage,
+          load_increment_percentage: loadPercentage,
+          weekly_volume_percentages: progressionSettings.settings?.weekly_volume_percentages,
+        },
+      },
+      { autoIncrementOverride: 'no' }
+    );
+  }, [autoIncrement, progressionSettings, loadIncrementInput, synchronizeLinearProgression, hydrateProgressionState]);
+
+  const handleLoadIncrementChange = useCallback((value: string) => {
+    setLoadIncrementInput(value);
+
+    if (progressionSettings.type !== 'Linear') {
+      return;
+    }
+
+    const volumePercentage = Number(volumeIncrementInput) || 0;
+    const loadPercentage = Number(value) || 0;
+
+    if (autoIncrement === 'yes') {
+      synchronizeLinearProgression(volumePercentage, loadPercentage, true);
+      return;
+    }
+
+    hydrateProgressionState(
+      {
+        type: 'Linear',
+        settings: {
+          volume_increment_percentage: volumePercentage,
+          load_increment_percentage: loadPercentage,
+          weekly_volume_percentages: progressionSettings.settings?.weekly_volume_percentages,
+        },
+      },
+      { autoIncrementOverride: 'no' }
+    );
+  }, [autoIncrement, progressionSettings, volumeIncrementInput, synchronizeLinearProgression, hydrateProgressionState]);
+
+  const handleInstanceVolumesChange = useCallback((volumes: string[]) => {
+    setInstanceVolumeInputs(volumes);
+
+    if (progressionSettings.type !== 'Undulating') {
+      return;
+    }
+
+    if (autoIncrement === 'yes') {
+      synchronizeUndulatingProgression(volumes, true);
+      return;
+    }
+
+    const numericVolumes = ensureInstanceVolumeArray(
+      volumes.map(value => Number(value) || 0),
+      totalInstances,
+    );
+
+    const weeklyPercentages = deriveWeeklyPercentagesFromInstances(
+      numericVolumes,
+      programLength,
+      sessionsPerWeek,
+    );
+
+    hydrateProgressionState(
+      {
+        type: 'Undulating',
+        settings: {
+          weekly_volume_percentages: weeklyPercentages,
+          volume_increment_percentage: progressionSettings.settings?.volume_increment_percentage ?? 0,
+          load_increment_percentage: progressionSettings.settings?.load_increment_percentage ?? 0,
+        },
+      },
+      { autoIncrementOverride: 'no' }
+    );
+  }, [autoIncrement, progressionSettings, synchronizeUndulatingProgression, hydrateProgressionState, programLength, sessionsPerWeek, totalInstances]);
+
   // Update programDuration when programLength changes
   useEffect(() => {
     setProgramDuration(programLength);
@@ -148,12 +708,20 @@ export default function ResistanceTrainingClient({
         if (i < prev.length) {
           return prev[i]; // Keep existing week data
         } else {
-          return []; // Add empty arrays for new weeks
+          // New weeks - apply progression if available
+          if (progressionSettings.type !== 'None' && baseWeekExercises.length > 0) {
+            const progressedWeeks = generateProgressedWeeks(baseWeekExercises, programLength, progressionSettings);
+            return progressedWeeks[i + 1] || [];
+          } else {
+            return []; // Add empty arrays for new weeks
+          }
         }
       });
       return newArray;
     });
-  }, [programLength]);
+  }, [programLength, progressionSettings, baseWeekExercises]);
+
+  // Progression useEffects removed; handler-driven updates cover all scenarios.
 
   // Load program handler
   const handleLoadProgram = async (program: any) => {
@@ -167,9 +735,17 @@ export default function ResistanceTrainingClient({
       
       // Update program settings
       setProgramName(loadedProgram.programName);
-      setPhaseFocus(loadedProgram.phaseFocus || '');
-      setPeriodizationType(loadedProgram.periodizationType || 'None');
-      setProgressionRulesState(loadedProgram.progressionRules || {});
+      setResistPhaseId(loadedProgram.resistPhaseId ?? undefined);
+      setResistPeriodizationId(loadedProgram.resistPeriodizationId ?? 1);
+      const loadedProgressionRules = loadedProgram.progressionRules || {
+        type: 'None',
+        settings: {
+          volume_increment_percentage: 0,
+          load_increment_percentage: 0,
+          weekly_volume_percentages: [100, 100, 100, 100],
+        },
+      };
+      hydrateProgressionState(loadedProgressionRules, { resetLocks: true });
       setProgramDuration(loadedProgram.programDuration || 4);
       setNotes(loadedProgram.notes || '');
       
@@ -209,6 +785,8 @@ export default function ResistanceTrainingClient({
       
       // Clear any locked weeks since we're loading a new program
       setLockedWeeks(new Set());
+      setManuallyEditedExercises({});
+      setIsInitialSetup(false); // Loaded program is not initial setup
       
       // Set the program ID we're editing
       setEditingProgramId(loadedProgram.resistanceProgramId);
@@ -237,6 +815,54 @@ export default function ResistanceTrainingClient({
     }
     setIsModalOpen(false);
     setEditingExercise(null);
+  };
+
+  // Add new exercise with progression applied to all weeks
+  const handleAddExerciseWithProgression = (exercise: ProgramExercisesPlanned) => {
+    if (progressionSettings.type === 'None') {
+      // No progression - add to all weeks as-is
+      handleAddExercise(exercise);
+    } else {
+      // Apply progression to the new exercise
+      const progressedWeeks = generateProgressedWeeks([exercise], programLength, progressionSettings);
+      
+      setWeeklyExercises(prev =>
+        prev.map((weekExercises, weekIndex) => [
+          ...weekExercises,
+          progressedWeeks[weekIndex + 1]?.[0] || exercise
+        ])
+      );
+    }
+    setIsModalOpen(false);
+    setEditingExercise(null);
+  };
+
+  // Helper function to detect what fields were edited
+  const detectEditedFields = (original: ProgramExercisesPlanned, edited: ProgramExercisesPlanned): Set<'load' | 'reps' | 'sets'> => {
+    const editedFields = new Set<'load' | 'reps' | 'sets'>();
+    
+    const originalSets = original.plannedSets || [];
+    const editedSets = edited.plannedSets || [];
+    
+    // Compare sets length
+    if (originalSets.length !== editedSets.length) {
+      editedFields.add('sets');
+    }
+    
+    // Compare reps and load for each set
+    originalSets.forEach((originalSet, index) => {
+      const editedSet = editedSets[index];
+      if (editedSet) {
+        if (originalSet.reps !== editedSet.reps) {
+          editedFields.add('reps');
+        }
+        if (originalSet.load !== editedSet.load) {
+          editedFields.add('load');
+        }
+      }
+    });
+    
+    return editedFields;
   };
 
   // Session editing functions
@@ -447,26 +1073,58 @@ export default function ResistanceTrainingClient({
   // Save exercise (add new or update existing)
   const handleSaveExercise = (exercise: ProgramExercisesPlanned) => {
     const currentWeek = Math.ceil(activeDay / sessionsPerWeek);
+    const weekIndex = currentWeek - 1;
+    
     if (editingExercise) {
+      // Track what fields were manually edited
+      const editedFields = detectEditedFields(editingExercise, exercise);
+      
       setWeeklyExercises(prev =>
         prev.map((arr, idx) =>
-          idx === currentWeek - 1
+          idx === weekIndex
             ? arr.map(ex => 
                 ex.programExercisesPlannedId === editingExercise.programExercisesPlannedId ? exercise : ex
               )
             : arr
         )
       );
+      
+      // Mark week as locked and track specific edits
       if (currentWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
+        setLockedWeeks(prev => new Set(prev).add(weekIndex));
+        setManuallyEditedExercises(prev => ({
+          ...prev,
+          [weekIndex]: {
+            ...prev[weekIndex],
+            [exercise.programExercisesPlannedId]: {
+              fields: editedFields,
+              lastEdited: new Date()
+            }
+          }
+        }));
+        // End initial setup mode when user edits Day 2+
+        if (isInitialSetup) {
+          setIsInitialSetup(false);
+        }
       }
     } else {
-      // Pass the target week (0-based index) for week-specific additions
-      handleAddExercise(exercise, currentWeek - 1);
-      if (currentWeek !== 1) {
-        setLockedWeeks(prev => new Set(prev).add(currentWeek - 1));
+      // Add logic
+      if (isInitialSetup && currentWeek === 1) {
+        // Initial setup: add to all weeks with progression applied
+        handleAddExerciseWithProgression(exercise);
+      } else {
+        // Week-specific: add only to current week
+        handleAddExercise(exercise, weekIndex);
+        if (currentWeek !== 1) {
+          setLockedWeeks(prev => new Set(prev).add(weekIndex));
+          // End initial setup mode when user adds to Day 2+
+          if (isInitialSetup) {
+            setIsInitialSetup(false);
+          }
+        }
       }
     }
+    
     setEditingExercise(null);
     setIsModalOpen(false);
   };
@@ -503,8 +1161,8 @@ export default function ResistanceTrainingClient({
           programId: editingProgramId,
           userId: selectedUserId,
           programName,
-          phaseFocus,
-          periodizationType,
+          resistPhaseId,
+          resistPeriodizationId,
           progressionRules: progressionSettings,
           programDuration,
           notes,
@@ -515,8 +1173,8 @@ export default function ResistanceTrainingClient({
         result = await saveResistanceProgram({
           userId: selectedUserId,
           programName,
-          phaseFocus,
-          periodizationType,
+          resistPhaseId,
+          resistPeriodizationId,
           progressionRules: progressionSettings,
           programDuration,
           notes,
@@ -577,8 +1235,8 @@ export default function ResistanceTrainingClient({
       const programResult = await saveResistanceProgram({
         userId: 1, // Save to Higher Endeavors user
         programName,
-        phaseFocus,
-        periodizationType,
+        resistPhaseId,
+        resistPeriodizationId,
         progressionRules: progressionSettings,
         notes,
         weeklyExercises,
@@ -594,8 +1252,8 @@ export default function ResistanceTrainingClient({
       const result = await saveResistanceTemplate({
         userId: selectedUserId,
         templateName: programName,
-        phaseFocus,
-        periodizationType,
+        resistPhaseId,
+        resistPeriodizationId,
         progressionRules: progressionSettings,
         tierContinuumId: tierContinuumId,
         notes,
@@ -661,15 +1319,28 @@ export default function ResistanceTrainingClient({
               // Clear program state when switching users
               setEditingProgramId(null);
               setProgramName('');
-              setPhaseFocus('');
-              setPeriodizationType('None');
-              setProgressionRulesState({});
+      setResistPhaseId(undefined);
+      setResistPeriodizationId(1);
+              hydrateProgressionState(
+                {
+                  type: 'None',
+                  settings: {
+                    volume_increment_percentage: 0,
+                    load_increment_percentage: 0,
+                    weekly_volume_percentages: DEFAULT_LINEAR_WEEKLY_PERCENTAGES,
+                  },
+                },
+                { autoIncrementOverride: 'no' }
+              );
+              setAutoIncrement('no');
               setProgramDuration(4);
               setNotes('');
               setWeeklyExercises([[]]);
               setBaseWeekExercises([]);
               setActiveDay(1);
               setLockedWeeks(new Set());
+              setManuallyEditedExercises({});
+              setIsInitialSetup(true); // Reset to initial setup mode
               setIsTemplateProgram(false);
             }
           }}
@@ -688,9 +1359,20 @@ export default function ResistanceTrainingClient({
         newProgramHandler={() => {
           setEditingProgramId(null);
           setProgramName('');
-          setPhaseFocus('');
-          setPeriodizationType('None');
-          setProgressionRulesState({});
+          setResistPhaseId(undefined);
+          setResistPeriodizationId(1);
+          hydrateProgressionState(
+            {
+              type: 'None',
+              settings: {
+                volume_increment_percentage: 0,
+                load_increment_percentage: 0,
+                weekly_volume_percentages: DEFAULT_LINEAR_WEEKLY_PERCENTAGES,
+              },
+            },
+            { autoIncrementOverride: 'no' }
+          );
+          setAutoIncrement('no');
           setProgramDuration(4);
           setNotes('');
           setDifficultyLevel('');
@@ -700,24 +1382,31 @@ export default function ResistanceTrainingClient({
           setBaseWeekExercises([]);
           setActiveDay(1);
           setLockedWeeks(new Set());
+          setManuallyEditedExercises({});
+          setIsInitialSetup(true); // Reset to initial setup mode
           setIsTemplateProgram(false); // Reset template state
         }}
         isProgramLoaded={!!editingProgramId}
       />
       <ProgramSettings
-        key={`${editingProgramId}-${programLength}-${sessionsPerWeek}`}
+        key={`${editingProgramId}-${programLength}-${sessionsPerWeek}-${JSON.stringify(progressionSettings)}`}
         programLength={programLength}
         setProgramLength={setProgramLength}
         sessionsPerWeek={sessionsPerWeek}
         setSessionsPerWeek={setSessionsPerWeek}
-        progressionSettings={progressionSettings}
-        setProgressionSettings={setProgressionSettings}
         programName={programName}
         setProgramName={setProgramName}
-        phaseFocus={phaseFocus}
-        setPhaseFocus={setPhaseFocus}
-        periodizationType={periodizationType}
-        setPeriodizationType={setPeriodizationType}
+        resistPhaseId={resistPhaseId}
+        setResistPhaseId={setResistPhaseId}
+        resistPeriodizationId={resistPeriodizationId}
+        availablePhases={availablePhases}
+        availablePeriodizationTypes={availablePeriodizationTypes}
+        availableTierContinuum={availableTierContinuum}
+        availableTemplateCategories={availableTemplateCategories}
+        volumeIncrement={volumeIncrementInput}
+        loadIncrement={loadIncrementInput}
+        weeklyVolumePercentages={instanceVolumeInputs}
+        autoIncrement={autoIncrement}
         notes={notes}
         setNotes={setNotes}
         tierContinuumId={tierContinuumId}
@@ -727,6 +1416,12 @@ export default function ResistanceTrainingClient({
         isAdmin={isAdmin}
         isLoading={isLoadingProgram}
         isTemplateProgram={isTemplateProgram}
+        onPeriodizationChange={handlePeriodizationChange}
+        onAutoIncrementChange={handleAutoIncrementChange}
+        onVolumeIncrementChange={handleVolumeIncrementChange}
+        onLoadIncrementChange={handleLoadIncrementChange}
+        onWeeklyVolumePercentagesChange={handleInstanceVolumesChange}
+        totalInstances={totalInstances}
       />
       <DayTabs
         activeDay={activeDay}
