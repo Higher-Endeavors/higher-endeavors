@@ -6,19 +6,43 @@ alwaysApply: false
 # Styling Guidelines
 
 ## General
-- Text and background color combinations must meet WCAG AA contrast standards.
+- All text and background color combinations **must meet WCAG AA contrast standards** for accessibility.
+- Use semantic HTML and ARIA attributes where appropriate for accessibility.
 
 ## Dark Mode
-- Use dark: prefix for dark mode styles
-- Maintain consistent color scheme
-- Test both light and dark modes
+- Use the `dark:` prefix for Tailwind dark mode styles.
+- Modal and card backgrounds should use `bg-white` in light mode and `dark:bg-slate-700` (or the site's standard dark card color) in dark mode, unless otherwise specified.
+- Inputs in modals/cards should use `dark:bg-gray-200` or `dark:bg-gray-700` as appropriate, with `dark:text-white` and `dark:placeholder-gray-400`.
+- Modal headers and labels should use `dark:text-white`.
+- Maintain a **consistent color scheme** for all UI elements in both modes.
+- Always **test both light and dark modes** for every new component or page.
 
 ## Responsive Design
-- Use mobile-first approach
-- Use appropriate breakpoints (sm, md, lg, xl)
-- Test on multiple screen sizes
+- Use a **mobile-first approach** for all layouts.
+- Use Tailwind's breakpoints: `sm`, `md`, `lg`, `xl` for responsive adjustments.
+- Test on multiple screen sizes to ensure usability and visual consistency.
 
 ## Component Spacing
-- Use consistent spacing units
-- Maintain proper hierarchy with spacing
-- Use appropriate padding and margins
+- Use consistent spacing units (`p-*`, `m-*`, `gap-*`, etc.) throughout the UI.
+- Maintain proper visual hierarchy with spacing (e.g., more space between sections than between items in a list).
+- Use appropriate padding and margins for all components, especially cards, modals, and lists.
+
+## Cards & Modals
+- Cards and modals should have rounded corners (`rounded-lg`), a shadow (`shadow` or `shadow-lg`), and a border if needed.
+- In dark mode, use `dark:bg-slate-700` for modal/card backgrounds and `dark:border-gray-700` for borders.
+- Modal overlays should use `bg-black bg-opacity-50` for consistency.
+- Close buttons in modals should be circular, use an SVG icon, and have clear hover/focus states.
+
+## Inputs & Forms
+- Inputs should use `rounded-md`, `border-gray-300`, and `shadow-sm`.
+- In dark mode, use `dark:bg-gray-200` or `dark:bg-gray-700` for input backgrounds, `dark:text-white` for text, and `dark:placeholder-gray-400` for placeholders.
+- Labels should always be visible and use `dark:text-white` in dark mode.
+
+## Buttons
+- Primary action buttons: `bg-blue-600 text-white` with `hover:bg-blue-700`.
+- Secondary/cancel buttons: `border border-gray-300 text-gray-700` with `hover:bg-gray-50`; in dark mode, use `dark:text-white dark:border-gray-600 dark:hover:bg-gray-700`.
+- All buttons should have `rounded-md` and clear focus states.
+
+## Visual Consistency
+- Match the style of new components to existing tools (e.g., Resistance Training, Structural Balance) for a cohesive user experience.
+- When in doubt, reference the most recently updated tool for best practices.
