@@ -107,6 +107,7 @@ export interface WeekViewProps {
   onEventDelete: (eventId: string) => void;
   onDateChange: (date: Date) => void;
   onNavigate: (direction: 'prev' | 'next') => void;
+  garminAttribution: string;
 }
 
 export interface MonthViewProps {
@@ -129,6 +130,7 @@ export interface DayViewProps {
   onEventDelete: (eventId: string) => void;
   onDateChange: (date: Date) => void;
   onNavigate: (direction: 'prev' | 'next') => void;
+  garminAttribution: string;
 }
 
 export interface CalendarContextType {

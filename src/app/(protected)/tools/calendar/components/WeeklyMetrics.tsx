@@ -1,17 +1,18 @@
+"use client";
+
 import WeeklyVolumeWidget from '(protected)/user/widgets/WeeklyCMEVolumeWidget';
 import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
 import TrainingLoadWidget from '(protected)/user/widgets/TrainingLoadWidget';
 import RecoveryStatusWidget from '(protected)/user/widgets/RecoveryStatusWidget';
 import WorkoutIntensityWidget from '(protected)/user/widgets/WorkoutIntensityWidget';
 import WeeklyGoalsWidget from '(protected)/user/widgets/WeeklyGoalsWidget';
-import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 
 interface FitnessDashboardProps {
   className?: string;
+  garminAttribution: string;
 }
 
-export default async function FitnessDashboard({ className = '' }: FitnessDashboardProps) {
-  const garminAttribution = await getGarminDeviceAttribution();
+export default function FitnessDashboard({ className = '', garminAttribution }: FitnessDashboardProps) {
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
