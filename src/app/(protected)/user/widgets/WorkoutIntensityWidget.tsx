@@ -1,5 +1,5 @@
 import { FaBolt, FaArrowUp, FaArrowDown, FaMinus } from 'react-icons/fa';
-import type { Trend } from './types';
+import type { Trend } from '(protected)/user/widgets/types';
 
 interface WorkoutIntensityWidgetProps {
   averageIntensity?: number;
@@ -73,6 +73,9 @@ export default function WorkoutIntensityWidget({
           <h4 className={`text-sm font-medium ${getStatusColor()}`}>
             Workout Intensity
           </h4>
+          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+            Demo Data
+          </span>
         </div>
         <div className={`flex items-center gap-1 text-xs ${getTrendColor(trend)}`}>
           {getTrendIcon(trend)}

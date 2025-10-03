@@ -1,14 +1,41 @@
+'use client';
+
 import { FaWeight, FaChartLine, FaExclamationTriangle } from 'react-icons/fa';
-import { useBodyComposition } from './hooks/useBodyComposition';
-import TrendIndicator from './TrendIndicator';
-import type { Trend } from './types';
+import { useState, useEffect } from 'react';
+import { getBodyComposition } from '(protected)/user/widgets/hooks/useBodyComposition';
+import TrendIndicator from '(protected)/user/widgets/TrendIndicator';
+import type { Trend } from '(protected)/user/widgets/types';
 
 interface BodyCompositionWidgetProps {
   className?: string;
 }
 
 export default function BodyCompositionWidget({ className = '' }: BodyCompositionWidgetProps) {
-  const { data, loading, error } = useBodyComposition();
+  const [bodyCompositionData, setBodyCompositionData] = useState({
+    data: null as any,
+    loading: true,
+    error: null as string | null
+  });
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const result = await getBodyComposition();
+        setBodyCompositionData(result);
+      } catch (error) {
+        setBodyCompositionData({
+          data: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'An error occurred'
+        });
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const { data, loading, error } = bodyCompositionData;
 
   const getTrend = (change: number | null): Trend => {
     if (change === null) return 'neutral';

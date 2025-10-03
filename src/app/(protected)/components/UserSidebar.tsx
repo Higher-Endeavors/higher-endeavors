@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useSession } from "next-auth/react";
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 
 //Components
@@ -14,8 +14,8 @@ import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
 import { FaUserCircle, FaSignOutAlt, FaTasks, FaEnvelope, FaBook, FaProjectDiagram, FaChevronDown, FaChevronLeft, FaCog, FaIdBadge, FaChevronRight, FaHeartbeat, FaAppleAlt, FaTachometerAlt, FaListUl, FaUtensils, FaBars, FaChartLine } from 'react-icons/fa';
 import { MdSelfImprovement, MdDashboard } from 'react-icons/md';
 import { GiMuscleUp } from 'react-icons/gi';
-import { useUserSettings } from '@/app/context/UserSettingsContext';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { useUserSettings } from 'context/UserSettingsContext';
+import { clientLogger } from 'lib/logging/logger.client';
 
 // Pillar SVGs from Pillars.jsx (updated for dark mode)
 const LifestyleIcon = () => (
@@ -363,6 +363,11 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
               <Link href="/tools/fitness/cardiometabolic-training">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Cardiometabolic Endurance Training" isSubLink />
+                </div>
+              </Link>
+              <Link href="/tools/fitness/performance-records">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Performance Records" isSubLink />
                 </div>
               </Link>
               <Link href="/tools/fitness/structural-balance">

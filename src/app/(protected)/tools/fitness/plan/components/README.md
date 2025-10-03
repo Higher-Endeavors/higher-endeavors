@@ -26,11 +26,27 @@ A custom-built Gantt chart component specifically designed for fitness periodiza
 ## Usage
 
 ```tsx
-import GanttChart from './components/GanttChart';
-import { mockPlanData } from './components/MockPlanData';
+import GanttChart from 'tools/fitness/plan/components/GanttChart';
 
 function PlanPage() {
-  const [plan, setPlan] = useState(mockPlanData);
+  const [plan, setPlan] = useState({
+    id: 'plan-1',
+    name: 'My Training Plan',
+    startDate: new Date(),
+    endDate: new Date(Date.now() + 24 * 7 * 24 * 60 * 60 * 1000),
+    totalWeeks: 24,
+    settings: {
+      showResistance: true,
+      showCME: true,
+      showRecovery: true,
+      showGoals: true,
+      showEvents: true,
+      timeGranularity: 'weeks'
+    },
+    phases: [],
+    goals: [],
+    planningItems: []
+  });
   
   const handlePlanChange = (updatedPlan) => {
     setPlan(updatedPlan);
@@ -61,7 +77,6 @@ function PlanPage() {
 
 ### Key Components
 - **GanttChart**: Main chart component with editing capabilities
-- **MockPlanData**: Sample data for development and testing
 - **Section**: Reusable container component
 - **Chip**: Status indicator component
 

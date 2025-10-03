@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { getClient, SingleQuery } from "@/app/lib/dbAdapter";
-import { auth } from "@/app/auth";
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { getClient, SingleQuery } from "lib/dbAdapter";
+import { auth } from "auth";
+import { serverLogger } from 'lib/logging/logger.server';
 
 // GET endpoint to retrieve user settings
 export async function GET() {
@@ -45,6 +45,7 @@ function mapDbSettingsToCanonical(db: any) {
     general: {
       heightUnit: db.height_unit,
       weightUnit: db.weight_unit,
+      distanceUnit: db.distance_unit,
       temperatureUnit: db.temperature_unit,
       timeFormat: db.time_format,
       dateFormat: db.date_format,
@@ -53,6 +54,7 @@ function mapDbSettingsToCanonical(db: any) {
       notificationsEmail: db.notifications_email,
       notificationsText: db.notifications_text,
       notificationsApp: db.notifications_app,
+      garminConnect: db.garmin_connect_settings || undefined,
     },
     fitness: db.fitness_settings || {},
     health: db.health_settings || {},
@@ -67,6 +69,7 @@ function mapCanonicalToDbSettings(settings: any) {
   return {
     height_unit: general.heightUnit,
     weight_unit: general.weightUnit,
+    distance_unit: general.distanceUnit,
     temperature_unit: general.temperatureUnit,
     time_format: general.timeFormat,
     date_format: general.dateFormat,
@@ -75,6 +78,7 @@ function mapCanonicalToDbSettings(settings: any) {
     notifications_email: general.notificationsEmail,
     notifications_text: general.notificationsText,
     notifications_app: general.notificationsApp,
+    garmin_connect_settings: general.garminConnect || null,
     fitness_settings: settings.fitness || {},
     health_settings: settings.health || {},
     lifestyle_settings: settings.lifestyle || {},

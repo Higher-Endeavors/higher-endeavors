@@ -1,9 +1,9 @@
 import { Suspense } from 'react';
-import { auth } from "@/app/auth";
+import { auth } from "auth";
 import { SessionProvider } from "next-auth/react";
-import ContactForm from "./components/ContactForm";
-import Header from "@/app/components/Header";
-import Footer from "@/app/components/Footer";
+import ContactForm from "(public)/contact/components/ContactForm";
+import Header from "components/Header";
+import Footer from "components/Footer";
 
 export default function Home() {
   return (

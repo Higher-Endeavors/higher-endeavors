@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { SessionProvider } from 'next-auth/react';
-import Header from '@/app/components/Header';
-import Footer from '@/app/components/Footer';
-import BioForm from './components/BioForm';
-import HeartRateZones from './components/HeartRateZones';
-import { getHeartRateZones, type HeartRateZoneData } from './lib/actions/saveHeartRateZones';
+import Header from 'components/Header';
+import Footer from 'components/Footer';
+import BioForm from '(protected)/user/bio/components/BioForm';
+import HeartRateZones from '(protected)/user/bio/components/HeartRateZones';
+import { getHeartRateZones, type HeartRateZoneData } from '(protected)/user/bio/lib/actions/saveHeartRateZones';
 
 export default function UserBioPage() {
   const [userAge, setUserAge] = useState<number | undefined>(undefined);

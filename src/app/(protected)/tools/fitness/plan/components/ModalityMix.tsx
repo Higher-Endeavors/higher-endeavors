@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import Section from './Section';
-import Slider from './Slider';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import Slider from '(protected)/tools/fitness/plan/components/Slider';
 
 export default function ModalityMix() {
   const [runShare, setRunShare] = useState(55);

@@ -3,9 +3,9 @@
 import { useState } from 'react'
 import { SessionProvider } from 'next-auth/react'
 
-import Header from '@/app/components/Header'
-import Footer from '@/app/components/Footer'
-import RelatedContent from '../../(components)/RelatedContent'
+import Header from 'components/Header'
+import Footer from 'components/Footer'
+import RelatedContent from '(protected)/tools/(components)/RelatedContent'
 
 const questions = [
   'Do you have trouble falling asleep at night?',

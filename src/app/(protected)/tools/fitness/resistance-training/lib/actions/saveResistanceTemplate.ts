@@ -1,15 +1,15 @@
 'use server';
 
-import { auth } from '@/app/auth';
-import { SingleQuery, getClient } from '@/app/lib/dbAdapter';
-import { ProgramExercisesPlanned } from '../../types/resistance-training.zod';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { auth } from 'auth';
+import { SingleQuery, getClient } from 'lib/dbAdapter';
+import { ProgramExercisesPlanned } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
+import { serverLogger } from 'lib/logging/logger.server';
 
 interface SaveTemplateParams {
   userId: number;
   templateName: string;
-  phaseFocus?: string;
-  periodizationType?: string;
+  resistPhaseId?: number | null;
+  resistPeriodizationId?: number | null;
   progressionRules?: any;
   tierContinuumId?: number;
   notes?: string;
@@ -41,8 +41,8 @@ export async function saveResistanceTemplate(params: SaveTemplateParams): Promis
     const {
       userId,
       templateName,
-      phaseFocus,
-      periodizationType,
+      resistPhaseId,
+      resistPeriodizationId,
       progressionRules,
       tierContinuumId,
       notes,

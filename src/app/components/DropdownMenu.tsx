@@ -1,13 +1,13 @@
 "use client";
 
 import { Avatar, Dropdown } from "flowbite-react";
-import { signInHandler } from "@/app/lib/signInHandler";
+import { signInHandler } from "lib/signInHandler";
 import { useSession } from "next-auth/react";
 import Link from 'next/link';
 import { usePathname } from "next/navigation";
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 import React from 'react';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { clientLogger } from 'lib/logging/logger.client';
 
 export default function DropdownMenu() {
     const pathname = usePathname();

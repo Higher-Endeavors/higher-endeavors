@@ -3,6 +3,7 @@ import { z } from "zod";
 // Enums and unions
 export const HeightUnitSchema = z.enum(["ft_in", "in", "cm"]);
 export const WeightUnitSchema = z.enum(["lbs", "kgs"]);
+export const DistanceUnitSchema = z.enum(["miles", "km", "m"]);
 export const TemperatureUnitSchema = z.enum(["F", "C"]);
 export const FoodMeasurementUnitSchema = z.enum(["grams", "lbs_oz", "oz"]);
 export const HydrationUnitSchema = z.enum(["grams", "oz", "liters"]);
@@ -39,10 +40,23 @@ export const CircumferenceMeasurementSchema = z.enum([
 export const DietaryBaseSchema = z.enum(["omnivore", "vegetarian", "vegan", "pescatarian"]);
 export const DietaryStyleSchema = z.enum(["paleo", "keto", "mediterranean", "other"]);
 
+// Garmin Connect Settings
+export const GarminConnectSettingsSchema = z.object({
+  isConnected: z.boolean().default(false),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  tokenExpiresAt: z.number().optional(),
+  refreshTokenExpiresAt: z.number().optional(),
+  userId: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  lastSyncAt: z.number().optional(),
+});
+
 // General Settings
 export const GeneralSettingsSchema = z.object({
   heightUnit: HeightUnitSchema,
   weightUnit: WeightUnitSchema,
+  distanceUnit: DistanceUnitSchema,
   temperatureUnit: TemperatureUnitSchema,
   timeFormat: z.enum(["12h", "24h"]),
   dateFormat: z.string(),
@@ -51,6 +65,7 @@ export const GeneralSettingsSchema = z.object({
   notificationsText: z.boolean(),
   notificationsApp: z.boolean(),
   sidebarExpandMode: z.enum(["hover", "click"]).default("hover"),
+  garminConnect: GarminConnectSettingsSchema.optional(),
 });
 
 // Fitness Settings (strongly typed)
@@ -142,6 +157,7 @@ export const UserSettingsSchema = z.object({
 // Export inferred types
 export type HeightUnit = z.infer<typeof HeightUnitSchema>;
 export type WeightUnit = z.infer<typeof WeightUnitSchema>;
+export type DistanceUnit = z.infer<typeof DistanceUnitSchema>;
 export type TemperatureUnit = z.infer<typeof TemperatureUnitSchema>;
 export type FoodMeasurementUnit = z.infer<typeof FoodMeasurementUnitSchema>;
 export type HydrationUnit = z.infer<typeof HydrationUnitSchema>;
@@ -154,6 +170,7 @@ export type FoodAllergy = z.infer<typeof FoodAllergySchema>;
 export type CircumferenceMeasurement = z.infer<typeof CircumferenceMeasurementSchema>;
 export type DietaryBase = z.infer<typeof DietaryBaseSchema>;
 export type DietaryStyle = z.infer<typeof DietaryStyleSchema>;
+export type GarminConnectSettings = z.infer<typeof GarminConnectSettingsSchema>;
 export type GeneralSettings = z.infer<typeof GeneralSettingsSchema>;
 export type ResistanceTraining = z.infer<typeof ResistanceTrainingSchema>;
 export type CardioMetabolic = z.infer<typeof CardioMetabolicSchema>;

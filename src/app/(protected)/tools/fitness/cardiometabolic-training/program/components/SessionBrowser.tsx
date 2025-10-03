@@ -4,9 +4,9 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { format } from 'date-fns';
 import { Modal } from 'flowbite-react';
 import { HiOutlineDotsVertical, HiOutlinePencil, HiOutlineTrash, HiOutlineDuplicate, HiOutlineTemplate } from 'react-icons/hi';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { getCMESessions, type CMESessionListItem, useCMETemplates } from '../lib/hooks/getCMESessions';
-import { useTemplateData } from '../lib/hooks/useTemplateData';
+import { clientLogger } from 'lib/logging/logger.client';
+import { getCMESessions, type CMESessionListItem, useCMETemplates } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/getCMESessions';
+import { useTemplateData } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/useTemplateData';
 
 // How many sessions to show per page
 const ITEMS_PER_PAGE = 5;

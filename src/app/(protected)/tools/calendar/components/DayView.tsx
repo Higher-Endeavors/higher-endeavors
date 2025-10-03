@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
-import type { CalendarEvent, DayViewProps, TimeSlot } from '../types/calendar.zod';
-import CalendarEventComponent from './CalendarEvent';
-import DailyMetrics from '../../../user/widgets/DailyMetrics';
+import type { CalendarEvent, DayViewProps, TimeSlot } from '(protected)/tools/calendar/types/calendar.zod';
+import CalendarEventComponent from '(protected)/tools/calendar/components/CalendarEvent';
+import DailyMetrics from '(protected)/user/widgets/DailyMetrics';
 
 export default function DayView({
   events,

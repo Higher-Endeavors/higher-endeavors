@@ -1,10 +1,11 @@
-import CaloriesBurnedWidget from './CaloriesBurnedWidget';
-import StepsWidget from './StepsWidget';
-import SleepWidget from './SleepWidget';
-import HeartRateWidget from './HeartRateWidget';
-import MetricCard from './MetricCard';
-import SummaryCard from './SummaryCard';
-import type { WidgetData, Trend } from './types';
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import SummaryCard from '(protected)/user/widgets/SummaryCard';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 
 // Additional metrics for the full dashboard
 const additionalMetrics: WidgetData[] = [
@@ -62,7 +63,8 @@ interface DailyMetricsProps {
   className?: string;
 }
 
-export default function DailyMetrics({ className = '' }: DailyMetricsProps) {
+export default async function DailyMetrics({ className = '' }: DailyMetricsProps) {
+  const garminAttribution = await getGarminDeviceAttribution();
   return (
     <div className={`bg-white rounded-lg border border-slate-200 overflow-hidden ${className}`}>
       {/* Header */}
@@ -75,10 +77,10 @@ export default function DailyMetrics({ className = '' }: DailyMetricsProps) {
       <div className="p-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Core Metrics - Individual Widgets */}
-          <CaloriesBurnedWidget />
-          <StepsWidget />
-          <SleepWidget />
-          <HeartRateWidget />
+          <CaloriesBurnedWidget garminAttribution={garminAttribution} />
+          <StepsWidget garminAttribution={garminAttribution} />
+          <SleepWidget garminAttribution={garminAttribution} />
+          <HeartRateWidget garminAttribution={garminAttribution} />
           
           {/* Additional Metrics - Generic Cards */}
           {additionalMetrics.map((metric) => (

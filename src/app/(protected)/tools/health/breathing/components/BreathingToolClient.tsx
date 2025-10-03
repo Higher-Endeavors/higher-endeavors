@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { BreathingOrb } from './BreathingOrb';
-import { SessionControls } from './SessionControls';
-import { SessionTracker } from './SessionTracker';
-import { BreathPattern } from '../types/breathing';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import { BreathingOrb } from '(protected)/tools/health/breathing/components/BreathingOrb';
+import { SessionControls } from '(protected)/tools/health/breathing/components/SessionControls';
+import { SessionTracker } from '(protected)/tools/health/breathing/components/SessionTracker';
+import { BreathPattern } from '(protected)/tools/health/breathing/types/breathing';
+import { clientLogger } from 'lib/logging/logger.client';
 
 /**
  * Server-Friendly Logging Strategy:

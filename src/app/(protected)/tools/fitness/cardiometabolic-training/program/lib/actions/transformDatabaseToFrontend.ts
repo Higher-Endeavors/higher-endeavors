@@ -1,5 +1,5 @@
-import type { CMEExercise, Interval } from '../../../lib/types/cme.zod';
-import type { CMESessionActivity } from '../hooks/getCMESessions';
+import type { CMEExercise, Interval } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import type { CMESessionActivity } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/getCMESessions';
 
 /**
  * Transform database activity format back to frontend CMEExercise format

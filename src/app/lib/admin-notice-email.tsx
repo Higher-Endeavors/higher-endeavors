@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function adminNoticeEmail(replyTo: string, subject: string, html: string) {
   const host = process.env.NEXT_PUBLIC_EMAIL_HOST

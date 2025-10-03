@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Toast } from 'flowbite-react';
 import { HiCheck, HiX } from 'react-icons/hi';
-import { saveHeartRateZones, deleteHeartRateZones, type HeartRateZoneData } from '../lib/actions/saveHeartRateZones';
+import { saveHeartRateZones, deleteHeartRateZones, type HeartRateZoneData } from '(protected)/user/bio/lib/actions/saveHeartRateZones';
 
 interface HeartRateZone {
   id: number;

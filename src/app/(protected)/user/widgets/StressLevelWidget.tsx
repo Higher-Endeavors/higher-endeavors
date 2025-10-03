@@ -1,35 +1,132 @@
-import { FaBrain } from 'react-icons/fa';
-import ProgressBar from './ProgressBar';
-import TrendIndicator from './TrendIndicator';
-import type { WidgetData, Trend } from './types';
+'use client';
+
+import { FaBrain, FaArrowUp, FaArrowDown } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
+import ProgressBar from '(protected)/user/widgets/ProgressBar';
+import TrendIndicator from '(protected)/user/widgets/TrendIndicator';
+import type { WidgetData, Trend } from '(protected)/user/widgets/types';
+import { getStressData, calculateAverageStressLevel, calculateTimeWeightedStressLevel, getStressLevelCategory, calculateStressTrend, calculateBodyBatteryMetrics } from '(protected)/user/widgets/hooks/useStressData';
+import { useUserSettings } from 'context/UserSettingsContext';
+import GarminAttribution from './components/GarminAttribution';
 
 interface StressLevelWidgetProps {
   className?: string;
+  garminAttribution?: string;
 }
 
-export default function StressLevelWidget({ className = '' }: StressLevelWidgetProps) {
-  const data: WidgetData = {
+export default function StressLevelWidget({ className = '', garminAttribution }: StressLevelWidgetProps) {
+  const [stressData, setStressData] = useState({
+    latestStress: null as any,
+    previousStress: null as any,
+    loading: true,
+    error: null as string | null
+  });
+  const { userSettings } = useUserSettings();
+
+  // Load data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await getStressData();
+        setStressData(data);
+      } catch (error) {
+        setStressData({
+          latestStress: null,
+          previousStress: null,
+          loading: false,
+          error: error instanceof Error ? error.message : 'An error occurred'
+        });
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const { latestStress, previousStress, loading, error } = stressData;
+
+  // Check if Garmin is connected
+  const isGarminConnected = userSettings?.general?.garminConnect?.isConnected === true;
+
+  // Default data for when no real data is available
+  const defaultData: WidgetData = {
     id: 'stress-level',
     title: 'Stress Level',
-    value: 23,
+    value: 25,
     unit: '/100',
     trend: 'down' as Trend,
-    trendValue: '-12%',
+    trendValue: '-5%',
     color: 'text-yellow-600',
     bgColor: 'bg-yellow-50',
     textColor: 'text-yellow-800',
     borderColor: 'border-yellow-200'
   };
 
-  const stressLevel = data.value as number;
-  const getStressLevel = (level: number) => {
-    if (level <= 25) return { label: 'Low', color: 'text-green-600', bgColor: 'bg-green-100' };
-    if (level <= 50) return { label: 'Moderate', color: 'text-yellow-600', bgColor: 'bg-yellow-100' };
-    if (level <= 75) return { label: 'High', color: 'text-orange-600', bgColor: 'bg-orange-100' };
-    return { label: 'Very High', color: 'text-red-600', bgColor: 'bg-red-100' };
-  };
+  // Process real stress data if available and Garmin is connected
+  let data: WidgetData = defaultData;
+  let stressLevel = 0;
+  let stressInfo = getStressLevelCategory(0);
+  let isDemoData = !isGarminConnected;
+  let stressDate = '';
+  
+  if (latestStress && !loading && !error && isGarminConnected) {
+    // Use time-weighted calculation for more accuracy
+    const stressAnalysis = calculateTimeWeightedStressLevel(latestStress);
+    stressLevel = stressAnalysis.average;
+    
+    const previousStressLevel = previousStress ? calculateAverageStressLevel(previousStress) : undefined;
+    const trend = calculateStressTrend(stressLevel, previousStressLevel);
+    
+    stressInfo = getStressLevelCategory(stressLevel);
 
-  const stressInfo = getStressLevel(stressLevel);
+    // Determine date indicator
+    if (latestStress.calendarDate) {
+      const stressDateObj = new Date(latestStress.calendarDate);
+      const today = new Date();
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isToday = stressDateObj.toDateString() === today.toDateString();
+      const isYesterday = stressDateObj.toDateString() === yesterday.toDateString();
+      
+      if (isToday) {
+        stressDate = '';
+      } else if (isYesterday) {
+        stressDate = ' (Yesterday)';
+      } else {
+        stressDate = ` (${stressDateObj.toLocaleDateString()})`;
+      }
+    }
+
+    data = {
+      id: 'stress-level',
+      title: `Stress Level${stressDate}`,
+      value: stressLevel,
+      unit: '/100',
+      trend: trend.trend,
+      trendValue: trend.trend !== 'neutral' ? `${trend.trend === 'up' ? '+' : '-'}${trend.changePercent}%` : '0%',
+      color: stressInfo.color.replace('text-', 'text-'),
+      bgColor: stressInfo.bgColor.replace('bg-', 'bg-').replace('-100', '-50'),
+      textColor: stressInfo.color.replace('text-', 'text-').replace('-600', '-800'),
+      borderColor: stressInfo.color.replace('text-', 'border-').replace('-600', '-200')
+    };
+    isDemoData = false;
+  } else if (loading && isGarminConnected) {
+    data = {
+      ...defaultData,
+      value: 'Loading...',
+      color: 'text-slate-500',
+      textColor: 'text-slate-600'
+    };
+    isDemoData = false;
+  } else if (error && isGarminConnected) {
+    data = {
+      ...defaultData,
+      value: 'Error',
+      color: 'text-red-500',
+      textColor: 'text-red-600'
+    };
+    isDemoData = false;
+  }
 
   return (
     <div className={`bg-white rounded-lg border-2 ${data.borderColor} overflow-hidden hover:shadow-md transition-all duration-200 ${className}`}>
@@ -41,9 +138,26 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
             <h3 className={`text-sm font-semibold ${data.textColor}`}>
               {data.title}
             </h3>
+            {isDemoData && (
+              <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                Demo Data
+              </span>
+            )}
           </div>
-          <TrendIndicator trend={data.trend} value={data.trendValue} />
+          {data.trend && data.trend !== 'neutral' && (
+            <div className="flex items-center gap-1 text-xs text-slate-500">
+              {data.trend === 'up' ? (
+                <FaArrowUp className="w-3 h-3 text-red-500" />
+              ) : (
+                <FaArrowDown className="w-3 h-3 text-green-500" />
+              )}
+              <span>{data.trendValue}</span>
+            </div>
+          )}
         </div>
+        {!isDemoData && isGarminConnected && garminAttribution && (
+          <GarminAttribution attribution={garminAttribution} className="mb-2" />
+        )}
         
         {/* Value */}
         <div className="flex items-baseline gap-1">
@@ -59,33 +173,105 @@ export default function StressLevelWidget({ className = '' }: StressLevelWidgetP
       {/* Progress Section */}
       <div className="p-4">
         <div className="space-y-3">
-          {/* Stress Level Indicator */}
-          <div>
-            <div className="flex justify-between text-xs text-slate-600 mb-1">
-              <span>Low</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${stressInfo.bgColor} ${stressInfo.color}`}>
-                {stressInfo.label}
-              </span>
-              <span>High</span>
+          {/* Stress Level Indicator - only show if we have real data */}
+          {latestStress && !loading && !error && (
+            <div>
+              <div className="flex justify-between text-xs text-slate-600 mb-1">
+                <span>Rest</span>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${stressInfo.bgColor} ${stressInfo.color}`}>
+                  {stressInfo.label}
+                </span>
+                <span>High Stress</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-2">
+                <div 
+                  className={`${stressInfo.color.replace('text-', 'bg-').replace('-600', '-500')} h-2 rounded-full transition-all duration-300`}
+                  style={{ width: `${Math.min(stressLevel, 100)}%` }}
+                />
+              </div>
             </div>
-            <ProgressBar 
-              current={stressLevel}
-              target={100}
-              unit="/100"
-              color="bg-yellow-500"
-            />
-          </div>
+          )}
 
           {/* Status Message */}
           <div className="text-xs text-slate-600">
-            {stressLevel <= 25 ? (
-              <span className="text-green-600 font-medium">Great stress management! 😌</span>
-            ) : stressLevel <= 50 ? (
-              <span className="text-yellow-600 font-medium">Moderate stress level</span>
+            {latestStress && !loading && !error ? (
+              <span className={`${stressInfo.color} font-medium`}>
+                {stressInfo.description}
+              </span>
+            ) : loading ? (
+              <span className="text-slate-500">Loading stress data...</span>
+            ) : error ? (
+              <span className="text-red-500">Error loading stress data</span>
             ) : (
-              <span className="text-orange-600 font-medium">Consider stress management techniques</span>
+              <span className="text-slate-500">No stress data available</span>
             )}
           </div>
+
+          {/* Trend interpretation - only show if we have trend data */}
+          {latestStress && previousStress && !loading && !error && (
+            <div className="mt-3">
+              {(() => {
+                const previousStressLevel = calculateAverageStressLevel(previousStress);
+                const trend = calculateStressTrend(stressLevel, previousStressLevel);
+                
+                if (trend.trend !== 'neutral') {
+                  const significanceColor = trend.significance === 'high' ? 'text-red-600' : 
+                                         trend.significance === 'moderate' ? 'text-yellow-600' : 'text-slate-600';
+                  
+                  return (
+                    <div className="text-xs">
+                      <div className={`font-medium ${significanceColor} mb-1`}>
+                        {trend.trend === 'up' ? '↗' : '↘'} {trend.changePercent}% vs yesterday
+                      </div>
+                      <div className="text-slate-500 text-xs leading-tight">
+                        {trend.interpretation}
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+            </div>
+          )}
+
+          {/* Stress breakdown - only show if we have real data */}
+          {latestStress && !loading && !error && (
+            <div className="mt-3 pt-3 border-t border-slate-200">
+              <div className="text-xs text-slate-600 mb-2">Stress Breakdown</div>
+              {(() => {
+                const stressAnalysis = calculateTimeWeightedStressLevel(latestStress);
+                const breakdown = stressAnalysis.breakdown;
+                
+                const formatDuration = (minutes: number) => {
+                  const hours = Math.floor(minutes / 60);
+                  const mins = minutes % 60;
+                  return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+                };
+                
+                return (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-green-600">Rest: {formatDuration(breakdown.rest.duration)}</span>
+                      <span className="text-slate-500">({breakdown.rest.percentage}%)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-yellow-600">Low: {formatDuration(breakdown.low.duration)}</span>
+                      <span className="text-slate-500">({breakdown.low.percentage}%)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-orange-600">Medium: {formatDuration(breakdown.medium.duration)}</span>
+                      <span className="text-slate-500">({breakdown.medium.percentage}%)</span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-red-600">High: {formatDuration(breakdown.high.duration)}</span>
+                      <span className="text-slate-500">({breakdown.high.percentage}%)</span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
         </div>
       </div>
     </div>

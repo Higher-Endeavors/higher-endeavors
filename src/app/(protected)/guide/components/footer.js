@@ -1,4 +1,4 @@
-import Container from './container'
+import Container from '(protected)/guide/components/container'
 
 export default function Footer() {
   return (

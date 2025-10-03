@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS public.user_settings
     notifications_email boolean DEFAULT true,
     notifications_text boolean DEFAULT false,
     notifications_app boolean DEFAULT false,
+    garmin_connect_settings json DEFAULT NULL,
     fitness_settings json NOT NULL DEFAULT '{}'::json,
     health_settings json NOT NULL DEFAULT '{}'::json,
     lifestyle_settings json NOT NULL DEFAULT '{}'::json,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UseFormSetValue } from 'react-hook-form';
-import type { UserSettings, FitnessSettings, ResistanceTraining, CardioMetabolic } from '@/app/lib/types/userSettings.zod';
+import type { UserSettings, FitnessSettings, ResistanceTraining, CardioMetabolic } from 'lib/types/userSettings.zod';
 
 interface EquipmentItem {
   id: string;

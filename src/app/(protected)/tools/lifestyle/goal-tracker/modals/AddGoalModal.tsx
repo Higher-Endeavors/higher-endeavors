@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-
-import type { GoalItemType } from '../components/GoalItem';
+import type { GoalItemType } from '../lib/goal-tracker.zod';
 
 interface AddGoalModalProps {
   isOpen: boolean;
@@ -50,6 +49,34 @@ const goalTrackingOptions = [
   { value: 'custom', label: 'Custom' },
 ];
 
+// Additional options from GoalsTrainingFields
+const eventTypeOptions = [
+  { value: 'race', label: 'Race', description: 'Running, cycling, or other competitive races' },
+  { value: 'competition', label: 'Competition', description: 'Sports competitions or tournaments' },
+  { value: 'assessment', label: 'Assessment', description: 'Fitness tests or evaluations' },
+  { value: 'milestone', label: 'Milestone', description: 'Significant life milestones' },
+  { value: 'wedding', label: 'Wedding', description: 'Wedding or wedding-related events' },
+  { value: 'vacation', label: 'Vacation', description: 'Vacation or travel' },
+  { value: 'trip', label: 'Trip', description: 'Business or personal trips' },
+  { value: 'work', label: 'Work', description: 'Work-related events or deadlines' },
+  { value: 'personal', label: 'Personal', description: 'Personal events or occasions' },
+  { value: 'other', label: 'Other', description: 'Other types of events' }
+];
+
+const priorityOptions = [
+  { value: 'low', label: 'Low', description: 'Nice to have, not urgent' },
+  { value: 'medium', label: 'Medium', description: 'Important but not critical' },
+  { value: 'high', label: 'High', description: 'Very important, high priority' },
+  { value: 'critical', label: 'Critical', description: 'Must achieve, highest priority' }
+];
+
+const trainingImpactOptions = [
+  { value: 'high', label: 'High Impact', description: 'Significantly affects training schedule' },
+  { value: 'medium', label: 'Medium Impact', description: 'Moderately affects training' },
+  { value: 'low', label: 'Low Impact', description: 'Minimal effect on training' },
+  { value: 'none', label: 'No Impact', description: 'Does not affect training' }
+];
+
 export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, parentGoalOptions = [], editingGoal }: AddGoalModalProps) {
   // Step-based state, initialized from editingGoal or parentGoalId
   const [goalFocus, setGoalFocus] = useState(editingGoal?.goalFocus || '');
@@ -68,6 +95,14 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
   const [isChildGoal, setIsChildGoal] = useState(!!(editingGoal?.parentId || parentGoalId));
   const [customMetric, setCustomMetric] = useState(editingGoal?.customMetric || '');
   const [goalValue, setGoalValue] = useState(editingGoal?.goalValue ? String(editingGoal.goalValue) : '');
+  
+  // Additional fields from GoalsTrainingFields
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'critical'>(editingGoal?.priority || 'medium');
+  const [eventType, setEventType] = useState<'race' | 'competition' | 'assessment' | 'milestone' | 'wedding' | 'vacation' | 'trip' | 'work' | 'personal' | 'other'>(editingGoal?.eventType || 'other');
+  const [location, setLocation] = useState(editingGoal?.location || '');
+  const [preparationWeeks, setPreparationWeeks] = useState(editingGoal?.preparationWeeks || 0);
+  const [trainingImpact, setTrainingImpact] = useState<'none' | 'low' | 'medium' | 'high'>(editingGoal?.trainingImpact || 'medium');
+  const [trainingNotes, setTrainingNotes] = useState(editingGoal?.trainingNotes || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +125,13 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
       bodyWeight: goalTracking === 'body_composition' ? bodyWeight : undefined,
       bodyFatPercentage: goalTracking === 'body_composition' ? bodyFatPercentage : undefined,
       parentId: isChildGoal ? selectedParentId || undefined : undefined,
+      // Additional fields from GoalsTrainingFields
+      priority,
+      eventType,
+      location,
+      preparationWeeks,
+      trainingImpact,
+      trainingNotes,
     });
     setGoalFocus('');
     setGoalType('');
@@ -107,6 +149,12 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
     setBodyFatPercentage('');
     setSelectedParentId(null);
     setIsChildGoal(false);
+    setPriority('medium');
+    setEventType('other');
+    setLocation('');
+    setPreparationWeeks(0);
+    setTrainingImpact('medium');
+    setTrainingNotes('');
     onClose();
   };
 
@@ -417,6 +465,104 @@ export default function AddGoalModal({ isOpen, onClose, onAdd, parentGoalId, par
                 rows={2}
                 placeholder="Describe your goal, approach, or any notes..."
               />
+            </div>
+
+            {/* Priority Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+              <select
+                value={priority}
+                onChange={e => setPriority(e.target.value as 'low' | 'medium' | 'high' | 'critical')}
+                className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+              >
+                {priorityOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label} - {option.description}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Additional fields from GoalsTrainingFields */}
+            <div className="border-t border-gray-200 pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Event Details (Optional)</h4>
+              
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Event Type</label>
+                  <select
+                    value={eventType}
+                    onChange={e => setEventType(e.target.value as 'race' | 'competition' | 'assessment' | 'milestone' | 'wedding' | 'vacation' | 'trip' | 'work' | 'personal' | 'other')}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                  >
+                    {eventTypeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} - {option.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={location}
+                    onChange={e => setLocation(e.target.value)}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    placeholder="Where will this take place?"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-xs font-medium text-gray-700 mb-1">Preparation Weeks</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="52"
+                  value={preparationWeeks}
+                  onChange={e => setPreparationWeeks(parseInt(e.target.value) || 0)}
+                  className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                  placeholder="How many weeks of preparation needed?"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Number of weeks you want to prepare for this goal/event
+                </p>
+              </div>
+            </div>
+
+            {/* Training Impact Section */}
+            <div className="border-t border-gray-200 pt-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-3">Training Impact (Optional)</h4>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Training Impact Level</label>
+                  <select
+                    value={trainingImpact}
+                    onChange={e => setTrainingImpact(e.target.value as 'none' | 'low' | 'medium' | 'high')}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                  >
+                    {trainingImpactOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label} - {option.description}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Training Notes</label>
+                  <textarea
+                    value={trainingNotes}
+                    onChange={e => setTrainingNotes(e.target.value)}
+                    className="block w-full rounded border border-gray-300 text-gray-700 px-2 py-2"
+                    rows={2}
+                    placeholder="How will this affect your training? Any specific considerations?"
+                  />
+                </div>
+              </div>
             </div>
             <div className="flex justify-end">
               <button

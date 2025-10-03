@@ -5,10 +5,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 // Import banner images
-import nutritionImage from "/public/Nutrition-1.webp";
-import fitnessImage from "/public/Fitness-1.webp";
-import healthImage from "/public/Health-1.webp";
-import lifeImage from "/public/Life-1.webp";
+import nutritionImage from "@/public/Nutrition-1.webp";
+import fitnessImage from "@/public/Fitness-1.webp";
+import healthImage from "@/public/Health-1.webp";
+import lifeImage from "@/public/Life-1.webp";
 
 const bannerImages = [
   {

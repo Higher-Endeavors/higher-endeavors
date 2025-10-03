@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSession } from "next-auth/react"
 import Select from 'react-select';
-import BalancedLiftsList from './BalancedLiftsList';
-import { getFetchBaseUrl } from '@/app/lib/utils/clientUtils';
+import BalancedLiftsList from '(protected)/tools/fitness/structural-balance/components/BalancedLiftsList';
+import { getFetchBaseUrl } from 'lib/utils/clientUtils';
 
 type FormData = {
   id: number

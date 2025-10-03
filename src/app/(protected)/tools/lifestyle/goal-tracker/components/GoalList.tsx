@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import GoalItem, { GoalItemType } from './GoalItem';
-import AddGoalModal from '../modals/AddGoalModal';
-import ProgressTrackingModal from '../modals/ProgressTrackingModal';
+import GoalItem from '(protected)/tools/lifestyle/goal-tracker/components/GoalItem';
+import AddGoalModal from '(protected)/tools/lifestyle/goal-tracker/modals/AddGoalModal';
+import ProgressTrackingModal from '(protected)/tools/lifestyle/goal-tracker/modals/ProgressTrackingModal';
+import type { GoalItemType } from '../lib/goal-tracker.zod';
 
 function buildGoalTree(goals: GoalItemType[]) {
   const goalMap: Record<string, GoalItemType & { subGoals: GoalItemType[] }> = {};
@@ -34,6 +35,11 @@ export default function GoalList() {
       actualRate: 2.5,
       notes: 'Focus on nutrition and resistance training.',
       status: 'active',
+      priority: 'high',
+      eventType: 'other',
+      preparationWeeks: 0,
+      trainingImpact: 'high',
+      ongoing: false,
     },
     {
       id: '2',
@@ -48,6 +54,11 @@ export default function GoalList() {
       actualRate: 1.2,
       notes: 'Track progress monthly.',
       status: 'active',
+      priority: 'high',
+      eventType: 'other',
+      preparationWeeks: 0,
+      trainingImpact: 'high',
+      ongoing: false,
     },
     {
       id: '3',
@@ -63,6 +74,11 @@ export default function GoalList() {
       notes: 'First milestone.',
       status: 'active',
       parentId: '1',
+      priority: 'high',
+      eventType: 'milestone',
+      preparationWeeks: 0,
+      trainingImpact: 'high',
+      ongoing: false,
     },
     {
       id: 'other-1',
@@ -77,6 +93,11 @@ export default function GoalList() {
       actualRate: 2,
       notes: 'Track books read this summer.',
       status: 'active',
+      priority: 'medium',
+      eventType: 'other',
+      preparationWeeks: 0,
+      trainingImpact: 'none',
+      ongoing: false,
     },
   ]);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -180,7 +201,7 @@ export default function GoalList() {
           isOpen={!!progressModalGoalId}
           onClose={handleCloseProgressModal}
           goalName={progressGoal.name}
-          metricLabel={progressGoal.metric}
+          metricLabel={progressGoal.metric || 'units'}
           onSave={handleSaveProgress}
         />
       )}

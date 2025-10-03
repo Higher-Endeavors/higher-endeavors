@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { auth } from '@/app/auth';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { SingleQuery } from 'lib/dbAdapter';
+import { auth } from 'auth';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function GET(request: Request) {
   try {
@@ -23,8 +23,10 @@ export async function GET(request: Request) {
           p.program_id,
           p.user_id,
           p.program_name,
-          p.phase_focus,
-          p.periodization_type,
+          p.resist_phase_id,
+          rp.resist_phase_name,
+          p.resist_periodization_id,
+          rpt.resist_periodization_name,
           p.progression_rules,
           p.program_duration,
           p.notes,
@@ -56,6 +58,8 @@ export async function GET(request: Request) {
             ELSE NULL
           END as template_info
         FROM resist_programs p
+        LEFT JOIN resist_phase rp ON p.resist_phase_id = rp.resist_phase_id
+        LEFT JOIN resist_periodization_type rpt ON p.resist_periodization_id = rpt.resist_periodization_id
         WHERE p.program_id = $1 AND p.user_id = $2
       `;
       const programValues = [programId, userId];
@@ -115,8 +119,10 @@ export async function GET(request: Request) {
           p.program_id as "resistanceProgramId",
           p.user_id as "userId",
           p.program_name as "programName",
-          p.phase_focus as "phaseFocus",
-          p.periodization_type as "periodizationType",
+          p.resist_phase_id as "resistPhaseId",
+          rp.resist_phase_name as "resistPhaseName",
+          p.resist_periodization_id as "resistPeriodizationId",
+          rpt.resist_periodization_name as "resistPeriodizationName",
           p.progression_rules as "progressionRules",
           p.program_duration as "programDuration",
           p.notes,
@@ -171,6 +177,8 @@ export async function GET(request: Request) {
             ELSE NULL
           END as template_info
         FROM resist_programs p
+        LEFT JOIN resist_phase rp ON p.resist_phase_id = rp.resist_phase_id
+        LEFT JOIN resist_periodization_type rpt ON p.resist_periodization_id = rpt.resist_periodization_id
         WHERE p.user_id = $1 AND (p.deleted IS NULL OR p.deleted = false)
         ORDER BY p.created_at DESC
       `;
@@ -202,5 +210,4 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch programs' }, { status: 500 });
   }
 }
-
  

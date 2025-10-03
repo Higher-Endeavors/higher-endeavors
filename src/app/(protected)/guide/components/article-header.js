@@ -1,5 +1,5 @@
-import DateFormatter from './date-formatter'
-import ArticleTitle from './article-title'
+import DateFormatter from '(protected)/guide/components/date-formatter'
+import ArticleTitle from '(protected)/guide/components/article-title'
 
 export default function ArticleHeader({ title, date, category, tag, exerpt }) {
   return (

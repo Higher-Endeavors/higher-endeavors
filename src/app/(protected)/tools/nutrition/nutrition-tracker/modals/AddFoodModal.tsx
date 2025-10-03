@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Modal } from 'flowbite-react';
-import AdvancedFoodSearch from './AdvancedFoodSearch';
+import AdvancedFoodSearch from '(protected)/tools/nutrition/nutrition-tracker/modals/AdvancedFoodSearch';
 
 interface AddFoodModalProps {
   isOpen: boolean;

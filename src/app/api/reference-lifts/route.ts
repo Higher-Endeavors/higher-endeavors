@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { SingleQuery } from '@/app/lib/dbAdapter';
-import { serverLogger } from '@/app/lib/logging/logger.server';
+import { SingleQuery } from 'lib/dbAdapter';
+import { serverLogger } from 'lib/logging/logger.server';
 
 export async function GET(request: Request) {
   // const { searchParams } = new URL(request.url);

@@ -3,7 +3,7 @@ import NextAuth, { type DefaultSession } from "next-auth"
 import type { Provider } from "next-auth/providers";
 import Cognito from "next-auth/providers/cognito";
 import PostgresAdapter from "@auth/pg-adapter";
-import { pool, SingleQuery } from "@/app/lib/dbAdapter";
+import { pool, SingleQuery } from "lib/dbAdapter";
 
 const providers: Provider[] = [
   Cognito({

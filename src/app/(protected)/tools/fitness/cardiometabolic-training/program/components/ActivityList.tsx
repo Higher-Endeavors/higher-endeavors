@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import ActivityItem from './ActivityItem';
-import type { CMEExercise } from '../../lib/types/cme.zod';
-import { clientLogger } from '@/app/lib/logging/logger.client';
+import ActivityItem from '(protected)/tools/fitness/cardiometabolic-training/program/components/ActivityItem';
+import type { CMEExercise } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import { clientLogger } from 'lib/logging/logger.client';
 
 interface ActivityListProps {
   activities: CMEExercise[];

@@ -1,26 +1,27 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import type { FitnessSettings } from '@/app/lib/types/userSettings.zod';
-import type { CMEActivityItem, CMEExercise } from '../lib/types/cme.zod';
-import type { CMESessionListItem } from '../program/lib/hooks/getCMESessions';
-import { getUserSettingsById } from '@/app/lib/actions/userSettings';
-import { getHeartRateZonesById } from '@/app/(protected)/user/bio/lib/actions/saveHeartRateZones';
-import { saveCMESession } from '../program/lib/actions/saveCMESession';
-import { saveCMETemplate } from '../program/lib/actions/saveCMETemplate';
-import { getCMESessions, getCMESession } from '../program/lib/hooks/getCMESessions';
-import { transformDatabaseToFrontend } from '../program/lib/actions/transformDatabaseToFrontend';
-import { clientLogger } from '@/app/lib/logging/logger.client';
-import { useToast } from '@/app/lib/toast';
+import type { FitnessSettings } from 'lib/types/userSettings.zod';
+import type { CMEActivityItem, CMEExercise } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import type { CMESessionListItem } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/getCMESessions';
+import { getUserSettingsById } from 'lib/actions/userSettings';
+import { getHeartRateZonesById } from '(protected)/user/bio/lib/actions/saveHeartRateZones';
+import { saveCMESession } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/saveCMESession';
+import { saveCMETemplate } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/saveCMETemplate';
+import { getCMESessions, getCMESession } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/getCMESessions';
+import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCMEActivityLibrary';
+import { transformDatabaseToFrontend } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/transformDatabaseToFrontend';
+import { clientLogger } from 'lib/logging/logger.client';
+import { useToast } from 'lib/toast';
 
 
 // Components
-import UserSelector from '../../../../components/UserSelector';
-import ProgramBrowser from '../program/components/SessionBrowser';
-import SessionSettings from '../program/components/SessionSettings';
-import ActivityList from '../program/components/ActivityList';
-import SessionSummary from '../program/components/SessionSummary';
-import AddActivityModal from '../program/lib/modals/AddActivityModal';
+import UserSelector from '(protected)/components/UserSelector';
+import ProgramBrowser from '(protected)/tools/fitness/cardiometabolic-training/program/components/SessionBrowser';
+import SessionSettings from '(protected)/tools/fitness/cardiometabolic-training/program/components/SessionSettings';
+import ActivityList from '(protected)/tools/fitness/cardiometabolic-training/program/components/ActivityList';
+import SessionSummary from '(protected)/tools/fitness/cardiometabolic-training/program/components/SessionSummary';
+import AddActivityModal from '(protected)/tools/fitness/cardiometabolic-training/program/lib/modals/AddActivityModal';
 
 export default function CardiometabolicTrainingClient({
   initialUserId,
@@ -48,6 +49,10 @@ export default function CardiometabolicTrainingClient({
   const [selectedUserFitnessSettings, setSelectedUserFitnessSettings] = useState<FitnessSettings | undefined>(() => fitnessSettings);
   const [selectedUserHeartRateZones, setSelectedUserHeartRateZones] = useState<any[]>(() => userHeartRateZones || []);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
+  
+  // Activities state - initialize from props
+  const [allActivities, setAllActivities] = useState<CMEActivityItem[]>(activities);
+  
 
   // Session state
   const [sessionName, setSessionName] = useState('');
@@ -88,6 +93,7 @@ export default function CardiometabolicTrainingClient({
       setSelectedUserHeartRateZones(userHeartRateZones || []); // Fallback
     }
   };
+
 
   const handleUserSelect = (userId: number | null) => {
     if (userId) {
@@ -425,7 +431,7 @@ export default function CardiometabolicTrainingClient({
         editingActivity={editingActivity}
         fitnessSettings={selectedUserFitnessSettings}
         userHeartRateZones={selectedUserHeartRateZones}
-        activities={activities}
+        activities={allActivities}
       />
     </>
   );

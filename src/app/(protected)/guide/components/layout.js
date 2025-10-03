@@ -1,5 +1,5 @@
-import Meta from './meta'
-import Container from './container'
+import Meta from '(protected)/guide/components/meta'
+import Container from '(protected)/guide/components/container'
 
 export default function Layout({ children }) {
   return (

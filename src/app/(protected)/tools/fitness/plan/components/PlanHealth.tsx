@@ -1,5 +1,5 @@
-import Section from './Section';
-import ProgressRing from './ProgressRing';
+import Section from '(protected)/tools/fitness/plan/components/Section';
+import ProgressRing from '(protected)/tools/fitness/plan/components/ProgressRing';
 
 export default function PlanHealth() {
   return (

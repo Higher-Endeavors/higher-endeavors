@@ -1,15 +1,21 @@
 import React from 'react';
 import { UseFormRegister, Control } from 'react-hook-form';
-import type { UserSettings } from '@/app/lib/types/userSettings.zod';
+import type { UserSettings } from 'lib/types/userSettings.zod';
+import GarminConnectSettings from '(protected)/user/settings/components/GarminConnectSettings';
   /* import { UseFormRegister, Controller, Control } from 'react-hook-form';
   import type { UserSettings } from '../types/settings'; */
 
 interface GeneralUserSettingsProps {
   register: UseFormRegister<UserSettings>;
   control: Control<UserSettings>;
+  watch?: any;
+  onGarminUpdate?: () => void;
 }
 
-const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) => (
+const GeneralUserSettings = ({ register, control, watch, onGarminUpdate }: GeneralUserSettingsProps) => {
+  const garminConnect = watch?.('general.garminConnect');
+  
+  return (
   <div className="space-y-6">
     <h2 className="text-xl font-semibold dark:text-slate-600">General Settings</h2>
     {/* Height Unit */}
@@ -27,6 +33,15 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
       <select {...register('general.weightUnit')} className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600">
         <option value="lbs">Pounds (lbs)</option>
         <option value="kgs">Kilograms (kg)</option>
+      </select>
+    </div>
+    {/* Distance Unit */}
+    <div>
+      <label className="block text-sm font-medium text-gray-700">Distance Unit</label>
+      <select {...register('general.distanceUnit')} className="mt-1 pl-2 py-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:text-slate-600">
+        <option value="miles">Miles</option>
+        <option value="km">Kilometers (km)</option>
+        <option value="m">Meters (m)</option>
       </select>
     </div>
     {/* Temperature Unit */}
@@ -84,7 +99,14 @@ const GeneralUserSettings = ({ register, control }: GeneralUserSettingsProps) =>
         </div>
       </div>
     </div>
+    
+    {/* Garmin Connect Integration */}
+    <GarminConnectSettings 
+      garminConnect={garminConnect} 
+      onUpdate={onGarminUpdate || (() => {})} 
+    />
   </div>
-);
+  );
+};
 
 export default GeneralUserSettings;

@@ -1,25 +1,23 @@
-'use client';
-
-import { useState } from 'react';
 import { FaCog, FaEye, FaEyeSlash, FaFilter, FaSearch } from 'react-icons/fa';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 
 // Import all widget components
-import CaloriesBurnedWidget from '../../user/widgets/CaloriesBurnedWidget';
-import CaloriesConsumedWidget from '../../user/widgets/CaloriesConsumedWidget';
-import CalorieDeficitWidget from '../../user/widgets/CalorieDeficitWidget';
-import StepsWidget from '../../user/widgets/StepsWidget';
-import SleepWidget from '../../user/widgets/SleepWidget';
-import HeartRateWidget from '../../user/widgets/HeartRateWidget';
-import StressLevelWidget from '../../user/widgets/StressLevelWidget';
-import ActiveMinutesWidget from '../../user/widgets/ActiveMinutesWidget';
-import BodyCompositionWidget from '../../user/widgets/BodyCompositionWidget';
-import MetricCard from '../../user/widgets/MetricCard';
-import WeeklyVolumeWidget from '../../user/widgets/WeeklyVolumeWidget';
-import TimeInZonesWidget from '../../user/widgets/TimeInZonesWidget';
-import TrainingLoadWidget from '../../user/widgets/TrainingLoadWidget';
-import RecoveryStatusWidget from '../../user/widgets/RecoveryStatusWidget';
-import WorkoutIntensityWidget from '../../user/widgets/WorkoutIntensityWidget';
-import WeeklyGoalsWidget from '../../user/widgets/WeeklyGoalsWidget';
+import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
+import CaloriesConsumedWidget from '(protected)/user/widgets/CaloriesConsumedWidget';
+import CalorieDeficitWidget from '(protected)/user/widgets/CalorieDeficitWidget';
+import StepsWidget from '(protected)/user/widgets/StepsWidget';
+import SleepWidget from '(protected)/user/widgets/SleepWidget';
+import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
+import StressLevelWidget from '(protected)/user/widgets/StressLevelWidget';
+import ActiveMinutesWidget from '(protected)/user/widgets/ActiveMinutesWidget';
+import BodyCompositionWidget from '(protected)/user/widgets/BodyCompositionWidget';
+import MetricCard from '(protected)/user/widgets/MetricCard';
+import WeeklyVolumeWidget from '(protected)/user/widgets/WeeklyCMEVolumeWidget';
+import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
+import TrainingLoadWidget from '(protected)/user/widgets/TrainingLoadWidget';
+import RecoveryStatusWidget from '(protected)/user/widgets/RecoveryStatusWidget';
+import WorkoutIntensityWidget from '(protected)/user/widgets/WorkoutIntensityWidget';
+import WeeklyGoalsWidget from '(protected)/user/widgets/WeeklyGoalsWidget';
 
 // Widget categories and metadata
 interface WidgetMetadata {
@@ -186,21 +184,11 @@ const pillarLabels = {
 
 // Removed size labels as they're not needed for filtering
 
-export default function WidgetsPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPillar, setSelectedPillar] = useState<string>('all');
-  const [widgetVisibility, setWidgetVisibility] = useState<Record<string, boolean>>(
-    widgetMetadata.reduce((acc, widget) => ({ ...acc, [widget.id]: widget.isVisible }), {})
-  );
+export default async function WidgetsPage() {
+  const garminAttribution = await getGarminDeviceAttribution();
 
-  // Filter widgets based on search and filters
-  const filteredWidgets = widgetMetadata.filter(widget => {
-    const matchesSearch = widget.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         widget.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPillar = selectedPillar === 'all' || widget.pillar === selectedPillar;
-    
-    return matchesSearch && matchesPillar;
-  });
+  // Show all widgets without filtering for now
+  const filteredWidgets = widgetMetadata;
 
   // Group widgets by pillar
   const groupedWidgets = filteredWidgets.reduce((acc, widget) => {
@@ -211,12 +199,6 @@ export default function WidgetsPage() {
     return acc;
   }, {} as Record<string, WidgetMetadata[]>);
 
-  const toggleWidgetVisibility = (widgetId: string) => {
-    setWidgetVisibility(prev => ({
-      ...prev,
-      [widgetId]: !prev[widgetId]
-    }));
-  };
 
 // Removed getSizeClasses function as size filtering is no longer needed
 
@@ -242,32 +224,6 @@ export default function WidgetsPage() {
             </div>
           </div>
 
-          {/* Search and Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search widgets..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-              />
-            </div>
-
-            {/* Pillar Filter */}
-            <select
-              value={selectedPillar}
-              onChange={(e) => setSelectedPillar(e.target.value)}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            >
-              <option value="all">All Pillars</option>
-              {Object.entries(pillarLabels).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
         </div>
 
         {/* Widgets Grid */}
@@ -286,14 +242,11 @@ export default function WidgetsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {widgets.map((widget) => {
                   const WidgetComponent = widget.component;
-                  const isVisible = widgetVisibility[widget.id];
                   
                   return (
                     <div
                       key={widget.id}
-                      className={`bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md ${
-                        isVisible ? 'opacity-100' : 'opacity-50'
-                      }`}
+                      className="bg-white dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
                     >
                       {/* Widget Header */}
                       <div className="p-4 border-b border-gray-200 dark:border-gray-700">
@@ -301,17 +254,6 @@ export default function WidgetsPage() {
                           <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {widget.name}
                           </h3>
-                          <button
-                            onClick={() => toggleWidgetVisibility(widget.id)}
-                            className={`p-2 rounded-md transition-colors ${
-                              isVisible 
-                                ? 'text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700' 
-                                : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                            }`}
-                            title={isVisible ? 'Hide widget' : 'Show widget'}
-                          >
-                            {isVisible ? <FaEye className="w-4 h-4" /> : <FaEyeSlash className="w-4 h-4" />}
-                          </button>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
                           {widget.description}
@@ -327,17 +269,14 @@ export default function WidgetsPage() {
                       <div className="p-4">
                         <div className="bg-white dark:bg-gray-700 rounded-lg p-4 min-h-[200px] flex items-center justify-center">
                           <div className="w-full">
-                            <WidgetComponent />
+                            <WidgetComponent garminAttribution={garminAttribution} />
                           </div>
                         </div>
                       </div>
 
                       {/* Widget Actions */}
                       <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {isVisible ? 'Visible on dashboard' : 'Hidden from dashboard'}
-                          </span>
+                        <div className="flex items-center justify-end">
                           <div className="flex items-center gap-3">
                             <button className="text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200 font-medium transition-colors">
                               Customize

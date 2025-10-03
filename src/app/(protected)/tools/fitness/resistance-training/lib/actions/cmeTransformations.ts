@@ -1,5 +1,5 @@
-import { CMEActivityLibraryItem } from '../../../cardiometabolic-training/lib/types/cme.zod';
-import { ExerciseLibraryItem } from '../../types/resistance-training.zod';
+import { CMEActivityLibraryItem } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import { ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
 
 /**
  * Transforms CME activities to match ExerciseLibraryItem format for compatibility
