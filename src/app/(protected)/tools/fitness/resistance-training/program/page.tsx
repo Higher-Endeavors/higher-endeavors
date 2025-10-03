@@ -6,9 +6,11 @@ import Footer from 'components/Footer';
 import { getExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getExerciseLibrary';
 import { getUserExerciseLibrary } from '(protected)/tools/fitness/lib/hooks/getUserExerciseLibrary';
 import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCMEActivityLibrary';
-import { transformCMEActivitiesToExerciseLibrary } from '(protected)/tools/fitness/resistance-training/program/lib/actions/cmeTransformations';
-import { ExerciseLibraryItem } from '(protected)/tools/fitness/resistance-training/types/resistance-training.zod';
-import { CMEActivityLibraryItem } from '(protected)/tools/fitness/cardiometabolic-training/lib/types/cme.zod';
+import { transformCMEActivitiesToExerciseLibrary } from '(protected)/tools/fitness/resistance-training/lib/actions/cmeTransformations';
+import { getResistancePhases } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getResistancePhases';
+import { getResistancePeriodizationTypes } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getResistancePeriodizationTypes';
+import { getTierContinuum } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getTierContinuum';
+import { getTemplateCategories } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getTemplateCategories';
 import RelatedContent from '(protected)/tools/(components)/RelatedContent';
 import OnboardingChecklist from '(protected)/tools/(components)/OnboardingChecklist';
 import ResistanceTrainingClient from '(protected)/tools/fitness/resistance-training/program/components/ResistanceTraining.client';
@@ -20,23 +22,15 @@ export default async function ResistanceTrainingPage() {
   const session = await auth();
   const loggedInUserId = session?.user?.id ? Number(session.user.id) : 1;
 
-  let fitnessSettings: FitnessSettings | undefined = undefined;
-  let error: Error | null = null;
-  
-  try {
-    const userSettings = await getUserSettings();
-    fitnessSettings = userSettings?.fitness;
-  } catch (err: any) {
-    error = err;
-  }
+  const [userSettings, phases, periodizationTypes, tierContinuum, templateCategories] = await Promise.all([
+    getUserSettings().catch(() => undefined),
+    getResistancePhases().catch(() => []),
+    getResistancePeriodizationTypes().catch(() => []),
+    getTierContinuum().catch(() => []),
+    getTemplateCategories().catch(() => []),
+  ]);
 
-  if (error) {
-    return (
-      <div className="text-red-500">
-        Error loading user settings: {error.message}
-      </div>
-    );
-  }
+  const fitnessSettings: FitnessSettings | undefined = userSettings?.fitness;
 
   const resistanceTrainingArticles = [
     {
@@ -58,6 +52,10 @@ export default async function ResistanceTrainingPage() {
               initialUserId={loggedInUserId}
               userId={loggedInUserId}
               fitnessSettings={fitnessSettings}
+              initialPhases={phases}
+              initialPeriodizationTypes={periodizationTypes}
+              initialTierContinuum={tierContinuum}
+              initialTemplateCategories={templateCategories}
             />
           </div>
           <div className="lg:w-80 flex-shrink-0">

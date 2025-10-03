@@ -8,8 +8,8 @@ import { ProgramListItem } from '(protected)/tools/fitness/resistance-training/t
 import { getResistancePrograms } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/getResistancePrograms';
 import { useResistanceTemplates } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useResistanceTemplates';
 import { useTemplateCategories } from '(protected)/tools/fitness/resistance-training/program/lib/hooks/useTemplateData';
-import { deleteResistanceProgram } from '(protected)/tools/fitness/resistance-training/program/lib/actions/deleteResistanceProgram';
-import { duplicateResistanceProgram } from '(protected)/tools/fitness/resistance-training/program/lib/actions/duplicateResistanceProgram';
+import { deleteResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/deleteResistanceProgram';
+import { duplicateResistanceProgram } from '(protected)/tools/fitness/resistance-training/lib/actions/duplicateResistanceProgram';
 import { clientLogger } from 'lib/logging/logger.client';
 
 // How many programs to show per page
@@ -36,8 +36,8 @@ interface MenuState {
 interface FilterState {
   search: string;
   dateRange: 'all' | 'week' | 'month' | 'year';
-  phaseFocus: string;
-  periodizationType: string;
+  resistPhaseId: number | '';
+  resistPeriodizationId: number | '';
   sortBy: 'newest' | 'oldest' | 'name';
   showTemplates: boolean;
   hideOwnPrograms: boolean;
@@ -85,8 +85,8 @@ export default function ProgramBrowser({
   const [filters, setFilters] = useState<FilterState>({
     search: '',
     dateRange: 'all',
-    phaseFocus: '',
-    periodizationType: '',
+    resistPhaseId: '',
+    resistPeriodizationId: '',
     sortBy: 'newest',
     showTemplates: false,
     hideOwnPrograms: false,
@@ -174,11 +174,11 @@ export default function ProgramBrowser({
         }
       }
 
-      if (filters.phaseFocus && item.phaseFocus !== filters.phaseFocus) {
+      if (filters.resistPhaseId && item.resistPhaseId !== filters.resistPhaseId) {
         return false;
       }
 
-      if (filters.periodizationType && item.periodizationType !== filters.periodizationType) {
+      if (filters.resistPeriodizationId && item.resistPeriodizationId !== filters.resistPeriodizationId) {
         return false;
       }
 
@@ -458,27 +458,40 @@ export default function ProgramBrowser({
 
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                value={filters.phaseFocus}
-                onChange={(e) => setFilters({ ...filters, phaseFocus: e.target.value })}
+                value={filters.resistPhaseId}
+                onChange={(e) => setFilters({ ...filters, resistPhaseId: e.target.value ? Number(e.target.value) : '' })}
               >
-                <option value="">All Phases/Focus</option>
-                <option value="GPP">GPP</option>
-                <option value="Strength">Strength</option>
-                <option value="Hypertrophy">Hypertrophy</option>
-                <option value="Power">Power</option>
-                <option value="Endurance">Endurance</option>
+                <option value="">All Phases</option>
+                {Array.from(
+                  new Map(
+                    [...programs, ...templates]
+                      .map(program => [program.resistPhaseId ?? '', program.resistPhaseName ?? 'Unknown Phase'] as const)
+                      .filter(([id]) => id !== '')
+                  ).entries()
+                ).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
               </select>
 
               <select
                 className="px-3 py-2 border border-gray-300 rounded-md bg-white text-gray-900 focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-white dark:border-gray-300 dark:text-slate-900"
-                value={filters.periodizationType}
-                onChange={(e) => setFilters({ ...filters, periodizationType: e.target.value })}
+                value={filters.resistPeriodizationId}
+                onChange={(e) => setFilters({ ...filters, resistPeriodizationId: e.target.value ? Number(e.target.value) : '' })}
               >
                 <option value="">All Periodization Types</option>
-                <option value="Linear">Linear</option>
-                <option value="Undulating">Undulating</option>
-                <option value="Block">Block</option>
-                <option value="None">None</option>
+                {Array.from(
+                  new Map(
+                    [...programs, ...templates]
+                      .map(program => [program.resistPeriodizationId ?? '', program.resistPeriodizationName ?? 'Unknown Periodization'] as const)
+                      .filter(([id]) => id !== '')
+                  ).entries()
+                ).map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -635,8 +648,8 @@ export default function ProgramBrowser({
                       <div className={`mt-2 text-sm ${isTemplateItem ? 'text-purple-600 dark:text-purple-700' : 'text-gray-500 dark:text-slate-600'}`}>
                         <div className="flex flex-col space-y-1">
                           <div className="flex space-x-4">
-                            <span>Periodization Type: {item.periodizationType || 'None'}</span>
-                            <span>Phase Focus: {item.phaseFocus || 'Not specified'}</span>
+                            <span>Periodization Type: {item.resistPeriodizationName || 'None'}</span>
+                            <span>Phase Focus: {item.resistPhaseName || 'Not specified'}</span>
                             {analysisMode && programDataStatus.has(item.resistanceProgramId) && (
                               <span>Exercises: {programDataStatus.get(item.resistanceProgramId)?.exerciseCount || 0}</span>
                             )}

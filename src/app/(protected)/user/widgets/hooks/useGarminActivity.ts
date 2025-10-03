@@ -204,12 +204,16 @@ export async function getWeeklyCMEVolumeData(): Promise<WeeklyCMEVolumeData> {
         return isInWeek;
       });
       
+      // Define valid CME families for volume calculation (exclude 'General')
+      const VALID_CME_FAMILIES = ['Running', 'Cycling', 'Swimming', 'Rowing', 'Walking', 'Nordic & Snow', 'Watersport'];
+      
       const currentWeekActivities = afterDateFilter.filter((activity: any) => {
         const activityData = activity.data;
         const activityType = activityData?.activityType;
-        const hasCMEMapping = activityType && GARMIN_TO_CME_MAPPING[activityType];
+        const cmeFamily = activityType && GARMIN_TO_CME_MAPPING[activityType];
         
-        return hasCMEMapping;
+        // Only include activities that map to valid CME families (exclude 'General')
+        return cmeFamily && VALID_CME_FAMILIES.includes(cmeFamily);
       });
       
       const mappedActivities = currentWeekActivities.map((activity: any) => ({
@@ -414,6 +418,9 @@ export async function getTimeInZonesData(): Promise<TimeInZonesData> {
     const result = await response.json();
     
     if (result.success && result.data && Array.isArray(result.data)) {
+      // Define valid CME families for volume calculation (exclude 'General')
+      const VALID_CME_FAMILIES = ['Running', 'Cycling', 'Swimming', 'Rowing', 'Walking', 'Nordic & Snow', 'Watersport'];
+      
       // Filter activities to current week and CME activities
       const currentWeekActivities = result.data.filter((activity: any) => {
         const activityData = activity.data;
@@ -425,11 +432,12 @@ export async function getTimeInZonesData(): Promise<TimeInZonesData> {
         const activityDate = new Date(parseInt(activityData.startTimeInSeconds) * 1000);
         const isInWeek = activityDate >= monday && activityDate <= sunday;
         
-        // Check if activity has CME mapping
+        // Check if activity maps to valid CME family (exclude 'General')
         const activityType = activityData?.activityType;
-        const hasCMEMapping = activityType && GARMIN_TO_CME_MAPPING[activityType];
+        const cmeFamily = activityType && GARMIN_TO_CME_MAPPING[activityType];
+        const hasValidCMEMapping = cmeFamily && VALID_CME_FAMILIES.includes(cmeFamily);
         
-        return isInWeek && hasCMEMapping;
+        return isInWeek && hasValidCMEMapping;
       });
       
       if (currentWeekActivities.length === 0) {

@@ -1,34 +1,6 @@
 import React, { useState } from 'react';
 import { HiOutlineDotsVertical } from 'react-icons/hi';
-
-export type GoalStatus = 'active' | 'completed' | 'archived';
-
-export type GoalItemType = {
-  id: string;
-  name: string;
-  category: string;
-  metric: string;
-  startDate: string;
-  endDate: string;
-  currentValue: number;
-  targetValue: number;
-  desiredRate: number; // e.g. lbs/month
-  actualRate: number; // e.g. lbs/month
-  notes?: string;
-  status: GoalStatus;
-  parentId?: string; // New: parent goal id for sub-goals
-  // New fields for step-based modal
-  goalFocus?: string;
-  goalType?: string;
-  goalTracking?: string;
-  customMetric?: string;
-  goalValue?: number;
-  ongoing?: boolean;
-  repeatFrequency?: string;
-  repeatInterval?: number;
-  bodyWeight?: string;
-  bodyFatPercentage?: string;
-};
+import type { GoalItemType, GoalStatus } from '../lib/goal-tracker.zod';
 
 interface GoalItemProps {
   goal: GoalItemType;
@@ -46,10 +18,12 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Calculate progress (placeholder logic)
-  const progressPercent = Math.min(
-    ((goal.currentValue - goal.currentValue) / (goal.targetValue - goal.currentValue)) * 100,
-    100
-  );
+  const progressPercent = goal.targetValue 
+    ? Math.min(
+        ((goal.currentValue - goal.currentValue) / (goal.targetValue - goal.currentValue)) * 100,
+        100
+      )
+    : 0;
   // Placeholder for actual vs desired progress
   const actualProgress = 40; // %
   const desiredProgress = 60; // %
@@ -148,35 +122,37 @@ export default function GoalItem({ goal, onEdit, onDelete, onAddSubGoal, onTrack
       <div className="mt-4 space-y-2">
         <div className="flex items-center gap-4 text-xs text-gray-700">
           <span>Start: {goal.startDate}</span>
-          <span>End: {goal.endDate}</span>
+          <span>End: {goal.endDate || 'Ongoing'}</span>
           <span>Status: <span className="font-semibold capitalize">{goal.status}</span></span>
           <span className="text-blue-600 font-semibold">{daysRemaining} days remaining</span>
         </div>
-        <div className="mt-2 text-gray-700">
-          <div className="flex justify-between text-xs mb-1">
-            <span>Progress</span>
-            <span>
-              <span className="text-blue-500">{actualProgress}%</span>
-              {' / '}
-              <span className="text-green-600">{desiredProgress}%</span>
-            </span>
+        {goal.targetValue && (
+          <div className="mt-2 text-gray-700">
+            <div className="flex justify-between text-xs mb-1">
+              <span>Progress</span>
+              <span>
+                <span className="text-blue-500">{actualProgress}%</span>
+                {' / '}
+                <span className="text-green-600">{desiredProgress}%</span>
+              </span>
+            </div>
+            <div className="relative w-full h-4 bg-gray-200 rounded-full">
+              <div
+                className="absolute left-0 top-0 h-4 bg-blue-500 rounded-full"
+                style={{ width: `${actualProgress}%`, zIndex: 2 }}
+              />
+              <div
+                className="absolute left-0 top-0 h-4 bg-green-400 opacity-50 rounded-full"
+                style={{ width: `${desiredProgress}%`, zIndex: 1 }}
+              />
+            </div>
+            <div className="flex gap-4 mt-2 text-xs items-center">
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-blue-500 rounded"></span> Actual Progress</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-green-400 opacity-50 rounded"></span> Desired Progress</span>
+              <span className="text-gray-500">Percentages: <span className="text-blue-500">Actual</span> / <span className="text-green-600">Desired</span></span>
+            </div>
           </div>
-          <div className="relative w-full h-4 bg-gray-200 rounded-full">
-            <div
-              className="absolute left-0 top-0 h-4 bg-blue-500 rounded-full"
-              style={{ width: `${actualProgress}%`, zIndex: 2 }}
-            />
-            <div
-              className="absolute left-0 top-0 h-4 bg-green-400 opacity-50 rounded-full"
-              style={{ width: `${desiredProgress}%`, zIndex: 1 }}
-            />
-          </div>
-          <div className="flex gap-4 mt-2 text-xs items-center">
-            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-blue-500 rounded"></span> Actual Progress</span>
-            <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 bg-green-400 opacity-50 rounded"></span> Desired Progress</span>
-            <span className="text-gray-500">Percentages: <span className="text-blue-500">Actual</span> / <span className="text-green-600">Desired</span></span>
-          </div>
-        </div>
+        )}
         {goal.notes && (
           <div className="mt-2 text-xs text-gray-600">
             <span className="font-medium">Notes:</span> {goal.notes}
