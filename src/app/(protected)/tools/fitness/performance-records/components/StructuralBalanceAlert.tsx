@@ -40,9 +40,28 @@ export default function StructuralBalanceAlert({ imbalances, exerciseName }: Str
     return `${deviation.toFixed(1)}%`;
   };
 
+  const formatLoad = (load: number) => {
+    if (Number.isInteger(load)) {
+      return load.toString();
+    }
+
+    return load.toFixed(1);
+  };
+
+  const computeIdealLoad = (idealRatio: number, comparedLoad: number, loadUnit: string) => {
+    const idealLoad = idealRatio * comparedLoad;
+
+    if (loadUnit.toLowerCase() !== 'lb' && loadUnit.toLowerCase() !== 'lbs') {
+      return formatLoad(idealLoad);
+    }
+
+    const roundedToNearestFive = Math.round(idealLoad / 5) * 5;
+    return formatLoad(roundedToNearestFive);
+  };
+
   return (
     <div className="mt-4 space-y-2">
-      <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <div className="text-sm font-medium text-gray-700 dark:text-gray-600 mb-2">
         Structural Balance Alerts
       </div>
       {imbalances.map((imbalance, index) => (
@@ -67,6 +86,9 @@ export default function StructuralBalanceAlert({ imbalances, exerciseName }: Str
                 </div>
                 <div>
                   <span className="font-medium">Ideal ratio:</span> {formatRatio(imbalance.idealRatio)}
+                </div>
+                <div>
+                  <span className="font-medium">Ideal load:</span> {computeIdealLoad(imbalance.idealRatio, imbalance.comparedLoad, imbalance.loadUnit)} {imbalance.loadUnit}
                 </div>
                 <div>
                   <span className="font-medium">Deviation:</span> {formatDeviation(imbalance.deviation)}

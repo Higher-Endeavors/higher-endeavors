@@ -365,6 +365,11 @@ export default function UserSidebar({ expanded, setExpanded }: UserSidebarProps)
                   <SidebarLink expanded={expanded} icon={null} label="Cardiometabolic Endurance Training" isSubLink />
                 </div>
               </Link>
+              <Link href="/tools/fitness/performance-records">
+                <div className="ml-8">
+                  <SidebarLink expanded={expanded} icon={null} label="Performance Records" isSubLink />
+                </div>
+              </Link>
               <Link href="/tools/fitness/structural-balance">
                 <div className="ml-8">
                   <SidebarLink expanded={expanded} icon={null} label="Structural Balance" isSubLink />

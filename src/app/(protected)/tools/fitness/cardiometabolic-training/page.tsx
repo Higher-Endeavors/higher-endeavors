@@ -5,30 +5,23 @@ import Footer from 'components/Footer';
 export default function CardiometabolicTrainingDashboard() {
   const phases = [
     {
-      name: 'Plan',
-      description: 'Set goals, assess current fitness, and create your training plan',
-      href: '/tools/cardiometabolic-training/plan',
-      icon: '📋',
-      color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
-    },
-    {
       name: 'Program',
       description: 'Design and customize your CME training sessions',
-      href: '/tools/cardiometabolic-training/program',
+      href: '/tools/fitness/cardiometabolic-training/program',
       icon: '🏃‍♂️',
       color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
     },
     {
       name: 'Act',
       description: 'Execute your workouts with real-time tracking',
-      href: '/tools/cardiometabolic-training/act',
+      href: '/tools/fitness/cardiometabolic-training/act',
       icon: '⚡',
       color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
     },
     {
       name: 'Analyze',
       description: 'Review performance data and track your progress',
-      href: '/tools/cardiometabolic-training/analyze',
+      href: '/tools/fitness/cardiometabolic-training/analyze',
       icon: '📊',
       color: 'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700'
     }
@@ -43,7 +36,7 @@ export default function CardiometabolicTrainingDashboard() {
           A comprehensive four-phase approach to CME training
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {phases.map((phase) => (
             <Link
               key={phase.name}

@@ -1,15 +1,13 @@
 "use client";
-import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { useState } from "react";
 import PRList from "./components/PRList";
-import PRListOld from "./components/PRListOld";
 import TimeframeSelectorOld from "./components/TimeframeSelectorOld";
 import { usePerformanceRecords } from "./lib/hooks/usePerformanceRecords";
 import { useStructuralBalanceAnalysis } from "./lib/hooks/useStructuralBalanceAnalysis";
 
 export default function PerformanceRecordsPage() {
   const { data: session } = useSession();
-  const [useCardLayout, setUseCardLayout] = useState(true);
   const [timeframe, setTimeframe] = useState('all');
   
   const { data, isLoading, error, refetch } = usePerformanceRecords(
@@ -44,38 +42,10 @@ export default function PerformanceRecordsPage() {
           Your personal records across all resistance training exercises
         </p>
         
-        <div className="flex items-center space-x-6">
-          <TimeframeSelectorOld 
-            selectedTimeframe={timeframe} 
-            onTimeframeChange={setTimeframe} 
-          />
-          
-          <div className="flex items-center space-x-2">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Layout:
-            </label>
-            <button
-              onClick={() => setUseCardLayout(true)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                useCardLayout
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              Cards
-            </button>
-            <button
-              onClick={() => setUseCardLayout(false)}
-              className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                !useCardLayout
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
-              }`}
-            >
-              List
-            </button>
-          </div>
-        </div>
+        <TimeframeSelectorOld 
+          selectedTimeframe={timeframe} 
+          onTimeframeChange={setTimeframe} 
+        />
       </div>
       
       {data && (
@@ -89,21 +59,12 @@ export default function PerformanceRecordsPage() {
         </div>
       )}
       
-      {useCardLayout ? (
-        <PRList 
-          records={data?.records || {}} 
-          imbalances={structuralBalanceData?.imbalances || {}}
-          isLoading={isLoading} 
-          error={error} 
-        />
-      ) : (
-        <PRListOld 
-          records={data?.records || {}} 
-          imbalances={structuralBalanceData?.imbalances || {}}
-          isLoading={isLoading} 
-          error={error} 
-        />
-      )}
+      <PRList 
+        records={data?.records || {}} 
+        imbalances={structuralBalanceData?.imbalances || {}}
+        isLoading={isLoading} 
+        error={error} 
+      />
     </div>
   );
 }
