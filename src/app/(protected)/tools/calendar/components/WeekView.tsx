@@ -11,7 +11,8 @@ export default function WeekView({
   onEventUpdate,
   onEventDelete,
   onDateChange,
-  onNavigate
+  onNavigate,
+  garminAttribution
 }: WeekViewProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -489,7 +490,7 @@ export default function WeekView({
       </div>
 
       {/* Fitness Dashboard */}
-      <FitnessDashboard />
+      <FitnessDashboard garminAttribution={garminAttribution} />
 
       {/* Date Picker Popup */}
       {isDatePickerOpen && (

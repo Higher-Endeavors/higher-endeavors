@@ -1,10 +1,11 @@
+"use client";
+
 import CaloriesBurnedWidget from '(protected)/user/widgets/CaloriesBurnedWidget';
 import StepsWidget from '(protected)/user/widgets/StepsWidget';
 import SleepWidget from '(protected)/user/widgets/SleepWidget';
 import HeartRateWidget from '(protected)/user/widgets/HeartRateWidget';
 import MetricCard from '(protected)/user/widgets/MetricCard';
 import SummaryCard from '(protected)/user/widgets/SummaryCard';
-import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 import type { WidgetData, Trend } from '(protected)/user/widgets/types';
 
 // Additional metrics for the full dashboard
@@ -61,10 +62,10 @@ const additionalMetrics: WidgetData[] = [
 
 interface DailyMetricsProps {
   className?: string;
+  garminAttribution: string;
 }
 
-export default async function DailyMetrics({ className = '' }: DailyMetricsProps) {
-  const garminAttribution = await getGarminDeviceAttribution();
+export default function DailyMetrics({ className = '', garminAttribution }: DailyMetricsProps) {
   return (
     <div className={`bg-white rounded-lg border border-slate-200 overflow-hidden ${className}`}>
       {/* Header */}

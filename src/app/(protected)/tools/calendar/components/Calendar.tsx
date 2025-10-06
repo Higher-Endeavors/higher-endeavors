@@ -12,12 +12,14 @@ interface CalendarProps {
   className?: string;
   showHeader?: boolean;
   onEventClick?: (event: CalendarEvent) => void;
+  garminAttribution: string;
 }
 
 export default function Calendar({ 
   className = '', 
   showHeader = true,
-  onEventClick 
+  onEventClick,
+  garminAttribution
 }: CalendarProps) {
   const {
     events,
@@ -140,6 +142,7 @@ export default function Calendar({
           onEventDelete={handleEventDelete}
           onDateChange={handleDateChange}
           onNavigate={handleNavigate}
+          garminAttribution={garminAttribution}
         />
       )}
 
@@ -166,6 +169,7 @@ export default function Calendar({
           onEventDelete={handleEventDelete}
           onDateChange={handleDateChange}
           onNavigate={handleNavigate}
+          garminAttribution={garminAttribution}
         />
       )}
 
