@@ -11,7 +11,8 @@ export default function DayView({
   onEventUpdate,
   onEventDelete,
   onDateChange,
-  onNavigate
+  onNavigate,
+  garminAttribution
 }: DayViewProps) {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -392,7 +393,7 @@ export default function DayView({
 
         {/* Daily Metrics - Right Side */}
         <div className="lg:max-h-96">
-          <DailyMetrics />
+          <DailyMetrics garminAttribution={garminAttribution} />
         </div>
       </div>
 

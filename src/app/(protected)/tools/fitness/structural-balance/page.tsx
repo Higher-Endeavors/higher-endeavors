@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from 'react';
 import { auth } from "auth";
 import { SessionProvider } from "next-auth/react";
 import BalancedLiftsForm from '(protected)/tools/fitness/structural-balance/components/BalancedLiftsForm';
@@ -6,7 +5,7 @@ import Header from 'components/Header';
 import Footer from 'components/Footer';
 import FeatureRoadmap from '(protected)/tools/feature-roadmap/components/FeatureRoadmap';
 import RelatedContent from '(protected)/tools/(components)/RelatedContent';
-import { clientLogger } from 'lib/logging/logger.client';
+import { serverLogger } from 'lib/logging/logger.server';
 import { getApiBaseUrl } from 'lib/utils/apiUtils';
 
 type RefLift = {
@@ -59,16 +58,19 @@ export default async function BalancedLiftsPage() {
   // }
 
   const getRefLifts = async (): Promise<RefLifts> => {
+    const apiBaseUrl = await getApiBaseUrl();
+    const fetchUrl = `${apiBaseUrl}/api/reference-lifts`;
+
     try {
-      const response = await fetch(`${getApiBaseUrl()}/api/reference-lifts`, {
+      const response = await fetch(`${fetchUrl}`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
-//        cache: 'force-cache',
+       cache: 'force-cache',
       });
       const refLifts = await response.json();
       return refLifts.rows;
     } catch (error) {
-      clientLogger.error('Error in structural balance page', error);
+      await serverLogger.error('Error in structural balance page', error);
       return [];
     }
   };

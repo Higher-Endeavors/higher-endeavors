@@ -25,7 +25,7 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
   const [selectedProgramId, setSelectedProgramId] = useState<number | null>(null);
   const [selectedExercises, setSelectedExercises] = useState<number[]>([]);
   const [loadUnit, setLoadUnit] = useState<'lbs' | 'kg'>('lbs');
-  const [programData, setProgramData] = useState<{ periodizationType?: string; progressionRules?: any } | null>(null);
+  const [programData, setProgramData] = useState<{ resistPeriodizationId?: number | null; resistPeriodizationName?: string; progressionRules?: any } | null>(null);
   const [timeframe, setTimeframe] = useState<string>('year');
   const [analysisMode, setAnalysisMode] = useState<'program' | 'exercise'>('program');
 
@@ -51,14 +51,16 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
       resistanceProgramId: program.resistanceProgramId,
       userId: selectedUserId,
       programName: program.programName,
-      phaseFocus: program.phaseFocus || undefined,
-      periodizationType: program.periodizationType || undefined,
+      resistPhaseId: program.resistPhaseId,
+      resistPhaseName: program.resistPhaseName ?? undefined,
+      resistPeriodizationId: program.resistPeriodizationId,
+      resistPeriodizationName: program.resistPeriodizationName ?? undefined,
       programDuration: program.programDuration,
       createdAt: program.createdAt,
       exerciseCount: program.exerciseCount,
       exerciseSummary: {
         totalExercises: program.exerciseCount,
-        exercises: [] // We don't have exercise names in ProgramForAnalysis
+        exercises: []
       }
     }));
   }, [analysisPrograms, selectedUserId]);
@@ -105,7 +107,8 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
       // Fetch program data to get periodization type and progression rules
       const { program: programDetails } = await getResistanceProgram(program.resistanceProgramId, selectedUserId);
       setProgramData({
-        periodizationType: programDetails.periodizationType,
+        resistPeriodizationId: programDetails.resistPeriodizationId,
+        resistPeriodizationName: programDetails.resistPeriodizationName,
         progressionRules: programDetails.progressionRules
       });
     } catch (error) {
@@ -396,7 +399,7 @@ export default function ResistanceTrainingAnalyzeClient({ userId }: ResistanceTr
                           <div className="text-center">
                             <p className="text-sm text-gray-600 dark:text-gray-700">Periodization Type</p>
                             <p className="text-lg font-semibold text-gray-900 dark:text-gray-700 capitalize">
-                              {programData?.periodizationType || 'Not Set'}
+                              {programData?.resistPeriodizationName || 'Not Set'}
                             </p>
                           </div>
                           <div className="text-center">

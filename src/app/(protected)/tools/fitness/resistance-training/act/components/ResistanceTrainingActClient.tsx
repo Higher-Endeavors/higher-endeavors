@@ -93,8 +93,8 @@ export default function ResistanceTrainingActClient({ userId }: ResistanceTraini
                   <div className="space-y-1 text-sm text-gray-600 dark:text-gray-700">
                     <p>Duration: {program.programDuration} weeks</p>
                     <p>Exercises: {program.exerciseCount}</p>
-                    {program.phaseFocus && <p>Phase: {program.phaseFocus}</p>}
-                    {program.periodizationType && <p>Type: {program.periodizationType}</p>}
+                    {program.resistPhaseName && <p>Phase: {program.resistPhaseName}</p>}
+                    {program.resistPeriodizationName && <p>Type: {program.resistPeriodizationName}</p>}
                     <p className={`font-medium ${program.hasActualData ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
                       {program.hasActualData ? 'Has actual data' : 'Planned only'}
                     </p>

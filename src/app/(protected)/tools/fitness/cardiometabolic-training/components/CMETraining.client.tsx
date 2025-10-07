@@ -9,6 +9,7 @@ import { getHeartRateZonesById } from '(protected)/user/bio/lib/actions/saveHear
 import { saveCMESession } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/saveCMESession';
 import { saveCMETemplate } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/saveCMETemplate';
 import { getCMESessions, getCMESession } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/hooks/getCMESessions';
+import { getCMEActivityLibrary } from '(protected)/tools/fitness/lib/hooks/getCMEActivityLibrary';
 import { transformDatabaseToFrontend } from '(protected)/tools/fitness/cardiometabolic-training/program/lib/actions/transformDatabaseToFrontend';
 import { clientLogger } from 'lib/logging/logger.client';
 import { useToast } from 'lib/toast';
@@ -48,6 +49,10 @@ export default function CardiometabolicTrainingClient({
   const [selectedUserFitnessSettings, setSelectedUserFitnessSettings] = useState<FitnessSettings | undefined>(() => fitnessSettings);
   const [selectedUserHeartRateZones, setSelectedUserHeartRateZones] = useState<any[]>(() => userHeartRateZones || []);
   const [preferencesError, setPreferencesError] = useState<string | null>(null);
+  
+  // Activities state - initialize from props
+  const [allActivities, setAllActivities] = useState<CMEActivityItem[]>(activities);
+  
 
   // Session state
   const [sessionName, setSessionName] = useState('');
@@ -88,6 +93,7 @@ export default function CardiometabolicTrainingClient({
       setSelectedUserHeartRateZones(userHeartRateZones || []); // Fallback
     }
   };
+
 
   const handleUserSelect = (userId: number | null) => {
     if (userId) {
@@ -425,7 +431,7 @@ export default function CardiometabolicTrainingClient({
         editingActivity={editingActivity}
         fitnessSettings={selectedUserFitnessSettings}
         userHeartRateZones={selectedUserHeartRateZones}
-        activities={activities}
+        activities={allActivities}
       />
     </>
   );
