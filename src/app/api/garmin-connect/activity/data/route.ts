@@ -29,6 +29,7 @@ export async function GET(request: NextRequest) {
     const dataType = searchParams.get('type');
     const days = parseInt(searchParams.get('days') || '30');
     const limit = parseInt(searchParams.get('limit') || '50');
+    const offset = parseInt(searchParams.get('offset') || '0');
     const latest = searchParams.get('latest') === 'true';
     const summary = searchParams.get('summary') === 'true';
     const stats = searchParams.get('stats') === 'true';
@@ -84,6 +85,7 @@ export async function GET(request: NextRequest) {
         userId,
         dataType,
         limit,
+        offset,
         activityType: activityType || undefined,
         startDate: new Date(Date.now() - days * 24 * 60 * 60 * 1000)
       });

@@ -1,8 +1,14 @@
 import Link from 'next/link';
 import Header from 'components/Header';
 import Footer from 'components/Footer';
+import RecentSessions from '(protected)/tools/fitness/cardiometabolic-training/components/RecentSessions';
+import WeeklyCMEVolumeWidget from '(protected)/user/widgets/WeeklyCMEVolumeWidget';
+import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
+import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
+import { Suspense } from 'react';
 
-export default function CardiometabolicTrainingDashboard() {
+export default async function CardiometabolicTrainingDashboard({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = (await searchParams) || {};
   const phases = [
     {
       name: 'Program',
@@ -27,10 +33,14 @@ export default function CardiometabolicTrainingDashboard() {
     }
   ];
 
+  const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
+  const page = Number.isNaN(pageParam) ? 1 : Math.max(1, pageParam);
+  const garminAttribution = await getGarminDeviceAttribution();
+
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       <Header />
-      <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen py-4 md:py-8 mx-5">
         <h1 className="text-4xl font-bold text-center mb-4">CardioMetabolic Endurance Training</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 text-center mb-12">
           A comprehensive four-phase approach to CME training
@@ -54,15 +64,20 @@ export default function CardiometabolicTrainingDashboard() {
           ))}
         </div>
 
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
-          <h3 className="text-xl font-semibold mb-4">Training Philosophy</h3>
-          <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-            Our four-phase approach ensures comprehensive development of your cardiometabolic endurance. 
-            Start with planning your goals, design your program, execute with precision, and analyze your progress 
-            to continuously improve your performance.
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
+          <div className="lg:col-span-2">
+            <Suspense fallback={<div className="rounded-lg border p-4">Loading recent sessions…</div>}>
+              <RecentSessions page={page} perPage={5} />
+            </Suspense>
+          </div>
+          <div>
+            <div className="space-y-4">
+              <WeeklyCMEVolumeWidget garminAttribution={garminAttribution} />
+              <TimeInZonesWidget garminAttribution={garminAttribution} />
+            </div>
+          </div>
         </div>
-      </div>
+      </main>
       <Footer />
     </div>
   );
