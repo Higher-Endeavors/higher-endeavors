@@ -11,19 +11,26 @@ export default async function CardiometabolicTrainingDashboard({ searchParams }:
   const sp = (await searchParams) || {};
   const phases = [
     {
+      name: 'Plan',
+      description: 'Plan the phases and blocks for your CME training plan',
+      href: '/tools/fitness/plan',
+      icon: '📝',
+      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+    },
+    {
       name: 'Program',
       description: 'Design and customize your CME training sessions',
       href: '/tools/fitness/cardiometabolic-training/program',
       icon: '🏃‍♂️',
-      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+      color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
     },
-    {
-      name: 'Act',
-      description: 'Execute your workouts with real-time tracking',
-      href: '/tools/fitness/cardiometabolic-training/act',
-      icon: '⚡',
-      color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
-    },
+    // {
+    //   name: 'Act',
+    //   description: 'Execute your workouts with real-time tracking',
+    //   href: '/tools/fitness/cardiometabolic-training/act',
+    //   icon: '⚡',
+    //   color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
+    // },
     {
       name: 'Analyze',
       description: 'Review performance data and track your progress',
@@ -43,7 +50,7 @@ export default async function CardiometabolicTrainingDashboard({ searchParams }:
       <main className="min-h-screen py-4 md:py-8 mx-5">
         <h1 className="text-4xl font-bold text-center mb-4">CardioMetabolic Endurance Training</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 text-center mb-12">
-          A comprehensive four-phase approach to CME training
+          A comprehensive three-phase approach to CME training
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">

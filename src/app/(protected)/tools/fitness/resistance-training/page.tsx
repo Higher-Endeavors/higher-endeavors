@@ -5,19 +5,26 @@ import Footer from 'components/Footer';
 export default function ResistanceTrainingDashboard() {
   const phases = [
     {
+      name: 'Plan',
+      description: 'Plan the phases and blocks for your resistance training plan',
+      href: '/tools/fitness/plan',
+      icon: '📝',
+      color: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700'
+    },
+    {
       name: 'Program',
       description: 'Design and customize your resistance training programs',
       href: '/tools/fitness/resistance-training/program',
       icon: '🏋️‍♂️',
       color: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700'
     },
-    {
-      name: 'Act',
-      description: 'Execute your workouts with real-time tracking and logging',
-      href: '/tools/fitness/resistance-training/act',
-      icon: '⚡',
-      color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
-    },
+    // {
+    //   name: 'Act',
+    //   description: 'Execute your workouts with real-time tracking and logging',
+    //   href: '/tools/fitness/resistance-training/act',
+    //   icon: '⚡',
+    //   color: 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-700'
+    // },
     {
       name: 'Analyze',
       description: 'Review performance data and track your progress',
@@ -28,12 +35,12 @@ export default function ResistanceTrainingDashboard() {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div>
       <Header />
-      <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen py-4 md:py-8 mx-5">
         <h1 className="text-4xl font-bold text-center mb-4">Resistance Training</h1>
         <p className="text-lg text-gray-600 dark:text-gray-400 text-center mb-12">
-          A comprehensive approach to strength training and muscle development
+        A comprehensive three-phase approach to resistance training
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
@@ -54,15 +61,15 @@ export default function ResistanceTrainingDashboard() {
           ))}
         </div>
 
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
+        {/* <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-8 text-center">
           <h3 className="text-xl font-semibold mb-4">Training Philosophy</h3>
           <p className="text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
             Our three-phase approach ensures comprehensive development of your strength and muscle mass. 
             Design your programs with progressive overload principles, execute with precision and real-time tracking, 
             and analyze your progress to continuously optimize your training outcomes.
           </p>
-        </div>
-      </div>
+        </div> */}
+      </main>
       <Footer />
     </div>
   );
