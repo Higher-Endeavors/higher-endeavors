@@ -9,6 +9,8 @@ export type CMESessionSummary = {
   distanceMeters?: number;
   distanceLabel: string;
   family?: string;
+  caloriesKcal?: number;
+  avgSpeedMps?: number;
 };
 
 

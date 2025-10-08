@@ -7,7 +7,8 @@ import TimeInZonesWidget from '(protected)/user/widgets/TimeInZonesWidget';
 import { getGarminDeviceAttribution } from 'lib/actions/userSettings';
 import { Suspense } from 'react';
 
-export default async function CardiometabolicTrainingDashboard({ searchParams }: { searchParams?: { [key: string]: string | string[] | undefined } }) {
+export default async function CardiometabolicTrainingDashboard({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> }) {
+  const sp = (await searchParams) || {};
   const phases = [
     {
       name: 'Program',
@@ -32,7 +33,7 @@ export default async function CardiometabolicTrainingDashboard({ searchParams }:
     }
   ];
 
-  const pageParam = typeof searchParams?.page === 'string' ? parseInt(searchParams!.page, 10) : 1;
+  const pageParam = typeof sp.page === 'string' ? parseInt(sp.page, 10) : 1;
   const page = Number.isNaN(pageParam) ? 1 : Math.max(1, pageParam);
   const garminAttribution = await getGarminDeviceAttribution();
 

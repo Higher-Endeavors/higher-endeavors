@@ -135,6 +135,15 @@ export default function CMEUnifiedChart({ series, show, fixedHr, paceUnit }: Pro
             const x = items && items.length > 0 ? items[0].parsed?.x ?? items[0].raw?.x : undefined;
             return typeof x === 'number' ? `Time ${formatMMSS(x)}` : '';
           },
+          label: (ctx: any) => {
+            const dsLabel: string = ctx.dataset?.label || '';
+            const y = ctx.parsed?.y ?? ctx.raw?.y;
+            if (dsLabel.includes('Pace') && typeof y === 'number' && Number.isFinite(y)) {
+              const totalSec = Math.round(y * 60); // y is minutes per unit
+              return `${dsLabel}: ${formatMMSS(totalSec)}`;
+            }
+            return `${dsLabel}: ${typeof y === 'number' ? y : ''}`;
+          }
         }
       },
       zoom: {

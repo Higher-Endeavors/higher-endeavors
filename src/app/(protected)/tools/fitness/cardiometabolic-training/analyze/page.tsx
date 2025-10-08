@@ -22,7 +22,15 @@ export default async function AnalyzePage() {
     const recordId = Number(item.id);
     const date = new Date(Number(d.startTimeInSeconds) * 1000);
     const dateLabel = isNaN(date.getTime()) ? '-' : date.toLocaleDateString();
-    const distanceMeters = typeof d.distanceInMeters === 'number' ? d.distanceInMeters : undefined;
+    // Coerce numeric fields that may come back as strings
+    const rawDistance = (d as any).distanceInMeters;
+    const distanceMeters = typeof rawDistance === 'number' ? rawDistance : (typeof rawDistance === 'string' ? Number(rawDistance) : undefined);
+    const rawDuration = (d as any).durationInSeconds;
+    const durationSeconds = typeof rawDuration === 'number' ? rawDuration : (typeof rawDuration === 'string' ? Number(rawDuration) : 0);
+    const rawAvgSpeed = (d as any).averageSpeedInMetersPerSecond;
+    const avgSpeedMps = typeof rawAvgSpeed === 'number' ? rawAvgSpeed : (typeof rawAvgSpeed === 'string' ? Number(rawAvgSpeed) : undefined);
+    const rawCalories = (d as any).activeKilocalories;
+    const caloriesKcal = typeof rawCalories === 'number' ? rawCalories : (typeof rawCalories === 'string' ? Number(rawCalories) : undefined);
     let distanceLabel = '-';
     if (typeof distanceMeters === 'number') {
       if (distanceUnit === 'miles') distanceLabel = `${(distanceMeters / 1609.344).toFixed(2)} mi`;
@@ -36,13 +44,66 @@ export default async function AnalyzePage() {
       displayName: `${dateLabel} · ${d.activityType}${d.activityName ? ` · ${d.activityName}` : ''}`,
       date: dateLabel,
       activityType: d.activityType,
-      durationSeconds: d.durationInSeconds,
-      durationLabel: formatDuration(d.durationInSeconds),
+      durationSeconds,
+      durationLabel: formatDuration(durationSeconds),
       distanceMeters,
       distanceLabel,
       family: family || undefined,
+      caloriesKcal,
+      avgSpeedMps,
     } as CMESessionSummary;
   });
+  // Preload Weekly Volume (Time) for default Trends (4 Weeks)
+  const now = new Date();
+  const startDate = new Date(now);
+  startDate.setDate(startDate.getDate() - 28);
+  const weekStart = (date: Date): Date => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const offset = day === 0 ? -6 : 1 - day; // Monday-start
+    d.setDate(d.getDate() + offset);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+  const labelForWeekStart = (d: Date): string => d.toLocaleDateString();
+  const weekKeyToMinutes = new Map<number, number>();
+  const familyToWeekKeyMinutes = new Map<string, Map<number, number>>();
+  const detailed = fullRecords
+    .map((r: any) => r?.data)
+    .filter((d: any) => !!d && typeof d.startTimeInSeconds !== 'undefined');
+  for (const d of detailed) {
+    const dt = new Date(Number(d.startTimeInSeconds) * 1000);
+    if (dt < startDate || dt > now) continue;
+    const fam = getCMEFamilyForActivity(d.activityType);
+    if (!fam) continue; // only CME-related
+    const key = weekStart(dt).getTime();
+    const minutes = Math.round((Number(d.durationInSeconds) || 0) / 60);
+    weekKeyToMinutes.set(key, (weekKeyToMinutes.get(key) || 0) + minutes);
+    if (!familyToWeekKeyMinutes.has(fam)) familyToWeekKeyMinutes.set(fam, new Map<number, number>());
+    const famMap = familyToWeekKeyMinutes.get(fam)!;
+    famMap.set(key, (famMap.get(key) || 0) + minutes);
+  }
+  const endWeek = weekStart(now).getTime();
+  const startWeek = weekStart(startDate).getTime();
+  const initialWeeklyLabels: string[] = [];
+  const initialWeeklyValues: number[] = [];
+  const initialWeeklyFamilySeries: { label: string; values: number[] }[] = [];
+  const families = Array.from(familyToWeekKeyMinutes.keys());
+  const famMaps = families.map((f) => ({ label: f, map: familyToWeekKeyMinutes.get(f)! }));
+  for (let t = startWeek; t <= endWeek; t += 7 * 24 * 60 * 60 * 1000) {
+    initialWeeklyLabels.push(labelForWeekStart(new Date(t)));
+    initialWeeklyValues.push(weekKeyToMinutes.get(t) ?? 0);
+    for (const { label, map } of famMaps) {
+      const series = initialWeeklyFamilySeries.find((s) => s.label === label);
+      if (!series) {
+        initialWeeklyFamilySeries.push({ label, values: [map.get(t) ?? 0] });
+      } else {
+        series.values.push(map.get(t) ?? 0);
+      }
+    }
+  }
+  const firstWithDevice = detailed.find((d: any) => d?.deviceName);
+  const initialWeeklyAttribution = firstWithDevice?.deviceName ? `Data sourced from Garmin (${firstWithDevice.deviceName})` : undefined;
   return (
     <SessionProvider>
       <CMEAnalyzeClient 
@@ -50,6 +111,7 @@ export default async function AnalyzePage() {
         initialSessions={initialSessions}
         initialDistanceUnit={distanceUnit || 'miles'}
         initialPaceUnit={initialPaceUnit}
+        initialWeekly={{ labels: initialWeeklyLabels, values: initialWeeklyValues, familySeries: initialWeeklyFamilySeries, attribution: initialWeeklyAttribution }}
       />
     </SessionProvider>
   );
