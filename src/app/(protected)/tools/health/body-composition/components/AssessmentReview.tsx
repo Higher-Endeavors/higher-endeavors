@@ -1,7 +1,7 @@
 'use client';
 
 import { format } from 'date-fns';
-import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types';
+import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types/body-composition.zod';
 import { useState } from 'react';
 import { clientLogger } from 'lib/logging/logger.client';
 

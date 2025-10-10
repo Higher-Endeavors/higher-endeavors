@@ -1,20 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useState } from 'react';
+import { useForm } from 'react-hook-form';
 import { calculateAllMetrics } from '(protected)/tools/health/body-composition/utils/calculations';
 import { validateMeasurements, type ValidationError } from '(protected)/tools/health/body-composition/utils/validation';
-import type { BodyCompositionEntry, CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types';
+import type { CircumferenceMeasurements, SkinfoldMeasurements } from '(protected)/tools/health/body-composition/types/body-composition.zod';
 import { useToast } from 'lib/toast';
-import { HiCheck } from 'react-icons/hi';
 import type { UserSettings } from 'lib/types/userSettings.zod';
 import { clientLogger } from 'lib/logging/logger.client';
 // import type { CircumferenceMeasurement } from '../../../../user/settings/types/settings';
 
-interface UserBioData {
-  dateOfBirth: string;
-  gender: string;
-}
+// Bio info is provided via props
 
 const defaultCircumferenceMeasurements: CircumferenceMeasurements = {
   neck: 0,
@@ -74,11 +70,13 @@ type FormInputs = {
 
 interface BodyCompositionInputProps {
   userId: number;
+  userSettings: UserSettings | null;
+  bioData: { date_of_birth?: string; gender?: string } | null;
+  onSave: (input: any) => Promise<any>;
 }
 
-export default function BodyCompositionInput({ userId }: BodyCompositionInputProps) {
+export default function BodyCompositionInput({ userId, userSettings, bioData, onSave }: BodyCompositionInputProps) {
   const { success } = useToast();
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [calculatedMetrics, setCalculatedMetrics] = useState<{
     bodyFatPercentage: number;
     fatMass: number;
@@ -87,49 +85,9 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
   const [isSaving, setIsSaving] = useState(false);
 
   const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
-  const [bioData, setBioData] = useState<UserBioData | null>(null);
-  const [bioError, setBioError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    async function fetchSettings() {
-      try {
-        const res = await fetch('/api/user-settings');
-        if (!res.ok) throw new Error('Failed to fetch user settings');
-        const data = await res.json();
-        if (isMounted) setUserSettings(data);
-      } catch (error) {
-        if (isMounted) setUserSettings(null);
-      }
-    }
-    fetchSettings();
-    return () => { isMounted = false; };
-  }, []);
-
-  // Fetch user's bio data
-  useEffect(() => {
-    const fetchBioData = async () => {
-      try {
-        const response = await fetch('/api/user/bio');
-        if (!response.ok) throw new Error('Failed to fetch bio data');
-        
-        const data = await response.json();
-        if (data.date_of_birth && data.gender) {
-          setBioData({
-            dateOfBirth: data.date_of_birth,
-            gender: data.gender
-          });
-        } else {
-          setBioError('Please complete your profile with date of birth and gender information.');
-        }
-      } catch (error) {
-        clientLogger.error('Error loading bio data', error);
-        setBioError('Failed to load profile data. Some features may be limited.');
-      }
-    };
-
-    fetchBioData();
-  }, []);
+  const bioError = bioData && (!bioData.date_of_birth || !bioData.gender)
+    ? 'Please complete your profile with date of birth and gender information.'
+    : null;
 
   // Calculate age from date of birth
   const calculateAge = (dateOfBirth: string): number => {
@@ -145,18 +103,27 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     return age;
   };
 
+  // Determine default method from settings via initializer
+  const enabledBodyFatMethodsInit = Array.isArray(userSettings?.health?.bodyFatMethods)
+    ? (userSettings?.health?.bodyFatMethods as string[])
+    : [];
+  const showManualEntryInit = enabledBodyFatMethodsInit.includes('manual') || enabledBodyFatMethodsInit.includes('bioelectrical');
+  const defaultBodyFatMethod: 'manual' | 'skinfold' = showManualEntryInit
+    ? 'manual'
+    : (enabledBodyFatMethodsInit.includes('skinfold') ? 'skinfold' : 'manual');
+
   const { 
     register, 
     handleSubmit, 
-    control, 
     setValue, 
     watch, 
+    getValues,
     reset,
     formState: { errors: formErrors } 
   } = useForm<FormInputs>({
     defaultValues: {
       weight: 0,
-      bodyFatMethod: 'manual',
+      bodyFatMethod: defaultBodyFatMethod,
       manualBodyFat: 0,
       isMale: bioData?.gender === 'male',
       skinfold: defaultSkinfoldMeasurements,
@@ -164,12 +131,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     }
   });
 
-  // Update form when bio data is loaded
-  useEffect(() => {
-    if (bioData) {
-      setValue('isMale', bioData.gender === 'male');
-    }
-  }, [bioData, setValue]);
+  // No effect needed to sync isMale; defaults are derived from props
 
   const bodyFatMethod = watch('bodyFatMethod');
   const weight = watch('weight');
@@ -192,25 +154,9 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
 
   // Get the enabled body fat methods from user settings
   const enabledBodyFatMethods = Array.isArray(userSettings?.health?.bodyFatMethods)
-    ? userSettings?.health?.bodyFatMethods
+    ? (userSettings?.health?.bodyFatMethods as string[])
     : [];
-  
-  // Check if manual entry should be available (if manual or bioelectrical is enabled)
   const showManualEntry = enabledBodyFatMethods.includes('manual') || enabledBodyFatMethods.includes('bioelectrical');
-
-  // Set default body fat method based on available methods
-  useEffect(() => {
-    if (enabledBodyFatMethods.length > 0) {
-      // If manual entry is available, default to it
-      if (showManualEntry) {
-        setValue('bodyFatMethod', 'manual');
-      }
-      // Otherwise if skinfold is available, default to it
-      else if (enabledBodyFatMethods.includes('skinfold')) {
-        setValue('bodyFatMethod', 'skinfold');
-      }
-    }
-  }, [enabledBodyFatMethods, showManualEntry, setValue]);
 
   // Filter the circumference measurements based on user settings
   const getFilteredCircumferenceMeasurements = () => {
@@ -235,18 +181,17 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     return measurements;
   };
 
-  // Auto-calculate for manual body fat method
-  useEffect(() => {
-    if (bodyFatMethod === 'manual' && weight > 0 && manualBodyFat > 0) {
-      const fatMass = (weight * manualBodyFat) / 100;
-      const fatFreeMass = weight - fatMass;
-      setCalculatedMetrics({
-        bodyFatPercentage: manualBodyFat,
-        fatMass,
-        fatFreeMass
-      });
+  // Update manual metrics on field changes instead of an effect
+  const updateManualCalculatedMetrics = (newWeight: number, newManualBodyFat: number) => {
+    const method = getValues('bodyFatMethod');
+    if (method === 'manual' && newWeight > 0 && newManualBodyFat > 0) {
+      const fatMass = (newWeight * newManualBodyFat) / 100;
+      const fatFreeMass = newWeight - fatMass;
+      setCalculatedMetrics({ bodyFatPercentage: newManualBodyFat, fatMass, fatFreeMass });
+    } else {
+      setCalculatedMetrics(null);
     }
-  }, [weight, manualBodyFat, bodyFatMethod]);
+  };
 
   const getErrorForField = (fieldPath: string[]): string | undefined => {
     return validationErrors.find(error => 
@@ -264,7 +209,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     }
 
     const formValues = watch();
-    const age = calculateAge(bioData.dateOfBirth);
+    const age = calculateAge(bioData.date_of_birth as string);
     const errors = validateMeasurements(
       formValues.weight,
       age,
@@ -293,7 +238,7 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     
     const errors = validateMeasurements(
       data.weight,
-      bioData ? calculateAge(bioData.dateOfBirth) : 0,
+      bioData ? calculateAge(bioData.date_of_birth as string) : 0,
       data.manualBodyFat,
       data.skinfold,
       data.circumference,
@@ -308,37 +253,16 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
     setIsSaving(true);
     
     try {
-      const entryData = {
-        age: bioData ? calculateAge(bioData.dateOfBirth) : 0,
-        isMale: data.isMale,
+      await onSave({
+        userId,
+        weight: data.weight,
         bodyFatMethod: data.bodyFatMethod,
         manualBodyFat: data.bodyFatMethod === 'manual' ? data.manualBodyFat : undefined,
         skinfoldMeasurements: data.bodyFatMethod === 'skinfold' ? data.skinfold : undefined,
         circumferenceMeasurements: data.circumference,
-        calculatedMetrics: calculatedMetrics
-      };
-
-      const payload = {
-        weight: data.weight,
-        bodyFatPercentage: calculatedMetrics?.bodyFatPercentage || data.manualBodyFat,
-        entryData: entryData,
-        targetUserId: userId
-      };
-
-      const response = await fetch('/api/body-composition', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-        credentials: 'include'
+        age: bioData ? calculateAge(bioData.date_of_birth as string) : 0,
+        isMale: data.isMale,
       });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(`Failed to save measurements: ${responseData.error || 'Unknown error'}`);
-      }
 
       setValidationErrors([]);
       
@@ -417,7 +341,12 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
               {...register('weight', { 
                 valueAsNumber: true,
                 required: 'Weight is required',
-                min: { value: 1, message: 'Weight must be greater than 0' }
+                min: { value: 1, message: 'Weight must be greater than 0' },
+                onChange: (e) => {
+                  const newWeight = parseFloat(e.target.value);
+                  const currentManual = Number(getValues('manualBodyFat')) || 0;
+                  updateManualCalculatedMetrics(newWeight, currentManual);
+                }
               })}
               className={`w-full rounded-md border ${
                 getErrorForField(['weight']) || formErrors.weight ? 'border-red-500' : 'border-gray-300'
@@ -478,6 +407,11 @@ export default function BodyCompositionInput({ userId }: BodyCompositionInputPro
                             if (value < 0 || value > 100) return 'Body fat percentage must be between 0 and 100';
                           }
                           return true;
+                        },
+                        onChange: (e) => {
+                          const newManual = parseFloat(e.target.value);
+                          const currentWeight = Number(getValues('weight')) || 0;
+                          updateManualCalculatedMetrics(currentWeight, newManual);
                         }
                       })}
                       className={`w-full rounded-md border ${

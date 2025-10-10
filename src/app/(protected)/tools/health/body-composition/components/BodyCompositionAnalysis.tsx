@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -13,11 +13,9 @@ import {
   Legend,
   ChartOptions
 } from 'chart.js';
-import type { BodyCompositionEntry, CircumferenceMeasurements } from '(protected)/tools/health/body-composition/types';
+import type { BodyCompositionEntry, CircumferenceMeasurements } from '(protected)/tools/health/body-composition/types/body-composition.zod';
 import AssessmentReview from '(protected)/tools/health/body-composition/components/AssessmentReview';
-import UserSelector from '(protected)/components/UserSelector';
-import { clientLogger } from 'lib/logging/logger.client';
-import { getFetchBaseUrl } from 'lib/utils/clientUtils';
+import type { UserSettings } from 'lib/types/userSettings.zod';
 
 ChartJS.register(
   CategoryScale,
@@ -31,85 +29,22 @@ ChartJS.register(
 
 interface Props {
   userId: number;
+  entries: BodyCompositionEntry[];
+  userSettings?: UserSettings | null;
 }
 
 type TimeframeOption = '1M' | '3M' | '6M' | '1Y' | 'ALL' | 'CUSTOM';
 
-export default function BodyCompositionAnalysis({ userId }: Props) {
-  const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('');
+export default function BodyCompositionAnalysis({ userId, entries: initialEntries, userSettings }: Props) {
+  const [timeframe, setTimeframe] = useState<TimeframeOption | ''>('3M');
   const [customStartDate, setCustomStartDate] = useState<string>('');
   const [customEndDate, setCustomEndDate] = useState<string>('');
-  const [expandedSection, setExpandedSection] = useState<'charts' | 'reports' | 'insights' | null>('reports');
+  const [expandedSection, setExpandedSection] = useState<'charts' | 'reports' | 'insights' | null>('charts');
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
-  const [entries, setEntries] = useState<BodyCompositionEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['weight']);
   const [selectedCircumferences, setSelectedCircumferences] = useState<string[]>([]);
-  const [userSettings, setUserSettings] = useState<any | null>(null);
-
-  // Fetch entries for selected user
-  useEffect(() => {
-    const fetchEntries = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const baseURL = await getFetchBaseUrl();
-        const fetchURL = `${baseURL}/api/body-composition?userId=${userId}`;
-        const response = await fetch(fetchURL, {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch entries');
-        }
-
-        const data = await response.json();
-        clientLogger.info('Debug - API Response:', { data });
-        
-        if (!data.entries || !Array.isArray(data.entries)) {
-          throw new Error('Invalid response format');
-        }
-
-        clientLogger.info('Debug - First Entry:', { entry: data.entries[0] });
-        setEntries(data.entries);
-        setSelectedEntryId(null); // Reset selected entry when user changes
-      } catch (err) {
-        clientLogger.error('Error fetching body composition entries', err);
-        setError('Failed to load body composition entries');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchEntries();
-  }, [userId]);
-
-  useEffect(() => {
-    const fetchUserSettings = async () => {
-      try {
-        const baseURL = await getFetchBaseUrl();
-        const fetchURL = `${baseURL}/api/user-settings?userId=${userId}`;
-        const response = await fetch(fetchURL, {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user settings');
-        }
-
-        const data = await response.json();
-        clientLogger.info('Debug - API Response:', { data });
-        
-        setUserSettings(data.settings);
-      } catch (err) {
-        clientLogger.error('Error fetching user settings', err);
-        setError('Failed to load user settings');
-      }
-    };
-
-    fetchUserSettings();
-  }, [userId]);
+  const entries = initialEntries;
 
   const toggleSection = (section: 'charts' | 'reports' | 'insights') => {
     setExpandedSection(expandedSection === section ? null : section);
@@ -168,7 +103,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     // Basic metrics
     if (selectedMetrics.includes('weight')) {
       datasets.push({
-        label: `Weight (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
+        label: `Weight (${userSettings?.general?.weightUnit === 'kgs' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.weight),
         borderColor: 'rgb(75, 192, 192)',
         tension: 0.1
@@ -186,7 +121,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
     if (selectedMetrics.includes('fatMass')) {
       datasets.push({
-        label: `Fat Mass (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
+        label: `Fat Mass (${userSettings?.general?.weightUnit === 'kgs' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.fatMass || null),
         borderColor: 'rgb(255, 159, 64)',
         tension: 0.1
@@ -195,7 +130,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
     if (selectedMetrics.includes('fatFreeMass')) {
       datasets.push({
-        label: `Fat Free Mass (${userSettings?.weight_unit === 'metric' ? 'kg' : 'lbs'})`,
+        label: `Fat Free Mass (${userSettings?.general?.weightUnit === 'kgs' ? 'kg' : 'lbs'})`,
         data: sortedEntries.map(entry => entry.fatFreeMass || null),
         borderColor: 'rgb(54, 162, 235)',
         tension: 0.1
@@ -226,7 +161,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
 
       const color = `hsl(${Math.random() * 360}, 70%, 50%)`;
       datasets.push({
-        label: `${label} (${userSettings?.height_unit === 'metric' ? 'cm' : 'in'})`,
+        label: `${label} (${userSettings?.health && (userSettings.health as any).circumferenceUnit === 'cm' ? 'cm' : (userSettings?.general?.heightUnit === 'cm' ? 'cm' : 'in')})`,
         data: sortedEntries.map(entry => {
           const measurements = entry.circumferenceMeasurements;
           return measurements ? measurements[key as keyof CircumferenceMeasurements] || null : null;
@@ -246,7 +181,33 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
     { value: 'fatFreeMass', label: 'Fat Free Mass' }
   ];
 
-  const circumferenceOptions = Object.keys(entries[0]?.circumferenceMeasurements || {}).map(key => {
+  // Show metric checkboxes only if any entry actually has data for that metric
+  const availableMetricOptions = metricOptions.filter(option => {
+    switch (option.value) {
+      case 'weight':
+        return entries.some(e => typeof e.weight === 'number' && e.weight > 0);
+      case 'bodyFat':
+        return entries.some(e => typeof e.bodyFatPercentage === 'number');
+      case 'fatMass':
+        return entries.some(e => typeof e.fatMass === 'number');
+      case 'fatFreeMass':
+        return entries.some(e => typeof e.fatFreeMass === 'number');
+      default:
+        return false;
+    }
+  });
+
+  // Collect circumference keys that have any non-zero value in the dataset
+  const allCircumferenceKeys = Array.from(new Set(
+    entries.flatMap(e => Object.keys(e.circumferenceMeasurements || {}))
+  ));
+
+  const circumferenceOptions = allCircumferenceKeys
+    .filter(key => entries.some(e => {
+      const v = (e.circumferenceMeasurements || {})[key as keyof CircumferenceMeasurements];
+      return typeof v === 'number' && v > 0;
+    }))
+    .map(key => {
     let label = key;
     
     // Extract side (Left/Right) and state (Flexed/Relaxed) from the key
@@ -328,8 +289,8 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         >
           <h2 className="text-xl font-semibold text-gray-700">Charts</h2>
           <svg
-            className={`w-6 h-6 transform transition-transform ${
-              expandedSection === 'charts' ? 'rotate-180' : ''
+            className={`w-6 h-6 text-gray-700 dark:text-gray-700 transform transition-transform ${
+              expandedSection === 'charts' ? '' : 'rotate-180'
             }`}
             fill="none"
             stroke="currentColor"
@@ -406,25 +367,24 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Select Metrics
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {metricOptions.map(option => (
-                    <button
-                      key={option.value}
-                      onClick={() => {
-                        setSelectedMetrics(prev => 
-                          prev.includes(option.value)
-                            ? prev.filter(m => m !== option.value)
-                            : [...prev, option.value]
-                        );
-                      }}
-                      className={`px-3 py-1 rounded-full text-sm ${
-                        selectedMetrics.includes(option.value)
-                          ? 'bg-purple-500 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {availableMetricOptions.map(option => (
+                    <label key={option.value} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={selectedMetrics.includes(option.value)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setSelectedMetrics(prev => (
+                            checked
+                              ? [...prev, option.value]
+                              : prev.filter(m => m !== option.value)
+                          ));
+                        }}
+                      />
+                      <span className="text-sm text-gray-700">{option.label}</span>
+                    </label>
                   ))}
                 </div>
               </div>
@@ -435,25 +395,24 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select Circumference Measurements
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {circumferenceOptions.map(option => (
-                      <button
-                        key={option.value}
-                        onClick={() => {
-                          setSelectedCircumferences(prev => 
-                            prev.includes(option.value)
-                              ? prev.filter(m => m !== option.value)
-                              : [...prev, option.value]
-                          );
-                        }}
-                        className={`px-3 py-1 rounded-full text-sm ${
-                          selectedCircumferences.includes(option.value)
-                            ? 'bg-purple-500 text-white'
-                            : 'bg-gray-200 text-gray-700'
-                        }`}
-                      >
-                        {option.label}
-                      </button>
+                      <label key={option.value} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4"
+                          checked={selectedCircumferences.includes(option.value)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setSelectedCircumferences(prev => (
+                              checked
+                                ? [...prev, option.value]
+                                : prev.filter(m => m !== option.value)
+                            ));
+                          }}
+                        />
+                        <span className="text-sm text-gray-700">{option.label}</span>
+                      </label>
                     ))}
                   </div>
                 </div>
@@ -482,8 +441,8 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         >
           <h2 className="text-xl font-semibold text-gray-700">Reports</h2>
           <svg
-            className={`w-6 h-6 transform transition-transform ${
-              expandedSection === 'reports' ? 'rotate-180' : ''
+            className={`w-6 h-6 text-gray-700 dark:text-gray-700 transform transition-transform ${
+              expandedSection === 'reports' ? '' : 'rotate-180'
             }`}
             fill="none"
             stroke="currentColor"
@@ -495,11 +454,7 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         
         {expandedSection === 'reports' && (
           <div className="p-6 border-t border-gray-200">
-            {isLoading ? (
-              <div className="flex justify-center items-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-              </div>
-            ) : entries.length > 0 ? (
+            {entries.length > 0 ? (
               <AssessmentReview
                 entries={entries}
                 selectedEntryId={selectedEntryId}
@@ -522,8 +477,8 @@ export default function BodyCompositionAnalysis({ userId }: Props) {
         >
           <h2 className="text-xl font-semibold text-gray-700">Insights</h2>
           <svg
-            className={`w-6 h-6 transform transition-transform ${
-              expandedSection === 'insights' ? 'rotate-180' : ''
+            className={`w-6 h-6 text-gray-700 dark:text-gray-700 transform transition-transform ${
+              expandedSection === 'insights' ? '' : 'rotate-180'
             }`}
             fill="none"
             stroke="currentColor"
